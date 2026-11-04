@@ -1,0 +1,60 @@
+appId: com.mylong227.omniharness
+productName: OmniHarness
+copyright: Copyright © 2026 mylong227
+directories:
+  output: release
+  buildResources: static
+files:
+  - dist/**/*
+  - package.json
+extraResources:
+  # 桌面运行参数（发布默认值；用户可在 userData/desktop.config.json 覆盖）。
+  - from: desktop.config.json
+    to: desktop.config.json
+  - from: ../.desktop-stage/harness
+    to: harness
+    filter:
+      - '**/*'
+  # electron-builder 默认过滤掉 `node_modules`；单独再拷一次（Harness 的运行时依赖）。
+  - from: ../.desktop-stage/harness/node_modules
+    to: harness/node_modules
+    filter:
+      - '**/*'
+asar: true
+# Electron 自带 ~48 MB 的 locales（55 种语言）；桌面只面向中英用户，裁到两种。
+# 这是 electron-builder 的官方选项，不是删文件黑科技。
+electronLanguages:
+  - en-US
+  - zh-CN
+npmRebuild: false
+electronFuses:
+  runAsNode: false
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+  grantFileProtocolExtraPrivileges: false
+protocols:
+  - name: OmniHarness
+    schemes:
+      - omniharness
+win:
+  icon: static/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  deleteAppDataOnUninstall: false
+  runAfterFinish: true
+publish:
+  - provider: github
+    owner: mylong227
+    repo: OmniHarness
+    releaseType: draft

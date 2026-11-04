@@ -1,0 +1,144 @@
+/* =========================================================================
+   OmniHarness Web UI — 浮层与模态：审批 / 对话框 / 文件夹选择器 / 命令面板 / toast
+   ---------------------------------------------------------------------
+   来源：CSS 按功能拆分（2026-10-16）。本段原属 polish.css §7，行序未动，
+   级联语义与拆分前逐字节等价（index.html 按 same-order 依序加载）。
+   ========================================================================= */
+
+/* =========================================================================
+   7. 浮层与模态：审批 / 应用内对话框 / 文件夹选择器 / 命令面板 / toast
+   ========================================================================= */
+[data-theme='light'] .overlay {
+  background: rgba(0, 0, 0, 0.32);
+}
+.overlay.show {
+  animation: fade-in var(--dur-2) var(--ease);
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.modal,
+.dlg {
+  border-color: var(--border-strong);
+  background: var(--bg-elev);
+  animation: modal-in var(--dur-2) var(--ease);
+}
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.modal h3 {
+  font-size: 14.5px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+}
+.modal .meta {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--dim);
+}
+.modal pre {
+  font-size: 11.5px;
+  line-height: 1.55;
+  border-color: var(--border-soft);
+}
+.modal button {
+  border-radius: 9px;
+  font-weight: 600;
+  font-size: 12.5px;
+  transition: filter var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
+}
+.modal .allow {
+  background: var(--ok);
+  color: var(--on-ok);
+}
+.modal .deny {
+  background: var(--err);
+  color: var(--on-err);
+}
+.modal .always {
+  background: var(--panel-2);
+  border-color: var(--border-soft);
+}
+.modal .always:hover {
+  border-color: var(--border-strong);
+  background: var(--panel);
+}
+.dlg .dlg-msg {
+  font-size: 12.5px;
+}
+.dlg .dlg-confirm:hover {
+  background: color-mix(in srgb, var(--brand-bg) 84%, #ffffff);
+}
+.dlg .dlg-confirm.danger {
+  background: var(--danger);
+  color: var(--on-danger);
+  border-color: var(--danger);
+}
+.dlg .dlg-cancel {
+  border-color: var(--border-soft);
+}
+
+/* 命令面板：更大、更"空"的输入行 + 分组标题 */
+.cmdk {
+  animation: modal-in var(--dur-2) var(--ease);
+}
+.cmdk-input {
+  border-bottom-color: var(--border-soft);
+  font-family: var(--font-sans);
+}
+.cmdk-group-title {
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.cmdk-hint {
+  font-family: var(--font-mono);
+}
+
+/* 文件夹 / 文件选择器 */
+.fp-crumb,
+.fp-input {
+  background: var(--code-bg);
+  border-radius: 9px;
+  font-size: 11.5px;
+}
+.fp-primary {
+  background: var(--brand-bg);
+  border-color: var(--brand-bg);
+  color: var(--brand-on);
+}
+.fp-primary:hover:not([disabled]) {
+  background: color-mix(in srgb, var(--brand-bg) 84%, #ffffff);
+}
+.fp-btn,
+.fp-new {
+  border-radius: 9px;
+  font-size: 12.5px;
+}
+.fp-new {
+  border-style: dashed;
+  border-color: var(--border-strong);
+}
+
+/* toast：底部居中、带图标位、进出有位移 */
+.toast {
+  padding: 10px 16px;
+  font-weight: 600;
+  border-color: var(--border-strong);
+  transition: opacity var(--dur-2) var(--ease), transform var(--dur-2) var(--ease);
+}
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+}
+

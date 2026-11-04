@@ -1,0 +1,468 @@
+/* =========================================================================
+  OmniHarness Web UI — 主题基础层：配色 token、reset、原生控件兜底、原生表面
+  全站唯一配色事实源。必须最先加载。
+
+  ---------------------------------------------------------------------------
+  2026-10-18 · 「纸与墨」重设计（Redesign · Replace）
+  ---------------------------------------------------------------------------
+  上一版是**零色相**的纯黑/纯白单色体系。它在纪律上成立（层级只靠明度），
+  但真实长时间使用下来有两件事不舒服：
+
+    ① 底色太极端。纯 #000 的暗色与纯 #fff 的亮色在暗环境/亮环境里都在"顶眼睛"，
+       而且 #fff 上的 #0a0a0a 正文对比 19.8:1，远超阅读所需的舒适区。
+    ② 没有色彩构图。全站只剩明度时，界面的"温度"为零：当前项、主行动、错误、
+       成功全都靠字形和加粗去猜。用户的原话是「色彩构图需要舒适」。
+
+  这一版因此换掉整个视觉世界，只保留交互与结构：
+
+    · **底**：中性色带极轻的冷调（暗色是石墨，亮色是纸白），不再是纯黑纯白。
+      暗色 #17191c / 亮色 #f8f7f4 —— 都在 sRGB 上留了一档"呼吸"，
+      正文对比落在 15–16:1（清晰但不刺眼）。
+    · **一个签名色**：靛墨（dark #a8b4e8 / light #3d4a86）。它是纸上的墨，
+      只承担四种语义：主行动、当前/选中、链接、焦点。全站不出现第二个品牌色。
+    · **语义色恢复色相，但全部低饱和**：成功=鼠尾草绿、失败=茜红、告警=琥珀、
+      信息=雾蓝。它们只在"需要被区分"的地方出现（状态徽标、diff、告警条），
+      从不铺满整块表面。
+    · **层级仍只有三件事**：表面阶梯（bg → panel → panel-2）、发丝线、留白。
+      投影只留给"真的浮起来"的东西（菜单、模态、toast）。
+
+  为什么是靛墨而不是常见的科技蓝：靛墨（iron-gall ink）是纸面书写史上最老的
+  深色墨，偏紫的冷调与暖中性底形成"暖底冷墨"的张力，在低饱和下依然有色彩感，
+  却不会像 #3b82f6 那样把界面变成仪表盘。
+
+  两套主题是**同一套语言的两种光照**，不是两套配色：
+  同名 token 在两套里语义一致（`--accent` 永远是"墨"、`--text` 永远是最强正文），
+  所以任何组件都不需要写 `[data-theme]` 分支。
+
+  判据：web/test/a11yContrast.test.ts（对比度 ≥4.5:1）、
+       web/test/colorSystem.test.ts（色相预算：只允许声明的四个色族）。
+  ========================================================================= */
+
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* —— 表面阶梯：石墨 → 卡片 → 悬停 ——
+     暗色里"更亮 = 更靠前"。中栏（对话）是 bg，左右栏是 bg-elev（后退一档），
+     卡片/输入面板是 panel（前进一档）。三级落差都在 1.2:1 上下：看得见，但不成块。 */
+  --bg: #17191c;
+  --bg-elev: #121417;
+  --panel: #1e2126;
+  --panel-2: #282c32;
+  /* 菜单/列表的「当前项」底色：比 --panel-2 再亮一档，选中态才能一眼看出。 */
+  --panel-sel: #343a43;
+  --code-bg: #101215;
+
+  /* —— 语法高亮九档（VS Code 风格分色，2026-10-31 用户口径：单色体系退役）——
+     色相字面量只许住在这里（colorSystem 门禁：theme.css 之外不得出现色相字面量），
+     highlight.css 只留消费规则。九档全部对 --code-bg 过 WCAG AA（≥4.5:1，
+     dark 5.6–13.3 / light 4.7–14.0，判据见 web/test/highlightColors.test.ts）。 */
+  --tok-plain: #d4d4d4;
+  --tok-kw: #569cd6;
+  --tok-fn: #dcdcaa;
+  --tok-string: #ce9178;
+  --tok-num: #b5cea8;
+  --tok-type: #4ec9b0;
+  --tok-prop: #9cdcfe;
+  --tok-punct: #9a9a9a;
+  --tok-comment: #6a9955;
+
+  /* —— 磨砂材质（2026-10-31 用户：按钮/浮层/吸顶带透明磨砂质感）——
+     半透明填充 + backdrop blur。只给「内容会从底下经过」的表面（吸顶头 / 浮层 / toast）
+     和按钮；磨砂叠在静止实色卡上看不出差别、纯耗 GPU，所以不给卡片与栏体。
+     两套主题同参数（百分比对各自表面阶梯生效），故只在 :root 定义一次。 */
+  --frost-fill-soft: color-mix(in srgb, var(--bg-elev) 72%, transparent);
+  --frost-fill: color-mix(in srgb, var(--panel) 88%, transparent);
+  --frost-blur: blur(18px) saturate(1.15);
+  --frost-blur-soft: blur(12px) saturate(1.08);
+  --btn-fill: color-mix(in srgb, var(--panel-2) 62%, transparent);
+  --btn-fill-hover: color-mix(in srgb, var(--panel-2) 85%, transparent);
+
+  /* —— 描边三档（职责固定，不要混用）——
+       --hairline     栏内分隔 / 列表行：只"断开"，不画格子（约 1.1:1）
+       --border-soft  容器边缘：卡片、输入卡、浮层（约 1.4:1）
+       --border       控件边界：表单、按钮、徽标（≥3:1，承担 WCAG 1.4.11）
+       --border-strong hover / 聚焦的增量（≥3:1 对 panel） */
+  --hairline: #262b31;
+  --border-soft: #353b43;
+  --border: #6b7480;
+  --border-strong: #8b95a3;
+
+  /* —— 文本：正文 / 次要 / 装饰 ——
+     15.3:1 / 8.3:1 / 5.9:1（on --bg）。正文不再拉到 21:1：
+     那是纯白配纯黑才有的读数，长时间阅读会发光。 */
+  --text: #eceef2;
+  --dim: #aab2bd;
+  --faint: #8d96a2;
+
+  /* —— 签名色：靛墨 ——
+     `--accent` 同时是"墨"（可作底色、可作字色）：作底色时配 `--ink-fg`，
+     作字色时直接落在任何表面阶梯上（8.4–9.1:1）。
+     `--accent-2` 是按下/hover 的加深档，`--accent-soft` / `--accent-line`
+     是选中底的"墨色极淡渲染"——它们让选中态带一点色温，而不是又一块灰。 */
+  --accent: #a8b4e8;
+  --accent-2: #c2cbf1;
+  --ink-fg: #14161c;
+  --accent-soft: color-mix(in srgb, var(--accent) 13%, transparent);
+  --accent-line: color-mix(in srgb, var(--accent) 38%, transparent);
+  --brand: #a8b4e8;
+  --brand-bg: #a8b4e8;
+  --brand-on: #14161c;
+  --user: #a8b4e8;
+
+  /* —— 语义色：低饱和、只做"信号"，不做"装饰" ——
+     暗色下取中高明度（8:1 上下），保证落在任何表面上都能读。 */
+  --ok: #8fbf9f;
+  --err: #e89a92;
+  --warn: #d4b06a;
+  --danger: #e89a92;
+  --info: #9fb3d9;
+  --add: #8fbf9f;
+  --del: #e89a92;
+
+  /* 语义色之上的前景（实心徽标/条带用）。 */
+  --on-ok: #101413;
+  --on-err: #1a1212;
+  --on-danger: #1a1212;
+  --toast-ok: #e6efe9;
+  --toast-err: #f3e6e4;
+  --toast-ok-border: #4a5a52;
+  --toast-err-border: #6b4a46;
+
+  /* 悬浮提示：**跟随主题**（浅色白纸 / 深色墨片），不做反相块——§117 定稿口径；
+     深色下用 panel-2 作底（比页面亮一档）+ 发丝边，浅色下纯白 + 发丝边。
+     palette.ts 的 tipBg/tipFg/tipLine 与这里逐值一致（antdTheme.test.ts 比对）。 */
+  --tip-bg: #282c32;
+  --tip-fg: #eceef2;
+  --tip-line: #353b43;
+
+  /* 悬浮态：一层几乎不可见的提亮，只在"可点"的东西上出现。 */
+  --hover: rgba(236, 238, 242, 0.055);
+  --hover-strong: rgba(236, 238, 242, 0.1);
+
+  /* —— 浮起：偏移 + 柔化，两层（接触阴影 + 环境阴影）——
+     只给菜单、模态、toast、命令面板。卡片/输入框永远不投影。 */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.34), 0 6px 16px rgba(0, 0, 0, 0.3);
+  --shadow-2: 0 2px 6px rgba(0, 0, 0, 0.4), 0 24px 56px rgba(0, 0, 0, 0.55);
+  --shadow: var(--shadow-1);
+  --hairline-top: none;
+  --ring: 0 0 0 3px color-mix(in srgb, var(--accent) 26%, transparent);
+
+  --radius: 10px;
+  --radius-sm: 8px;
+  --radius-lg: 14px;
+  --space: 12px;
+
+  --mono: 'JetBrains Mono', 'Cascadia Mono', ui-monospace, SFMono-Regular, Menlo, Consolas,
+    monospace;
+  --font-mono: var(--mono);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+
+  /* 纸白：比纯白低 2% 明度，卡片反而比纸更白（真正的"纸上有卡片"）。 */
+  --bg: #f8f7f4;
+  --bg-elev: #f1f0ec;
+  --panel: #fdfcf9;
+  --panel-2: #e9e8e3;
+  --panel-sel: #dde2e7;
+  --code-bg: #f4f4f2;
+
+  /* 语法高亮九档（与暗色块同一套色相语言，取 VS Code Light+ 的深墨版本）。 */
+  --tok-plain: #1f1f1f;
+  --tok-kw: #0000ff;
+  --tok-fn: #795e26;
+  --tok-string: #a31515;
+  --tok-num: #0a7d50;
+  --tok-type: #1f6e84;
+  --tok-prop: #001080;
+  --tok-punct: #565656;
+  --tok-comment: #027702;
+
+  --hairline: #e4e4e0;
+  --border-soft: #d5d6d1;
+  --border: #7d838c;
+  --border-strong: #5d646d;
+
+  --text: #1a1d21;
+  --dim: #565d66;
+  --faint: #5f666f;
+
+  /* 同一档墨色在纸面上取深靛：8.1:1（on panel），作实心底时配纸白字。 */
+  --accent: #3d4a86;
+  --accent-2: #2f3a6e;
+  --ink-fg: #fdfcf9;
+  --accent-soft: color-mix(in srgb, var(--accent) 9%, transparent);
+  --accent-line: color-mix(in srgb, var(--accent) 30%, transparent);
+  --brand: #3d4a86;
+  --brand-bg: #3d4a86;
+  --brand-on: #fdfcf9;
+  --user: #3d4a86;
+
+  --ok: #3a7150;
+  --err: #a6362f;
+  --warn: #7d5a1c;
+  --danger: #a6362f;
+  --info: #3f5680;
+  --add: #3a7150;
+  --del: #a6362f;
+
+  --on-ok: #fdfcf9;
+  --on-err: #fdfcf9;
+  --on-danger: #fdfcf9;
+  --toast-ok: #1f3a2a;
+  --toast-err: #3a1614;
+  --toast-ok-border: #8fae9c;
+  --toast-err-border: #b08a86;
+
+  /* 悬浮提示：浅色下是**纯白纸片** + 一根发丝边（深色下则是 panel-2 墨片）。
+     纯白与纸面 #f8f7f4 只差 2%，没有边线会糊成一片。 */
+  --tip-bg: #ffffff;
+  --tip-fg: #1a1d21;
+  --tip-line: #d5d6d1;
+
+  --hover: rgba(26, 29, 33, 0.045);
+  --hover-strong: rgba(26, 29, 33, 0.085);
+
+  --shadow-1: 0 1px 2px rgba(38, 40, 46, 0.06), 0 6px 16px rgba(38, 40, 46, 0.08);
+  --shadow-2: 0 2px 6px rgba(38, 40, 46, 0.08), 0 24px 56px rgba(38, 40, 46, 0.14);
+  --shadow: var(--shadow-1);
+  --hairline-top: none;
+  --ring: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+
+  --radius: 10px;
+  --radius-sm: 8px;
+  --radius-lg: 14px;
+  --space: 12px;
+
+  --mono: 'JetBrains Mono', 'Cascadia Mono', ui-monospace, SFMono-Regular, Menlo, Consolas,
+    monospace;
+  --font-mono: var(--mono);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* =========================================================================
+   主题色方案（2026-10-31，用户口径：多套主题色、设置里可切、明暗双主题都要有）
+   -------------------------------------------------------------------------
+   只换**签名色族七枚**（accent / accent-2 / ink-fg + brand / brand-bg / brand-on /
+   user——后四枚是 accent 的别名镜像，必须一起换，否则换肤后品牌元素还挂旧色）。
+   表面阶梯与语义色是全站骨架，不随方案变；--accent-soft / --accent-line / --ring
+   是 var(--accent) 的 color-mix 派生，自动跟随，无需重复定义。
+   值与 palette.ts 的 SCHEMES 逐值一致（themeSchemes 判据静态比对）；
+   基础块（上面两个）= ink 靛墨，`<html>` 无 data-scheme 即 ink。
+   全部 30 对「accent×bg/panel、ink-fg×accent」已按 WCAG AA（≥4.5:1）验算。
+   ========================================================================= */
+[data-theme='dark'][data-scheme='moss'] {
+  --accent: #9ed0b6;
+  --accent-2: #b8dfd0;
+  --ink-fg: #0f1f18;
+  --brand: #9ed0b6;
+  --brand-bg: #9ed0b6;
+  --brand-on: #0f1f18;
+  --user: #9ed0b6;
+}
+[data-theme='light'][data-scheme='moss'] {
+  --accent: #2e6b4f;
+  --accent-2: #245540;
+  --ink-fg: #fdfcf9;
+  --brand: #2e6b4f;
+  --brand-bg: #2e6b4f;
+  --brand-on: #fdfcf9;
+  --user: #2e6b4f;
+}
+[data-theme='dark'][data-scheme='plum'] {
+  --accent: #c9a8e0;
+  --accent-2: #dcc4ee;
+  --ink-fg: #180f20;
+  --brand: #c9a8e0;
+  --brand-bg: #c9a8e0;
+  --brand-on: #180f20;
+  --user: #c9a8e0;
+}
+[data-theme='light'][data-scheme='plum'] {
+  --accent: #6d3a91;
+  --accent-2: #572d75;
+  --ink-fg: #fdfcf9;
+  --brand: #6d3a91;
+  --brand-bg: #6d3a91;
+  --brand-on: #fdfcf9;
+  --user: #6d3a91;
+}
+[data-theme='dark'][data-scheme='amber'] {
+  --accent: #e0bf8f;
+  --accent-2: #ecd2ac;
+  --ink-fg: #1f1608;
+  --brand: #e0bf8f;
+  --brand-bg: #e0bf8f;
+  --brand-on: #1f1608;
+  --user: #e0bf8f;
+}
+[data-theme='light'][data-scheme='amber'] {
+  --accent: #8a5a14;
+  --accent-2: #6e470f;
+  --ink-fg: #fdfcf9;
+  --brand: #8a5a14;
+  --brand-bg: #8a5a14;
+  --brand-on: #fdfcf9;
+  --user: #8a5a14;
+}
+[data-theme='dark'][data-scheme='rose'] {
+  --accent: #e0a3b8;
+  --accent-2: #ecbdd0;
+  --ink-fg: #200f14;
+  --brand: #e0a3b8;
+  --brand-bg: #e0a3b8;
+  --brand-on: #200f14;
+  --user: #e0a3b8;
+}
+[data-theme='light'][data-scheme='rose'] {
+  --accent: #a83a5e;
+  --accent-2: #8a2e4c;
+  --ink-fg: #fdfcf9;
+  --brand: #a83a5e;
+  --brand-bg: #a83a5e;
+  --brand-on: #fdfcf9;
+  --user: #a83a5e;
+}
+/* 石墨（黑白灰）：无色相签名，「纸与墨」最原始的中性观感。 */
+[data-theme='dark'][data-scheme='graphite'] {
+  --accent: #cdd3da;
+  --accent-2: #dee2e8;
+  --ink-fg: #16181c;
+  --brand: #cdd3da;
+  --brand-bg: #cdd3da;
+  --brand-on: #16181c;
+  --user: #cdd3da;
+}
+[data-theme='light'][data-scheme='graphite'] {
+  --accent: #3a3f45;
+  --accent-2: #24282d;
+  --ink-fg: #fdfcf9;
+  --brand: #3a3f45;
+  --brand-bg: #3a3f45;
+  --brand-on: #fdfcf9;
+  --user: #3a3f45;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  /* 正文 14.5px / 1.7：比上一版（13.5 / 1.6）放宽半档。
+     行高 1.7 是中文正文的舒适区；字距轻微收紧，避免 14px 下西文发散。 */
+  font: 14.5px/1.7 system-ui, 'Segoe UI', -apple-system, 'PingFang SC', 'Microsoft YaHei',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* 滚动条：静止时几乎隐形，悬停才显形（常驻灰杠在密集界面里最吵）。 */
+* {
+  scrollbar-width: thin;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 统一过渡：只给颜色与描边。位移与投影不进这套过渡（动效不是装饰）。 */
+button,
+.btn,
+.iconbtn,
+.session,
+.tool-item,
+.card,
+.tool,
+.plugin-card,
+.mem-row,
+.graph-node,
+.graph-card {
+  transition: background var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease),
+    color var(--dur-1) var(--ease);
+}
+
+/* 键盘焦点：2px 墨色环 + 一圈极淡外晕。密集界面里双环比单环更容易被眼睛抓住，
+   且外晕用 accent 的透明度表达，两种主题下都成立。 */
+
+/* 工作台根：行高用 minmax(0,1fr) 锁死视口——`1fr` 的最小尺寸是 auto，矮视口 + 长侧栏内容会
+   把轨道顶破 100vh ⇒ 文档整体可滚，任何滚轮都把整页滚走。
+   行高锁定后，高内容一律由各栏自己的 overflow:auto 内部消化。 */
+.app {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* =========================================================================
+   全局原生控件主题化（兜底层）
+   修「裸 button/input/select/textarea 白底黑字」：所有未带 class 的原生控件
+   一律吃主题变量；已带 class 的组件（.btn/.ctl-sel/.form 等）specificity 更高。
+   ========================================================================= */
+button {
+  /* iOS 口径（2026-10-31 用户：全站继续 iOS 风）：静止**无边框**——层级靠填充深浅，
+     不靠描边。保留 1px 宽度是为了零布局位移，也让组件各自的 border-color 规则
+     （语义主操作的淡底细边等）照常着色。
+     填充是**半透明磨砂**（--btn-fill）：叠在卡片上是柔和的浮起药丸，透出一点底色。
+     blur 不进全局基——透明图形按钮（.iconbtn 等）会被糊上一层，磨砂 blur 只给
+     内容真正从底下滚过的表面（吸顶头 / 浮层 / toast，见各处 --frost-blur）。
+     hover 靠提高不透明度表达「按下感」；自带 background 的组件按 class 覆盖不受影响。 */
+  background: var(--btn-fill);
+  border: 1px solid transparent;
+  color: var(--text);
+  padding: 6px 13px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.45;
+}
+button:hover {
+  border-color: transparent;
+  background: var(--btn-fill-hover);
+}
+input:not([type='checkbox']):not([type='radio']):not([type='range']),
+textarea,
+select {
+  /* 同上：填充式字段（fill 由 base.css 的 --code-bg 给），静止无边框。 */
+  border: 1px solid transparent;
+  color: var(--text);
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.45;
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--dim);
+}
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+}
+select option,
+select optgroup {
+  background: var(--panel);
+  color: var(--text);
+}
+
+/* ghost 次级按钮 */
+.ghost {
+  /* iOS 口径：次级 = 灰填充药丸，不再描边。 */
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  padding: 5px 12px;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-family: inherit;
+}

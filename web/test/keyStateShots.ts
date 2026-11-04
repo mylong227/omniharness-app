@@ -1,0 +1,212 @@
+// 关键交互态补拍（W0 基线；W5 复核复用）：**一态一页**——每个状态起独立 Chrome 实例。
+//
+// 为什么不进 visualProbe 的多态循环：W0 实测单页连续跑 20+ 态后页面退化（chip 选择器消失 /
+// 重载不挂载），而同一序列在独立页面里 100% 复现（debugSeedState 实测）。单页多态是探针的
+// 结构性问题，不在本批修；这里用「每态新起页面」绕开，代价是每态 ~3s 启动，14 张可接受。
+// 选择器配方与 visualProbe 的 STATES 逐字同源——两边将来要一起改（W5 收口时并入探针）。
+
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import {
+  findBrowser,
+  serveStatic,
+  getFreePort,
+  launchChromeForCdp,
+  killChromeTree,
+  waitForPageWs,
+  CdpSession,
+  stubHtmlCdp,
+  WEB_ROOT_PATH,
+} from './browserHarness.ts';
+import { skipReasonFor } from './browserSwitch.ts';
+
+const ARCHIVE = join(WEB_ROOT_PATH, 'archive');
+const WIDTH = 1280;
+const HEIGHT = 900;
+
+/** 一次截图的产出。 */
+interface ShotOutcome {
+  key: string;
+  theme: string;
+  ok: boolean;
+  error?: string;
+}
+
+/** 把页面推进到「有会话 + 已收尾回合」的渲染态（与 visualProbe.seedSession 同源）。 */
+async function seed(cdp: CdpSession): Promise<void> {
+  await cdp.evaluate(
+    "(function(){ var ta=document.querySelector('.composer-input textarea'); var b=document.querySelector('button.send'); if(ta&&b){ ta.value='打磨工作台视觉层'; b.dispatchEvent(new Event('input',{bubbles:true})); b.click(); } })()",
+  );
+  await cdp.waitFor('!!window.__RESOLVE_TURN__', 800);
+  await cdp.evaluate(
+    "window.__RESOLVE_TURN__ && window.__RESOLVE_TURN__({ threadId:'probe-t1', finalText:'', steps:1 });",
+  );
+  await new Promise((r) => setTimeout(r, 200));
+}
+
+/** 各交互态的打开配方（选择器与 visualProbe.STATES 同源）。 */
+const OPENERS: Record<string, (cdp: CdpSession) => Promise<boolean>> = {
+  dropdown: async (cdp) => {
+    await cdp.click('.dd');
+    return cdp.evaluate("!!document.querySelector('.dd-menu')");
+  },
+  modelpicker: async (cdp) => {
+    await cdp.click('.mp');
+    return cdp.evaluate("!!document.querySelector('.mp-menu')");
+  },
+  addmenu: async (cdp) => {
+    await cdp.click('.addmenu-ico');
+    return cdp.evaluate("!!document.querySelector('.addmenu-pop')");
+  },
+  // capacity 态已删除（2026-10-29）：main §119/§120 把容量入口移出输入区（.cap 触发器不存在），
+  // 终态落点（控制台页 vs 左栏小图表）在对方会话的收尾里仍在变化，落定后再补拍。
+  permission: async (cdp) => {
+    await cdp.click('.dd.perm');
+    return cdp.evaluate("!!document.querySelector('.dd-menu.wide')");
+  },
+  streaming: async (cdp) => {
+    await cdp.push({ method: 'thread.text_delta', params: { text: '正在把增量' } });
+    await cdp.push({ method: 'thread.text_delta', params: { text: '逐段拼进流式卡片……' } });
+    const shown = await cdp.waitFor("!!document.querySelector('.streaming-assistant .content')", 600);
+    await cdp.evaluate(
+      "window.__RESOLVE_TURN__ && window.__RESOLVE_TURN__({ threadId:'probe-t1', finalText:'', steps:1 });",
+    );
+    return shown;
+  },
+  approval: async (cdp) => {
+    await cdp.push({
+      method: 'approval.request',
+      params: {
+        requestId: 'probe-r1',
+        toolName: 'shell',
+        target: 'rm -rf ./build',
+        args: { cmd: 'rm -rf ./build' },
+      },
+    });
+    return cdp.waitFor("!!document.querySelector('.ant-modal[role=\"dialog\"]')", 400);
+  },
+  // ---- W5 复核补齐（§183 的 8 界面清单余下四态）----
+  // empty：不 seed（captureOne 按 key 跳过 seed），初始空态即目标画面。
+  console: async (cdp) => {
+    await cdp.evaluate(
+      "(function(){ var b=document.querySelector('button[aria-label=\"打开设置\"], button[aria-label=\"Open settings\"]'); if(b){ b.click(); return true; } return false; })()",
+    );
+    return cdp.waitFor("!!document.querySelector('.csl')", 3000);
+  },
+  palette: async (cdp) => {
+    await cdp.evaluate(
+      "window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))",
+    );
+    return cdp.waitFor("!!document.querySelector('.cmdk-input')", 3000);
+  },
+  rightpanel: async () => true, // 桌面三栏常驻右栏：FileTab 空态即目标画面
+  // 权限设置页（W5 真机回归修复验证：ConsoleSelect 换 antd 后旧原生 CSS 挤掉文字的修复取证）
+  consolePerm: async (cdp) => {
+    await cdp.evaluate(
+      "(function(){ var b=document.querySelector('button[aria-label=\"打开设置\"], button[aria-label=\"Open settings\"]'); if(b){ b.click(); return true; } return false; })()",
+    );
+    await cdp.waitFor("!!document.querySelector('.csl')", 3000);
+    await cdp.evaluate(
+      "(function(){ var items=document.querySelectorAll('.csl-nav button, .csl-nav a, .csl-nav [role=\"menuitem\"]'); for (var i=0;i<items.length;i++){ if(items[i].textContent.indexOf('权限')>=0){ items[i].click(); return true; } } return false; })()",
+    );
+    return cdp.waitFor("!!document.querySelector('.csl-select.ant-select')", 3000);
+  },
+  narrow: async () => true, // 视口由 captureOne 特殊处理（480px + 左栏抽屉态）
+};
+
+/** 不做 seed 的状态（空态/右栏空态/窄视口要的就是初始画面）。 */
+const NO_SEED = new Set(['empty', 'rightpanel', 'narrow']);
+
+async function captureOne(
+  browser: string | null,
+  server: { port: number; close: () => Promise<void> },
+  key: string,
+  theme: 'dark' | 'light',
+  stamp: number,
+): Promise<ShotOutcome> {
+  // require 模式下允许 null 进来（见入口处 skipReasonFor 口径）：逐态记失败，不静默跳过。
+  if (browser === null) {
+    return { key, theme, ok: false, error: '未找到本机浏览器（OMNI_REQUIRE_BROWSER=1 强制运行）' };
+  }
+  const userDataDir = mkdtempSync(join(tmpdir(), 'omni-keyshot-ud-'));
+  const debugPort = await getFreePort();
+  let cdp: CdpSession | undefined;
+  let proc: ReturnType<typeof launchChromeForCdp> | undefined;
+  try {
+    proc = launchChromeForCdp(
+      browser,
+      `http://127.0.0.1:${server.port}/_keyshot-stub.html?theme=${theme}`,
+      userDataDir,
+      debugPort,
+    );
+    const wsUrl = await waitForPageWs(debugPort, '_keyshot-stub.html', 20000);
+    cdp = new CdpSession(wsUrl);
+    await cdp.startDiagnostics();
+    // narrow：窄视口重排（§7 W0 清单的「窄视口」）——其余态 1280×900。
+    const narrow = key === 'narrow';
+    await cdp.send('Emulation.setDeviceMetricsOverride', {
+      width: narrow ? 480 : WIDTH,
+      height: HEIGHT,
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
+    if (!(await cdp.waitMounted(8000))) return { key, theme, ok: false, error: '未挂载' };
+    await cdp.evaluate(`document.documentElement.setAttribute('data-theme','${theme}')`);
+    if (!NO_SEED.has(key)) await seed(cdp);
+    if (key === 'narrow') {
+      // 窄屏下左栏是抽屉（默认收起）：抽屉态即「窄视口」的目标画面。
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    if (key === 'streaming') {
+      // 流式态的回合必须保持在飞：seed 已收尾，这里重开一回合供增量落进流式卡片。
+      await cdp.evaluate(
+        "(function(){ var ta=document.querySelector('.composer-input textarea'); var b=document.querySelector('button.send'); if(ta&&b){ ta.value='第二回合'; b.dispatchEvent(new Event('input',{bubbles:true})); b.click(); } })()",
+      );
+      await cdp.waitFor('!!window.__RESOLVE_TURN__', 800);
+    }
+    const opened = await OPENERS[key]?.(cdp);
+    if (opened !== true) return { key, theme, ok: false, error: '未能进入该状态' };
+    await new Promise((r) => setTimeout(r, 250));
+    const crash = await cdp.evaluate(
+      "!!document.querySelector('.crash-panel') ? (document.querySelector('.crash-msg')||{}).textContent : ''",
+    );
+    if (crash) return { key, theme, ok: false, error: `渲染崩溃 → ${String(crash).slice(0, 100)}` };
+    await cdp.screenshot(join(ARCHIVE, `polish-${theme}-state-${key}-${stamp}.png`));
+    return { key, theme, ok: true };
+  } catch (err) {
+    return { key, theme, ok: false, error: String((err as Error)?.message ?? err).slice(0, 140) };
+  } finally {
+    if (cdp) cdp.close();
+    if (proc) killChromeTree(proc, userDataDir);
+    try {
+      rmSync(userDataDir, { recursive: true, force: true });
+    } catch {
+      /* 清扫器兜底 */
+    }
+  }
+}
+
+const browser = findBrowser();
+// 跳过必须接开关（requireSwitches ②）：普通缺浏览器 ⇒ 显式 SKIP 退出；
+// `OMNI_REQUIRE_BROWSER=1` ⇒ 不跳过——browser 为 null 时 captureOne 逐态记录失败并进 JSON
+// （调用方看 `failed`），而不是静默"看着绿"。
+const skipReason = skipReasonFor(browser !== null);
+if (skipReason !== null) {
+  process.stdout.write(`SKIP: ${skipReason}\n`);
+  process.exit(0);
+}
+const server = await serveStatic(WEB_ROOT_PATH, { '/_keyshot-stub.html': stubHtmlCdp() });
+const stamp = Date.now();
+const outcomes: ShotOutcome[] = [];
+for (const theme of ['dark', 'light'] as const) {
+  for (const key of Object.keys(OPENERS)) {
+    outcomes.push(await captureOne(browser, server, key, theme, stamp));
+  }
+}
+await server.close();
+const bad = outcomes.filter((o) => !o.ok);
+process.stdout.write(
+  JSON.stringify({ kind: 'key-state-shots', ok: outcomes.length - bad.length, failed: bad, stamp }) + '\n',
+);
+process.exit(0);

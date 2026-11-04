@@ -1,0 +1,642 @@
+// 左栏的模块级渲染函数：会话行 / 任务卡视图 / 分组列表视图 / 项目条 / 文件树。
+//
+// 从 SessionPanel 抽出（原文件 457 行实现逼近 500 行上限，且这里全是纯渲染、无状态）：
+// 每个函数只吃一个 ctx（状态 + 回调），不持有任何状态、不发任何请求，故可被 SessionPanel
+// 与将来任何宿主复用；会话过滤（filterSessions）也在此，供本地即时过滤与单测共用。
+
+import * as React from 'react';
+import { FileTree } from './FileTree.tsx';
+import { SessionGrouper } from '../models/SessionGrouper.ts';
+import { PathJoiner } from '../models/PathJoiner.ts';
+import { WorkspacePath } from '../models/WorkspacePath.ts';
+import type { FsNode } from '../../types/models.ts';
+import type { SessionEntry } from '../shared.ts';
+import { emptyState } from '../format.ts';
+import { icon } from '../models/Icon.ts';
+import { timeAgo } from '../textUtils.ts';
+import { SessionRowMeta } from '../models/SessionRowMeta.ts';
+import { t } from '../i18n/i18n.ts';
+
+/** 每组默认展示条数。 */
+export const PAGE = 10;
+
+/**
+ * 会话行的键盘模型（2026-10-29 W3，键盘扫描补项）。
+ *
+ * 行本身是可点 div：此前键盘用户**既进不去、也打不开菜单**（右键菜单只有鼠标入口）。
+ * 这里补三件事，语义与鼠标操作一一对应：
+ *   · Enter / Space → 选中该会话（等价点击）；
+ *   · Shift+F10 / ContextMenu 键 → 在行的左下角打开同一个菜单（右键的键盘等价物）；
+ *   · 行可聚焦（`tabIndex=0`，见调用处），Tab 能走到每一行。
+ *
+ * @param e 键盘事件
+ * @param id 会话 id
+ * @param ctx 行上下文（取 onSelect / onContextMenu）
+ * @returns 无
+ */
+export function onSessionRowKeyDown(
+  e: React.KeyboardEvent<Element>,
+  id: string,
+  ctx: { onSelect: (id: string) => void; onContextMenu?: (id: string, x: number, y: number) => void },
+): void {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    ctx.onSelect(id);
+    return;
+  }
+  if (e.key !== 'ContextMenu' && !(e.shiftKey && e.key === 'F10')) return;
+  if (ctx.onContextMenu === undefined) return;
+  e.preventDefault();
+  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  ctx.onContextMenu(id, rect.left + 12, rect.bottom);
+}
+
+/** 会话行内交互所需的状态与回调（供模块级渲染函数复用）。 */
+export interface RowCtx {
+  /** 正在行内重命名的会话 id（null 表示无）。 */
+  renamingId: string | null;
+  /** 行内重命名输入框当前值。 */
+  renameValue: string;
+  /** 正在确认删除的会话 id（null 表示无）。 */
+  confirmDeleteId: string | null;
+  onStartRename: (s: SessionEntry) => void;
+  onRenameInput: (v: string) => void;
+  onCommitRename: (id: string) => void;
+  onCancelRename: () => void;
+  onAskDelete: (id: string) => void;
+  onCancelDelete: () => void;
+  onCommitDelete: (id: string) => void;
+  onFork: (id: string) => void;
+  /** 右键打开行菜单（业界常见式：右键给出打开 / 重命名 / 复制 / 删除）。缺省则行不响应右键。 */
+  onContextMenu?: (id: string, x: number, y: number) => void;
+  /** 归档 / 恢复（缺省则行不显示该按钮）。 */
+  onArchive?: (id: string, archived: boolean) => void;
+}
+
+/** 列表视图（任务卡 / 分组）渲染所需上下文。 */
+export interface ListCtx extends RowCtx {
+  sessions: SessionEntry[];
+  currentThreadId: string | null;
+  query: string;
+  wsPath: string;
+  collapsed: Record<string, boolean>;
+  limits: Record<string, number>;
+  onSelect: (id: string) => void;
+  onToggleGroup: (key: string, isCollapsed: boolean) => void;
+  onShowAll: (key: string, total: number) => void;
+  /** 正在被拖动的会话 id（拖拽排序高亮用；缺省无）。 */
+  draggingId?: string | null;
+  /** 开始拖动某行（缺省则行不可拖动）。 */
+  onDragStart?: (id: string) => void;
+  /** 拖动结束（清高亮）。 */
+  onDragEnd?: () => void;
+  /** 拖到某行上放下（目标 id）。 */
+  onDropOn?: (id: string) => void;
+}
+
+/**
+ * 按搜索关键字过滤会话（标签 / id / 工作区，大小写不敏感）。
+ * @param items 原始会话列表
+ * @param query 搜索关键字（trim 后）
+ * @returns 过滤后的会话列表（空关键字返回原列表副本）
+ */
+export function filterSessions(items: readonly SessionEntry[], query: string): SessionEntry[] {
+  const q = query.trim().toLowerCase();
+  if (q === '') return items.slice();
+  return items.filter((s) => {
+    const hay = [s.label, s.id, s.workspace]
+      .filter((x) => typeof x === 'string')
+      .join(' ')
+      .toLowerCase();
+    return hay.includes(q);
+  });
+}
+
+/**
+ * 行内重命名态。
+ * @param props 会话与交互上下文。
+ * @returns 重命名节点。
+ */
+function SessionRename(props: { s: SessionEntry; ctx: RowCtx }): ReactElement {
+  const { s, ctx } = props;
+  return (
+    <span className="session-rename">
+      <input
+        className="session-rename-input"
+        value={ctx.renameValue}
+        spellCheck={false}
+        aria-label={t('会话标题')}
+        onChange={(e) => ctx.onRenameInput((e.target as HTMLInputElement).value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') ctx.onCommitRename(s.id);
+          else if (e.key === 'Escape') ctx.onCancelRename();
+        }}
+        onClick={(e) => e.stopPropagation()}
+      />
+      <button
+        className="session-rename-ok"
+        title={t('确认')}
+        aria-label={t('确认重命名')}
+        onClick={(e) => {
+          e.stopPropagation();
+          ctx.onCommitRename(s.id);
+        }}
+      >
+        ✓
+      </button>
+      <button
+        className="session-rename-cancel"
+        title={t('取消')}
+        aria-label={t('取消重命名')}
+        onClick={(e) => {
+          e.stopPropagation();
+          ctx.onCancelRename();
+        }}
+      >
+        {icon('x', { size: 12 })}
+      </button>
+    </span>
+  );
+}
+
+/**
+ * 行内删除确认态。
+ * @param props 会话与交互上下文。
+ * @returns 确认节点。
+ */
+function SessionConfirm(props: { s: SessionEntry; ctx: RowCtx }): ReactElement {
+  const { s, ctx } = props;
+  return (
+    <span className="session-confirm">
+      <span className="session-confirm-text">{t('删除？')}</span>
+      <button
+        className="session-confirm-ok"
+        title={t('确认删除')}
+        aria-label={t('确认删除会话 {name}', { name: s.label || s.id })}
+        onClick={(e) => {
+          e.stopPropagation();
+          ctx.onCommitDelete(s.id);
+        }}
+      >
+        {t('删除')}
+      </button>
+      <button
+        className="session-confirm-cancel"
+        title={t('取消')}
+        aria-label={t('取消删除')}
+        onClick={(e) => {
+          e.stopPropagation();
+          ctx.onCancelDelete();
+        }}
+      >
+        {t('取消')}
+      </button>
+    </span>
+  );
+}
+
+/**
+ * 常态操作按钮（重命名 / 复制 / 删除 / 归档）。
+ * @param props 会话与交互上下文。
+ * @returns 操作区节点。
+ */
+function SessionActions(props: { s: SessionEntry; ctx: RowCtx }): ReactElement {
+  const { s, ctx } = props;
+  return (
+    <span className="session-actions" onClick={(e) => e.stopPropagation()}>
+      <button
+        className="session-act"
+        title={t('重命名')}
+        aria-label={t('重命名会话 {name}', { name: s.label || s.id })}
+        onClick={(e) => {
+          e.stopPropagation();
+          ctx.onStartRename(s);
+        }}
+      >
+        {icon('pencil', { size: 12 })}
+      </button>
+      <button
+        className="session-act"
+        title={t('复制会话')}
+        aria-label={t('复制会话 {name}', { name: s.label || s.id })}
+        onClick={(e) => {
+          e.stopPropagation();
+          ctx.onFork(s.id);
+        }}
+      >
+        {icon('copy', { size: 12 })}
+      </button>
+      <button
+        className="session-act danger"
+        title={t('删除')}
+        aria-label={t('删除会话 {name}', { name: s.label || s.id })}
+        onClick={(e) => {
+          e.stopPropagation();
+          ctx.onAskDelete(s.id);
+        }}
+      >
+        {icon('trash', { size: 12 })}
+      </button>
+      {ctx.onArchive === undefined ? null : (
+        <button
+          className="session-act"
+          title={s.archived === true ? t('取消归档') : t('归档')}
+          aria-label={
+            s.archived === true
+              ? t('取消归档会话 {name}', { name: s.label || s.id })
+              : t('归档会话 {name}', { name: s.label || s.id })
+          }
+          onClick={(e) => {
+            e.stopPropagation();
+            ctx.onArchive?.(s.id, s.archived !== true);
+          }}
+        >
+          {icon(s.archived === true ? 'undo' : 'inbox', { size: 12 })}
+        </button>
+      )}
+    </span>
+  );
+}
+
+/**
+ * 渲染单条会话的内部内容：常态显示标签 + 操作按钮（重命名/复制/删除）；
+ * 行内重命名态显示输入框；删除确认态显示「删除？」确认条。
+ * @param s 会话条目
+ * @param ctx 行内交互上下文
+ * @returns 渲染节点
+ */
+export function renderSessionBody(s: SessionEntry, ctx: RowCtx): ReactElement {
+  if (ctx.renamingId === s.id) return <SessionRename s={s} ctx={ctx} />;
+  if (ctx.confirmDeleteId === s.id) return <SessionConfirm s={s} ctx={ctx} />;
+  return (
+    <>
+      <span className="session-label">{s.label || s.id}</span>
+      <SessionActions s={s} ctx={ctx} />
+    </>
+  );
+}
+
+/**
+ * 行内相对时间（分组视图共用；无 `updatedAt` 时返回 null ⇒ 调用点不留空占位）。
+ *
+ * 为什么要有它（2026-10-08 易用性轮真机取证）：默认的「按项目分组」视图里一行只有截断标题，
+ * 同一句提示词用过两次就出现两条**完全同名**的行，而唯一能区分它们的"最近活动时间"只在
+ * 非默认的卡片视图里才有。补上这一格后，"找到刚才那条对话"不再需要逐条点进去试。
+ * @param s 会话条目
+ * @param now 参照时刻（毫秒）
+ * @returns 时间节点；不可得时为 null
+ */
+export function renderSessionTime(s: SessionEntry, now: number): ReactElement | null {
+  const when = SessionRowMeta.inlineTime(s, now);
+  if (when === '') return null;
+  // 文本同时进 aria-label：读屏用户与"悬停不方便"的场景拿得到同一信息。
+  return (
+    <span className="session-time" aria-label={t('最近活动 {time}', { time: when })}>
+      {when}
+    </span>
+  );
+}
+
+/**
+ * 并行任务卡视图：running 徽章来自服务端 activeTurns 真实运行态（非前端猜测）。
+ * @param ctx 列表上下文
+ * @param now 参照时刻（毫秒；单测注入以获得确定性）
+ * @returns 任务卡列表节点
+ */
+export function renderCardsView(ctx: ListCtx, now: number = Date.now()): ReactElement {
+  const all = filterSessions(ctx.sessions, ctx.query);
+  if (all.length === 0) {
+    return emptyState(icon('inbox', { size: 20 }), t('暂无会话'), t('新建会话后，任务卡会显示在这里。'));
+  }
+  return (
+    <div className="session-cards">
+      {all.map((s) => (
+        <div
+          key={s.id}
+          className={
+            'task-card' +
+            (s.id === ctx.currentThreadId ? ' active' : '') +
+            (s.running ? ' running' : '') +
+            (s.id === ctx.draggingId ? ' dragging' : '')
+          }
+          title={SessionRowMeta.hoverTitle(s, now)}
+          data-session-id={s.id}
+          tabIndex={0}
+          onKeyDown={(e: React.KeyboardEvent) => onSessionRowKeyDown(e, s.id, ctx)}
+          aria-current={s.id === ctx.currentThreadId ? 'true' : undefined}
+          draggable={ctx.onDragStart !== undefined}
+          onDragStart={() => ctx.onDragStart?.(s.id)}
+          onDragEnd={() => ctx.onDragEnd?.()}
+          onDragOver={(e: React.DragEvent) => {
+            if (ctx.onDropOn !== undefined) e.preventDefault();
+          }}
+          onDrop={(e: React.DragEvent) => {
+            e.preventDefault();
+            ctx.onDropOn?.(s.id);
+          }}
+          onClick={() => ctx.onSelect(s.id)}
+          onContextMenu={(e: React.MouseEvent) => {
+            if (ctx.onContextMenu === undefined) return;
+            e.preventDefault();
+            ctx.onContextMenu(s.id, e.clientX, e.clientY);
+          }}
+        >
+          <div className="tc-top">
+            <span className="drag-handle" data-drag-handle="1" title={t('拖拽排序')} aria-hidden="true">
+              ⠿
+            </span>
+            <span
+              className={'tc-dot' + (s.running === true ? ' on' : '')}
+              title={s.running ? t('运行中') : t('空闲')}
+              aria-hidden="true"
+            ></span>
+            <span className="tc-label">{renderSessionBody(s, ctx)}</span>
+          </div>
+          <div className="tc-meta">
+            <span>{t('{n} 回合', { n: s.turns ?? 0 })}</span>
+            {SessionRowMeta.activeDuration(s) !== '' ? (
+              <>
+                <span>·</span>
+                <span>{t('有效 {d}', { d: SessionRowMeta.activeDuration(s) })}</span>
+              </>
+            ) : null}
+            <span>·</span>
+            <span>{timeAgo(s.updatedAt, now)}</span>
+            {s.workspace ? (
+              <span className="tc-ws" title={s.workspace}>
+                {PathJoiner.basename(s.workspace)}
+              </span>
+            ) : null}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * 分组列表视图：当前项目组排最前且默认展开，其余折叠；组内分页。
+ * @param ctx 列表上下文
+ * @returns 分组列表节点
+ */
+export function renderGroupsView(ctx: ListCtx, now: number = Date.now()): ReactElement {
+  const all = filterSessions(ctx.sessions, ctx.query);
+  if (all.length === 0) {
+    return emptyState(icon('inbox', { size: 20 }), t('暂无会话'), t('新建会话后，历史对话会显示在这里，随时可回看。'));
+  }
+  return (
+    <>
+      {SessionGrouper.group(all, ctx.wsPath).map((g) => {
+        const isCollapsed =
+          ctx.collapsed[g.key] ??
+          (g.key !== WorkspacePath.normalize(ctx.wsPath) && g.key !== '__early__');
+        const limit = ctx.limits[g.key] ?? PAGE;
+        const shown = isCollapsed ? [] : g.items.slice(0, limit);
+        const rest = g.items.length - shown.length;
+        return (
+          <div className="ws-group" key={g.key}>
+            <div
+              className="ws-head"
+              title={g.key === '__early__' ? t('升级前的历史会话未记录所属项目') : g.key}
+              onClick={() => ctx.onToggleGroup(g.key, isCollapsed)}
+            >
+              <span className="ws-caret">{isCollapsed ? '▸' : '▾'}</span>
+              <span>{icon(g.key === WorkspacePath.normalize(ctx.wsPath) ? 'check' : 'folder', { size: 12 })}</span>
+              <span className="ws-name">{t(g.name)}</span>
+              <span className="ws-count">{g.items.length}</span>
+            </div>
+            {isCollapsed ? null : (
+              <div className="ws-list">
+                {shown.map((s) => (
+                  <div
+                    key={s.id}
+                    className={
+                      'session' +
+                      (s.id === ctx.currentThreadId ? ' active' : '') +
+                      (s.id === ctx.draggingId ? ' dragging' : '')
+                    }
+                    draggable={ctx.onDragStart !== undefined}
+                    onDragStart={() => ctx.onDragStart?.(s.id)}
+                    onDragEnd={() => ctx.onDragEnd?.()}
+                    onDragOver={(e: React.DragEvent) => {
+                      if (ctx.onDropOn !== undefined) e.preventDefault();
+                    }}
+                    onDrop={(e: React.DragEvent) => {
+                      e.preventDefault();
+                      ctx.onDropOn?.(s.id);
+                    }}
+                    onClick={() => ctx.onSelect(s.id)}
+                    onContextMenu={(e: React.MouseEvent) => {
+                      if (ctx.onContextMenu === undefined) return;
+                      e.preventDefault();
+                      ctx.onContextMenu(s.id, e.clientX, e.clientY);
+                    }}
+                    title={SessionRowMeta.hoverTitle(s, now)}
+                    data-session-id={s.id}
+                    tabIndex={0}
+                    onKeyDown={(e: React.KeyboardEvent) => onSessionRowKeyDown(e, s.id, ctx)}
+                    aria-current={s.id === ctx.currentThreadId ? 'true' : undefined}
+                  >
+                    <span className="drag-handle" data-drag-handle="1" title={t('拖拽排序')} aria-hidden="true">⠿</span>
+                    {renderSessionBody(s, ctx)}
+                    {renderSessionTime(s, now)}
+                  </div>
+                ))}
+                {rest > 0 ? (
+                  <button className="ws-more" onClick={() => ctx.onShowAll(g.key, g.items.length)}>
+                    {t('显示全部 {n} 条', { n: g.items.length })}
+                  </button>
+                ) : null}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+/**
+ * 时间分组视图（业界常见式：今天 / 昨天 / 更早，可折叠）。
+ *
+ * 与 `renderGroupsView`（按工作区分组）并列存在，由左栏的视图切换决定用哪一个；两处共用同一套
+ * `renderSessionBody` 行渲染，故行内重命名 / 删除确认 / 右键菜单行为完全一致。
+ * @param ctx 列表上下文
+ * @param now 参照时刻（毫秒；单测注入以获得确定性）
+ * @returns 时间分组节点
+ */
+export function renderTimeGroupsView(ctx: ListCtx, now: number = Date.now()): ReactElement {
+  const all = filterSessions(ctx.sessions, ctx.query);
+  if (all.length === 0) {
+    return emptyState(icon('inbox', { size: 20 }), t('暂无会话'), t('新建会话后，历史对话会显示在这里，随时可回看。'));
+  }
+  return (
+    <>
+      {SessionGrouper.groupByTime(all, now).map((g) => {
+        const key = 'time:' + g.key;
+        const isCollapsed = ctx.collapsed[key] ?? false;
+        const limit = ctx.limits[key] ?? PAGE;
+        const shown = isCollapsed ? [] : g.items.slice(0, limit);
+        const rest = g.items.length - shown.length;
+        return (
+          <div className="ws-group" key={key}>
+            <div className="ws-head" onClick={() => ctx.onToggleGroup(key, isCollapsed)}>
+              <span className="ws-caret">{isCollapsed ? '▸' : '▾'}</span>
+              <span className="ws-name">{t(g.name)}</span>
+              <span className="ws-count">{g.items.length}</span>
+            </div>
+            {isCollapsed ? null : (
+              <div className="ws-list">
+                {shown.map((s) => (
+                  <div
+                    key={s.id}
+                    className={
+                      'session' +
+                      (s.id === ctx.currentThreadId ? ' active' : '') +
+                      (s.id === ctx.draggingId ? ' dragging' : '')
+                    }
+                    draggable={ctx.onDragStart !== undefined}
+                    onDragStart={() => ctx.onDragStart?.(s.id)}
+                    onDragEnd={() => ctx.onDragEnd?.()}
+                    onDragOver={(e: React.DragEvent) => {
+                      if (ctx.onDropOn !== undefined) e.preventDefault();
+                    }}
+                    onDrop={(e: React.DragEvent) => {
+                      e.preventDefault();
+                      ctx.onDropOn?.(s.id);
+                    }}
+                    onClick={() => ctx.onSelect(s.id)}
+                    onContextMenu={(e: React.MouseEvent) => {
+                      if (ctx.onContextMenu === undefined) return;
+                      e.preventDefault();
+                      ctx.onContextMenu(s.id, e.clientX, e.clientY);
+                    }}
+                    title={SessionRowMeta.hoverTitle(s, now)}
+                    data-session-id={s.id}
+                    tabIndex={0}
+                    onKeyDown={(e: React.KeyboardEvent) => onSessionRowKeyDown(e, s.id, ctx)}
+                    aria-current={s.id === ctx.currentThreadId ? 'true' : undefined}
+                  >
+                    <span className="drag-handle" data-drag-handle="1" title={t('拖拽排序')} aria-hidden="true">⠿</span>
+                    {renderSessionBody(s, ctx)}
+                    {renderSessionTime(s, now)}
+                  </div>
+                ))}
+                {rest > 0 ? (
+                  <button className="ws-more" onClick={() => ctx.onShowAll(key, g.items.length)}>
+                    {t('显示全部 {n} 条', { n: g.items.length })}
+                  </button>
+                ) : null}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+/**
+ * 项目条：列出已添加的项目文件夹，点击切换；附该项目的线程数与桌面动作。
+ * @param projects 项目路径清单
+ * @param wsPath 当前工作区路径
+ * @param onSwitch 切换回调
+ * @param sessions 会话清单（用于线程计数；缺省为 0）
+ * @param onNew 在指定项目新建线程（缺省不渲染按钮）
+ * @param onReveal 在系统文件管理器中打开项目目录（缺省不渲染按钮）
+ * @returns 项目条节点；无项目时为 null
+ */
+export function renderProjectsView(
+  projects: string[],
+  wsPath: string,
+  onSwitch: (path: string) => void,
+  sessions: readonly SessionEntry[] = [],
+  onNew?: (path: string) => void,
+  onReveal?: (path: string) => void,
+): ReactElement | null {
+  if (projects.length === 0) return null;
+  const countOf = (path: string): number => {
+    const key = WorkspacePath.normalize(path);
+    return sessions.filter(
+      (s) => s.workspace !== undefined && WorkspacePath.normalize(s.workspace) === key,
+    ).length;
+  };
+  return (
+    <div className="ws-projects">
+      {projects.map((p) => {
+        const count = countOf(p);
+        const active = p === wsPath;
+        const name = PathJoiner.basename(p);
+        return (
+          <div
+            key={p}
+            className={'ws-project' + (active ? ' active' : '')}
+            title={active ? t('当前工作区') : t('点击直接切换到 {path}', { path: p })}
+            aria-current={active ? 'true' : undefined}
+            onClick={() => onSwitch(p)}
+          >
+            <span className="ws-project-dot" aria-hidden="true"></span>
+            <span className="ws-project-name">{name}</span>
+            {onNew === undefined ? null : (
+              <button
+                type="button"
+                className="ws-project-act"
+                title={t('在 {name} 新建线程', { name })}
+                aria-label={t('在 {name} 新建线程', { name })}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNew(p);
+                }}
+              >
+                +
+              </button>
+            )}
+            {onReveal === undefined ? null : (
+              <button
+                type="button"
+                className="ws-project-act"
+                title={t('打开项目目录')}
+                aria-label={t('打开项目目录')}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onReveal(p);
+                }}
+              >
+                ↗
+              </button>
+            )}
+            <span className="ws-project-count" title={t('{n} 个线程', { n: count })}>
+              {count}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * 文件树区：按加载态渲染不可用 / 读取中 / 空 / 树。
+ * @param tree 文件树
+ * @param treeLoaded 是否已加载
+ * @param treeError 错误信息（非空即不可用）
+ * @param onOpenFile 打开文件回调
+ * @returns 文件树区节点
+ */
+export function renderTreeView(
+  tree: FsNode[],
+  treeLoaded: boolean,
+  treeError: string | null,
+  onOpenFile: (path: string) => void,
+): ReactElement {
+  if (treeError != null) {
+    return emptyState(icon('folder', { size: 20 }), t('文件树不可用'), t('当前工作区无法读取，或 serve 未在工作区内启动。'));
+  }
+  if (!treeLoaded) return <div className="empty">{t('读取中…')}</div>;
+  if (tree.length === 0) return emptyState(icon('folder', { size: 20 }), t('空工作区'), t('这个目录还没有文件。'));
+  return (
+    <div className="tree">
+      <FileTree nodes={tree} onOpenFile={onOpenFile} />
+    </div>
+  );
+}

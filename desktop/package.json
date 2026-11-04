@@ -1,0 +1,37 @@
+{
+  "name": "@omniharness/app-desktop",
+  "version": "0.6.0-alpha.1",
+  "private": true,
+  "description": "OmniHarness 桌面端（Electron 壳 + 应用自己的 React 工作台；后端由外部宿主提供）",
+  "author": "mylong227",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "type": "commonjs",
+  "main": "dist/main.cjs",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "npm run build && electron .",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/test.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "startup:report": "node scripts/startupReport.mjs",
+    "stage": "node scripts/stageHarness.mjs",
+    "verify:package": "node scripts/verifyPackage.mjs",
+    "installer": "node scripts/buildInstaller.mjs",
+    "manifest": "node scripts/releaseManifest.mjs",
+    "pack": "npm run build && npm run stage && electron-builder --dir --config electron-builder.yml",
+    "dist": "npm run build && npm run stage && electron-builder --win --x64 --config electron-builder.yml"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "electron": "44.7.0",
+    "electron-builder": "26.18.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.11"
+  }
+}

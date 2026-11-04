@@ -1,0 +1,809 @@
+// 面向对象的服务层：封装与后端的所有 JSON-RPC 2.0 通信与 /metrics 拉取。
+// 组件层只依赖本类，不直接 fetch，便于替换与单测。
+
+import { authToken } from './authToken.ts';
+import type {
+  Config,
+  FileAttachment,
+  FsNode,
+  FsReadResult,
+  GraphDef,
+  GraphGetResult,
+  GraphRunResult,
+  GraphStatusResult,
+  GraphSummary,
+  MemoryListResult,
+  MemorySearchResult,
+  Metrics,
+  PluginReloadResult,
+  PluginSearchEntry,
+  PluginManifest,
+  Profile,
+  ActivePlugins,
+  ProfileApplyResult,
+  BundlePackResult,
+  BundleUnpackResult,
+  ThreadGetResult,
+  TurnRunResult,
+  InterjectResult,
+  QuestionAnswerSubmission,
+  ApprovalRequest,
+  QuestionRequest,
+} from '../types/models.ts';
+import { t } from '../ui/i18n/i18n.ts';
+
+interface JsonRpcError {
+  code: number;
+  message: string;
+  data?: unknown;
+}
+
+interface JsonRpcResponse<T> {
+  jsonrpc: string;
+  id: number;
+  result?: T;
+  error?: JsonRpcError;
+}
+
+export class ApiClient {
+  private nextId = 0;
+
+  /**
+   * 构造请求头：基础 Content-Type 之外，当配置了访问令牌时附带 `Authorization: Bearer <token>`，
+   * 使服务端启用 OMNI_SERVE_TOKEN 门禁后前端仍能正常通信（#A10 修复）。
+   * @returns 合并后的请求头。
+   */
+  private buildHeaders(): Record<string, string> {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const token = authToken.resolve();
+    if (token !== '') {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+  }
+
+  /** 统一的 JSON-RPC 2.0 调用入口；失败时抛出带服务端 message 的 Error。 */
+  public async rpc<T = unknown>(method: string, params: Record<string, unknown> = {}): Promise<T> {
+    const id = ++this.nextId;
+    const res = await fetch('/rpc', {
+      method: 'POST',
+      headers: this.buildHeaders(),
+      body: JSON.stringify({ jsonrpc: '2.0', id, method, params }),
+    });
+    // 归因必须保住：只有「JSON-RPC error **对象**」才当作协议错误读它的 message。
+    // 曾经无条件 `data.error.message || 'RPC 错误'`，而 HTTP 500 的兜底体是 `{"error":"internal"}`
+    // ——`error` 是字符串，`.message` 为 undefined，于是任何服务端异常在界面上都退化成同一句
+    // 无归因的「RPC 错误」（2026-09-27 用户报的那句就是这么来的）。此处按「协议层 → 传输层」顺序
+    // 逐级报出真实原因；`res.ok === false` 才判传输失败，以便轻量桩（只给 json()）继续可用。
+    const data = (await Promise.resolve(res.json()).catch(() => undefined)) as
+      | JsonRpcResponse<T>
+      | undefined;
+    if (data !== undefined && typeof data.error === 'object' && data.error !== null) {
+      throw new Error(data.error.message || t('RPC 错误（code {code}）', { code: data.error.code }));
+    }
+    if (res.ok === false) {
+      throw new Error(t('RPC 请求失败：HTTP {status}', { status: res.status }));
+    }
+    if (data === undefined) {
+      throw new Error(t('RPC 响应不是合法 JSON'));
+    }
+    return data.result as T;
+  }
+
+  /**
+   * 取服务端「工作区网页预览源」的端口（`/healthz` 的可选字段 `previewPort`）。
+   *
+   * 为什么走探针而不是 RPC：预览源由 HTTP 层在绑定主端口之后启动，它的端口是**运行时事实**；
+   * `/healthz` 本来就是公开的运行时自述，加一个可选字段即可，不必为一个只读端口新增 RPC 方法
+   * （新增 RPC 要改协议面、SDK 与稳定性基线）。
+   * @returns 有效端口；未启用 / 探针不可达 / 字段非法时 null（调用方按"本地预览不可用"处理）
+   */
+  public async getPreviewPort(): Promise<number | null> {
+    let res: Response;
+    try {
+      res = await fetch('/healthz', { headers: this.buildHeaders() });
+    } catch {
+      return null;
+    }
+    if (!res.ok) return null;
+    const body = (await Promise.resolve(res.json()).catch(() => undefined)) as
+      | { previewPort?: unknown }
+      | undefined;
+    const port = body?.previewPort;
+    return typeof port === 'number' && Number.isInteger(port) && port > 0 && port <= 65535
+      ? port
+      : null;
+  }
+
+  /**
+   * 拉取 /metrics 并解析。服务端返回 Prometheus 文本格式（# HELP / metric lines），
+   * 此处做轻量解析：omni_sessions gauge → sessions；omni_events_total{type="x"} → eventsByType。
+   * 早期版本误用 res.json() 解析必挂，导致指标面板永远停在「读取中…」。
+   */
+  public async fetchMetrics(): Promise<Metrics> {
+    const res = await fetch('/metrics', { headers: this.buildHeaders() });
+    if (!res.ok) throw new Error(t('metrics 请求失败：{status}', { status: res.status }));
+    const text = await res.text();
+    const metrics: Metrics = { sessions: 0, eventsByType: {} };
+    const labelOf = (line: string, key: string): string | undefined => {
+      const m = line.match(new RegExp(key + '="([^"]*)"'));
+      return m?.[1];
+    };
+    for (const raw of text.split('\n')) {
+      const line = raw.trim();
+      if (line === '' || line.startsWith('#')) continue;
+      const sp = line.lastIndexOf(' ');
+      if (sp <= 0) continue;
+      const name = line.slice(0, sp).replace(/\{.*\}$/, '').trim();
+      const value = Number(line.slice(sp + 1).trim());
+      if (!Number.isFinite(value)) continue;
+      if (name === 'omni_sessions') {
+        metrics.sessions = Math.round(value);
+      } else if (name === 'omni_events_total') {
+        const type = labelOf(line, 'type');
+        if (type !== undefined) metrics.eventsByType![type] = Math.round(value);
+      }
+    }
+    return metrics;
+  }
+
+  // ---- 任务 / 会话 ----
+  public runTurn(
+    params: { threadId?: string; prompt: string; images?: { url?: string; data?: string; mediaType?: string }[]; files?: FileAttachment[] },
+  ): Promise<TurnRunResult> {
+    return this.rpc('turns.run', params);
+  }
+  /**
+   * 中断在跑回合：后端取消令牌中止在飞模型请求，turns.run 自然收尾。
+   * @param threadId 目标会话；**建议总是传**——服务端允许多回合并行，缺省会退化为取消全部在跑回合。
+   * @returns 中断 RPC 的响应（{ ok: true, threadId }）。
+   */
+  public abortTurn(threadId?: string): Promise<unknown> {
+    return this.rpc('turns.abort', threadId === undefined ? {} : { threadId });
+  }
+  /**
+   * 回合中插话（A8）：把一条用户追加指令入队，服务端在下一步边界注入。
+   * @param threadId 目标会话（必须在跑）。
+   * @param text 追加指令（非空）。
+   * @param images 可选图片/视频附件（2026-10-31：插话与正常发送同构）。
+   * @param files 可选文件附件。
+   * @returns `{ok, queued}`；会话未跑时 `ok:false`。
+   */
+  public steerTurn(
+    threadId: string,
+    text: string,
+    images?: { url?: string; data?: string; mediaType?: string }[],
+    files?: FileAttachment[],
+  ): Promise<{ ok: boolean; queued?: boolean; error?: string }> {
+    const params: Record<string, unknown> = { threadId, text };
+    if (images !== undefined && images.length > 0) params['images'] = images;
+    if (files !== undefined && files.length > 0) params['files'] = files;
+    return this.rpc('turns.steer', params);
+  }
+  /**
+   * 插话模式分流（`turns.interject`，2026-10-31）：服务端按相关性判定，相关则并入当前回合，
+   * 无关则立刻取消当前回合（`action:'interrupted'`），由客户端把内容作为新回合发送。
+   * @param params 目标会话 + 本条消息（文本与附件，与 `turns.run` 同构）。
+   * @returns 分流结果（见 {@link InterjectResult}）。
+   */
+  public interjectTurn(params: {
+    threadId: string;
+    prompt: string;
+    images?: { url?: string; data?: string; mediaType?: string }[];
+    files?: FileAttachment[];
+  }): Promise<InterjectResult> {
+    return this.rpc('turns.interject', params);
+  }
+  /**
+   * 读取线程事件；可选分页（取尾部 / 用 `before` 向上补拉）。
+   * @param threadId 目标线程
+   * @param opts `limit` 页大小、`before` 上一页最早事件 id
+   * @returns 线程事件页（`hasMore`/`oldestId` 供加载更早）
+   */
+  public getThread(
+    threadId: string,
+    opts: { readonly limit?: number; readonly before?: string } = {},
+  ): Promise<ThreadGetResult> {
+    return this.rpc('threads.get', {
+      threadId,
+      ...(opts.limit !== undefined ? { limit: opts.limit } : {}),
+      ...(opts.before !== undefined ? { before: opts.before } : {}),
+    });
+  }
+  /**
+   * 服务端回退：把持久化事件流截断到 keepEventId（含）。
+   * 「重生成」必须经此返回**服务端**再重发——只截断视图层的话，服务端 jsonl 里的旧一轮仍在，
+   * 下一回合的模型上下文照旧包含旧回答（刷新页面旧回答还会复现）。
+   * @param threadId 目标线程
+   * @param keepEventId 保留到哪条事件（含）
+   * @returns 保留/丢弃条数；失败时为 `{ ok: false, error }`（不抛错，前端直接把原因展示出来）
+   */
+  public rewindThread(
+    threadId: string,
+    keepEventId: string,
+  ): Promise<{ ok: boolean; kept?: number; dropped?: number; error?: string }> {
+    return this.rpc('threads.rewind', { threadId, keepEventId });
+  }
+
+  // ---- 配置 / 审批 ----
+  public getConfig(): Promise<Config> {
+    return this.rpc('config.get', {});
+  }
+  public updateConfig(patch: Record<string, unknown>): Promise<unknown> {
+    return this.rpc('config.update', patch);
+  }
+  /** 厂商目录（#模型接入页）：服务端单一下发，含当前厂商与其可用模型 + 该厂商合法 reasoning_effort 档位。 */
+  public modelCatalog(): Promise<{
+    providers: import('../types/models.ts').ProviderPreset[];
+    active?: {
+      id: string;
+      label: string;
+      defaultModel: string;
+      model?: string;
+      models: string[];
+      /** 当前厂商合法 reasoning_effort 档位（#B6 扩展，2026-09-08）：undefined/[] 用 UI 兜底。 */
+      reasoningEffort?: string[];
+    };
+  }> {
+    return this.rpc('model.catalog', {});
+  }
+  /** Token 消耗统计：按模型 / 按会话聚合调用次数与 token 用量。 */
+  public usageStats(): Promise<{
+    source: 'disk' | 'live';
+    dir: string;
+    byModel: Record<string, { calls: number; prompt: number; completion: number; total: number }>;
+    total: { calls: number; prompt: number; completion: number; total: number };
+    sessions: { sessionId: string; calls: number; total: number }[];
+  }> {
+    return this.rpc('usage.stats', {});
+  }
+  /** 厂商连通探测：真实请求 /models，返回实测状态与模型清单。 */
+  public probeModels(provider?: string): Promise<{ providers: import('../types/models.ts').ProviderProbeResult[] }> {
+    return this.rpc('model.probe', provider ? { provider } : {});
+  }
+  /** 工作区列表（当前 + 已添加项目）。 */
+  public listWorkspaces(): Promise<{ current: string; workspaces: string[] }> {
+    return this.rpc('workspace.list', {});
+  }
+  /**
+   * daemon 运行态（只读，2026-10-11 Web 交付）：与 `omniharness daemon status` **同一事实源**
+   * （服务端用同一个 `DaemonController`、同一默认 pid 文件 `~/.omniharness/daemon.pid`）。
+   * @returns `{running, pid?}`；未运行时 `running:false` 且无 pid。
+   */
+  public daemonStatus(): Promise<{ running: boolean; pid?: number }> {
+    return this.rpc('daemon.status', {});
+  }
+  /**
+   * 环境诊断报告（只读，2026-10-11 Web 交付）。
+   *
+   * 注意返回体是**判别联合**：`ok:false` 表示服务端**未接线**（serve 未注入实现），
+   * 面板必须如实显示"未接线"，**不得**把它渲染成"一切正常"。
+   * @param workspaceRoot 可选工作区（缺省由服务端取自身工作区）。
+   * @returns `{ok:true, report}` 或 `{ok:false, reason}`。
+   */
+  public doctorReport(workspaceRoot?: string): Promise<
+    | { ok: true; report: import('../types/models.ts').DoctorReportLike }
+    | { ok: false; reason: string }
+  > {
+    return this.rpc('doctor.report', workspaceRoot === undefined ? {} : { workspaceRoot });
+  }
+
+  /**
+   * 审计事件查询（只读，2026-10-11 Web 交付）。
+   *
+   * 返回体是**判别联合**：`ok:false` 表示服务端**未接线 audit sink**，面板必须如实显示"未接线"，
+   * **不得**把空数组渲染成"审计无记录"。
+   * @param params 过滤条件（时间窗 / 类型 / 会话 / actor / 条数上限）
+   * @returns `{ok:true, events}` 或 `{ok:false, reason}`
+   */
+  public auditQuery(params: {
+    since?: string;
+    until?: string;
+    type?: string;
+    session?: string;
+    actor?: string;
+    limit?: number;
+  }): Promise<import('../types/models.ts').AuditQueryResult> {
+    return this.rpc('audit.query', params);
+  }
+
+  /**
+   * 保险库凭据名列表（只读名字，**不含值**；2026-10-11 Web 交付）。
+   * @returns `{ok:true, names}` 或 `{ok:false, reason}`（未接线）
+   */
+  public vaultList(): Promise<import('../types/models.ts').VaultListResult> {
+    return this.rpc('vault.list', {});
+  }
+
+  /**
+   * 写入（或覆盖）一项凭据。**单向**：服务端不提供读回接口。
+   * @param name 凭据名
+   * @param secret 凭据值（只上行，不回显）
+   * @returns `{ok:true, name}` 或 `{ok:false, reason}`
+   */
+  public vaultSet(
+    name: string,
+    secret: string,
+  ): Promise<import('../types/models.ts').VaultWriteResult> {
+    return this.rpc('vault.set', { name, secret });
+  }
+
+  /**
+   * 删除一项凭据。
+   * @param name 凭据名
+   * @returns `{ok:true, name, removed}`（removed=false 表示本来就没有）或 `{ok:false, reason}`
+   */
+  public vaultDelete(name: string): Promise<import('../types/models.ts').VaultWriteResult> {
+    return this.rpc('vault.delete', { name });
+  }
+
+  /**
+   * 只读 trace 自省（T4.5，2026-10-11 Web 交付）：取某会话的冻结条目快照。
+   * @param params 会话 id + 可选条数上限 / 类别过滤
+   * @returns `{session, entries, count, error?}`
+   */
+  public traceRead(params: {
+    session: string;
+    limit?: number;
+    kind?: string;
+  }): Promise<import('../types/models.ts').TraceReadResultLike> {
+    return this.rpc('trace.read', params);
+  }
+  /**
+   * 全部会话存档列表（含工作区标记），供按项目收纳。running = 服务端真实运行态。
+   * @param opts `includeArchived=false` 时服务端**跳过归档文件的逐个扫描**（快速路径）
+   * @returns 存档目录与有序会话列表
+   */
+  public listSessions(opts?: {
+    includeArchived?: boolean;
+    /** 是否包含 mock/演示会话（缺省 false：服务端默认过滤，避免淹没真实会话）。 */
+    includeMock?: boolean;
+    /** 工作区作用域：`'*'` = 全部项目；缺省＝服务端按当前项目过滤。 */
+    workspace?: string;
+  }): Promise<{
+    dir: string;
+    sessions: {
+      sessionId: string;
+      workspace?: string;
+      label: string;
+      turns: number;
+      updatedAt: string;
+      /** 有效时长（ms，已剔除 >5 分钟挂机间隔）。 */
+      activeMs?: number;
+      /** 被剔除的空闲间隔个数。 */
+      idleGaps?: number;
+      mock?: boolean;
+      model?: string;
+      running?: boolean;
+      archived?: boolean;
+    }[];
+  }> {
+    return this.rpc('sessions.list', {
+      includeArchived: opts?.includeArchived !== false,
+      ...(opts?.includeMock === true ? { includeMock: true } : {}),
+      // `workspace` 只在显式给出时下发：`'*'` = 全部项目（跨项目视图），缺省＝服务端按当前项目过滤。
+      ...(opts?.workspace !== undefined ? { workspace: opts.workspace } : {}),
+    });
+  }
+  /**
+   * 归档 / 取消归档会话（只写侧车，不动事件流）。
+   * @param sessionId 会话 id
+   * @param archived true 归档、false 恢复
+   * @returns `{ ok }`；会话不存在时 `{ ok:false, error:'session_not_found' }`
+   */
+  public archiveSession(
+    sessionId: string,
+    archived: boolean,
+  ): Promise<{ ok: boolean; error?: string }> {
+    return this.rpc('sessions.archive', { sessionId, archived });
+  }
+
+  /**
+   * 保存左栏拖拽排序（用户指定顺序；未登记的会话仍按时间倒序排在其后）。
+   * @param ids 有序会话 id 列表
+   * @returns `{ ok }`；id 形态非法时 `{ ok:false, error:'bad_session_id' }`
+   */
+  public reorderSessions(ids: string[]): Promise<{ ok: boolean; error?: string }> {
+    return this.rpc('sessions.reorder', { ids });
+  }
+  /** 重命名会话（自定义标题，空串清除）；服务端写入侧车，列表回落首条用户消息。 */
+  public renameSession(sessionId: string, title: string): Promise<{ ok: boolean; error?: string }> {
+    return this.rpc('sessions.rename', { sessionId, title });
+  }
+  /** 删除会话存档；运行中的会话被服务端拒绝。 */
+  public deleteSession(sessionId: string): Promise<{ ok: boolean; error?: string }> {
+    return this.rpc('sessions.delete', { sessionId });
+  }
+  /** 分叉会话为带新 id 的副本；返回新会话 id。 */
+  public forkSession(sessionId: string): Promise<{ ok: boolean; newSessionId?: string; error?: string }> {
+    return this.rpc('sessions.fork', { sessionId });
+  }
+  /** 工作区变更记录（git 式）；传 path 时返回该文件 patch。 */
+  public listChanges(path?: string): Promise<{
+    source: string;
+    branch?: string;
+    files?: { path: string; status: string; additions: number; deletions: number }[];
+    patch?: string;
+  }> {
+    return this.rpc('changes.list', path ? { path } : {});
+  }
+  /** 添加项目文件夹（服务端校验目录存在后持久化）。 */
+  public addWorkspace(path: string): Promise<{ current: string; workspaces: string[] }> {
+    return this.rpc('workspace.add', { path });
+  }
+
+  /** 服务端目录浏览（+ 添加项目的文件夹选择器 / 附件文件选择器数据源）。
+   *  includeFiles=true 时同时返回当前目录下的文件清单（附件 FilePicker 复用）。 */
+  public browseFs(
+    path?: string,
+    includeFiles?: boolean,
+  ): Promise<
+    | { level: 'drives'; roots: string[]; home: string }
+    | {
+        level: 'dir';
+        path: string;
+        parent?: string;
+        dirs: string[];
+        files?: { name: string; size: number; mediaType: string }[];
+      }
+  > {
+    return this.rpc('fs.browse', { path, includeFiles });
+  }
+  /** 新建文件夹（+ 新建项目）：在 parent 目录下创建 name，返回新目录绝对路径。 */
+  public mkdirFs(parent: string, name: string): Promise<{ path: string }> {
+    return this.rpc('fs.mkdir', { parent, name });
+  }
+  /** 附件读取（FilePicker 选完文件后批量读 base64）：不限工作区，类型/大小白名单。
+   *  单文件失败不阻断整体，结果按 files/errors 分开返回。 */
+  public attachRead(paths: string[]): Promise<{
+    files: {
+      name: string;
+      mediaType: string;
+      data: string;
+      size: number;
+      kind: 'image' | 'video' | 'audio' | 'file';
+    }[];
+    errors: { path: string; error: string }[];
+  }> {
+    return this.rpc('attach.read', { paths });
+  }
+  /** 切换项目：服务端重建运行时组件，下回合即在新工作区执行。 */
+  public switchWorkspace(path: string): Promise<{ ok: boolean; workspace: string }> {
+    return this.rpc('workspace.switch', { path });
+  }
+  /**
+   * 把一条会话**归入指定项目**（侧栏右键「归入当前项目」）：服务端只改存档首行
+   * `session_meta.payload.workspace`（归一值），历史事件逐字不动。
+   * @param sessionId 会话 id
+   * @param workspace 目标项目路径（服务端会校验目录存在）
+   * @returns `{ ok, workspace }`：生效后的归一工作区路径
+   */
+  public setSessionWorkspace(
+    sessionId: string,
+    workspace: string,
+  ): Promise<{ ok: boolean; workspace?: string }> {
+    return this.rpc('sessions.setWorkspace', { sessionId, workspace });
+  }
+  public respondApproval(requestId: string, decision: string): Promise<unknown> {
+    return this.rpc('approval.respond', { requestId, decision });
+  }
+
+  /**
+   * 提交提问作答（`question.respond`）：把用户在提问卡上的选择送回等待中的 `ask_user`。
+   *
+   * 服务端对答案做严格校验（题 id / 选项标签 / 单选多选 / 长度），不合法时返回
+   * `{ ok: false, error }` 且**保留挂起**——故调用方必须看 `ok` 而不是只看「有没有抛错」。
+   * @param requestId 提问请求 id（来自 `question.request` 通知）
+   * @param answers 逐题作答（`selected` 必须是该题提供过的选项标签）
+   * @returns 服务端受理结果
+   */
+  public respondQuestion(
+    requestId: string,
+    answers: readonly QuestionAnswerSubmission[],
+  ): Promise<{ ok: boolean; error?: string }> {
+    return this.rpc('question.respond', { requestId, answers });
+  }
+
+  /**
+   * 拉取当前**在途审批**（`approval.pending`，断连恢复用，2026-11-01）。
+   *
+   * `approval.request` 是 live-only 通知（不进 SSE 重放历史）：页面刷新后新连接收不到
+   * 「正在等待审批」这件事。重连后调用本方法即可重建审批卡；服务端有断连宽限期，
+   * 宽限期内复联 ⇒ 挂起仍在。
+   * @returns 在途审批清单（形状与 `approval.request` 通知一致；可能为空）。
+   */
+  public pendingApprovals(): Promise<ApprovalRequest[]> {
+    return this.rpc('approval.pending', {});
+  }
+
+  /**
+   * 拉取当前**在途提问**（`question.pending`，断连恢复用，2026-11-01）。语义同
+   * {@link pendingApprovals}。
+   * @returns 在途提问清单（形状与 `question.request` 通知一致；可能为空；`threadId` 为会话归属）。
+   */
+  public pendingQuestions(): Promise<(QuestionRequest & { threadId?: string | null })[]> {
+    return this.rpc('question.pending', {});
+  }
+
+  /** 列出某会话的全部检查点（label/时间/事件数/是否含文件快照）。 */
+  public listCheckpoints(sessionId: string): Promise<{
+    sessionId: string;
+    checkpoints: { label: string; ts: string; eventCount: number; hasFileSnapshot: boolean }[];
+  }> {
+    return this.rpc('checkpoint.list', { sessionId });
+  }
+  /** 为当前会话创建一个检查点（对话 + 工作区文件快照）。 */
+  public createCheckpoint(
+    sessionId: string,
+    label: string,
+  ): Promise<{ ok: boolean; checkpoint: { label: string; ts: string; eventCount: number; hasFileSnapshot: boolean } }> {
+    return this.rpc('checkpoint.create', { sessionId, label });
+  }
+  /** 回滚到指定检查点（不传 label 回滚到最近一个）；对话与代码一并还原。 */
+  public rollbackCheckpoint(
+    sessionId: string,
+    label?: string,
+  ): Promise<{ ok: boolean; checkpoint: { label: string; ts: string; eventCount: number; hasFileSnapshot: boolean } }> {
+    return this.rpc('checkpoint.rollback', { sessionId, label });
+  }
+
+  // ---- 内联 diff 审查----
+
+  /** stage 整个文件（git add）。 */
+  public stageFile(path: string): Promise<{ ok: boolean }> {
+    return this.rpc('changes.stageFile', { path });
+  }
+  /** 丢弃整个文件的工作区改动（未跟踪文件服务端拒绝）。 */
+  public revertFile(path: string): Promise<{ ok: boolean }> {
+    return this.rpc('changes.revertFile', { path });
+  }
+  /** stage 单个 hunk；isNew=true 时服务端先 git add -N。 */
+  public stageHunk(path: string, hunk: string, isNew?: boolean): Promise<{ ok: boolean }> {
+    return this.rpc('changes.stageHunk', { path, hunk, isNew });
+  }
+  /** 丢弃单个 hunk 的工作区改动（git apply -R）。 */
+  public revertHunk(path: string, hunk: string): Promise<{ ok: boolean }> {
+    return this.rpc('changes.revertHunk', { path, hunk });
+  }
+  /** 全部行内评论（工作区级持久化）。 */
+  public listDiffComments(): Promise<{
+    comments: { id: string; path: string; side: 'old' | 'new'; line: number; text: string; ts: string }[];
+  }> {
+    return this.rpc('changes.comments.list', {});
+  }
+  /** 添加行内评论（锚定 文件 + 行号 + 侧别）。 */
+  public addDiffComment(
+    path: string,
+    side: 'old' | 'new',
+    line: number,
+    text: string,
+  ): Promise<{ ok: boolean; comment: { id: string; path: string; side: 'old' | 'new'; line: number; text: string; ts: string } }> {
+    return this.rpc('changes.comments.add', { path, side, line, text });
+  }
+  /** 删除一条行内评论。 */
+  public deleteDiffComment(id: string): Promise<{ ok: boolean }> {
+    return this.rpc('changes.comments.delete', { id });
+  }
+
+  // ---- 文件树 ----
+  public listFs(depth = 3): Promise<{ tree: FsNode[] }> {
+    return this.rpc('fs.list', { depth });
+  }
+  public readFs(path: string): Promise<FsReadResult> {
+    return this.rpc('fs.read', { path });
+  }
+
+  // ---- 插件 / 技能 ----
+  public listPlugins(): Promise<PluginManifest[]> {
+    return this.rpc('plugins.list', {});
+  }
+  /**
+   * `/` 技能选择器数据（只读 name/description/tags）。
+   * @returns 技能清单
+   */
+  public listSkills(): Promise<{
+    skills: { name: string; description: string; tags: string[] }[];
+  }> {
+    return this.rpc('skills.list', {});
+  }
+
+  /**
+   * 自动化任务列表。
+   * @returns 任务列表
+   */
+  public listAutomations(): Promise<
+    {
+      id: string;
+      name: string;
+      prompt: string;
+      intervalMinutes: number;
+      enabled: boolean;
+      createdAt: string;
+      lastRunAt?: string;
+    }[]
+  > {
+    return this.rpc('automations.list', {});
+  }
+
+  /**
+   * 新建自动化任务。
+   * @param input 名称/提示词/间隔
+   * @returns 新任务
+   */
+  public createAutomation(input: {
+    name: string;
+    prompt: string;
+    intervalMinutes: number;
+  }): Promise<unknown> {
+    return this.rpc('automations.create', input);
+  }
+
+  /**
+   * 删除自动化任务。
+   * @param id 任务 id
+   * @returns 是否删除
+   */
+  public deleteAutomation(id: string): Promise<boolean> {
+    return this.rpc('automations.delete', { id });
+  }
+
+  /**
+   * 启停自动化任务。
+   * @param id 任务 id
+   * @param enabled 是否启用
+   * @returns 更新后的任务
+   */
+  public setAutomationEnabled(id: string, enabled: boolean): Promise<unknown> {
+    return this.rpc('automations.setEnabled', { id, enabled });
+  }
+
+  /**
+   * 立即运行一次自动化。
+   * @param id 任务 id
+   * @returns 新会话结果
+   */
+  public runAutomation(id: string): Promise<unknown> {
+    return this.rpc('automations.run', { id });
+  }
+  public searchPlugins(query = ''): Promise<PluginSearchEntry[]> {
+    return this.rpc('plugins.search', { query });
+  }
+  public installPlugin(name: string): Promise<unknown> {
+    return this.rpc('plugins.install', { name });
+  }
+  public removePlugin(name: string): Promise<unknown> {
+    return this.rpc('plugins.remove', { name });
+  }
+  public reloadPlugins(): Promise<PluginReloadResult> {
+    return this.rpc('plugins.reload', {});
+  }
+
+  // ---- 长期记忆 ----
+  public listMemory(): Promise<MemoryListResult> {
+    return this.rpc('memory.list', {});
+  }
+  public searchMemory(query: string, limit = 20): Promise<MemorySearchResult> {
+    return this.rpc('memory.search', { query, limit });
+  }
+  public addMemory(fact: { text: string; topic?: string; importance?: number }): Promise<unknown> {
+    return this.rpc('memory.add', fact);
+  }
+  public updateMemory(fact: { id: string; text: string; topic?: string; importance?: number }): Promise<unknown> {
+    return this.rpc('memory.update', fact);
+  }
+  public deleteMemory(id: string): Promise<unknown> {
+    return this.rpc('memory.delete', { id });
+  }
+
+  // ---- 插件集 Profile + Bundle ----
+  public listProfiles(): Promise<Profile[]> {
+    return this.rpc('profile.list', {});
+  }
+  public getActiveProfile(): Promise<ActivePlugins> {
+    return this.rpc('profile.active', {});
+  }
+  public saveProfile(profile: { name: string; plugins: string[]; description: string }): Promise<unknown> {
+    return this.rpc('profile.save', { profile });
+  }
+  public applyProfile(id: string): Promise<ProfileApplyResult> {
+    return this.rpc('profile.apply', { id });
+  }
+  public deleteProfile(id: string): Promise<unknown> {
+    return this.rpc('profile.delete', { id });
+  }
+  public packBundle(params: { id?: string; profile?: { name: string; plugins: string[] } }): Promise<BundlePackResult> {
+    return this.rpc('bundle.pack', params);
+  }
+  public unpackBundle(zipPath: string): Promise<BundleUnpackResult> {
+    return this.rpc('bundle.unpack', { zipPath });
+  }
+
+  // ---- 多 Agent 编排 ----
+  public listGraphs(): Promise<GraphSummary[]> {
+    return this.rpc('graph.list', {});
+  }
+  public getGraph(id: string): Promise<GraphGetResult> {
+    return this.rpc('graph.get', { id });
+  }
+  public deleteGraph(id: string): Promise<unknown> {
+    return this.rpc('graph.delete', { id });
+  }
+  public saveGraph(def: GraphDef): Promise<{ id: string }> {
+    return this.rpc('graph.save', { def });
+  }
+  public runGraphById(id: string): Promise<GraphRunResult> {
+    return this.rpc('graph.run', { id });
+  }
+  public runGraph(def: GraphDef): Promise<GraphRunResult> {
+    return this.rpc('graph.run', { def });
+  }
+  public graphStatus(runId: string): Promise<GraphStatusResult> {
+    return this.rpc('graph.status', { runId });
+  }
+  /**
+   * 续跑既有图运行（`graph.resume`）：服务端从该运行的存档读回规格与已完成步骤，
+   * **已完成步骤复用产出、其余重跑**。返回与首跑同型的 `{ runId, nodeCount }`
+   * （沿用同一个 runId ⇒ 后续 `graph.progress` / `graph.done` / `graphStatus` 的 id 不变）。
+   *
+   * 存在的意义：客户端此前只有 `runGraph`（能发起）而没有续跑（跑坏了没法接着跑），
+   * 服务端 2026-10-08 已提供该 RPC ⇒ 客户端补上同型方法，避免「半边接线」。
+   * @param runId 上次 `graph.run` 返回的运行 ID（续跑的定义取自该运行的存档首行）
+   * @returns 该次续跑的 `{ runId, nodeCount }`（runId 与传入值相同）
+   */
+  public resumeGraph(runId: string): Promise<GraphRunResult> {
+    return this.rpc('graph.resume', { runId });
+  }
+
+  // ---- 工作台界面能力（上下文容量 / 配额 / 会话模式 / 权限档位 / 检索） ----
+  // 一组 RPC 支撑三块 UI：上下文容量面板、输入区「+」添加菜单、权限档位面板。
+
+  /** 上下文容量报告：六类 token 分解 + 窗口占比 + 提示缓存命中率。 */
+  public contextUsage(threadId: string): Promise<import('../types/models.ts').ContextUsageReport> {
+    return this.rpc('context.usage', { threadId });
+  }
+  /**
+   * 治理台台账（F2：进化晋升历史 + 回滚锚点视图；组件层统一走本封装，不直发 rpc）。
+   * 返回形状（GovernanceHistory 联合类型）由调用方给出——它依赖组件本地的 GovernanceRow，
+   * 不上提到 models（避免为单个面板污染公共类型面）。
+   */
+  public governanceHistory<T>(): Promise<T> {
+    return this.rpc('governance.history', {});
+  }
+  /** 今日余额（本地日内预算）× 各模型配额。 */
+  public quotaGet(): Promise<import('../types/models.ts').QuotaStatus> {
+    return this.rpc('quota.get', {});
+  }
+  /** 调整配额档位与基础日预算。 */
+  public quotaSet(patch: {
+    plan?: string;
+    dailyTokens?: number;
+  }): Promise<import('../types/models.ts').QuotaStatus> {
+    return this.rpc('quota.set', patch);
+  }
+  /** 读当前会话的模式（目标 / 计划 / 绘图）。 */
+  public modesGet(threadId: string): Promise<import('../types/models.ts').SessionModes> {
+    return this.rpc('modes.get', { threadId });
+  }
+  /** 更新会话模式；传空串 / false 即清除该项。 */
+  public modesSet(
+    threadId: string,
+    patch: { goal?: string; planMode?: boolean; sketchMode?: boolean },
+  ): Promise<import('../types/models.ts').SessionModes> {
+    return this.rpc('modes.set', { threadId, ...patch });
+  }
+  /** 审批档位表（后端单一来源，含描述与风险级别）。 */
+  public approvalTiers(): Promise<{ tiers: import('../types/models.ts').ApprovalTier[] }> {
+    return this.rpc('approval.tiers', {});
+  }
+  /** 可选智能体清单（内置角色 + 编排图 + 插件）。 */
+  public agentsList(): Promise<{ agents: import('../types/models.ts').AgentCatalogEntry[] }> {
+    return this.rpc('agents.list', {});
+  }
+  /** 一条查询同时搜工作区文件与历史会话。 */
+  public searchAll(
+    query: string,
+    limit?: number,
+  ): Promise<{ files: import('../types/models.ts').SearchHit[]; chats: import('../types/models.ts').SearchHit[] }> {
+    return this.rpc('search.all', limit === undefined ? { query } : { query, limit });
+  }
+}

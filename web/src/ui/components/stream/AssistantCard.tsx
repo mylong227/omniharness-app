@@ -1,0 +1,210 @@
+// 助手消息卡：生成中做字符级渐进揭示（内容为真实文本，非伪造 token），
+// 附附件 chip、外部链接卡片与一键复制。点击正文里的文件路径链接在右侧面板打开。
+//
+// 长报告收敛（2026-10-13 用户反馈）：回合结束后的长篇报告不再整篇平铺——
+// 默认收折为「简报卡」（标题 + 字数 + 前几行预览），「展开全文」就地铺开文档式排版，
+// 点击卡片本身仍走钻取（右侧面板对 assistant 事件有文档视图）。生成中（busy）不收折，
+// 流式正文照常完整呈现；收尾时刻才收敛，与「结果收尾为文件的形式」的口径一致。
+//
+// 函数组件范式：揭示器实例跨渲染保持（useRef 惰性初始化），
+// 「文本 / busy / animate 变化即重启」与「卸载即停止」分别由两个 effect 承接。
+
+import * as React from 'react';
+import { badge, timeOf, renderMarkdown } from '../../format.ts';
+import { icon } from '../../models/Icon.ts';
+import { extractUrls } from '../../textUtils.ts';
+import { TextRevealer } from '../../models/TextRevealer.ts';
+import { ClipboardCopier } from '../../models/ClipboardCopier.ts';
+import { AttachmentChips } from './AttachmentChips.tsx';
+import { CollapsibleDoc } from './CollapsibleDoc.tsx';
+import { ExternalLinkCards } from './ExternalLinkCards.tsx';
+import { LongContentCollapser } from '../../models/LongContentCollapser.ts';
+import type { ThreadEvent, FileAttachment } from '../../../types/models.ts';
+import { t } from '../../i18n/i18n.ts';
+
+/** AssistantCard 组件的入参。 */
+export interface AssistantCardProps {
+  /** 助手事件（payload.content 为正文）。 */
+  ev: ThreadEvent;
+  /** 是否处于生成中（决定是否播放渐进揭示）。 */
+  busy?: boolean;
+  /** 打开正文中引用的文件（在右侧面板预览）。 */
+  onOpenFile?: (p: string) => void;
+  /** 在右栏网页标签打开正文里的本地地址（回环 URL 才显示入口）。 */
+  onOpenUrl?: (url: string) => void;
+  /**
+   * 是否允许渐进揭示动画（缺省允许）。
+   * 传 false 用于「这段正文刚刚已经逐字流过来了」——此时再揭一遍会从 40% 处往回跳，是可见的倒退。
+   */
+  animate?: boolean;
+  /** 重新生成回调（仅最后一条助手消息挂载；点击「重新生成」用最后一条用户消息重发）。 */
+  onRegenerate?: () => void;
+  /** 定时器注入点（单测可替换；组件内默认用全局 setTimeout）。 */
+  schedule?: (fn: () => void, ms: number) => ReturnType<typeof setTimeout>;
+}
+
+const COPY_BTN: Record<string, string> = {
+  marginTop: '8px',
+  background: 'transparent',
+  borderRadius: '6px',
+  padding: '1px 7px',
+  cursor: 'pointer',
+  fontSize: '10.5px',
+  alignSelf: 'flex-start',
+};
+
+/**
+ * 助手卡头部：徽标、时间与重新生成入口。
+ * @param props 事件与重新生成回调。
+ * @returns 头部节点。
+ */
+function AssistantHead(props: {
+  ev: ThreadEvent;
+  onRegenerate?: (() => void) | undefined;
+}): ReactElement {
+  const { ev, onRegenerate } = props;
+  return (
+    <div className="head">
+      {badge(ev.type)}
+      <span className="time">{timeOf(ev.timestamp)}</span>
+      {onRegenerate ? (
+        <button
+          className="msg-act"
+          title={t('重新生成')}
+          aria-label={t('重新生成')}
+          onClick={(e: React.MouseEvent) => {
+            e.stopPropagation();
+            onRegenerate();
+          }}
+        >
+          {t('↻ 重新生成')}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * 点击正文中的文件链接：拦截跳转，改在右侧面板打开。
+ *
+ * 抽成模块级函数只为守住组件函数体的行数基线（check.mjs），行为与原先的闭包逐字节一致。
+ * @param e 点击事件
+ * @param onOpenFile 打开文件回调（缺省时不拦截，交给浏览器默认行为）
+ * @returns 无
+ */
+function openFileFromClick(
+  e: React.MouseEvent,
+  onOpenFile: ((p: string) => void) | undefined,
+): void {
+  const target = e.target as HTMLElement | null;
+  if (!target || !onOpenFile) return;
+  const anchor = target.closest('a[data-file-path]') as HTMLElement | null;
+  if (anchor) {
+    e.preventDefault();
+    e.stopPropagation();
+    onOpenFile((anchor as unknown as { dataset: { filePath?: string } }).dataset.filePath || '');
+  }
+}
+
+/**
+ * 复制反馈 hook：真实写入成功才亮 ✓（1.4s 后回落）——「勾选感」必须等于**真实写入成功**，
+ * 失败（两条路径都被拒）不放假勾。定时器经 schedule 注入点驱动（单测可替换）。
+ * @param full 要复制的正文全文。
+ * @param schedule 定时器注入点（单测可替换；缺省用全局 setTimeout）。
+ * @returns copied 当前是否处于成功反馈态；onCopy 复制按钮的点击处理。
+ */
+function useCopyFeedback(
+  full: string,
+  schedule?: (fn: () => void, ms: number) => ReturnType<typeof setTimeout>,
+): { copied: boolean; onCopy: (e: React.MouseEvent) => void } {
+  const [copied, setCopied] = React.useState(false);
+  const copiedTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  React.useEffect(() => () => {
+    if (copiedTimerRef.current !== null) clearTimeout(copiedTimerRef.current);
+  }, []);
+  const onCopy = (e: React.MouseEvent): void => {
+    e.stopPropagation();
+    const fire = (): void => {
+      setCopied(false);
+      copiedTimerRef.current = null;
+    };
+    void ClipboardCopier.copy(full).then((ok) => {
+      if (!ok) return;
+      setCopied(true);
+      if (copiedTimerRef.current !== null) clearTimeout(copiedTimerRef.current);
+      const after = (fn: () => void, ms: number): ReturnType<typeof setTimeout> =>
+        schedule ? schedule(fn, ms) : setTimeout(fn, ms);
+      copiedTimerRef.current = after(fire, 1400);
+    });
+  };
+  return { copied, onCopy };
+}
+
+/**
+ * 助手消息卡：渲染正文（生成中渐进揭示）、附件、外链与复制入口。
+ * @param props 组件入参
+ * @returns 助手消息节点
+ */
+export function AssistantCard(props: AssistantCardProps): ReactElement {
+  const { ev, busy, animate, onOpenFile, onOpenUrl, onRegenerate, schedule } = props;
+  const [shown, setShown] = React.useState<string>('');
+  const full = (ev.payload?.content as string) || '';
+  // 收折判定与渲染统一走 LongContentCollapser / CollapsibleDoc（阈值与摘要在模型层可单测）。
+  // 这里只算一个布尔：收折时跳过揭示动画（见下）。
+  const folded = busy !== true && LongContentCollapser.shouldCollapse(full);
+
+  // 揭示器跨渲染复用（构造只发生一次，等价原 class 的「生命周期内复用」）。
+  // **不在这里兜 `schedule ?? setTimeout`**：把宿主函数直接塞进去会诱发
+  // 「宿主 API 被当方法调用」的 `Illegal invocation`（真机崩溃原委见 TextRevealer 构造函数注释）；
+  // 缺省调度由 TextRevealer 自己以裸调用方式包装。
+  const revealerRef = React.useRef<TextRevealer | null>(null);
+  if (revealerRef.current === null) {
+    revealerRef.current = new TextRevealer((next) => setShown(next), schedule);
+  }
+
+  // 文本 / busy / animate 任一变化即重启揭示（依赖写全；不比对 prev）。
+  // 收折为简报卡时揭示没有输出面，直接不启动（省一轮逐字动画开销）；
+  // 展开后的 `renderMarkdown(shown || full)` 有 full 兜底，显示不会缺内容。
+  React.useEffect(() => {
+    if (folded) return;
+    revealerRef.current?.start(full, animate !== false && busy === true);
+  }, [full, busy, animate, folded]);
+
+  // 卸载即停止揭示（清理对称）。
+  React.useEffect(() => () => revealerRef.current?.stop(), []);
+
+  const { copied, onCopy } = useCopyFeedback(full, schedule);
+
+  const p = ev.payload || {};
+  return (
+    <>
+      <AssistantHead ev={ev} onRegenerate={onRegenerate} />
+      <div className={'card ' + ev.type}>
+        {/* 长内容默认收起为简报卡（2026-10-13 用户反馈：数千字报告整段平铺糊满一屏）。
+            仅对**最终卡片**生效：生成中（busy）正文还在长，收起会跟揭示动画打架。 */}
+        <div
+          className="content"
+          spellCheck="false"
+          onClick={(e: React.MouseEvent) => openFileFromClick(e, onOpenFile)}
+        >
+          {busy !== true && LongContentCollapser.shouldCollapse(full) ? (
+            <CollapsibleDoc content={full} />
+          ) : (
+            renderMarkdown(shown || full)
+          )}
+        </div>
+        <AttachmentChips files={p.files as FileAttachment[] | undefined} />
+        <ExternalLinkCards urls={extractUrls(full)} onOpenInPanel={onOpenUrl} />
+        <button
+          className={'copy-btn' + (copied ? ' copy-btn--done' : '')}
+          title={t(copied ? '已复制' : '复制结果')}
+          aria-label={t(copied ? '已复制' : '复制结果')}
+          style={COPY_BTN}
+          onClick={onCopy}
+        >
+          {icon(copied ? 'check' : 'copy', { size: 11 })} {t(copied ? '已复制' : '复制')}
+        </button>
+      </div>
+    </>
+  );
+}

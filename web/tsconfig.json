@@ -1,0 +1,53 @@
+{
+  // 前端 tsconfig（2026-10-17 Vite 迁移后）：**只做类型检查，不产出任何文件**。
+  //
+  // 为什么不再有 rootDir / outDir / sourceMap / noEmitOnError：
+  //   迁移前 `outDir: "dist"` 是真实产物路径（`tsc -p web/tsconfig.json` 直出 158 个原生 ESM）。
+  //   现在构建由 Vite 负责（`npm run web:build` → `web/dist`），`tsc` 的唯一职责是
+  //   `--noEmit` 类型检查 —— 两条命令同时写 `web/dist` 只会互相覆盖。
+  //   保留 `outDir` 还会带来一个真实风险：有人误跑 `tsc -p web/tsconfig.json` 后，
+  //   一堆陈旧 `.js` 会散落进源码树（`src/**` 旁边），而 Vite 解析 `./x.js` 时会优先命中它们。
+  "compilerOptions": {
+    "target": "ES2020",
+    // ES2022：测试判据大量使用**顶层 await**（`await import('../src/x.ts')` 源码直跑），
+    // ES2020 的 module 目标不支持顶层 await（实测 121 条 TS1378）；ES2022 起原生支持。
+    "module": "ES2022",
+    // Vite 用 bundler 解析（支持 `exports` 子路径，如 `highlight.js/lib/common`）；
+    // `node`（classic）解析不到这类子路径。
+    "moduleResolution": "bundler",
+    // 导入约定与后端统一：相对导入写真实源文件后缀（`.ts`/`.tsx`）。
+    // 本工程 `noEmit: true`（构建由 Vite 负责），所以用 `allowImportingTsExtensions`
+    // 放行该写法；后端走 `rewriteRelativeImportExtensions`（见根 tsconfig 注释）。
+    "allowImportingTsExtensions": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "noEmit": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowJs": false,
+    // JSX：**自动运行时（react/jsx-runtime）—— 标准 Vite React 项目配置**。
+    //
+    // 迁移说明（2026-10-17 第二轮标准化）：此前是 `"jsx": "react"` + 显式
+    // `jsxFactory: "React.createElement"`（classic 运行时），那是零打包器时代为了让
+    // `tsc` 直出可运行代码而选的——JSX 会编译成 `React.createElement(...)`，于是**每个
+    // 含 JSX 的文件都必须把 React 带进作用域**。
+    //
+    // 改成 `react-jsx` 后：JSX 编译为 `import { jsx } from 'react/jsx-runtime'`，
+    // 文件不再需要为 JSX 单独引入 React（只在自己调用 hooks 时才引入）。
+    // 这也是 React 17+ 的官方推荐形态，且与 `@vitejs/plugin-react` 的默认行为一致。
+    "jsx": "react-jsx",
+    // 允许模块内引用全局 `React` 类型：`deps.ts` 的测试桩分支与 `reactGlobals.d.ts` 的
+    // 全局类型提升都依赖它（官方 @types/react 以 `export as namespace React` 声明该全局）。
+    "allowUmdGlobalAccess": true,
+    // 测试判据（web/test/**）会读 node:fs / node:path / 起子进程（真 Chrome harness），
+    // 需要 @types/node；src/** 本身保持纯浏览器代码，不多不少。
+    "types": ["node"]
+  },
+  // 2026-10-17 测试栈统一：判据从 .mjs 转 .ts 后纳入同一份 strict 类型检查
+  // （web/test 93 个文件与 src 同栈，`import '../src/x.ts'` 直跑源码）。
+  "include": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts"]
+}

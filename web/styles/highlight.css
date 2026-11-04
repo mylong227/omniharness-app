@@ -1,0 +1,174 @@
+/* =========================================================================
+   OmniHarness Web UI — 语法高亮（VS Code 风格分色）
+   -------------------------------------------------------------------------
+   供 FileTab 右侧面板「编辑器式」预览与 markdown 代码块使用。
+
+   2026-10-31 分色重写（用户口径：要 VS Code / 主流编辑器那样的多色高亮，
+   2026-10-17 的单色体系退役）：九个 token 各归各的色相——
+
+     关键字   蓝（Dark+ #569cd6 / Light+ #0000ff）
+     函数     黄（#dcdcaa / #795e26）
+     字符串   橙红（#ce9178 / #a31515）
+     数字     浅绿（#b5cea8 / #0a7d50）
+     类型     青（#4ec9b0 / #1f6e84）
+     属性     浅蓝（#9cdcfe / #001080）
+     注释     绿 + 斜体（#6a9955 / #027702）
+     标点     中性灰（最淡，不该被读到）
+     正文     中性（与编辑器正文同调）
+
+   色相字面量的**唯一事实源是 theme.css 的 `--tok-*`**（colorSystem 门禁：
+   theme.css 之外不得出现色相字面量）——本文件只留消费规则；九档全部对
+   --code-bg 过 WCAG AA（≥4.5:1），对照表见 theme.css 内联注释与
+   web/test/highlightColors.test.ts（双主题真机判据）。
+   ========================================================================= */
+
+/* ---- 代码容器：与卡片同一套语言（表面 + 发丝轮廓，无投影无渐变） ---- */
+.hl-code {
+  background: var(--code-bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.65;
+  max-height: 70vh;
+  overflow: auto;
+  font-family: var(--mono);
+  tab-size: 4;
+  white-space: pre;
+  word-break: normal;
+}
+
+/* markdown 回复里的代码块走 highlight.js（markdown.ts 输出 `<pre class="hljs">`），
+   而 vendor 主题给 `.hljs` 写死了「暗底 + 浅字」。那条底色在**两套主题**下都生效 ⇒
+   浅色主题里代码块是暗底。本层在 vendor 之后加载，同权重即可盖住。 */
+.md-codeblock pre.hljs,
+pre.hljs {
+  background: var(--code-bg);
+  color: var(--tok-plain);
+}
+.md-codeblock {
+  background: var(--code-bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+}
+.md-codeblock__bar {
+  background: transparent;
+}
+.hl-code code {
+  font-family: inherit;
+}
+.hl-code code {
+  display: block;
+  min-height: 1em;
+}
+
+/* ---- Token 类 → 色相 + 字形（类名与 src/ui/highlight.ts 的 CLS 表一一对应）。
+   分色后层级主要靠色相，字形只保留「注释斜体」一处（VS Code 口径）；
+   改类名时两处必须同步——2026-10-17 就因两表名字漂移丢过一半颜色。 ---- */
+.tok-com {
+  color: var(--tok-comment);
+  font-style: italic;
+}
+.tok-str {
+  color: var(--tok-string);
+}
+.tok-kw {
+  color: var(--tok-kw);
+}
+.tok-num {
+  color: var(--tok-num);
+  font-variant-numeric: tabular-nums;
+}
+.tok-fn {
+  color: var(--tok-fn);
+}
+.tok-type {
+  color: var(--tok-type);
+}
+.tok-prop {
+  color: var(--tok-prop);
+}
+.tok-pun {
+  color: var(--tok-punct);
+}
+.tok-plain {
+  color: var(--tok-plain);
+}
+
+/* =========================================================================
+   highlight.js 的 vendor 主题覆盖
+   -------------------------------------------------------------------------
+   web/vendor/highlight-github-dark.min.css 在**两套主题下都加载**，于是浅色主题里的
+   代码块一直吃的是 GitHub 暗色配色（这是重设计前就存在的缺陷；该 `<link>` 已在
+   2026-10-17 从 index.html 删除，本段仍保留作为第二道保险）。
+   它用的选择器形如 `.hljs-keyword`，与本层同权重但更早加载 ⇒ 本层同选择器即可盖住。
+   这里不引第二份 vendor 主题：单色体系下语法色只有明度差，自己写全量映射更短、
+   也更可复核（vendor 文件保持原样不动，回滚成本 = 删掉本段）。
+   ========================================================================= */
+.hljs,
+.hljs-subst,
+.hljs-plain {
+  color: var(--tok-plain);
+}
+.hljs-comment,
+.hljs-quote,
+.hljs-doctag {
+  color: var(--tok-comment);
+  font-style: italic;
+}
+.hljs-string,
+.hljs-meta .hljs-string,
+.hljs-regexp,
+.hljs-addition {
+  color: var(--tok-string);
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-section,
+.hljs-name,
+.hljs-strong {
+  color: var(--tok-kw);
+}
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-link,
+.hljs-meta,
+.hljs-selector-id,
+.hljs-selector-class {
+  color: var(--tok-num);
+}
+.hljs-title,
+.hljs-title.function_,
+.hljs-attr,
+.hljs-attribute,
+.hljs-variable,
+.hljs-template-variable {
+  color: var(--tok-fn);
+}
+.hljs-type,
+.hljs-built_in,
+.hljs-class .hljs-title,
+.hljs-title.class_,
+.hljs-params {
+  color: var(--tok-type);
+}
+.hljs-property,
+.hljs-selector-attr,
+.hljs-selector-pseudo {
+  color: var(--tok-prop);
+}
+.hljs-punctuation,
+.hljs-operator,
+.hljs-tag {
+  color: var(--tok-punct);
+}
+.hljs-emphasis {
+  font-style: italic;
+}
+.hljs-deletion {
+  color: var(--tok-comment);
+  text-decoration: line-through;
+}

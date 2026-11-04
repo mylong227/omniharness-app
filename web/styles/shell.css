@@ -1,0 +1,1219 @@
+/* =========================================================================
+   shell.css —— 截图式三栏壳层（会话侧栏 / 对话 / 代码查看器）
+   -------------------------------------------------------------------------
+   分层定位：theme.css（token）→ layout/components/chat（结构）→ polish.css（打磨）
+   → **本文件（壳层重构）**。只在 polish 之后追加同权重规则，回滚成本 = index.html 一行。
+   版式基准（用户提供的截图）：
+     左栏 ≈280px 会话侧栏：品牌行 / 大「新会话」钮 / 插件 / 工作区图标簇 / 会话组 / 页脚设置
+     中栏 flex：会话标题 + 忙碌徽标 + 对话|轨迹 标签 / 流区 / 圆角输入卡 / 细状态栏
+     右栏 ≈380px：文件标签条 + 路径栏 + 面板内容（12 个功能面板收进「全部面板」菜单）
+  ========================================================================= */
+
+/* ---------- 左栏：会话侧栏 ---------- */
+.col.left.side {
+  display: flex;
+  flex-direction: column;
+}
+
+.side-brand {
+  display: flex;
+  align-items: center;
+  /* 品牌行必须能收缩：否则「字标 + 命令面板 + 收起」的总宽会超过列宽（实测 284px vs 248px），
+     把**收起按钮挤出左栏可视区** ⇒ 用户「左栏收不起来」（2026-10-07 实测：按钮中心点命中隔壁中栏）。 */
+  min-width: 0;
+}
+.side-brand .iconbtn {
+  flex: none;
+}
+.side-brand .brand-mark {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex: none;
+}
+.side-wordmark {
+  font-size: 15px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
+  /* 空间不够时先压字标（省略号），**绝不把按钮推出列外**。 */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 大「新会话」按钮（侧栏一等动作） */
+.new-chat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.new-chat.compact {
+  margin: 2px 10px 8px;
+  padding: 8px 0;
+  justify-content: center;
+}
+.new-chat .nc-ico { display: inline-flex; }
+
+/* 侧栏一等导航项（插件 / 设置） */
+.side-item {
+  display: flex;
+  align-items: center;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.side-item.active { background: var(--panel-2); color: var(--text); }
+.side-item .si-ico { display: inline-flex; }
+
+/* 「工作区」区块头：标题 + 右对齐图标簇 */
+.side-sec-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+}
+.side-sec-head .ssh-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: var(--dim);
+}
+.side-sec-head .ssh-actions { display: inline-flex; gap: 2px; }
+.side-sec-head .ws-add {
+  border: none;
+  background: transparent;
+  color: var(--dim);
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+}
+.side-sec-head .ws-add:hover { background: var(--panel-2); color: var(--text); }
+.side-sec-head .ws-add.active { color: var(--accent); }
+
+/* 收成图标条（`[` / 品牌「«」）：只留图标，会话列表与文件树整体隐藏，点任意入口展开。 */
+.col.left.side.rail { width: 52px !important; min-width: 52px; }
+.col.left.side.rail .side-brand {
+  padding: 10px 0 4px;
+  flex-direction: column;
+  gap: 6px;
+}
+.col.left.side.rail .side-brand .side-wordmark,
+.col.left.side.rail .side-brand .flex-spacer { display: none; }
+.col.left.side.rail .side-brand .iconbtn { margin: 0; }
+.col.left.side.rail .new-chat.compact,
+.col.left.side.rail .side-item { margin: 0 8px; padding: 8px 0; justify-content: center; }
+.col.left.side.rail .ws-switch { padding: 4px 8px; }
+.col.left.side.rail .ws-switch-btn { justify-content: center; padding: 6px 0; }
+.col.left.side.rail .ws-switch-name,
+.col.left.side.rail .ws-caret { display: none; }
+.col.left.side.rail .side-sec-head { justify-content: center; margin-top: 8px; }
+.col.left.side.rail .ssh-label,
+.col.left.side.rail .flex-spacer { display: none; }
+/* 列表 / 搜索框 / 文件树在图标条态整体退场（宽度只有 52px，挤着显示等于不可用）。 */
+.col.left.side.rail #sessions,
+.col.left.side.rail .session-toolbar,
+.col.left.side.rail .section.tree,
+.col.left.side.rail .col-head { display: none; }
+
+/* 会话列表占满剩余空间并可滚；文件树可收缩（展开的长树不得把会话列表挤成 0 高——
+   2026-10-07 真机实测：树展开后会话区被压没，根因是重构后 #sessions 丢了旧 .section 的弹性）。 */
+.col.left.side #sessions {
+  flex: 1 1 auto;
+  min-height: 72px;
+  overflow: auto;
+}
+.col.left.side .section.tree {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* 侧栏页脚 */
+.side-foot {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  /* 高 DPI / 矮窗口下侧栏内容可能高于视口；页脚必须始终可达（设置入口不能掉到屏幕外）。 */
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  flex: 0 0 auto;
+  background: var(--bg-elev);
+}
+.side-foot .pill { font-size: 11.5px; }
+
+/* ---------- 面板划分（用户实测"面板要能进行划分"）：三栏各用一层底色 + 发丝线分隔 ---------- */
+
+/* 桌面端收起右栏（面板菜单旁的「»」或中栏头的面板按钮 / Ctrl+Cmd+Shift+E）；窄屏抽屉不受影响。 */
+@media (min-width: 881px) {
+  .body.rcollapsed .col.right,
+  .body.rcollapsed .resizer-right { display: none; }
+}
+
+/* ---------- 中栏：头部 / 状态栏 ---------- */
+.chat-head {
+  display: flex;
+  align-items: center;
+  flex: none;
+}
+.chat-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Codex 式「项目 / 线程」：项目段弱化、线程标题仍是主信息。 */
+.chat-project {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 18ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--faint);
+  font-size: var(--fs-xs);
+  font-family: var(--mono);
+  flex: none;
+}
+.chat-project .chat-project-ico {
+  display: inline-flex;
+  color: var(--faint);
+}
+.chat-slash {
+  color: var(--faint);
+}
+.chat-busy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+.chat-duration {
+  flex: none;
+  white-space: nowrap;
+  color: var(--dim);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.chat-duration-running { color: var(--text); }
+.chat-tabs { display: inline-flex; gap: 2px; }
+.chat-tab {
+  border: none;
+  background: transparent;
+  color: var(--dim);
+  font-size: 13px;
+  padding: 5px 10px;
+  cursor: pointer;
+  position: relative;
+}
+.chat-head .iconbtn.active { color: var(--brand); background: var(--panel-2); }
+
+/* 中栏头的右栏开关（2026-10-21 用户：「按钮去掉换成小箭头形式」）：一枚安静的字形小箭头，
+   `»` = 收起右栏、`«` = 拉回来，与左栏品牌行的「«」、右栏头的「»」同一套字形与节奏。
+   刻意**不要** `.iconbtn.active` / `[aria-pressed=true]` 的淡色底块——那是「选中了某个视图」
+   的语法，而这里只表达「这一栏往右推 / 拉回来」，底块会让中栏头多出一枚假的可选控件。
+   也抹掉全站按钮的毛玻璃底与 1px inset 细环（minimal.css 的 `button{}` 那条）：静止态只留字形，
+   悬停/键盘聚焦时才借回底色——它是栏缝上的一个「推手」，不是又一枚按钮。 */
+.chat-panel-toggle {
+  color: var(--dim);
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1;
+  padding: 4px 7px;
+  background-image: none;
+  box-shadow: none;
+  border-color: transparent;
+}
+.chat-panel-toggle:hover { color: var(--text); background: var(--hover); }
+
+.chat-status {
+  display: flex;
+  align-items: center;
+  flex: none;
+}
+/* 状态栏的「续跑」芯片：把「有编排没跑完 + 一键接着跑」放在用户一直看得见的地方，
+   免得还要先学会「全部面板 → 编排」的导航（2026-10-08 交互改进）。 */
+.chat-status .cs-resume {
+  font: inherit;
+  color: var(--accent);
+  background: var(--panel-2, transparent);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  padding: 2px 10px;
+  cursor: pointer;
+}
+.chat-status .cs-resume:hover { border-color: var(--accent); }
+.chat-status .cs-resume:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ---------- 中栏：输入卡片（正文在上 / 控制行在下） ---------- */
+.composer { flex: none; }
+.composer-box {
+  display: flex;
+  flex-direction: column;
+}
+.composer-input { position: relative; }
+.composer-input textarea {
+  width: 100%;
+  resize: none;
+  outline: none;
+}
+.composer-bar {
+  display: flex;
+  align-items: center;
+}
+.composer-bar-left,
+.composer-bar-right { display: flex; align-items: center; gap: 6px; }
+.send.round,
+.stop.round {
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.send.round:hover { filter: brightness(1.12); }
+.send.round:disabled { cursor: not-allowed; }
+.stop.round { font-size: 10px; }
+
+/* ---------- 右栏：代码查看器 ---------- */
+.col.right { display: flex; flex-direction: column; }
+/* 2026-10-30：`.rv-tabs` 自 antd Tabs 迁移后是**右栏整列容器**，旧标签条样式
+   （align-items:center + overflow-x:auto）会让 antd 内容压成内容宽并居中、左右各被裁一截
+   （用户截图：文件正文两侧被切）。列容器只管纵向排布，横向对齐交给默认 stretch。 */
+
+.rv-pathbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+.rv-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl; /* 长路径保尾段可见 */
+  text-align: left;
+}
+.rv-lang {
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-size: 10px;
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+  padding: 1px 5px;
+  flex: none;
+}
+.rv-meta { white-space: nowrap; flex: none; }
+/* 路径栏里的「预览」入口：只在 HTML 文件上出现，按发丝按钮（不是主操作）。 */
+.rv-preview {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: var(--fs-micro);
+  padding: 1px 7px;
+  cursor: pointer;
+}
+.rv-preview:hover {
+  background: var(--hover);
+}
+
+/* ---------- 面板内容区高度链 ----------
+   antd Tabs（v6）迁移后 tabpane（.ant-tabs-tabpane）是普通 block 容器（非 flex），面板根元素
+   靠 height:100% 从 tabpane 接高度（minimal.css 已给 tabpane 高度链）：
+   `.rv-pane`（文件面板）在 minimal.css 已有 height:100%；`.web-pane`（网页面板）同理必须
+   height:100%——只写 flex:1 在 block 父级上失效，iframe 会回落浏览器默认 150px
+   （用户实测「页面只渲染出一条，下面整块空白」，2026-10-31 探针实测 iframe 150 / tabpane 956）。 */
+.web-pane {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+.web-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--hairline);
+}
+.web-addr {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  padding: 5px 8px;
+}
+.web-addr:focus {
+  outline: none;
+  border-color: var(--faint);
+}
+.web-frame {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border: 0;
+  display: block;
+  background: #fff;
+}
+.web-error {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--hairline);
+  color: var(--err);
+  font-size: var(--fs-micro);
+}
+.web-empty {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 22px 18px;
+  color: var(--dim);
+}
+.web-empty-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.web-empty-title {
+  color: var(--text);
+  font-size: var(--fs-ui);
+  font-weight: 600;
+}
+.web-empty-hint {
+  margin-top: 4px;
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+.web-recent {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.web-recent-title {
+  color: var(--faint);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.web-recent-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 5px 8px;
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+.web-recent-item:hover {
+  background: var(--hover);
+}
+.web-recent-host {
+  flex: none;
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  color: var(--faint);
+}
+.web-recent-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  color: var(--dim);
+}
+.web-empty-actions {
+  margin-top: 18px;
+}
+.web-note {
+  margin-top: 14px;
+  color: var(--faint);
+  font-size: var(--fs-micro);
+  line-height: 1.6;
+}
+.file-pane {
+  flex: 1;
+  min-height: 0;
+  /* 允许被右栏压窄：宽代码行由内部滚动容器接管（否则会把父级顶宽后整块被裁）。 */
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  /* 不加 padding：四周 2px 的最终间隙由 `.rv-pane-body` 统一给（2026-10-31 用户口径）。 */
+  padding: 0;
+  gap: 0;
+}
+/* 代码表面：gutter + 高亮正文装在同一个滚动容器里（两列同流 ⇒ 行号天然同步）。 */
+.code-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  align-items: stretch;
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+}
+.code-gutter {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  flex: none;
+  padding: 10px 0 5px 10px;
+  min-width: 34px;
+  text-align: right;
+  color: var(--dim);
+  background: inherit;
+  user-select: none;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.code-scroll .hl-code {
+  flex: 1;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  max-height: none;
+  /* 正文两轴的滚动都交给外层 `.code-scroll`（gutter 已 sticky left 覆盖横向）：
+     · align-self:flex-start —— 不被 stretch 压到视口高。`.hl-code` 基础样式自带
+       overflow:auto，一旦自身成为滚动容器，内容超高时它会长出**自己的**纵向滚动条，
+       行号 gutter 与正文各自为政（错位），正文还会被顶出视口外。
+     · min-width:max-content —— 宽行把正文撑到内容宽，横向滚动条落在 `.code-scroll`
+       底部（视口内够得着）。`.hl-code` 是 overflow:auto 的 flex 子项，自动最小尺寸为 0，
+       不显式撑它就会自己内部横滚，滚动条沉在几千像素的内容底部。
+     （2026-10-31 用户截图「长行被切 + 上下滚不动」的另一半根因。） */
+  align-self: flex-start;
+  min-width: max-content;
+  /* 显示区底部**只留 5px**（2026-10-07 用户截图口径）：原来 10px 在长文档末尾会多出一条空带，
+     而 gutter 同步 5px，行号与正文不会错行。 */
+  padding: 10px 12px 5px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+/* markdown / 纯文本正文同样填满并自持滚动（卡片化与代码表面一致）。 */
+.file-md-scroll,
+.file-pane .file-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  padding: 6px 14px;
+}
+
+/* ---------- 「全部面板」菜单（12 个功能面板的收起入口） ---------- */
+.pp-wrap { position: relative; display: inline-flex; flex: none; }
+.pp-btn.active { color: var(--accent); }
+.pp-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 60;
+  min-width: 168px;
+  display: flex;
+  flex-direction: column;
+}
+.pp-title {
+  font-size: 10.5px;
+  letter-spacing: 0.6px;
+  color: var(--dim);
+  padding: 4px 8px 6px;
+}
+.pp-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  padding: 6px 8px;
+  cursor: pointer;
+  text-align: left;
+}
+.pp-item .pp-ico { display: inline-flex; color: var(--dim); }
+
+/* ---------- 轨迹视图 ---------- */
+.trace {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 14px;
+}
+.trace-head { font-size: 11.5px; color: var(--dim); margin-bottom: 8px; }
+.trace-empty { font-size: 12.5px; color: var(--dim); padding: 24px 8px; text-align: center; }
+.trace-list { display: flex; flex-direction: column; gap: 2px; }
+.tr-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 12.5px;
+}
+.tr-row:hover { background: var(--panel-2); }
+.tr-ico { display: inline-flex; color: var(--dim); flex: none; }
+.tr-act {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tr-st { flex: none; }
+.tr-time { flex: none; font-size: 11px; color: var(--dim); }
+
+/* ---------- 通用 ---------- */
+.flex-spacer { flex: 1 1 auto; min-width: 0; }
+
+/* 仅窄屏可见（`.mob-only`）：用在中栏头的「左栏抽屉」汉堡键上，桌面端必须隐藏。
+   ⚠️ 选择器必须带元素名（`button.mob-only` = 0,1,1）：minimal.css 的 `.iconbtn{display:inline-flex}`
+   与本类同为 0,1,0 却级联更晚，单写 `.mob-only{display:none}` 会被它盖掉——汉堡键因此在桌面端
+   一直露着，而桌面端点它只是空转（`.col.left` 的 `.open` 只在 ≤880px 的抽屉规则里生效）。
+   2026-10-21 用户按截图要求「去掉」的就是这枚幽灵按钮；窄屏抽屉开关与 Ctrl/Cmd+B 均保留。 */
+button.mob-only { display: none; }
+
+/* ---------- 窄屏（≤880px）：抽屉模式保留，头部按钮现身 ---------- */
+@media (max-width: 880px) {
+  button.mob-only { display: inline-flex; }
+  .chat-title { max-width: 18ch; }
+}
+
+/* =========================================================================
+   并入自旧「打磨层 B」（原 refine-*，2026-10-18）
+   ---------------------------------------------------------------------
+   这些规则原本在 shell.css 之后、minimal.css 之前生效；现在**逐字**追加在本文件末尾，
+   级联位置与顺序完全不变（shell 结束 → 本段 → minimal 开始）。
+   ========================================================================= */
+
+
+/* -------------------------------------------------------------------------
+   源文件：web/styles/refine-surfaces.css（已折叠进本文件）
+   ------------------------------------------------------------------------- */
+
+/* 品牌角标：从「渐变 + 内高光 + 品牌描边」三步装饰收回一枚安静的方块。
+   品牌识别靠位置与字形（Ω），不靠发光。 */
+
+/* 顶栏底边渐变发丝线：一条 1px 线被画成渐变，是最典型的「生成式装饰」。 */
+
+/* 分栏拖拽柄：常驻显示一条灰线，四个栏之间太吵；hover 才显形（已有），这里让它更短更细。 */
+.resizer::after {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--hairline);
+}
+.resizer:hover::after {
+  width: 2px;
+  background: var(--brand);
+}
+
+/* =========================================================================
+   3. 表面与层级：靠底色，不靠描边
+   ========================================================================= */
+
+/* 右侧栏用 --bg-elev（最亮/最暗之外的一层），左栏与中栏同底、由发丝线分隔。 */
+
+/* 卡片：去掉描边，改用「表面 + 极淡顶高光」。深色里描边会让界面变成线框图，
+   而底色差本身已经足够表达层级（三栏阶梯见第 1 节）。 */
+.card {
+  border-color: transparent;
+}
+[data-theme='light'] .card {
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+.ev.assistant .card {
+  border-color: transparent;
+}
+/* 助手气泡的「内嵌感」靠底色比中栏再深/浅一档；流式态才用虚线表达「临时」。 */
+.ev.assistant.streaming-assistant .card {
+  border-color: color-mix(in srgb, var(--brand) 34%, var(--border));
+}
+
+/* 用户气泡：原实现 底=--accent 字=--ink-fg，浅色主题下底色≈页面底色 ⇒ 气泡不可见。
+   反过来用（底=--ink-fg 字=--accent）两套主题都成立：深色=浅底深字，浅色=深底浅字，
+   与「我」和助手的中性面板气泡一眼分得开。 */
+
+/* 主按钮（发送）：深色下原为「面板灰」，与普通按钮不可分；改为品牌实心，一屏只此一处。 */
+.send.round,
+.send.round:hover,
+.stop.round {
+  border: none;
+}
+/* 选择器权重与 components.css 的 `.btn.primary` 主题规则对齐，才能盖住旧值。 */
+
+/* 对话框确认键沿用中性强调（它是「危险之外的确认」，不该抢品牌色）。 */
+
+/* 输入卡片：气泡去掉描边之后，输入区若也只剩灰底就会「陷进」中栏。
+   给它一层比中栏更实的表面 + 一道发丝轮廓，深色下再添一层极淡顶高光。 */
+
+/* 工作状态条：与输入卡同一体系（同圆角、同内距），不再是一条贴在边上的灰带。 */
+
+/* 侧栏区块头与栏头：原为 14px 内距 + 0.09em 字距的大写标签，在中文界面里两端都不对齐。
+   统一到 16px 内距，与下方列表项的 12px 一起构成 16/12 的左右节奏。 */
+.side-sec-head {
+  margin: 16px 12px 6px;
+}
+.new-chat {
+  margin: 4px 12px 10px;
+  border-color: var(--hairline);
+}
+.side-item {
+  margin: 0 8px 2px;
+  padding: 11px 12px;
+  gap: 10px;
+  /* iOS 列表行口径（2026-10-31 用户截图：全局按钮的内发丝环落在导航行上像常驻边框，
+     两行 35px 也挤）：静止**完全无框**（不吃全局毛玻璃三件套），hover 才落 --hover
+     表面，选中是 7% 签名色淡底——层级靠留白与色相，不靠框。 */
+  box-shadow: none;
+  background-image: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* 会话行：hover 用 --panel-2（深色下比 --panel 亮一档），选中＝底 + 品牌左标。 */
+.session {
+  margin-bottom: 2px;
+  font-size: 12.5px;
+}
+.session-search {
+  border-color: var(--hairline);
+}
+
+/* 右栏标签条与路径条：与栏头同一条发丝线口径。 */
+.rv-tabs {
+  border-bottom-color: var(--hairline);
+  min-height: 40px;
+}
+.rv-pathbar {
+  border-bottom-color: var(--hairline);
+}
+.chat-head {
+  border-bottom-color: var(--hairline);
+}
+.chat-status {
+  border-top-color: var(--hairline);
+  gap: 14px;
+}
+
+/* -------------------------------------------------------------------------
+   源文件：web/styles/refine-rhythm.css（已折叠进本文件）
+   ------------------------------------------------------------------------- */
+/* Markdown 文档排版：标题上方留白 > 下方；段间距稳定；列表贴住正文。 */
+.md-content h1 {
+  font-size: 19px;
+  line-height: 1.35;
+  margin: 24px 0 10px;
+}
+.md-content h2 {
+  font-size: 16.5px;
+  line-height: 1.4;
+  margin: 22px 0 9px;
+}
+.md-content h3 {
+  font-size: 15px;
+  margin: 22px 0 8px;
+}
+.md-content h4 {
+  font-size: 13.5px;
+  margin: 18px 0 6px;
+}
+.md-content h5,
+.md-content h6 {
+  font-size: 12.5px;
+  margin: 16px 0 6px;
+}
+.md-content > *:first-child {
+  margin-top: 0;
+}
+.md-content > *:last-child {
+  margin-bottom: 0;
+}
+.md-content p {
+  margin: 0 0 12px;
+  line-height: 1.68;
+}
+.md-content ul,
+.md-content ol {
+  margin: 0 0 12px;
+}
+.md-content li {
+  margin: 4px 0;
+}
+.md-content blockquote {
+  margin: 12px 0;
+  padding: 8px 14px;
+  border-left-width: 1px;
+  border-radius: 0 8px 8px 0;
+}
+.md-content hr {
+  border: 0;
+  margin: 22px 0;
+}
+.md-content a:hover {
+  color: var(--text);
+}
+.md-content em {
+  color: var(--dim);
+}
+.md-content .md-table {
+  margin: 16px 0;
+}
+
+/* 正文行高：13.5px 在 1.5 下只有 20.3px 行距，长时间阅读偏挤；1.6 是中文正文的舒适线。 */
+body {
+  line-height: 1.6;
+}
+.md-content,
+.content {
+  line-height: 1.68;
+}
+
+/* 代码块：横向滚动条会**吃掉回复的横向空间**——脚本类仓库里几乎每块代码都被截断。
+   改为自动换行（保留缩进），并给行号/续行一致的 tab-size。 */
+.md-codeblock pre,
+.md-codeblock pre code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.md-codeblock pre code {
+  white-space: inherit;
+  display: block;
+  padding: 12px 14px;
+}
+.md-codeblock {
+  margin: 16px 0;
+}
+.md-codeblock__bar {
+  padding: 6px 12px;
+}
+.md-codeblock__lang {
+  letter-spacing: 0.02em;
+  color: var(--dim);
+}
+
+/* 行内代码：贴住文字基线，不再把行高顶起来。 */
+.md-content code {
+  border-color: var(--hairline);
+  vertical-align: baseline;
+}
+
+/* 工具调用行：名称/状态/耗时三者对齐到同一基线，行高一致。 */
+.tool-status {
+  line-height: 1.5;
+}
+.tc-line {
+  padding: 5px 6px;
+}
+
+/* -------------------------------------------------------------------------
+   源文件：web/styles/refine-overlays.css（已折叠进本文件）
+   ------------------------------------------------------------------------- */
+
+/* =========================================================================
+   OmniHarness Web UI — 精修·浮层：统一圆角 / 内距 / 阴影，修顶头溢出
+   ---------------------------------------------------------------------
+   来源：CSS 按功能拆分（2026-10-16）。本段原属 polish2.css §5，行序未动，
+   级联语义与拆分前逐字节等价（index.html 按 same-order 依序加载）。
+   ========================================================================= */
+
+/* =========================================================================
+   5. 浮层：统一圆角/内距/阴影，并修「菜单里出现两个 logo」式的顶头溢出
+   ========================================================================= */
+/* 面板、菜单统一 12px 圆角与 6px 内距；项高 ≥28px（触控与误点）。 */
+.dd-menu,
+.ws-switch-menu,
+.addmenu-pop,
+.mention-pop,
+.pp-menu,
+.row-menu,
+.cmdk {
+  border-radius: 12px;
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-2);
+  padding: 6px;
+}
+.dd-item,
+.addmenu-item,
+.pp-item,
+.row-menu button,
+.ws-project {
+  min-height: 28px;
+  border-radius: 8px;
+}
+.dd-item {
+  padding: 6px 10px;
+  font-size: 12.5px;
+}
+/* 选中：底色 + 品牌色左标（3px 圆角条不是「彩色左边框装饰」，而是**选中语义**）。 */
+.dd-item.active,
+.addmenu-item.active {
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  color: var(--text);
+  box-shadow: none;
+}
+.dd-item.active::before,
+.addmenu-item.active::before {
+  content: none;
+}
+.perm-item.risk-high,
+.perm-item.full {
+  box-shadow: none;
+}
+.perm-item.full {
+  background: color-mix(in srgb, var(--err) 10%, transparent);
+}
+.perm-item.full .perm-name,
+.perm-item.full .perm-badge {
+  color: var(--err);
+}
+.perm-item.full .perm-badge {
+  border-color: color-mix(in srgb, var(--err) 45%, transparent);
+  background: transparent;
+  border-radius: 999px;
+  padding: 1px 4px;
+}
+/* 权限档位菜单要容得下「名称 + 说明」两行，不能被容器裁掉末项。 */
+.dd-menu.wide {
+  min-width: 300px;
+  padding: 6px;
+}
+.perm-desc {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--dim);
+}
+
+/* 添加菜单：分组用小标题 + 更大组间距，项与项之间靠留白而非分隔线。 */
+.addmenu-pop {
+  width: min(320px, calc(100vw - 24px));
+  max-height: min(66vh, 520px);
+}
+.addmenu-scroll {
+  padding: 2px 4px 4px;
+}
+.addmenu-sec {
+  margin-bottom: 8px;
+}
+.addmenu-sec:last-child {
+  margin-bottom: 2px;
+}
+.addmenu-sec-title {
+  padding: 8px 10px 4px;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: var(--faint);
+  text-transform: none;
+}
+.addmenu-item {
+  padding: 7px 10px;
+  gap: 10px;
+}
+.addmenu-search {
+  padding: 8px 10px 10px;
+  border-bottom: 1px solid var(--hairline);
+}
+.addmenu-input {
+  border-color: var(--hairline);
+}
+
+/* 命令面板：输入行原本紧贴弹层上缘（无内距），结果列表却有 6px ⇒ 顶头溢出。
+   这里把输入框内缩进容器，并给列表上下对称内距。 */
+.cmdk {
+  padding: 0;
+  overflow: hidden;
+}
+.cmdk-input {
+  padding: 15px 18px;
+}
+.cmdk-input::placeholder {
+  color: var(--dim);
+}
+.cmdk-list {
+  padding: 8px;
+  max-height: 52vh;
+}
+.cmdk-group-title {
+  padding: 10px 12px 5px;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: var(--faint);
+}
+.cmdk-item {
+  padding: 9px 12px;
+  font-size: 13px;
+}
+
+/* 模态遮罩：用主题底色而不是纯黑，浅色主题下不再是「黑幕」。 */
+.modal {
+  border-radius: 16px;
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-2);
+  padding: 22px 24px;
+}
+/* 审批弹窗的按钮行：三档决策排一行，危险的在左、允许在右，并让「始终允许」靠左收尾，
+   不再让「更改权限」单独占一行贴在右下角（位置与视觉重量都对不上）。 */
+.modal .actions {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.modal .actions .allow,
+.modal .actions .deny,
+.modal .actions .always {
+  border-radius: 9px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.modal .actions .always {
+  border-color: var(--border-soft);
+}
+.modal .actions .deny {
+  border-color: var(--err);
+}
+.approval-change-perm {
+  text-align: left;
+  padding: 10px 2px 0;
+}
+.approval-change-perm .link {
+  color: var(--brand);
+  font-size: 12px;
+}
+.fp-head {
+  padding: 16px 18px 10px;
+}
+.fp-list {
+  padding: 6px 12px;
+}
+.fp-actions {
+  padding: 12px 18px 16px;
+  border-top: 1px solid var(--hairline);
+}
+
+/* 抽屉遮罩：同上，深色渐变近黑，浅色不再是黑幕。 */
+
+/* -------------------------------------------------------------------------
+   源文件：web/styles/refine-native.css（已折叠进本文件）
+   ------------------------------------------------------------------------- */
+
+/* 滚动条：默认隐形，悬停才显形；宽度收到 10px 且不占布局（用透明边框做内缩）。 */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text) 14%, transparent);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--text) 26%, transparent);
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+* {
+  scrollbar-color: color-mix(in srgb, var(--text) 16%, transparent) transparent;
+}
+
+/* 键盘焦点环：品牌色实环，容器内做内缩（沿用既有内缩口径，避免被 overflow 裁掉）。 */
+:focus-visible {
+  border-radius: 8px;
+}
+
+/* 浮层与列表容器内的滚动条：不占位、不画轨道——菜单里一条常驻灰杠比「能看见滚动位置」更吵。 */
+.dd-menu,
+.addmenu-scroll,
+.cmdk-list,
+.pp-menu,
+.ws-switch-menu {
+  scrollbar-width: none;
+}
+.dd-menu::-webkit-scrollbar,
+.addmenu-scroll::-webkit-scrollbar,
+.cmdk-list::-webkit-scrollbar,
+.pp-menu::-webkit-scrollbar,
+.ws-switch-menu::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+/* 复选框 / 单选：用 accent-color 跟随品牌色，并统一为 14px 方形命中区。 */
+input[type='checkbox'],
+input[type='radio'] {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+/* =========================================================================
+   7. 动效：一个统一的缓动与时长，且默认已可见（无入场大动画）
+   ========================================================================= */
+:root,
+[data-theme='dark'],
+[data-theme='light'] {
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --dur-1: 130ms;
+  --dur-2: 190ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* 状态变化仍必须可见：靠颜色而非位移。 */
+  .send.round:hover,
+  .btn.primary:hover {
+    transform: none;
+  }
+}
+
+/* -------------------------------------------------------------------------
+   源文件：web/styles/refine-density.css（已折叠进本文件）
+   ------------------------------------------------------------------------- */
+
+/* =========================================================================
+   OmniHarness Web UI — 精修·面板通用密度：右栏 12 面板共用内距与标题节奏
+   ---------------------------------------------------------------------
+   来源：CSS 按功能拆分（2026-10-16）。本段原属 polish2.css §8，行序未动，
+   级联语义与拆分前逐字节等价（index.html 按 same-order 依序加载）。
+   ========================================================================= */
+
+/* =========================================================================
+   8. 面板通用密度：12 个右栏面板共用同一套内距与标题节奏
+   ========================================================================= */
+.pane {
+  padding: 14px 16px;
+}
+.col-head {
+  padding: 11px 16px;
+}
+.section-title,
+.pm-title,
+.detail-h {
+  margin: 2px 0 10px;
+}
+.pm-section {
+  margin-bottom: 20px;
+}
+.plugin-card,
+.mem-row {
+  padding: 12px 14px;
+}
+.metric {
+  padding: 12px 14px;
+}
+.kv {
+  padding: 8px 0;
+  border-bottom-color: var(--hairline);
+}
+.usage-table th,
+.usage-table td {
+  padding: 8px 10px;
+  border-bottom-color: var(--hairline);
+}
+.usage-table th {
+  text-transform: none;
+}
+.empty.illu {
+  gap: 10px;
+  padding: 48px 20px;
+}
+.empty.illu .illu-hint {
+  font-size: 12px;
+  line-height: 1.6;
+}
+.empty.note {
+  padding: 14px 4px;
+}
+
+/* =========================================================================
+   桌面一体化标题条（win32 隐藏系统标题栏后，参考 ZCode 桌面端窗口形态）
+   -------------------------------------------------------------------------
+   `.titlebar` 整条是拖拽区（-webkit-app-region: drag），右端自绘
+   「最小化 / 最大化 / 关闭」；按钮必须显式 no-drag，否则点不中。
+   浏览器 / 旧版壳：TitlebarStrip 返回 null 且 .app 不带 has-titlebar，
+   这里所有规则都不生效——不会多出一条空气 chrome。
+   ========================================================================= */
+.app.has-titlebar {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+.titlebar {
+  display: none;
+}
+.app.has-titlebar .titlebar {
+  display: flex;
+  align-items: center;
+  height: 34px;
+  /* 桌面壳无边框窗口（2026-10-31）：标题条吃**侧栏同款材质**——左右栏的 bg-elev 一直
+     通到窗口顶，macOS 式「侧栏延伸进标题条」的连续感；中栏顶部的一条色差是工具条
+     区域的自然分界（ZCode/VS Code 同款形态）。整条仍是拖拽区。 */
+  background: var(--bg-elev);
+  -webkit-app-region: drag;
+  user-select: none;
+}
+.titlebar-controls {
+  display: inline-flex;
+  align-items: stretch;
+  height: 100%;
+  margin-left: auto;
+  -webkit-app-region: no-drag;
+}
+.tb-btn {
+  width: 46px;
+  min-width: 46px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--dim);
+  font-size: 11px;
+  line-height: 1;
+  padding: 0;
+}
+.tb-btn:hover {
+  background: var(--hover-strong);
+  color: var(--text);
+}
+.tb-btn.tb-close:hover {
+  background: var(--err);
+  color: var(--on-err);
+}

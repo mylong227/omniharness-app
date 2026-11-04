@@ -1,0 +1,28 @@
+{
+  "modelAdapter": "openai",
+  "baseUrl": "https://api.openai.com/v1",
+  "apiKey": "YOUR_API_KEY_HERE",
+  "model": "gpt-4o-mini",
+  "storageAdapter": "jsonl",
+  "storageDir": ".omniharness/sessions",
+  "approval": "rules",
+  "sandbox": "policy",
+  "escalation": "ask",
+  "elevatedSandbox": "policy",
+  "maxSteps": 0,
+  "longTermMemoryEncryption": false,
+  "longTermMemoryKeyFile": ".omniharness/memory.key",
+  "limits": {
+    "http": { "headersTimeoutMs": 30000 },
+    "preview": { "maxConnections": 64 }
+  },
+  "mcpServers": {},
+  "skills": [
+    {
+      "name": "repo-conventions",
+      "description": "本仓库的编码约定（受种后在相关会话自动注入）",
+      "instructions": "改代码前先读 AGENTS.md；提交信息用「类型(范围): 摘要」；测试与实现同批提交。",
+      "tags": ["约定", "提交"]
+    }
+  ]
+}

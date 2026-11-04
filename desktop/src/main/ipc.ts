@@ -1,0 +1,260 @@
+/** 主进程 IPC：只暴露语义化能力，不提供任意命令/任意路径。 */
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  shell,
+  type IpcMainInvokeEvent,
+  type WebContents,
+} from 'electron';
+import { existsSync, statSync } from 'node:fs';
+import type { NotifyInput } from './notifications.ts';
+import type { DesktopIpcConfig } from './config.ts';
+import { currentHarnessOrigin, openExternalSafely } from './security.ts';
+import type { UpdateStatus } from './updateService.ts';
+
+/** IPC 依赖。 */
+export interface IpcDeps {
+  /** 入参上限（来自桌面配置）。 */
+  readonly limits: DesktopIpcConfig;
+  /** 当前主窗口 webContents（sender 校验）。 */
+  mainContents(): WebContents | undefined;
+  /** 额外窗口 sender 校验（多窗口；缺省只看主窗口）。 */
+  isTrustedContents?(contents: WebContents): boolean;
+  /** 当前工作区。 */
+  workspace(): string;
+  /** 当前桌面语言（`zh-CN`/`en-US`）。 */
+  language(): string;
+  /** 打开诊断信息对话框。 */
+  showDiagnostics(): void;
+  /** 关闭到托盘状态。 */
+  closeToTray(): boolean;
+  /** 设置关闭到托盘。 */
+  setCloseToTray(enabled: boolean): void;
+  /** 开机启动状态。 */
+  openAtLogin(): boolean;
+  /** 设置开机启动。 */
+  setOpenAtLogin(enabled: boolean): void;
+  /** 选择工作区。 */
+  pickWorkspace(): Promise<string | null>;
+  /** 切换工作区并重启 Harness。 */
+  openWorkspace(path: string): Promise<void>;
+  /** 打开日志目录。 */
+  openLogs(): Promise<void>;
+  /** 重启 Harness。 */
+  restartHarness(): Promise<void>;
+  /** 在系统文件管理器中打开目录（桌面版专用）。 */
+  revealPath(path: string): Promise<void>;
+  /** 原生通知。 */
+  notify(input: NotifyInput): boolean;
+  /** 检查更新。 */
+  checkForUpdates(): Promise<void>;
+  /** 下载更新。 */
+  downloadUpdate(): Promise<void>;
+  /** 安装更新。 */
+  installUpdate(): Promise<void>;
+  /** 当前更新状态。 */
+  updateStatus(): UpdateStatus;
+  /** 退出应用。 */
+  quit(): void;
+}
+
+/**
+ * 注册 IPC。
+ * @param deps 依赖。
+ * @returns 无返回值。
+ */
+export function registerIpc(deps: IpcDeps): void {
+  ipcMain.handle('omni:getInfo', (event) => {
+    assertTrusted(event, deps);
+    return {
+      appVersion: app.getVersion(),
+      platform: process.platform,
+      workspace: deps.workspace(),
+      language: deps.language(),
+      closeToTray: deps.closeToTray(),
+      openAtLogin: deps.openAtLogin(),
+    };
+  });
+  ipcMain.handle('omni:showDiagnostics', (event) => {
+    assertTrusted(event, deps);
+    deps.showDiagnostics();
+    return true;
+  });
+  ipcMain.handle('omni:setProgress', (event, value: unknown) => {
+    assertTrusted(event, deps);
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw new Error('invalid progress');
+    }
+    const progress = Math.min(2, Math.max(-1, value));
+    BrowserWindow.fromWebContents(event.sender)?.setProgressBar(progress);
+    return true;
+  });
+  ipcMain.handle('omni:setCloseToTray', (event, enabled: unknown) => {
+    assertTrusted(event, deps);
+    if (typeof enabled !== 'boolean') throw new Error('invalid closeToTray');
+    deps.setCloseToTray(enabled);
+    return deps.closeToTray();
+  });
+  ipcMain.handle('omni:setOpenAtLogin', (event, enabled: unknown) => {
+    assertTrusted(event, deps);
+    if (typeof enabled !== 'boolean') throw new Error('invalid openAtLogin');
+    deps.setOpenAtLogin(enabled);
+    return deps.openAtLogin();
+  });
+  ipcMain.handle('omni:pickWorkspace', async (event) => {
+    assertTrusted(event, deps);
+    return deps.pickWorkspace();
+  });
+  ipcMain.handle('omni:openWorkspace', async (event, path: unknown) => {
+    assertTrusted(event, deps);
+    if (typeof path !== 'string') throw new Error('invalid path');
+    await deps.openWorkspace(path);
+  });
+  ipcMain.handle('omni:openLogs', async (event) => {
+    assertTrusted(event, deps);
+    await deps.openLogs();
+  });
+  ipcMain.handle('omni:openExternal', async (event, url: unknown) => {
+    assertTrusted(event, deps);
+    if (typeof url !== 'string') throw new Error('invalid url');
+    await openExternalSafely(url);
+  });
+  ipcMain.handle('omni:restartHarness', async (event) => {
+    assertTrusted(event, deps);
+    await deps.restartHarness();
+  });
+  ipcMain.handle('omni:revealPath', async (event, path: unknown) => {
+    assertTrusted(event, deps);
+    if (typeof path !== 'string') throw new Error('invalid path');
+    await deps.revealPath(path);
+  });
+  ipcMain.handle('omni:notify', (event, input: unknown) => {
+    assertTrusted(event, deps);
+    return deps.notify(assertNotifyInput(input, deps.limits));
+  });
+  ipcMain.handle('omni:checkForUpdates', async (event) => {
+    assertTrusted(event, deps);
+    await deps.checkForUpdates();
+  });
+  ipcMain.handle('omni:downloadUpdate', async (event) => {
+    assertTrusted(event, deps);
+    await deps.downloadUpdate();
+  });
+  ipcMain.handle('omni:installUpdate', async (event) => {
+    assertTrusted(event, deps);
+    await deps.installUpdate();
+  });
+  ipcMain.handle('omni:getUpdateStatus', (event) => {
+    assertTrusted(event, deps);
+    return deps.updateStatus();
+  });
+  ipcMain.handle('omni:quit', (event) => {
+    assertTrusted(event, deps);
+    deps.quit();
+  });
+  // 窗口控制（win32 隐藏系统标题栏后，UI 自绘标题条的三个动作；其它平台 harmless）：
+  // 目标窗口一律从 sender 反查——不可能借道操控别的窗口；close 走正常 close 事件链，
+  // 与「关闭到托盘」和 bounds 记忆行为保持一致。
+  ipcMain.handle('omni:win:minimize', (event) => {
+    assertTrusted(event, deps);
+    BrowserWindow.fromWebContents(event.sender)?.minimize();
+  });
+  ipcMain.handle('omni:win:toggleMaximize', (event) => {
+    assertTrusted(event, deps);
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win === null || win.isDestroyed()) return;
+    if (win.isMaximized()) win.unmaximize();
+    else win.maximize();
+  });
+  ipcMain.handle('omni:win:close', (event) => {
+    assertTrusted(event, deps);
+    BrowserWindow.fromWebContents(event.sender)?.close();
+  });
+}
+
+/**
+ * 校验通知参数（渲染层不可信）。
+ * @param value 原始参数。
+ * @param limits 长度上限（桌面配置）。
+ * @returns 合法输入。
+ */
+function assertNotifyInput(value: unknown, limits: DesktopIpcConfig): NotifyInput {
+  if (value === null || typeof value !== 'object') throw new Error('invalid notify');
+  const raw = value as Record<string, unknown>;
+  const title = raw['title'];
+  const body = raw['body'];
+  const sessionId = raw['sessionId'];
+  if (typeof title !== 'string' || title.trim() === '' || title.length > limits.notifyTitleMax) {
+    throw new Error('invalid notify.title');
+  }
+  if (typeof body !== 'string' || body.length > limits.notifyBodyMax) {
+    throw new Error('invalid notify.body');
+  }
+  if (
+    sessionId !== undefined &&
+    (typeof sessionId !== 'string' || sessionId.length > limits.notifySessionIdMax)
+  ) {
+    throw new Error('invalid notify.sessionId');
+  }
+  return {
+    title,
+    body,
+    ...(sessionId !== undefined ? { sessionId } : {}),
+  };
+}
+
+/**
+ * 校验 IPC 来源：主窗口主 frame + 当前 harness origin。
+ * @param event IPC 事件。
+ * @param deps 依赖。
+ * @returns 无返回值；不可信时抛错。
+ */
+function assertTrusted(event: IpcMainInvokeEvent, deps: IpcDeps): void {
+  const main = deps.mainContents();
+  const trusted =
+    (main !== undefined && event.sender === main) ||
+    deps.isTrustedContents?.(event.sender) === true;
+  if (!trusted) throw new Error('ipc denied: sender');
+  const frame = event.senderFrame;
+  if (frame === null || frame.parent !== null) throw new Error('ipc denied: frame');
+  const origin = currentHarnessOrigin();
+  if (origin === '' || new URL(frame.url).origin !== origin) throw new Error('ipc denied: origin');
+}
+
+/**
+ * 校验目录并返回绝对路径；不是目录时抛错。
+ * @param path 路径。
+ * @returns 绝对路径。
+ */
+export function assertDirectory(path: string): string {
+  if (!existsSync(path)) throw new Error(`工作区不存在：${path}`);
+  if (!statSync(path).isDirectory()) throw new Error(`不是目录：${path}`);
+  return path;
+}
+
+/**
+ * 弹出原生目录选择。
+ * @param defaultPath 默认路径。
+ * @returns 选中路径或 null。
+ */
+export async function pickDirectory(defaultPath: string): Promise<string | null> {
+  const result = await dialog.showOpenDialog({
+    title: '选择工作区',
+    defaultPath,
+    properties: ['openDirectory', 'createDirectory'],
+  });
+  if (result.canceled || result.filePaths.length === 0) return null;
+  return result.filePaths[0] ?? null;
+}
+
+/**
+ * 打开日志目录（失败时用系统文件管理器打开父目录）。
+ * @param dir 目录。
+ * @returns 无返回值。
+ */
+export async function openLogDirectory(dir: string): Promise<void> {
+  const error = await shell.openPath(dir);
+  if (error !== '') await shell.openPath(app.getPath('userData'));
+}

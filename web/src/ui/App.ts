@@ -1,0 +1,780 @@
+// 应用根组件：纯视图层（C3 拆分后的标准写法）。
+// 状态与副作用全部上移到 AppController（组合根 / 门面）+ 子控制器（Session / Composer / Graph），
+// 本组件只负责「状态 → DOM 树」的装配，不含任何业务副作用
+// （回调统一经 controller.* 命名引用，App 状态即唯一数据源）。
+//
+// 函数组件范式：根状态用 useState（惰性初始化）+ 函数式 updater 承接 AppHost.patch；
+// 控制器只构造一次（useRef 惰性初始化），host 桥接到「稳定的 setState + 最新状态 ref」，
+// 故 patch 永不读到陈旧快照（H5）；挂载启动 / 卸载清理由依赖 [controller] 的 effect 承接。
+
+import * as React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AppContext } from './context.ts';
+import { AppController } from './controllers/AppController.ts';
+import type { AppHost, AppState } from './controllers/AppController.ts';
+import { getLocale, initLocale, t, type Locale } from './i18n/i18n.ts';
+import { ChatModePreference, type ChatMode } from './models/ChatModePreference.ts';
+import type { ChatQueueView } from './models/ChatMessageQueue.ts';
+import type { ThemePreference } from './models/ThemePreference.ts';
+import type { ThemeScheme } from './theme/palette.ts';
+
+import { RenderErrorBoundary } from './components/RenderErrorBoundary.tsx';
+import { SessionPanel } from './components/SessionPanel.tsx';
+import { StreamView } from './components/StreamView.tsx';
+import { TitlebarStrip } from './components/TitlebarStrip.tsx';
+import { RightPanel } from './components/RightPanel.tsx';
+import { BrowserPane } from './components/BrowserPane.tsx';
+import { isSettingKey } from './models/ConsoleRegistry.ts';
+import { ApprovalModal } from './components/ApprovalModal.tsx';
+import { CommandPalette } from './components/CommandPalette.tsx';
+import { Toast } from './components/Toast.tsx';
+import { DialogHost } from './components/DialogHost.tsx';
+import { TooltipLayer } from './components/TooltipLayer.tsx';
+import { Resizer } from './components/Resizer.tsx';
+
+// antd 运行时装配（W1 起）：全站唯一 ConfigProvider/AntApp 收口在 ThemeProvider。
+// theme 直接取根状态 state.theme（LayoutController 已按 themePref 解析成 dark/light）。
+import { ThemeProvider } from './theme/ThemeProvider.tsx';
+import { usePanelParts, type PanelHandlers } from './components/usePanelParts.ts';
+import { useRecentLocalUrls } from './components/useRecentLocalUrls.ts';
+
+// 首屏真需要的两个面板保持静态：ToolsTab 是默认 activePane 的首帧内容；
+// FileTab 是右栏文件视（永远挂载为 RightPanel 的 children）。其余全部走异步块。
+import { ToolsTab } from './components/tabs/ToolsTab.tsx';
+import { FileTab } from './components/tabs/FileTab.tsx';
+
+// 功能面板 + 控制台「按需加载 + **空闲期预取**」（2026-10-18 起；2026-10-29 扩到全部面板）：
+// 第一版只做 `React.lazy`，实测首次点开会出现 200–300 ms 的「加载中…」——那比省下的
+// 8.7 KB gzip 更伤体验，于是回退为「lazy + 空闲预取」两件事一起做：
+//   ① lazy：入口不包含这些面板（首屏解析更小）；
+//   ② 挂载后空闲期**异步预取**全部 chunk（不阻塞首屏）——用户真正点开时 chunk 已在缓存里，
+//      打开零等待。预取失败也无妨：Suspense fallback 仍在，只是回到"首开等一下"。
+// 2026-10-29（分块改造，看板 §179）把 Metrics/Changes/Plugins/Permission/Trace/Detail 与
+// **ConsoleView 一并转 lazy**，这不只是为了入口瘦身：W4 面板迁移要给它们上 antd
+// Table/Form/Descriptions——**静态面板会把面板级 antd 拖回首屏 entry**（vite.config 的
+// 面板族 denylist 只对异步导入方生效）。控制台默认关闭（settingsOpen=false），与面板同级。
+const ConsoleView = React.lazy(() =>
+  import('./components/console/ConsoleView.tsx').then((m) => ({ default: m.ConsoleView })),
+);
+const GraphTab = React.lazy(() =>
+  import('./components/tabs/GraphTab.tsx').then((m) => ({ default: m.GraphTab })),
+);
+const ActivityTab = React.lazy(() =>
+  import('./components/tabs/ActivityTab.tsx').then((m) => ({ default: m.ActivityTab })),
+);
+const SkillsTab = React.lazy(() =>
+  import('./components/tabs/SkillsTab.tsx').then((m) => ({ default: m.SkillsTab })),
+);
+const AutomationsTab = React.lazy(() =>
+  import('./components/tabs/AutomationsTab.tsx').then((m) => ({ default: m.AutomationsTab })),
+);
+const MemoryTab = React.lazy(() =>
+  import('./components/tabs/MemoryTab.tsx').then((m) => ({ default: m.MemoryTab })),
+);
+const ProfilesTab = React.lazy(() =>
+  import('./components/tabs/ProfilesTab.tsx').then((m) => ({ default: m.ProfilesTab })),
+);
+const RollbackTab = React.lazy(() =>
+  import('./components/tabs/RollbackTab.tsx').then((m) => ({ default: m.RollbackTab })),
+);
+const GovernanceTab = React.lazy(() =>
+  import('./components/tabs/GovernanceTab.tsx').then((m) => ({ default: m.GovernanceTab })),
+);
+const DiagnosticsTab = React.lazy(() =>
+  import('./components/tabs/DiagnosticsTab.tsx').then((m) => ({ default: m.DiagnosticsTab })),
+);
+const AuditTab = React.lazy(() =>
+  import('./components/tabs/AuditTab.tsx').then((m) => ({ default: m.AuditTab })),
+);
+const VaultTab = React.lazy(() =>
+  import('./components/tabs/VaultTab.tsx').then((m) => ({ default: m.VaultTab })),
+);
+const MetricsTab = React.lazy(() =>
+  import('./components/tabs/MetricsTab.tsx').then((m) => ({ default: m.MetricsTab })),
+);
+const ChangesTab = React.lazy(() =>
+  import('./components/tabs/ChangesTab.tsx').then((m) => ({ default: m.ChangesTab })),
+);
+const PluginsTab = React.lazy(() =>
+  import('./components/tabs/PluginsTab.tsx').then((m) => ({ default: m.PluginsTab })),
+);
+const PermissionTab = React.lazy(() =>
+  import('./components/tabs/PermissionTab.tsx').then((m) => ({ default: m.PermissionTab })),
+);
+const TraceTab = React.lazy(() =>
+  import('./components/tabs/TraceTab.tsx').then((m) => ({ default: m.TraceTab })),
+);
+const DetailTab = React.lazy(() =>
+  import('./components/tabs/DetailTab.tsx').then((m) => ({ default: m.DetailTab })),
+);
+
+/** 空闲期预取上面 18 个按需块（面板 + 控制台，与 lazy 的 import 一一对应）。 */
+function prefetchLazyPanes(): void {
+  const loaders: (() => Promise<unknown>)[] = [
+    () => import('./components/console/ConsoleView.tsx'),
+    () => import('./components/tabs/ActivityTab.tsx'),
+    () => import('./components/tabs/SkillsTab.tsx'),
+    () => import('./components/tabs/AutomationsTab.tsx'),
+    () => import('./components/tabs/GraphTab.tsx'),
+    () => import('./components/tabs/MemoryTab.tsx'),
+    () => import('./components/tabs/ProfilesTab.tsx'),
+    () => import('./components/tabs/RollbackTab.tsx'),
+    () => import('./components/tabs/GovernanceTab.tsx'),
+    () => import('./components/tabs/DiagnosticsTab.tsx'),
+    () => import('./components/tabs/AuditTab.tsx'),
+    () => import('./components/tabs/VaultTab.tsx'),
+    () => import('./components/tabs/MetricsTab.tsx'),
+    () => import('./components/tabs/ChangesTab.tsx'),
+    () => import('./components/tabs/PluginsTab.tsx'),
+    () => import('./components/tabs/PermissionTab.tsx'),
+    () => import('./components/tabs/TraceTab.tsx'),
+    () => import('./components/tabs/DetailTab.tsx'),
+  ];
+  for (const load of loaders) {
+    // 失败静默：真正打开时 Suspense 会再试一次，且 fallback 可读。
+    void load().catch(() => undefined);
+  }
+}
+import { SessionsScope } from './models/SessionsScope.ts';
+import { desktopBridge } from '../core/desktop/DesktopBridge.ts';
+
+/** AppHost.patch 的入参形态（局部补丁 / 函数式 updater）。 */
+type AppAction = Partial<AppState> | ((prev: AppState) => Partial<AppState>);
+
+/** 根状态初值（与拆分前的 class 构造函数逐字一致）。 */
+function initialState(): AppState {
+  // 语言偏好必须**首帧前**同步恢复：界面文案直接渲染在首帧，挂载后补设会闪一次语言
+  // （与主题不同——主题初值 'dark' 可由 initTheme 在首帧前修正，这里没有第二机会）。
+  initLocale();
+  return {
+    connected: false,
+    // 首屏是「连接中」而不是「断开」：还没连上就报红色断开是假故障（徽标文案见 SidebarFooter）。
+    streamState: 'connecting',
+    adapter: '',
+    activePane: 'tools',
+    // 控制台默认关闭、默认落在「常规」页（点左栏页脚的设置按钮即进入）。
+    settingsOpen: false,
+    panelModalOpen: false,
+    settingsTab: 'general',
+    model: '',
+    modelOptions: [],
+    providerLabel: '',
+    reasoning: '',
+    reasoningOptions: undefined,
+    permission: '',
+    events: [],
+    toolResults: {},
+    liveInputs: [],
+    sessions: [],
+    currentThreadId: null,
+    sessionTick: 0,
+    workspaceEpoch: 0,
+    detailEvent: null,
+    approval: null,
+    question: null,
+    fileView: null,
+    openFiles: [],
+    // 右栏网页标签：默认关闭；地址与标题保留到用户下次打开（关闭标签不清地址）。
+    browser: { open: false, active: false, url: '', title: '', reloadKey: 0, error: '' },
+    theme: 'dark',
+    // 主题偏好初值：`system`（跟随系统）。真正的解析在 LayoutController.initTheme 完成，
+    // 首帧前的 data-theme 由 index.html 的内联脚本按 prefers-color-scheme 设好。
+    themePref: 'system',
+    // 主题色方案初值：ink（靛墨）。恢复在 LayoutController.initTheme（读 localStorage），
+    // 首帧前的 data-scheme 由 index.html 内联脚本设好（缺省不写属性 = ink）。
+    scheme: 'ink',
+    locale: getLocale(),
+    leftOpen: false,
+    rightOpen: false,
+    // 桌面右栏收起态的本机偏好在 LayoutController.initTheme 里恢复；首屏先展开。
+    rightCollapsed: false,
+    memoryReloadKey: 0,
+    profilesReloadKey: 0,
+    graphRuns: {},
+    busy: false,
+    activeTool: null,
+    toastState: { seq: 0, message: '', kind: 'info', visible: false },
+    paletteOpen: false,
+    sessionsScopeAll: SessionsScope.read() === 'all',
+    dialog: { request: null },
+    streamText: '',
+    finalizedStreamText: '',
+    composerSeed: null,
+    chatMode: ChatModePreference.read(),
+    queuedMessages: [],
+    queuePaused: false,
+    historyHasMore: false,
+    oldestEventId: null,
+    historyLoading: false,
+    leftWidth: 248,
+    rightWidth: 420,
+  };
+}
+
+/**
+ * 把「局部补丁 / 函数式 updater」合并进当前状态（等价 setState 的浅合并语义）。
+ * @param prev 当前状态
+ * @param action 补丁或基于前态的 updater
+ * @returns 合并后的新状态
+ */
+function mergeAppPatch(prev: AppState, action: AppAction): AppState {
+  const patch = typeof action === 'function' ? action(prev) : action;
+  return { ...prev, ...patch };
+}
+
+/**
+ * 按当前激活面板选择右侧内容面板。
+ * @param ctrl 根控制器
+ * @param s 当前状态
+ * @returns 右侧面板节点
+ */
+function renderPane(ctrl: AppController, s: AppState): ReactElement {
+  switch (s.activePane) {
+    case 'activity':
+      return React.createElement(ActivityTab, {
+        events: s.events,
+        toolResults: s.toolResults,
+        busy: s.busy,
+        activeTool: s.activeTool,
+        approval: s.approval,
+        question: s.question,
+        onOpenPane: (key: string) => ctrl.setActivePane(key),
+      });
+    case 'skills':
+      return React.createElement(SkillsTab, null);
+    case 'automations':
+      return React.createElement(AutomationsTab, null);
+    case 'metrics':
+      return React.createElement(MetricsTab, null);
+    case 'changes':
+      return React.createElement(ChangesTab, null);
+    case 'governance':
+      // (F2 治理台) 晋升台账逐行独立复核 + 回滚锚点；不依赖会话（治理数据按工作区取）。
+      return React.createElement(GovernanceTab, null);
+    case 'diagnostics':
+      // Web 交付：daemon 运行态 + doctor 报告（两个只读入口合成一屏）。
+      return React.createElement(DiagnosticsTab, null);
+    case 'audit':
+      // Web 交付：审计事件（哈希链）+ 只读 trace 自省。
+      return React.createElement(AuditTab, null);
+    case 'trace':
+      return React.createElement(TraceTab, { sessionId: s.currentThreadId });
+    case 'permission':
+      // Web 交付：参数级权限规则编辑器（写盘走 config.update，服务端严格校验）。
+      return React.createElement(PermissionTab, null);
+    case 'vault':
+      // Web 交付：凭据保险库（只列名字、写入即清空、服务端不提供回读）。
+      return React.createElement(VaultTab, null);
+    case 'rollback':
+      return React.createElement(RollbackTab, {
+        sessionId: s.currentThreadId,
+        onRolledBack: ctrl.sessions.loadThread,
+      });
+    // 'settings' 已**不在此处**（2026-10-17）：设置从右栏面板改成独立页面；
+    // 2026-10-26 起它与功能面板合并为 components/console/ConsoleView.tsx。
+    // 若这里还留着 case，说明有人把设置又塞回了面板列表——那会与控制台形成两个真相。
+    case 'plugins':
+      return React.createElement(PluginsTab, null);
+    case 'graph':
+      return React.createElement(GraphTab, {
+        graphRuns: s.graphRuns,
+        onRunStart: ctrl.graph.onRunStart,
+        // 续跑实现只有一处（控制器），面板卡片与状态栏芯片共用。
+        onResume: ctrl.graph.resumeRun,
+      });
+    case 'memory':
+      return React.createElement(MemoryTab, { reloadKey: s.memoryReloadKey });
+    case 'profiles':
+      return React.createElement(ProfilesTab, { reloadKey: s.profilesReloadKey });
+    case 'file':
+      return React.createElement(FileTab, { fileView: s.fileView });
+    case 'detail':
+      return React.createElement(DetailTab, { detailEvent: s.detailEvent });
+    case 'tools':
+    default:
+      return React.createElement(ToolsTab, {
+        toolItems: ctrl.sessions.getToolItems(),
+        onShowTool: ctrl.sessions.onShowTool,
+      });
+  }
+}
+
+/**
+ * 打开会话，并在加载完成后补一次队列续发。
+ *
+ * 队列按会话归属：切走再切回时，属于该会话的排队项不会自己发（drain 的会话匹配会跳过）。
+ * 回到该会话就立刻接着发，避免"消息静静躺在队列里没人动"。加载失败不吞掉队列。
+ * @param ctrl 容器控制器
+ * @param id 会话 id
+ * @returns 无
+ */
+function openThread(ctrl: AppController, id: string): void {
+  void ctrl.sessions
+    .loadThread(id)
+    .then(() => ctrl.composer.chatQueue.drain())
+    .catch(() => {});
+}
+
+/**
+ * 当前会话标题：优先自定义标签，未命名会话显示 id 前缀，再退化为空串（中栏头兜底「新会话」）。
+ * @param s 当前状态
+ * @returns 标题文案
+ */
+function sessionTitleOf(s: AppState): string {
+  const cur = s.sessions.find((x) => x.id === s.currentThreadId);
+  if (cur !== undefined && cur.label !== '') return cur.label;
+  // 不把裸会话 id 当标题：新会话在第一事件里**提前认领** currentThreadId（见 SessionController）
+  // 时它还没进 sessions 列表，直接把 id 顶上会让标题闪一串 UUID；落回空串由中栏兜底「新会话」。
+  return '';
+}
+
+/** 当前会话服务端有效时长（ms；历史会话/新会话可能没有）。 */
+function sessionActiveMsOf(s: AppState): number | undefined {
+  return s.sessions.find((x) => x.id === s.currentThreadId)?.activeMs;
+}
+
+/**
+ * 组装队列坞的视图契约（队列模式）。
+ *
+ * 只暴露**当前会话**的排队项（`threadId === null` 的项属于"会话尚未创建"，对所有会话可见），
+ * 避免在 A 会话排的消息出现在 B 会话的坞里造成"要发错地方"的误解。
+ * 操作回调统一走 `ComposerController.chatQueue`（action / resume；真相在控制器，视图不持数组）。
+ * @param ctrl 容器控制器
+ * @param s 根状态
+ * @returns 队列坞视图契约
+ */
+function chatQueueViewOf(ctrl: AppController, s: AppState): ChatQueueView {
+  return {
+    mode: s.chatMode,
+    items: s.queuedMessages.filter(
+      (item) => item.threadId === null || item.threadId === s.currentThreadId,
+    ),
+    paused: s.queuePaused,
+    busy: s.busy,
+    onRemove: (id: string) => ctrl.composer.chatQueue.action('remove', id),
+    onPromote: (id: string) => ctrl.composer.chatQueue.action('promote', id),
+    onClear: () => ctrl.composer.chatQueue.action('clear'),
+    onResume: () => ctrl.composer.chatQueue.resume(),
+  };
+}
+
+/**
+ * 装配顶层 DOM 树（三栏主体 + 审批弹窗 + 抽屉遮罩 + 命令面板 + toast）。
+ * 壳层为截图式三栏：会话侧栏（品牌 / 新会话 / 插件 / 工作区 / 设置）+ 中栏对话 + 右栏代码查看器；
+ * 无全局顶栏——品牌在侧栏头，连接状态在侧栏页脚；功能面板与设置收进同一个「工作台控制台」。
+ * @param ctrl 根控制器
+ * @param s 当前状态
+ * @param pane 右侧内容面板节点
+ * @param recentLocalUrls 会话里出现过的回环地址（网页标签空态的一键入口）
+ * @returns 顶层 DOM 树
+ */
+/**
+ * 装配工作台控制台（设置 + 全部面板共用的全窗口页）。
+ *
+ * 设置按钮与「全部面板」按钮共用同一个控制台，只是落点不同；面板走既有的 Suspense 边界。
+ * @param ctrl 容器控制器
+ * @param s 根状态
+ * @param pane 当前激活面板节点（App 按 activePane 渲染好的）
+ * @param workspacePath 工作区路径（左栏页脚）
+ * @param consoleOpenerRef 打开瞬间焦点来源（见 onOpenSettings）
+ * @returns 控制台节点
+ */
+function consoleViewElement(
+  ctrl: AppController,
+  s: AppState,
+  pane: ReactElement,
+  workspacePath: string,
+  consoleOpenerRef: React.RefObject<HTMLElement | null>,
+): ReactElement {
+  return React.createElement(ConsoleView, {
+    open: s.settingsOpen || s.panelModalOpen,
+    active: s.settingsOpen ? s.settingsTab : s.activePane,
+    consoleOpenerRef,
+    onPick: (key: string) => {
+      if (isSettingKey(key)) {
+        ctrl.layout.closePanels();
+        ctrl.settings.open(key);
+        return;
+      }
+      ctrl.settings.close();
+      ctrl.setActivePane(key);
+    },
+    onClose: () => {
+      ctrl.settings.close();
+      ctrl.layout.closePanels();
+    },
+    panelContent: React.createElement(
+      React.Suspense,
+      {
+        fallback: React.createElement(
+          'div',
+          { className: 'pane-loading empty note' },
+          t('加载中…'),
+        ),
+      },
+      pane,
+    ),
+    settings: {
+      theme: s.theme,
+      themePref: s.themePref,
+      onThemePrefChange: (pref: ThemePreference) => ctrl.layout.setThemePref(pref),
+      schemePref: s.scheme,
+      onSchemePrefChange: (scheme: ThemeScheme) => ctrl.layout.setSchemePref(scheme),
+      locale: s.locale,
+      onLocaleChange: (l: Locale) => ctrl.settings.setLocale(l),
+      // 聊天模式（2026-10-31）：设置「常规」页与队列坞共用同一份状态与落盘通道。
+      chatMode: s.chatMode,
+      onChatModeChange: (mode: ChatMode) => ctrl.composer.chatQueue.setMode(mode),
+      workspacePath,
+      sessionScopeAll: s.sessionsScopeAll,
+      onToggleSessionsScope: ctrl.sessions.toggleSessionsScope,
+      leftWidth: s.leftWidth,
+      rightWidth: s.rightWidth,
+      onLeftWidthChange: ctrl.layout.onLeftWidthChange,
+      onRightWidthChange: ctrl.layout.onRightWidthChange,
+    },
+    workspacePath,
+    connected: s.connected,
+    streamState: s.streamState,
+  });
+}
+
+/**
+ * 左栏会话面板元素：会话/工作区/布局/设置入口的全量回调接线。
+ * @param ctrl 应用控制器
+ * @param s 应用状态
+ * @param h 稳定回调束（usePanelParts 产物）
+ * @param leftStyle 稳定的左栏宽度样式（usePanelParts 产物）
+ * @param onWorkspaceResolved 工作区解析回调（透传面板）
+ * @returns SessionPanel 元素（组件自身已 memo 化，身份不变即整棵跳过）
+ */
+function sessionPanelElement(
+  ctrl: AppController,
+  s: AppState,
+  h: PanelHandlers,
+  leftStyle: Record<string, string>,
+  onWorkspaceResolved: (path: string) => void,
+): ReactElement {
+  return React.createElement(SessionPanel, {
+    sessions: s.sessions,
+    currentThreadId: s.currentThreadId,
+    onSelect: h.onSelect,
+    onNew: ctrl.sessions.newSession,
+    onOpenFile: ctrl.files.openFile,
+    onRename: ctrl.sessions.renameSession,
+    onDelete: ctrl.sessions.deleteSession,
+    onFork: ctrl.sessions.forkSession,
+    onArchive: ctrl.sessions.archiveSession,
+    onReorder: ctrl.sessions.reorderSessions,
+    onWorkspaceSwitched: h.onWorkspaceSwitched,
+    onWorkspaceResolved,
+    scopeAll: s.sessionsScopeAll,
+    onToggleScope: h.onToggleScope,
+    activePane: s.activePane,
+    onOpenPane: h.onOpenPane,
+    // 设置固定在左栏页脚（2026-10-17）：它打开工作台控制台，不再从面板列表进入。
+    onOpenSettings: h.onOpenSettings,
+    connected: s.connected,
+    streamState: s.streamState,
+    open: s.leftOpen,
+    style: leftStyle,
+  });
+}
+
+/**
+ * 中栏对话流元素：事件流 + 队列坞 + 输入区的全量回调接线。
+ * @param ctrl 应用控制器
+ * @param s 应用状态
+ * @param workspacePath 当前项目路径（中栏面包屑）
+ * @returns StreamView 元素
+ */
+function streamViewElement(
+  ctrl: AppController,
+  s: AppState,
+  workspacePath: string,
+): ReactElement {
+  return React.createElement(StreamView, {
+    events: s.events,
+    historyHasMore: s.historyHasMore,
+    historyLoading: s.historyLoading,
+    onLoadEarlier: ctrl.sessions.loadEarlier,
+    toolResults: s.toolResults,
+    liveInputs: s.liveInputs,
+    streamText: s.streamText,
+    finalizedStreamText: s.finalizedStreamText,
+    composerSeed: s.composerSeed,
+    // 队列模式：排队消息坞（空队列时组件自身不渲染任何东西）。
+    queue: chatQueueViewOf(ctrl, s),
+    onEventClick: ctrl.sessions.showDetail,
+    onOpenFile: ctrl.files.openFile,
+    // 助手消息里的回环 URL（dev server 地址）可一键进右栏网页标签。
+    onOpenUrl: ctrl.browser.open,
+    onSend: ctrl.composer.send,
+    busy: s.busy,
+    activeTool: s.activeTool,
+    question: s.question,
+    onAnswerQuestion: ctrl.answerQuestion,
+    onQuestionExpired: ctrl.expireQuestion,
+    onStop: ctrl.composer.stop,
+    onRegenerate: ctrl.composer.regenerate,
+    onEditUser: ctrl.composer.editLastUser,
+    model: s.model,
+    modelOptions: s.modelOptions,
+    providerLabel: s.providerLabel,
+    reasoning: s.reasoning,
+    reasoningOptions: s.reasoningOptions,
+    permission: s.permission,
+    threadId: s.currentThreadId,
+    onToast: ctrl.showToast,
+    // 编排未跑完时状态栏出现一键续跑（与「编排」面板卡片共用 ctrl.graph.resumeRun）。
+    graphRuns: s.graphRuns,
+    onGraphResume: ctrl.graph.resumeRun,
+    onApplyMode: (patch: { goal?: string; planMode?: boolean; sketchMode?: boolean }) =>
+      ctrl.sessions.applyModes(patch),
+    onOpenTab: ctrl.openPane,
+    onLoadThread: (id: string) => openThread(ctrl, id),
+    // 空态「快速开始」示例 → 填进输入框（不是直接发送：示例是给人改的模板，且会立刻耗额度）。
+    onUseStarter: ctrl.composer.seedDraft,
+    onModelChange: ctrl.composer.changeModel,
+    onReasoningChange: ctrl.composer.changeReasoning,
+    onPermissionChange: ctrl.composer.changePermission,
+    api: ctrl.api,
+    sessionTitle: sessionTitleOf(s),
+    workspacePath,
+    sessionActiveMs: sessionActiveMsOf(s),
+    streamState: s.streamState,
+    adapter: s.adapter,
+    onToggleLeft: () => ctrl.layout.toggleLeft(),
+    onToggleRight: () => ctrl.layout.toggleRight(),
+    rightCollapsed: s.rightCollapsed,
+  });
+}
+
+/**
+ * 右栏元素：缩放条 + 面板（文件视图 / 网页标签）。
+ * @param ctrl 应用控制器
+ * @param s 应用状态
+ * @param recentLocalUrls 近期本地地址（网页标签的快捷入口）
+ * @returns RightPanel 元素（含右缩放条）
+ */
+function rightPanelElement(
+  ctrl: AppController,
+  s: AppState,
+  recentLocalUrls: readonly string[],
+): ReactElement {
+  return React.createElement(
+    RightPanel,
+    {
+      open: s.rightOpen,
+      openFiles: s.openFiles,
+      activeFileTitle: s.fileView?.title ?? null,
+      onShowFile: ctrl.files.showOpenFile,
+      onCloseFile: ctrl.files.closeOpenFile,
+      style: { width: s.rightWidth + 'px' },
+      // 右栏网页标签（2026-10-19）：地址 / 重载 / 关闭全部由 BrowserController 收口。
+      browser: s.browser,
+      onOpenBrowser: ctrl.browser.show,
+      onShowBrowser: ctrl.browser.show,
+      onCloseBrowser: ctrl.browser.close,
+      onPreviewFile: ctrl.browser.previewFile,
+      browserContent: React.createElement(BrowserPane, {
+        view: s.browser,
+        recentUrls: recentLocalUrls,
+        onNavigate: ctrl.browser.open,
+        onReload: ctrl.browser.reload,
+      }),
+    },
+    // 右栏文件视图；功能面板与设置在下面的控制台（ConsoleView）里。
+    React.createElement(FileTab, { fileView: s.fileView }),
+  );
+}
+
+function renderBody(
+  ctrl: AppController,
+  s: AppState,
+  pane: ReactElement,
+  recentLocalUrls: readonly string[],
+  workspacePath: string,
+  h: PanelHandlers,
+  leftStyle: Record<string, string>,
+  onWorkspaceResolved: (path: string) => void,
+  consoleOpenerRef: React.RefObject<HTMLElement | null>,
+): ReactElement {
+  const consoleOpen = s.settingsOpen || s.panelModalOpen;
+  const consoleView = consoleViewElement(ctrl, s, pane, workspacePath, consoleOpenerRef);
+
+  return React.createElement(
+    'div',
+    {
+      className:
+        'app' + (desktopBridge()?.windowFrame === 'hidden' ? ' has-titlebar' : ''),
+    },
+    // 桌面壳（win32 隐藏系统标题栏）的一体化标题条：非桌面/旧壳渲染 null，浏览器无感。
+    React.createElement(TitlebarStrip, null),
+    React.createElement(
+      'div',
+      {
+        className:
+          'body' +
+          (s.rightCollapsed ? ' rcollapsed' : '') +
+          (consoleOpen ? ' console-open' : ''),
+      },
+      sessionPanelElement(ctrl, s, h, leftStyle, onWorkspaceResolved),
+      React.createElement(Resizer, {
+        side: 'left',
+        width: s.leftWidth,
+        onChange: (w: number) => ctrl.layout.onLeftWidthChange(w),
+      }),
+      consoleOpen
+        ? React.createElement(
+            'div',
+            { className: 'col center console-host' },
+            // ConsoleView 是 lazy 块，打开控制台的首帧先落到与面板一致的「加载中…」；
+            // 空闲预取通常让这一帧根本不出现。
+            React.createElement(
+              React.Suspense,
+              {
+                fallback: React.createElement(
+                  'div',
+                  { className: 'pane-loading empty note' },
+                  t('加载中…'),
+                ),
+              },
+              consoleView,
+            ),
+          )
+        : React.createElement(
+            React.Fragment,
+            null,
+            streamViewElement(ctrl, s, workspacePath),
+            React.createElement(Resizer, {
+              side: 'right',
+              width: s.rightWidth,
+              onChange: (w: number) => ctrl.layout.onRightWidthChange(w),
+            }),
+            rightPanelElement(ctrl, s, recentLocalUrls),
+          ),
+    ),
+    React.createElement(ApprovalModal, {
+      approval: s.approval,
+      onRespond: ctrl.respondApproval,
+      // 「修改权限」直接打开控制台的权限页（原实现打开的是一个已不存在的面板 key）。
+      onChangePermission: ctrl.settings.openPermission,
+    }),
+    React.createElement('div', {
+      className: 'drawer-backdrop' + (s.leftOpen || s.rightOpen ? ' show' : ''),
+      onClick: ctrl.sessions.closeDrawers,
+    }),
+    React.createElement(CommandPalette, {
+      open: s.paletteOpen,
+      commands: ctrl.commands,
+      onClose: ctrl.closePalette,
+    }),
+    React.createElement(Toast, { toast: s.toastState }),
+    React.createElement(DialogHost, { dialog: s.dialog }),
+  );
+}
+
+/**
+ * 应用根组件：消费容器控制器 AppController 的全部状态与回调，装配三栏布局树。
+ * @returns 根渲染树（含 AppContext.Provider）
+ */
+export function App(): ReactElement {
+  const [state, setState] = React.useState<AppState>(initialState);
+  // 最新状态镜像：供控制器同步读取（getState），避免闭包读到陈旧快照。
+  const stateRef = React.useRef<AppState>(state);
+  stateRef.current = state;
+  // 当前项目路径只服务中栏面包屑，放在视图层局部状态：不必进 AppController 的上帝类。
+  const [workspacePath, setWorkspacePath] = React.useState('');
+  // 控制台打开瞬间的焦点来源：ConsoleView 是 lazy 块，挂载时浏览器可能已因「收起抽屉」
+  // 把「打开设置」触发器失焦（visibility:hidden 不可聚焦）——归还焦点以打开瞬间为准。
+  const consoleOpenerRef = React.useRef<HTMLElement | null>(null);
+
+  // 组合根：控制器只构造一次；host 桥接到稳定 setState + 最新状态 ref。
+  const controllerRef = React.useRef<AppController | null>(null);
+  if (controllerRef.current === null) {
+    const host: AppHost = {
+      patch: (action: AppAction) => setState((prev) => mergeAppPatch(prev, action)),
+      getState: () => stateRef.current,
+    };
+    controllerRef.current = new AppController(host);
+  }
+  const controller = controllerRef.current;
+
+  // 挂载后启动控制器（连接 SSE / 拉取配置 / 恢复主题），卸载前清理（原 componentDidMount/WillUnmount）。
+  React.useEffect(() => {
+    controller.mount();
+    return () => {
+      controller.unmount();
+    };
+  }, [controller]);
+
+  // 空闲期预取按需面板（2026-10-18）：不阻塞首屏；预取完成后首次点开面板零等待。
+  // 用 requestIdleCallback（带 2s 上限）而不是立即执行：首屏的 SSE/配置请求优先。
+  React.useEffect(() => {
+    const idle = window.requestIdleCallback;
+    if (typeof idle === 'function') {
+      const id = idle(() => prefetchLazyPanes(), { timeout: 2000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const timer = window.setTimeout(prefetchLazyPanes, 800);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  // 会话里出现过的本地开发地址 + 三份渲染期稳定产物（回调束 / 左栏样式 / 上下文值）：
+  // 抽进独立 hook（useRecentLocalUrls / usePanelParts），App() 体量与 App.ts 文件上限都因此
+  // 回到基线内；memo 化的 SessionPanel 与 useApp() 消费者的重渲染收敛语义见 hook 文件头。
+  const recentLocalUrls = useRecentLocalUrls(state.events, state.toolResults);
+  const openThreadId = React.useMemo(() => (id: string) => openThread(controller, id), [controller]);
+  const { panelHandlers, leftStyle, contextValue } = usePanelParts(
+    controller,
+    consoleOpenerRef,
+    state,
+    openThreadId,
+  );
+
+  const pane = renderPane(controller, state);
+  return React.createElement(
+    AppContext.Provider,
+    { value: contextValue },
+    // W1：整棵视图树包进 ThemeProvider（antd 主题/locale/message 上下文）。
+    // 2026-10-29 合并：全站悬浮提示层也在主题内——它是 position:fixed 的覆盖层，
+    // 与 `.app` 平级、不参与三栏布局（不塞进 renderBody，那里函数体有冻结基线）。
+    React.createElement(ThemeProvider, {
+      theme: state.theme, scheme: state.scheme,
+      children: React.createElement(
+        React.Fragment,
+        null,
+        React.createElement(TooltipLayer, null),
+        renderBody(controller, state, pane, recentLocalUrls, workspacePath, panelHandlers, leftStyle, setWorkspacePath, consoleOpenerRef),
+      ),
+    }),
+  );
+}
+
+/**
+ * 在容器元素上挂载应用（由 main.ts 调用，便于独立测试）。
+ * @param container 挂载容器元素
+ * @returns 无
+ */
+export function mountApp(container: Element): void {
+  // 最外层套**渲染错误边界**：渲染期抛错若无人接管，React 会卸载整棵树 ⇒ 用户看到全黑空白页
+  // （2026-09-27 两次报障即此形态）。有边界则降级为可读错误面板 + 原地重试，并留存现场。
+  // 层次：StrictMode（最外）→ RenderErrorBoundary → App。
+  //
+  // 为什么套 **StrictMode**（标准 Vite React 模板的默认形态，2026-10-17 补）：
+  //   它在**开发**态故意让状态更新函数与 effect 跑两遍，从而暴露三类只有并发渲染才会犯的错——
+  //   副作用没清理、effect 依赖写漏、在渲染期做副作用。这些错误在生产态表现为偶发的
+  //   "数据重复加载 / 监听器泄漏"，极难复现；开着 StrictMode 时一写就露。
+  //   生产构建里它是**空操作**（不双跑），故不影响线上行为与包体积（gzip 后 < 10 字节）。
+  //
+  // 为什么放在**错误边界外面**：边界若自己抛错，StrictMode 不接错误，不该被当成兜底手段；
+  //   而边界放里层才能既接住 App 的错、又让自己处在双跑检验之外（边界本不该有副作用）。
+  createRoot(container).render(
+    React.createElement(
+      React.StrictMode,
+      null,
+      React.createElement(RenderErrorBoundary, null, React.createElement(App, null)),
+    ),
+  );
+}

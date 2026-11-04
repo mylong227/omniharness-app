@@ -1,0 +1,123 @@
+import { createHash } from 'node:crypto';
+import { AuditCanonical } from './auditCanonical.ts';
+import { AuditChain } from './auditChain.ts';
+import { AuditRedactor } from './auditRedactor.ts';
+import { AuditReportStore } from './auditReportStore.ts';
+import type { AuditChainVerification, AuditOutputFormat, AuditReport } from './auditTypes.ts';
+
+/**
+ * 报告复核器：重算哈希链 + 核对摘要字段 + 文件级自指纹 + 脱敏对账。
+ *
+ * 判据口径：**任何一处对不上都失败**，并给出位置与原因（`schema` / `algorithm` / `genesis` /
+ * `prev` / `hash` / `head` / `count` / `summary` / `coverage` / `redaction` /
+ * `artifact` / `artifact-missing`）。宁可报"这份报告不可信"，也不做"大概没问题"的模糊
+ * 结论——出证工具的价值全在这一条上。失败原因的完整含义见 `docs/audit/ATTESTATION.md` §2。
+ */
+export class AuditReportVerifier {
+  /** 链实现。 */
+  private readonly chain: AuditChain;
+
+  /**
+   * @param chain 哈希链（缺省新建）。
+   */
+  public constructor(chain: AuditChain = new AuditChain()) {
+    this.chain = chain;
+  }
+
+  /**
+   * 复核一份报告。
+   * @param report 报告对象（从 HTML/Markdown/JSON 里取出的载荷）。
+   * @returns 校验结果。
+   */
+  public verify(report: AuditReport): AuditChainVerification {
+    if (report.schema !== 'omniharness.audit.report/v1') {
+      return { ok: false, brokenAt: null, reason: 'schema' };
+    }
+    if (report.integrity.algorithm !== 'sha256') {
+      return { ok: false, brokenAt: null, reason: 'algorithm' };
+    }
+    if (report.integrity.genesis !== AuditChain.GENESIS) {
+      return { ok: false, brokenAt: null, reason: 'genesis' };
+    }
+    const chain = this.chain.verify(report.records);
+    if (!chain.ok) {
+      return chain;
+    }
+    if (report.integrity.count !== report.records.length) {
+      return { ok: false, brokenAt: null, reason: 'count' };
+    }
+    // 脱敏对账（2026-11-04 P3）：hits 声明"标记有多少处"，就必须真的等于脱敏载体里的
+    // 标记数（records + source.path/workspace——path/workspace 也参与脱敏但不在 records 里）。
+    // off 模式不查——正文里本来讨论脱敏的会话可能自带字面标记，不能当篡改。
+    const redaction = report.redaction;
+    const redacted = redaction !== undefined && redaction.mode !== 'off';
+    if (
+      redacted &&
+      redaction.hits !==
+        AuditRedactor.countMarkers({
+          records: report.records,
+          path: report.source.path,
+          workspace: report.source.workspace,
+        })
+    ) {
+      return { ok: false, brokenAt: null, reason: 'redaction' };
+    }
+    const chainHead = this.chain.headOf(report.records);
+    // 摘要绑定链头（T3.2「进入哈希链」）：mode ≠ off 时 integrity.head 是
+    // `seal(链头, 规范JSON(redaction))`——删掉 redaction 字段、把 mode 改回 off、
+    // 或改 rules，都会在这里对不上（`head` 红）。非脱敏报告仍是裸链头。
+    const expectedHead = redacted
+      ? this.chain.seal(chainHead, AuditCanonical.stringify(redaction))
+      : chainHead;
+    if (report.integrity.head !== expectedHead) {
+      return {
+        ok: false,
+        brokenAt: report.records.length === 0 ? null : report.records.length - 1,
+        reason: 'head',
+      };
+    }
+    // 摘要与覆盖率的自洽对账（2026-11-03 P0）：这两个数字声明"等于实际记录数"，
+    // 就必须真的等于——JSON 形态没有文件自指纹，这里是对账它们被改动的唯一机械防线。
+    if (report.summary.total !== report.records.length) {
+      return { ok: false, brokenAt: null, reason: 'summary' };
+    }
+    const coverage = report.coverage;
+    if (coverage !== undefined && coverage.recognized !== report.records.length) {
+      return { ok: false, brokenAt: null, reason: 'coverage' };
+    }
+    return { ok: true, brokenAt: null, reason: null };
+  }
+
+  /**
+   * 复核一份**落盘报告**：先校验载荷链，再校验文件级自指纹（HTML / Markdown）。
+   * @param report 从文件里取出的报告。
+   * @param text 文件原文。
+   * @param format 文件格式。
+   * @returns 校验结果。
+   */
+  public verifyFile(
+    report: AuditReport,
+    text: string,
+    format: AuditOutputFormat,
+  ): AuditChainVerification {
+    const chain = this.verify(report);
+    if (!chain.ok || format === 'json') {
+      return chain;
+    }
+    const artifact = report.artifact;
+    if (artifact === undefined || !/^[0-9a-f]{64}$/.test(artifact.sha256)) {
+      return { ok: false, brokenAt: null, reason: 'artifact-missing' };
+    }
+    // 摘要只在载荷里出现一次；出现 0 次或多次都判失败（多次 = 有人把摘要抄进正文，
+    // 让"替换后重算"产生歧义，无法可靠复原）。
+    const parts = text.split(artifact.sha256);
+    if (parts.length !== 2) {
+      return { ok: false, brokenAt: null, reason: 'artifact' };
+    }
+    const restored = `${parts[0] ?? ''}${AuditReportStore.ARTIFACT_TOKEN}${parts[1] ?? ''}`;
+    const expected = createHash('sha256').update(restored, 'utf8').digest('hex');
+    return expected === artifact.sha256
+      ? { ok: true, brokenAt: null, reason: null }
+      : { ok: false, brokenAt: null, reason: 'artifact' };
+  }
+}

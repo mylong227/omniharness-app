@@ -1,0 +1,707 @@
+// 纯函数工具层：vanilla 版中散落的字符串拼接与 innerHTML 注入，统一改写为返回 React 元素的纯函数。
+// 组件层调用这些函数，既保持视觉一致（复用同一套 CSS class），又避免直接操作 DOM。
+
+import * as React from 'react';
+import { markdownRender, markdownLibsReady, handleCodeblockCopyClick } from './markdown.ts';
+import { icon } from './models/Icon.ts';
+import { parseTurnDiffFiles, turnDiffTotals } from './models/TurnDiffFiles.ts';
+import { describeToolCall, truncate } from './textUtils.ts';
+import type { IconName } from './models/Icon.ts';
+import type { ThreadEvent } from '../types/models.ts';
+import { t } from './i18n/i18n.ts';
+
+/**
+ * HTML 转义：把 `& < > " '` 五个字符转成实体。
+ *
+ * **只用于「拼 HTML 字符串」的场景**（`markdown.ts` 的 `highlight` 回调把结果交给
+ * markdown-it 拼成 HTML）。React 子节点**不需要**转义——React 自己就把文本转义了，
+ * 再转一次等于把 `"` 变成字面量 `&quot;`，用户看到的是实体而不是引号。
+ * 判定口径：`esc()` 的结果进 `dangerouslySetInnerHTML` / 拼进 HTML 字符串 ⇒ 用；
+ * 作为 `createElement(..., child)` 的子节点或 HTML 属性值 ⇒ **不要用**（React 会转义）。
+ */
+export function esc(s: unknown): string {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => {
+    switch (c) {
+      case '&':
+        return '&amp;';
+      case '<':
+        return '&lt;';
+      case '>':
+        return '&gt;';
+      case '"':
+        return '&quot;';
+      default:
+        return '&#39;';
+    }
+  });
+}
+
+const BADGE_MAP: Record<string, [string, string]> = {
+  user: ['你', 'b-user'],
+  assistant: ['助手', 'b-assistant'],
+  reasoning: ['推理', 'b-reasoning'],
+  tool_call: ['工具调用', 'b-tool_call'],
+  tool_result: ['工具结果', 'b-tool_result'],
+  system: ['系统', 'b-system'],
+  todo: ['待办', 'b-todo'],
+  plan: ['计划', 'b-plan'],
+  question: ['提问', 'b-question'],
+  turn_diff: ['变更', 'b-turn_diff'],
+};
+
+/**
+ * 事件类型徽标：命中 `BADGE_MAP` 时用「中文标签 + 专属类」，未命中回退 `b-system`。
+ * @param type 事件类型字符串（如 `tool_call`）。
+ * @returns 徽标元素。
+ */
+export function badge(type: string): ReactElement {
+  const m = BADGE_MAP[type] ?? [type, 'b-system'];
+  return React.createElement('span', { className: 'badge ' + m[1] }, t(m[0]));
+}
+
+/**
+ * 时间戳转本地时间字符串；缺失或非法时间戳一律返回空串（不抛错）。
+ * @param ts 毫秒时间戳，可空。
+ * @returns `toLocaleTimeString()` 结果，或空串。
+ */
+export function timeOf(ts?: number): string {
+  if (!ts) return '';
+  try {
+    return new Date(ts).toLocaleTimeString();
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * 空状态插画占位（图标 + 主文案 + 可选副提示）。
+ *
+ * `icon` 接受**字符串或元素**：字符串是为历史调用点保留的兼容形态（也能放短文本），
+ * 新代码一律传 `icon('<图标名>')`（见 models/Icon.ts）——emoji 的字形随系统字体变、
+ * 尺寸不受控、且不跟随 `currentColor`，不适合当图标用。
+ *
+ * `hint` 可省略：只有主文案时也走同一套版式（图标槽 + 主文案），避免"有的空态有图标、
+ * 有的只有一行灰字"这种同一产品里两套语言（分工见 `emptyNote` 的说明）。
+ * @param icon 图标元素或字符
+ * @param text 主文案
+ * @param hint 可选副提示（指引下一步做什么）
+ * @param kind 传 `'err'` 时按**加载失败**呈现（红色 + 警示图标），与"没有内容"区分开
+ * @returns 空状态元素
+ */
+export function emptyState(
+  icon: string | ReactElement,
+  text: string,
+  hint?: string,
+  kind?: 'err',
+): ReactElement {
+  return React.createElement(
+    'div',
+    { className: 'empty illu' + (kind === 'err' ? ' err' : '') },
+    React.createElement('div', { className: 'illu-icon' }, icon),
+    React.createElement('div', { className: 'illu-text' }, text),
+    hint === undefined ? null : React.createElement('div', { className: 'illu-hint' }, hint),
+  );
+}
+
+/**
+ * 行内说明（**不是空态**）：例如"读取中…"这类过程提示、"工作区很干净"这类状态结论。
+ *
+ * 与 `emptyState` 的分工（2026-10-07 统一口径，三种态视觉上必须能一眼分开）：
+ *   · `.empty.illu`（= `emptyState`）：**列表里没有内容，且需要指引** —— 图标槽 + 主文案 + 指引。
+ *   · `.empty.note`（= 本函数）：**内容稍后就有 / 结论本身就是全部信息** —— 一行灰字 + 小图标。
+ *   · `.empty.err`：**加载失败** —— 红色 + 警示图标。原先它与"没有内容"都只是灰字，
+ *     用户分不清"这里没数据"和"数据读挂了"。
+ * @param text 文案
+ * @param opts `icon` 小图标名；`kind` 取 `'note'`（默认）或 `'err'`
+ * @returns 行内说明元素
+ */
+export function emptyNote(
+  text: string,
+  opts: { icon?: IconName; kind?: 'note' | 'err' } = {},
+): ReactElement {
+  const kind = opts.kind ?? 'note';
+  return React.createElement(
+    'div',
+    { className: 'empty ' + kind },
+    opts.icon === undefined ? null : icon(opts.icon, { size: 13 }),
+    text,
+  );
+}
+
+/**
+ * 把任意值序列化为缩进 JSON，渲染进 `<pre class="json">`（内容已转义）。
+ * @param obj 待展示的任意值（对象 / 数组 / 原始值均可）。
+ * @returns 只读的 JSON 预览元素。
+ */
+export function jsonView(obj: unknown): ReactElement {
+  return React.createElement('pre', { className: 'json' }, JSON.stringify(obj, null, 2));
+}
+
+/**
+ * 模型向用户提问的**对话流记录**渲染（提问的作答面是输入框上方的 `QuestionCard`）。
+ *
+ * 2026-10-08 纠错（用户报障「提问内容有了但是选择却无法提交」）：此前这里把选项渲染成
+ * `disabled` 按钮 + 一句「当前非交互式环境，已自动返回默认值继续执行」的说明，于是
+ * **看起来能点、实际点不动，而且说明与事实不符**（serve 下的提问是真人可答的）。
+ * 现在：选项只作**内容**呈现（普通元素，不给可点的错觉），说明只在真的有提问等待时出现，
+ * 并明确指向唯一的作答入口。
+ * @param questions 提问数组，或单个提问对象 / 字符串。
+ * @param options `pending` 为 true 表示服务端正等待这次提问的作答。
+ * @returns 提问清单元素（只读记录；作答在 `QuestionCard`）。
+ */
+export function questionView(
+  questions: unknown,
+  options: { pending?: boolean } = {},
+): ReactElement {
+  const items = Array.isArray(questions) ? questions : [questions];
+  // 选项列表：key 由外层传入前缀，避免同层兄弟节点 key 冲突。
+  const optionList = (options_: Record<string, string>[], keyPrefix: string): ReactElement =>
+    React.createElement(
+      'div',
+      { className: 'question-options' },
+      ...options_.map((o, j) =>
+        React.createElement(
+          'div',
+          { key: `${keyPrefix}-o-${j}`, className: 'question-option' },
+          React.createElement('span', { className: 'opt-label' }, o.label ?? ''),
+          o.description ? React.createElement('span', { className: 'opt-desc' }, o.description) : null,
+        ),
+      ),
+    );
+  return React.createElement(
+    'div',
+    { className: 'question-list' },
+    ...items.map((q, i) => {
+      const rec = typeof q === 'object' && q !== null ? (q as Record<string, unknown>) : null;
+      const header = rec ? String(rec.header ?? '') : '';
+      const text = rec ? String(rec.question ?? '') : String(q);
+      const rawOptions: unknown = rec ? rec.options : undefined;
+      const options_ = Array.isArray(rawOptions) ? (rawOptions as Record<string, string>[]) : [];
+      const key = `q-${i}`;
+      return React.createElement(
+        'div',
+        { key, className: 'question-item' },
+        header ? React.createElement('div', { className: 'question-header' }, header) : null,
+        React.createElement('div', { className: 'question-text' }, text),
+        options_.length > 0 ? optionList(options_, key) : null,
+      );
+    }),
+    options.pending === true
+      ? React.createElement(
+          'div',
+          { className: 'question-note pending' },
+          t('等待你的回答：请在下方提问卡中选择或填写后提交。'),
+        )
+      : null,
+  );
+}
+
+const PERM_LABELS: Record<string, string> = {
+  'fs.read': '读取文件',
+  'fs.write': '写入文件',
+  'fs.delete': '删除文件',
+  network: '网络访问',
+  shell: '执行命令',
+  exec: '执行命令',
+  spawn: '执行命令',
+  'env.read': '读取环境变量',
+  kv: '键值存储',
+  vault: '凭据保管',
+  memory: '记忆读写',
+};
+
+const DANGER_PERM = /delete|shell|exec|spawn|network|fs\.write/i;
+
+/**
+ * 把权限标识渲染为一枚 chip；命中危险权限正则时追加 `danger` 高亮。
+ * @param p 权限标识（如 `fs.write` / `shell`）。
+ * @returns 权限 chip 元素。
+ */
+export function permChip(p: string): ReactElement {
+  const danger = DANGER_PERM.test(p);
+  const label = PERM_LABELS[p] || p;
+  return React.createElement(
+    'span',
+    { key: p, className: 'perm' + (danger ? ' danger' : ''), title: p },
+    t(label),
+  );
+}
+
+/**
+ * 待办清单渲染：按状态给圆点上 `done` / `doing` 修饰类。
+ *
+ * 状态词表**必须与生产者一致**（2026-09-26 审计 F8）：生产者
+ * （`ports/runtime/todo.ts` 的 `TodoStatus`）只发 `pending | in_progress | completed`，
+ * 而渲染器原先只认 `done` / `doing` ⇒ 所有圆点恒为中性灰，每个待办的进度在 UI 上不可见。
+ * 两种词表都接受（兼容历史事件），语义映射：completed→done、in_progress→doing。
+ * @param todos 待办项数组，每项含可选 status 与 content。
+ * @returns 待办卡片元素。
+ */
+export function todoView(todos: { status?: string; content?: string }[]): ReactElement {
+  const dotClass = (status?: string): string => {
+    if (status === 'completed' || status === 'done') return 'todo-dot done';
+    if (status === 'in_progress' || status === 'doing') return 'todo-dot doing';
+    return 'todo-dot ';
+  };
+  return React.createElement(
+    'div',
+    { className: 'card' },
+    ...todos.map((t, i) =>
+      React.createElement(
+        'div',
+        { key: `todo-${i}`, className: 'todo-item' },
+        React.createElement('span', { className: dotClass(t.status) }),
+        React.createElement('span', null, t.content || ''),
+      ),
+    ),
+  );
+}
+
+/**
+ * 统一 diff 文本逐行染色：新增行 `add`、删除行 `del`、其余 `ctx`。
+ * @param diff 原始 unified diff 文本。
+ * @returns 差异行列表元素。
+ */
+export function diffView(diff: string): ReactElement {
+  const lineClass = (line: string): string => {
+    if (line.startsWith('+')) return 'add';
+    if (line.startsWith('-')) return 'del';
+    return 'ctx';
+  };
+  return React.createElement(
+    'div',
+    { className: 'diff' },
+    ...diff
+      .split('\n')
+      .map((line, i) => React.createElement('span', { key: `dl-${i}`, className: lineClass(line) }, line)),
+  );
+}
+
+/**
+ * 事件在折叠态的一行摘要（纯字符串，供列表标题使用）。
+ * @param ev 线程事件。
+ * @param p 事件 payload。
+ * @returns 摘要文本，按事件类型分别截断。
+ */
+export function detailSummary(
+  ev: ThreadEvent,
+  p: Record<string, unknown>,
+): string {
+  switch (ev.type) {
+    case 'tool_call': {
+      const name = (p.name as string) || 'tool';
+      // 详情列表同样走人话动作：不再把 `memory_search(path, limit…)` 这种接口签名甩给用户。
+      return truncate(describeToolCall(name, p.args), 140);
+    }
+    case 'tool_result':
+      return (
+        (p.ok === true ? '✓ ' : '✗ ') +
+        String(
+          p.error != null
+            ? p.error
+            : p.output != null
+              ? p.output
+              : p.ok
+                ? t('成功')
+                : t('失败'),
+        ).slice(0, 140)
+      );
+    case 'user':
+    case 'assistant':
+      return ((p.content as string) || '').slice(0, 180);
+    case 'reasoning':
+      return t('推理轨迹（{count} 字）', { count: ((p.content as string) || '').length });
+    case 'system':
+      return (p.content as string) || '';
+    case 'plan':
+      return t('计划（{count} 项）', {
+        count: Array.isArray(p.steps) ? p.steps.length : Object.keys(p).length,
+      });
+    case 'question':
+      return t('{count} 个提问', {
+        count: (p.questions as unknown[]) ? (p.questions as unknown[]).length : 0,
+      });
+    case 'todo':
+      return t('待办 {count} 项', { count: ((p.todos as unknown[]) || []).length });
+    case 'turn_diff': {
+      const files = parseTurnDiffFiles((p.diff as string) || '');
+      if (files.length === 0) return t('本回合无文件变更');
+      const totals = turnDiffTotals(files);
+      return t('已编辑 {count} 个文件（+{added} −{deleted}）', {
+        count: files.length,
+        added: totals.added,
+        deleted: totals.deleted,
+      });
+    }
+    default:
+      return t('{type} 事件', { type: ev.type });
+  }
+}
+
+// =====================================================================
+// 无第三方依赖 Markdown 渲染器（assistant 回复结构化展示用）。
+// 支持：标题（#/##/###）、无序/有序列表、粗体（** / __）、斜体（* / _）、
+//       行内代码（`）、代码块（```）、引用（>）。不使用 innerHTML，安全。
+// =====================================================================
+
+type MdBlock =
+  | { type: 'heading'; level: number; text: string }
+  | { type: 'paragraph'; text: string }
+  | { type: 'ul'; items: string[] }
+  | { type: 'ol'; items: string[] }
+  | { type: 'code'; lang: string; text: string }
+  | { type: 'quote'; text: string }
+  | { type: 'table'; header: string[]; rows: string[][] };
+
+/**
+ * 尝试在指定行解析 Markdown 表格（表头 + 分隔行 + 数据行）。
+ * @param lines 全文行数组。
+ * @param start 起始行下标。
+ * @returns 表格块与下一行下标；不是表格时 null。
+ */
+function tableAt(lines: string[], start: number): { block: MdBlock; next: number } | null {
+  const sepRow = start + 1 < lines.length ? lines[start + 1]!.trim() : '';
+  if (!sepRow.includes('-')) return null;
+  const inner = sepRow.replace(/^\|/, '').replace(/\|$/, '');
+  const cells = inner.split('|');
+  const isSep = cells.length > 0 && cells.every((c) => /^:?-+:?$/.test(c.trim()));
+  if (!lines[start]!.trim().startsWith('|') || !isSep) return null;
+  const splitRow = (s: string): string[] =>
+    s.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim());
+  const header = splitRow(lines[start]!);
+  const rows: string[][] = [];
+  let i = start + 2;
+  while (i < lines.length && lines[i]!.trim() !== '') {
+    if (lines[i]!.trim().startsWith('|')) rows.push(splitRow(lines[i]!));
+    i++;
+  }
+  return header.length > 0 ? { block: { type: 'table', header, rows }, next: i } : null;
+}
+
+function parseBlocks(src: string): MdBlock[] {
+  const lines = src.replace(/\r\n/g, '\n').split('\n');
+  const blocks: MdBlock[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.trim() === '') {
+      i++;
+      continue;
+    }
+    if (line.startsWith('```')) {
+      const fence = line.match(/^```(\w*)/)?.[1] ?? '';
+      const start = i + 1;
+      let end = start;
+      while (end < lines.length && !lines[end].startsWith('```')) end++;
+      blocks.push({ type: 'code', lang: fence, text: lines.slice(start, end).join('\n') });
+      i = end + 1;
+      continue;
+    }
+    const h = line.match(/^(#{1,6})\s+(.*)$/);
+    if (h) {
+      blocks.push({ type: 'heading', level: h[1].length, text: h[2].trim() });
+      i++;
+      continue;
+    }
+    if (/^[-*]\s+/.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^[-*]\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^[-*]\s+/, ''));
+        i++;
+      }
+      blocks.push({ type: 'ul', items });
+      continue;
+    }
+    if (/^\d+\.\s+/.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\d+\.\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^\d+\.\s+/, ''));
+        i++;
+      }
+      blocks.push({ type: 'ol', items });
+      continue;
+    }
+    if (line.startsWith('>')) {
+      const items: string[] = [];
+      while (i < lines.length && lines[i].startsWith('>')) {
+        items.push(lines[i].replace(/^>\s?/, ''));
+        i++;
+      }
+      blocks.push({ type: 'quote', text: items.join(' ').trim() });
+      continue;
+    }
+    const table = tableAt(lines, i);
+    if (table !== null) {
+      blocks.push(table.block);
+      i = table.next;
+      continue;
+    }
+    const paras: string[] = [line];
+    i++;
+    while (i < lines.length && lines[i].trim() !== '') {
+      paras.push(lines[i]);
+      i++;
+    }
+    blocks.push({ type: 'paragraph', text: paras.join(' ').trim() });
+  }
+  return blocks;
+}
+
+/**
+ * 尝试在 `[` 位置解析 Markdown 链接。
+ * @param text 行内文本。
+ * @param start `[` 下标。
+ * @param keyPrefix React key 前缀。
+ * @returns 链接节点与下一位置；不是链接时 null。
+ */
+function inlineLinkAt(
+  text: string,
+  start: number,
+  keyPrefix: string,
+): { node: ReactNode; next: number } | null {
+  const endLabel = text.indexOf(']', start + 1);
+  const endUrl = text.indexOf(')', endLabel + 1);
+  if (endLabel <= start || text[endLabel + 1] !== '(' || endUrl <= endLabel) return null;
+  const label = text.slice(start + 1, endLabel);
+  const url = text.slice(endLabel + 2, endUrl);
+  return {
+    node: React.createElement(
+      'a',
+      {
+        key: `${keyPrefix}-a-${start}`,
+        href: url,
+        'data-file-path': url,
+        className: 'md-link',
+      },
+      ...parseInline(label, `${keyPrefix}-al-${start}`),
+    ),
+    next: endUrl + 1,
+  };
+}
+
+/**
+ * 行内 Markdown 解析：反引号代码、`**`/`__` 粗体、`*`/`_` 斜体、`[x](url)` 链接。
+ * @param text 行内文本。
+ * @param keyPrefix 生成 React key 的前缀，保证同层唯一。
+ * @returns React 子节点数组（纯文本段与元素交替）。
+ */
+function parseInline(text: string, keyPrefix: string): ReactNode[] {
+  const out: ReactNode[] = [];
+  let i = 0;
+  let plainStart = 0;
+
+  const flush = (end: number) => {
+    if (plainStart < end) {
+      out.push(text.slice(plainStart, end));
+      plainStart = end;
+    }
+  };
+
+  while (i < text.length) {
+    if (text[i] === '`') {
+      const endCode = text.indexOf('`', i + 1);
+      if (endCode > i) {
+        flush(i);
+        out.push(React.createElement('code', { key: `${keyPrefix}-c-${i}` }, text.slice(i + 1, endCode)));
+        i = endCode + 1;
+        plainStart = i;
+        continue;
+      }
+    }
+    if ((text[i] === '*' && text[i + 1] === '*') || (text[i] === '_' && text[i + 1] === '_')) {
+      const marker = text[i] === '*' ? '**' : '__';
+      const endBold = text.indexOf(marker, i + 2);
+      if (endBold > i) {
+        flush(i);
+        out.push(
+          React.createElement(
+            'strong',
+            { key: `${keyPrefix}-b-${i}` },
+            ...parseInline(text.slice(i + 2, endBold), `${keyPrefix}-ib-${i}`),
+          ),
+        );
+        i = endBold + 2;
+        plainStart = i;
+        continue;
+      }
+    }
+    if (text[i] === '*' || text[i] === '_') {
+      const marker = text[i];
+      const endItalic = text.indexOf(marker, i + 1);
+      if (endItalic > i) {
+        flush(i);
+        out.push(
+          React.createElement(
+            'em',
+            { key: `${keyPrefix}-i-${i}` },
+            ...parseInline(text.slice(i + 1, endItalic), `${keyPrefix}-ii-${i}`),
+          ),
+        );
+        i = endItalic + 1;
+        plainStart = i;
+        continue;
+      }
+    }
+    if (text[i] === '[') {
+      const link = inlineLinkAt(text, i, keyPrefix);
+      if (link !== null) {
+        flush(i);
+        out.push(link.node);
+        i = link.next;
+        plainStart = i;
+        continue;
+      }
+    }
+    i++;
+  }
+  flush(i);
+  return out;
+}
+
+/**
+ * Markdown 标题层级映射：为避免与页面 h1/h2 抢语义，整体下移两级（h1→h3）。
+ * @param level 源码中的 `#` 个数（1–6）。
+ * @returns 实际渲染使用的标签名。
+ */
+function mdHeadingTag(level: number): 'h3' | 'h4' | 'h5' {
+  if (level === 1) return 'h3';
+  if (level === 2) return 'h4';
+  return 'h5';
+}
+
+/**
+ * 渲染代码块（语言条 + 复制按钮 + pre/code）。
+ * @param block 代码块。
+ * @param key React key。
+ * @returns 代码块元素。
+ */
+function renderCodeBlock(block: Extract<MdBlock, { type: 'code' }>, key: string): ReactElement {
+  const langLabel = block.lang ? block.lang : 'text';
+  const bar = React.createElement(
+    'div',
+    { key: `${key}-bar`, className: 'md-codeblock__bar' },
+    React.createElement('span', { key: `${key}-lang`, className: 'md-codeblock__lang' }, langLabel),
+    React.createElement(
+      'button',
+      { key: `${key}-copy`, type: 'button', className: 'md-codeblock__copy' },
+      t('复制'),
+    ),
+  );
+  const pre = React.createElement(
+    'pre',
+    { key, className: 'md-pre' },
+    React.createElement(
+      'code',
+      { key: `${key}-code`, className: block.lang ? `lang-${block.lang}` : '' },
+      block.text,
+    ),
+  );
+  return React.createElement('div', { key, className: 'md-codeblock' }, bar, pre);
+}
+
+/**
+ * 单个 Markdown 块渲染为 React 元素。
+ * @param b 解析后的块。
+ * @param idx 块序号，用于生成稳定 key。
+ * @returns 该块对应的元素。
+ */
+function renderBlock(b: MdBlock, idx: number): ReactElement {
+  const key = `b-${idx}`;
+  switch (b.type) {
+    case 'heading': {
+      const Tag = mdHeadingTag(b.level);
+      return React.createElement(Tag, { key, className: `md-h${b.level}` }, ...parseInline(b.text, key));
+    }
+    case 'paragraph':
+      return React.createElement('p', { key, className: 'md-p' }, ...parseInline(b.text, key));
+    case 'ul':
+      return React.createElement(
+        'ul',
+        { key, className: 'md-ul' },
+        ...b.items.map((item, li) =>
+          React.createElement('li', { key: `${key}-li-${li}` }, ...parseInline(item, `${key}-li-${li}`)),
+        ),
+      );
+    case 'ol':
+      return React.createElement(
+        'ol',
+        { key, className: 'md-ol' },
+        ...b.items.map((item, li) =>
+          React.createElement('li', { key: `${key}-li-${li}` }, ...parseInline(item, `${key}-li-${li}`)),
+        ),
+      );
+    case 'code':
+      return renderCodeBlock(b, key);
+    case 'quote':
+      return React.createElement('blockquote', { key, className: 'md-quote' }, ...parseInline(b.text, key));
+    case 'table':
+      return React.createElement(
+        'table',
+        { key, className: 'md-table' },
+        React.createElement(
+          'thead',
+          { key: `${key}-head` },
+          React.createElement(
+            'tr',
+            { key: `${key}-head-tr` },
+            ...b.header.map((h, ci) =>
+              React.createElement('th', { key: `${key}-th-${ci}` }, ...parseInline(h, `${key}-th-${ci}`)),
+            ),
+          ),
+        ),
+        React.createElement(
+          'tbody',
+          { key: `${key}-body` },
+          ...b.rows.map((row, ri) =>
+            React.createElement(
+              'tr',
+              { key: `${key}-tr-${ri}` },
+              ...row.map((cell, ci) =>
+                React.createElement('td', { key: `${key}-td-${ri}-${ci}` }, ...parseInline(cell, `${key}-td-${ri}-${ci}`)),
+              ),
+            ),
+          ),
+        ),
+      );
+    default:
+      return React.createElement('div', { key });
+  }
+}
+
+/**
+ * 把 Markdown 源码渲染为结构化元素（无第三方依赖解析器，不使用 innerHTML）。
+ * @param src Markdown 源码，空串或空内容时返回 `md-empty` 占位。
+ * @returns Markdown 渲染结果元素。
+ */
+/**
+ * 手写无第三方依赖 Markdown 渲染器（回落实现）。
+ * 仅在成熟依赖（markdown-it / KaTeX / highlight.js）未就绪时使用，保证无回归与离线可用。
+ * @param src Markdown 源码。
+ * @returns 渲染结果元素（结构化 React 元素，不使用 innerHTML）。
+ */
+export function legacyRenderMarkdown(src: string): ReactElement {
+  const blocks = parseBlocks(src || '');
+  if (blocks.length === 0) {
+    return React.createElement('div', {
+      className: 'md-content md-empty',
+      spellCheck: 'false',
+      onClick: handleCodeblockCopyClick,
+    });
+  }
+  return React.createElement(
+    'div',
+    { className: 'md-content', key: 'md', spellCheck: 'false', onClick: handleCodeblockCopyClick },
+    ...blocks.map((b, i) => renderBlock(b, i)),
+  );
+}
+
+/**
+ * Markdown 渲染统一入口：成熟依赖就绪时走 markdown.ts 的 markdown-it + KaTeX + highlight.js 管线
+ * （数学公式、代码高亮、GFM 表格/任务列表等），否则回落到手写实现。
+ * @param src Markdown 源码。
+ * @returns 渲染结果元素。
+ */
+export function renderMarkdown(src: string): ReactElement {
+  if (markdownLibsReady()) return markdownRender(src);
+  return legacyRenderMarkdown(src);
+}

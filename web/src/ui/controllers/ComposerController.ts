@@ -1,0 +1,513 @@
+﻿// 输入框切换器 / 发送相关控制器（C3 拆分，标准 class 方式）。
+// 承接原 useAppController 中 send / changeModel / changeReasoning / changePermission 回调，
+// 经 AppHost.patch 驱动 App 状态，行为逐字节等价。
+
+import type { AppHost, AppServices } from './AppController.ts';
+import type {
+  FileAttachment,
+  InterjectResult,
+  ThreadEvent,
+  TurnRunResult,
+} from '../../types/models.ts';
+import type { ToolResultView } from '../shared.ts';
+import type { SessionController } from './SessionController.ts';
+import { MethodBinder } from './methodBinder.ts';
+import { t } from '../i18n/i18n.ts';
+import { desktopBridge, notifyDesktop } from '../../core/desktop/DesktopBridge.ts';
+import { ChatQueueController } from './ChatQueueController.ts';
+import type { ImageAttachment } from '../models/ChatMessageQueue.ts';
+
+/** 输入框 / 发送控制器：单一职责，仅供 App 组合使用。 */
+export class ComposerController {
+  /** 状态宿主（App class 组件）。 */
+  private readonly host: AppHost;
+  /** 共享服务。 */
+  private readonly services: AppServices;
+  /** 会话控制器（send 兜底分支需刷新会话列表；视图代数也经它取——见 SessionController.viewAttachment）。 */
+  private readonly sessions: SessionController;
+  /** 用户主动点「停止」后本次 send 的拒绝按中断处理（写系统提示而非错误 toast）。 */
+  private abortRequested = false;
+  /** 是否有在飞回合（send 已发起、尚未收尾）；「停止」只对在飞回合有意义。 */
+  private inFlight = false;
+  /** 本回合的「已中止」系统提示是否已写过（stop 与 send 收尾二者只写一次）。 */
+  private abortNoted = false;
+  /** 队列模式协作件（队列真相 / 暂停态 / 聊天模式偏好，见 ChatQueueController）。 */
+  private readonly queueController: ChatQueueController;
+
+  /**
+   * 构造并绑定对外回调。
+   * @param host 状态宿主
+   * @param services 共享服务
+   * @param sessions 会话控制器（send 兜底分支需刷新会话列表）
+   */
+  public constructor(host: AppHost, services: AppServices, sessions: SessionController) {
+    this.host = host;
+    this.services = services;
+    this.sessions = sessions;
+    this.queueController = new ChatQueueController({
+      host: this.host,
+      api: this.services.api,
+      toast: (message, kind) => this.services.toast(message, kind),
+      isBusy: () => this.inFlight,
+      // 续发复用同一个回合执行体（队列只决定"发哪一条"，不自己碰 RPC）。
+      sendQueued: (message) => {
+        void this.runRound(message.prompt, [...message.images], [...message.files]).catch(() => {
+          /* runRound 内部已把失败写进对话流；这里只防未处理 rejection */
+        });
+      },
+    });
+    // 一次绑定全部原型方法（这些方法都以裸引用传给输入区子组件）。见 MethodBinder。
+    MethodBinder.bindAll(this);
+  }
+
+  /**
+   * 队列模式协作件（App 组装队列坞视图时读取/操作它）。
+   * @returns 队列控制器
+   */
+  public get chatQueue(): ChatQueueController {
+    return this.queueController;
+  }
+
+  /**
+   * 按失败原因给出**可执行**的下一步建议（静态纯函数，便于单测）。
+   *
+   * 原先无论什么失败都拼「可尝试切换模型或检查 API Key」，而 2026-09-27 用户遭遇的是
+   * `turns.run` 等服务端等待超时（回合仍在后台推进）——把用户引向换模型查 Key 是误导。
+   * @param message 失败原因文本（来自 ApiClient 的真实错误消息）。
+   * @returns 追加在系统提示末尾的建议句（含前导句号）。
+   */
+  public static failureHint(message: string): string {
+    if (/RPC 超时|HTTP 5\d\d|RPC 请求失败/.test(message)) {
+      return t('。服务端等待超时，回合可能仍在后台继续；可稍候重新打开该会话查看结果，或点「停止」后再发一次。');
+    }
+    if (/中止|abort/i.test(message)) {
+      return t('。');
+    }
+    return t('。可尝试切换模型或检查 API Key。');
+  }
+
+  /**
+   * 发送入口（聊天模式分流，2026-10-31）：
+   *
+   * - 空闲：若有排队项则先入队并按队列顺序发送（FIFO，保证排队语义一致）；否则直接开跑；
+   * - 在飞 + 队列模式：入队，等当前任务结束后自动逐条发送；
+   * - 在飞 + 插话模式：交给服务端按相关性分流（并入当前回合 / 中断并转新任务）。
+   * @param prompt 用户输入
+   * @param images 图片/视频等图像附件
+   * @param files 文件附件
+   * @returns 无
+   */
+  public async send(
+    prompt: string,
+    images: ImageAttachment[],
+    files: FileAttachment[],
+  ): Promise<void> {
+    const state = this.host.getState();
+    if (this.inFlight) {
+      // 在跑回合里再发：按设置的模式处理（此前一律退化为 steering，队列模式无入口）。
+      if (state.chatMode === 'steer') {
+        await this.interject(prompt, images, files);
+        return;
+      }
+      this.queueController.enqueue(prompt, images, files, false);
+      return;
+    }
+    // 空闲：已有排队（含「停止」后暂停的）就按队列顺序来，不插队直接开跑。
+    if (this.queueController.hasPending()) {
+      // 新消息 = 用户重新开工：恢复暂停并先发队首（FIFO），本条排到队尾。
+      this.queueController.resume();
+      this.queueController.enqueue(prompt, images, files, false);
+      return;
+    }
+    await this.runRound(prompt, images, files);
+  }
+
+  /**
+   * 跑一个真实回合：标注 busy、调用后端、补 finalText 兜底事件、错误写回流 + toast。
+   *
+   * 与 `send` 拆开的原因：`send` 只做「该不该现在发 / 发哪一条」的路由，`runRound` 才是
+   * 一回合的执行体。队列续发、插话打断都复用同一个执行体，避免两条发送路径行为漂移。
+   * @param prompt 用户输入
+   * @param images 图片附件
+   * @param files 文件附件
+   * @returns 无
+   */
+  private async runRound(
+    prompt: string,
+    images: ImageAttachment[],
+    files: FileAttachment[],
+  ): Promise<void> {
+    const currentThreadId = this.host.getState().currentThreadId;
+    const params: {
+      threadId?: string;
+      prompt: string;
+      images?: ImageAttachment[];
+      files?: FileAttachment[];
+    } = currentThreadId ? { threadId: currentThreadId, prompt } : { prompt };
+    if (images.length > 0) params.images = images;
+    if (files.length > 0) params.files = files;
+    // 回合进行中不得再起一轮：并发会让 `streamPhase('open')` 丢掉上一回合未刷出的流式文本，
+    // 且单布尔 `inFlight` 被覆盖 ⇒ 之后「停止」指向错误的回合。所有入口都经这里兜底。
+    if (this.inFlight) {
+      this.services.toast(t('正在生成，请稍候再发送'), 'info');
+      this.queueController.enqueue(prompt, images, files, true);
+      return;
+    }
+    this.inFlight = true;
+    this.abortRequested = false;
+    this.abortNoted = false;
+    // 记下"这一回合属于哪个视图"：用户若在回合进行中点「+ 新建」或切走，代数会变，
+    // 收尾就不得把旧会话拽回视图（真机实测："新建会话无反应"就是这个原因）。
+    // 视图状态对象归 SessionController 所有（摘 / 挂同源，避免两处各改一半），这里只借代数比对。
+    const epoch = this.sessions.viewAttachment.attach();
+    // 新回合：开一份干净的流式缓冲（上一个回合的残留在 flushStream/discard 时已释放）。
+    this.sessions.streamPhase('open');
+    this.host.patch({ busy: true, activeTool: null, streamText: '', finalizedStreamText: '' });
+    void desktopBridge()?.setProgress?.(2);
+    try {
+      const res = await this.services.api.runTurn(params);
+      // 用户已中止：即使后端以正常响应收尾（取消在飞请求后的回落），也不再补最终文本，
+      // 统一走 finally 的中止收口，避免「停了又冒出一条回复」。
+      if (this.abortRequested) return;
+      // 视图在这一回合期间被换掉（按了「新建」/ 切了别的会话）：**只收干净忙碌态**，
+      // 内容（currentThreadId / 会话列表 / hash / 最终文本）一律不写——那属于用户已经离开的视图。
+      if (this.sessions.viewAttachment.epoch() !== epoch) {
+        this.host.patch({ busy: false, streamText: '', finalizedStreamText: '' });
+        return;
+      }
+      this.applySuccess(res, prompt, files);
+    } catch (e) {
+      // 用户主动中断已由 stop() 即时收口（含「已中止」提示），此处不再重复报错。
+      // 视图已换掉时也不写错误提示：那条报错属于用户已离开的回合，写进去只会让新视图莫名多出一条 system 事件。
+      if (!this.abortRequested && this.sessions.viewAttachment.epoch() === epoch) {
+        const msg = (e as Error).message || t('未知错误');
+        // 错误不再弹窗阻断，而是写进对话流作为 system 提示 + toast，页面保持可用。
+        this.services.toast(t('运行失败：{msg}', { msg }), 'err');
+        this.host.patch((s) => ({
+          events: [...s.events, this.systemNote(t('运行失败：{msg}{hint}', { msg, hint: ComposerController.failureHint(msg) }))],
+        }));
+      }
+    } finally {
+      const aborted = this.abortRequested;
+      this.inFlight = false;
+      this.abortRequested = false;
+      // 无论正常结束、失败还是中止，都在此清掉忙碌 / 流式残留（中止时补写一次系统提示）。
+      this.settleRound(aborted);
+      this.abortNoted = false;
+      // 队列模式：本回合结束后立刻续发下一条（暂停态 / 别的会话的项不发）。
+      this.queueController.drain();
+    }
+  }
+
+  /**
+   * 插话模式：把在跑回合里的新消息交给服务端分流。
+   *
+   * 相关 ⇒ 服务端入 steering 队列（步边界注入，附件一起带）；无关 ⇒ 服务端立即取消当前回合，
+   * 本条内容插到队首，由 `runRound` 收尾后的队列续发作为新任务发出。
+   * 服务端不可用（旧版本 / 瞬时错误）时回退到旧 steering 通道，最差也只是排队，绝不丢消息。
+   * @param prompt 文本
+   * @param images 图像附件
+   * @param files 文件附件
+   * @returns 无
+   */
+  private async interject(
+    prompt: string,
+    images: ImageAttachment[],
+    files: FileAttachment[],
+  ): Promise<void> {
+    if (prompt.trim() === '' && images.length + files.length === 0) return;
+    const threadId = this.host.getState().currentThreadId;
+    if (threadId === null) {
+      this.queueController.enqueue(prompt, images, files, false);
+      return;
+    }
+    let result: InterjectResult;
+    try {
+      result = await this.services.api.interjectTurn({ threadId, prompt, images, files });
+    } catch {
+      // RPC 不可用：回退到旧 steering（只做并入；失败就排队，等本回合结束后再发）。
+      const steered = await this.services.api
+        .steerTurn(threadId, prompt, images, files)
+        .then((r) => r.ok === true)
+        .catch(() => false);
+      if (steered) this.services.toast(t('已并入当前任务，下一步生效'), 'info');
+      else this.queueController.enqueue(prompt, images, files, false);
+      return;
+    }
+    if (result.ok && result.action === 'steered') {
+      this.services.toast(t('已并入当前任务，下一步生效'), 'info');
+      return;
+    }
+    if (result.ok && result.action === 'interrupted') {
+      // 服务端已取消当前回合：收尾按「用户中断」处理（写系统提示、不报错误），
+      // 本条内容插到队首，等 runRound 的 finally 续发成新任务。
+      this.abortRequested = true;
+      this.queueController.enqueue(prompt, images, files, true);
+      this.services.toast(t('检测到新任务，已中断当前任务并转入新任务'), 'info');
+      return;
+    }
+    // 会话刚好结束（session_not_running）或服务端拒绝：直接排队，由收尾逻辑续发。
+    this.queueController.enqueue(prompt, images, files, false);
+  }
+
+  /**
+   * 回合成功收尾：落 sessionId、刷会话列表、补 finalText、收口流式缓冲、桌面通知。
+   * @param res 后端回合结果。
+   * @param prompt 用户输入（用于新会话标签）。
+   * @param files 文件附件（无 prompt 时用首个附件名作标签）。
+   * @returns 无
+   */
+  private applySuccess(res: TurnRunResult, prompt: string, files: FileAttachment[]): void {
+    if (res.threadId) {
+      this.host.patch({ currentThreadId: res.threadId });
+      try {
+        void this.sessions.modes.flush(res.threadId);
+      } catch {
+        /* 模式落盘失败不影响回合 */
+      }
+      this.host.patch((s) => {
+        if (s.sessions.some((x) => x.id === res.threadId)) return s;
+        const next = [{ id: res.threadId, label: prompt || files[0]?.name || '' }, ...s.sessions];
+        return { sessions: next };
+      });
+      void this.sessions.refreshSessions();
+      this.services.navigate({ threadId: res.threadId });
+    }
+    this.host.patch((s) => ({ events: this.services.reducers.appendFinalText(s.events, res.finalText) }));
+    this.host.patch((s) =>
+      s.streamText === '' ? {} : { streamText: '', finalizedStreamText: s.streamText },
+    );
+    notifyDesktop({
+      title: t('回合完成'),
+      body: t('Agent 已完成本轮任务。'),
+      ...(res.threadId ? { sessionId: res.threadId } : {}),
+    });
+  }
+
+  /**
+   * 中断在跑回合：**立即**停掉本地 UI（清忙碌与流式残留 + 写「已中止」），再通知后端取消在飞请求。
+   * 立即收口是必要的：后端取消需要一次往返，若等回执，流式卡片会继续「生成中」直到响应回来。
+   * @returns 无返回值。
+   */
+  public stop(): void {
+    if (!this.inFlight || this.abortRequested) return;
+    this.abortRequested = true;
+    // 「停止」要停的是**这一串**：队列里还有待发项时一并暂停，避免回合收尾时自动续发，
+    // 让用户看到「刚停下又自己跑起来」。恢复入口在队列坞（继续）。
+    const threadId = this.host.getState().currentThreadId;
+    this.queueController.pauseIfPending(threadId);
+    this.settleRound(true);
+    // 带上当前 threadId：服务端允许多回合并行，不带 id 会退化成「取消全部在跑回合」
+    // （2026-09-22 修：此前不带 id，并发会话下会误停别的会话）。
+    void this.services.api
+      .abortTurn(threadId ?? undefined)
+      .catch(() => {});
+  }
+
+  /**
+   * 回合收尾：清掉忙碌态与流式残留，中止时补写一条系统提示（幂等，stop 与 send 收尾共用）。
+   * @param aborted 本次收尾是否因用户中止
+   * @returns 无
+   */
+  private settleRound(aborted: boolean): void {
+    // 先收尾流式节流器：把缓冲区里最后一段增量刷进 streamText，再释放（否则最后一段会丢，
+    // 且「停止」之后迟到增量可能重新点亮流式卡片）。必须在下面的 patch 之前调用——那个 patch
+    // 会读 s.streamText 把它定稿。
+    this.sessions.streamPhase('flush');
+    if (aborted && !this.abortNoted) {
+      this.abortNoted = true;
+      this.host.patch((s) => ({ events: [...s.events, this.systemNote(t('已中止（用户中断）。'))] }));
+    }
+    this.host.patch((s) => ({
+      busy: false,
+      activeTool: null,
+      liveInputs: [],
+      // 已流出的半截正文收口为「已定稿」（避免它再被当成流式内容重播），并清空流式缓冲。
+      finalizedStreamText: s.streamText === '' ? s.finalizedStreamText : s.streamText,
+      streamText: '',
+    }));
+    void desktopBridge()?.setProgress?.(-1);
+    // 回合收尾刷新一次会话列表：中栏「已完成，用时 …」依赖服务端 activeMs；正常路径在
+    // runTurn 返回时也会刷，但中止/失败路径没有，计数器会停在旧值。best-effort，不阻塞收尾。
+    void this.sessions.refreshSessions();
+  }
+
+  /**
+   * 重生成：先请**服务端**回退到末条用户消息（截断其后的事件与工具结果），再复用既有提交通路重发。
+   *
+   * 为什么必须等服务端回退成功再重发：只截断视图层时，服务端存档里的旧一轮仍在，重跑等于
+   * 「接着旧答案再来一轮」（且刷新页面旧回答会复活）。回退失败时**不发**——宁可不动，也不制造
+   * 「看着像重生成、实际是追加」的假象。
+   * @returns 异步完成
+   */
+  public async regenerate(): Promise<void> {
+    if (this.inFlight) {
+      this.services.toast(t('正在生成，请先停止后再重生成'), 'info');
+      return;
+    }
+    const last = this.lastUserMessage();
+    if (last === null || last.text.trim() === '') {
+      this.services.toast(t('没有可重生成的用户消息'), 'info');
+      return;
+    }
+    const threadId = this.host.getState().currentThreadId;
+    if (threadId !== null) {
+      const outcome = await this.services.api
+        .rewindThread(threadId, last.id)
+        .catch((e: unknown) => ({ ok: false, error: (e as Error).message || t('未知错误') }));
+      if (!outcome.ok) {
+        this.services.toast(t('重生成失败（服务端未回退）：{reason}', { reason: outcome.error ?? t('未知原因') }), 'err');
+        return;
+      }
+    }
+    this.rewindTo(last.index);
+    // 直接走执行体（不经 send）：此时队列里可能还有排队项，重生成不该被当成"又排一条"。
+    await this.runRound(last.text, [], []);
+  }
+
+  /**
+   * 把一段文本**填进输入框**（不发送），并聚焦，等用户改完自己回车。
+   *
+   * 用途：中栏空态的「快速开始」示例任务（2026-10-08 易用性轮）。为什么是"填入"而不是
+   * "直接发送"：入门示例是**给人改的模板**（"读一下 README.md" 里的文件名通常要换成自己的），
+   * 而且直接发送会**立刻消耗真实额度**——第一次点按钮就花钱，对客户是惊吓不是引导。
+   *
+   * 与 `editLastUser` 共用同一条回填通道（`composerSeed` + 单调 `nonce`）：nonce 递增保证
+   * 「连续点同一个示例两次」也能各自触发一次回填（否则第二次文本与上次相同，Composer 不会响应）。
+   * @param text 要填入输入框的文本
+   * @returns 无
+   */
+  public seedDraft(text: string): void {
+    const trimmed = text.trim();
+    if (trimmed === '') {
+      // fail-closed：空文本不写状态（否则用户看到"点了没反应"，却查不出原因）。
+      this.services.toast(t('示例内容为空，已忽略'), 'err');
+      return;
+    }
+    this.host.patch((s) => ({
+      composerSeed: { text: trimmed, nonce: (s.composerSeed?.nonce ?? 0) + 1 },
+    }));
+  }
+
+  /**
+   * 编辑重发：把末条用户消息填回底部输入框并聚焦，用户改完直接回车即走既有提交通路重发。
+   * 不新造 RPC——重发本身完全复用 send（turns.run）。
+   * @returns 无
+   */
+  public editLastUser(): void {
+    const last = this.lastUserMessage();
+    if (last === null) {
+      this.services.toast(t('没有可编辑的用户消息'), 'info');
+      return;
+    }
+    this.host.patch((s) => ({ composerSeed: { text: last.text, nonce: (s.composerSeed?.nonce ?? 0) + 1 } }));
+    this.services.toast(t('已填回输入框，编辑后回车重发'), 'info');
+  }
+
+  /**
+   * 末条用户消息（重生成 / 编辑重发的共同锚点）。
+   * @returns 事件下标、事件 id 与文本；无用户消息时为 null
+   */
+  private lastUserMessage(): { index: number; id: string; text: string } | null {
+    const events = this.host.getState().events;
+    for (let i = events.length - 1; i >= 0; i--) {
+      const ev = events[i];
+      if (ev !== undefined && ev.type === 'user') {
+        return { index: i, id: ev.id, text: String((ev.payload?.content as string) ?? '') };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * 回退到指定事件下标（含）：截断其后的事件与工具结果，并清掉流式残留，使重跑从该点分叉。
+   * @param index 保留到的事件下标（含）
+   * @returns 无
+   */
+  private rewindTo(index: number): void {
+    const kept = this.host.getState().events.slice(0, index + 1);
+    this.host.patch({
+      events: kept,
+      toolResults: this.pruneToolResults(kept),
+      liveInputs: [],
+      streamText: '',
+      finalizedStreamText: '',
+      activeTool: null,
+    });
+  }
+
+  /**
+   * 按保留的事件裁剪工具结果表，避免回退后留下指向已丢弃事件的孤儿结果。
+   * @param kept 回退后保留的事件
+   * @returns 裁剪后的工具结果表
+   */
+  private pruneToolResults(kept: ThreadEvent[]): Record<string, ToolResultView> {
+    const ids = new Set<string>();
+    for (const ev of kept) {
+      if (ev.type === 'tool_call') ids.add((ev.payload?.callId as string) || ev.id);
+    }
+    const prev = this.host.getState().toolResults;
+    const out: Record<string, ToolResultView> = {};
+    for (const id of ids) {
+      const view = prev[id];
+      if (view !== undefined) out[id] = view;
+    }
+    return out;
+  }
+
+  /**
+   * 构造一条 system 事件（用于中断/失败提示写入对话流）。
+   * @param content 提示文案
+   * @returns 事件对象
+   */
+  private systemNote(content: string): ThreadEvent {
+    return {
+      id: 'sys-' + Date.now().toString(36),
+      type: 'system',
+      timestamp: Date.now(),
+      payload: { content },
+    };
+  }
+
+  /**
+   * 切换当前模型并写回配置。
+   * @param v 模型标识
+   * @returns 无
+   */
+  public async changeModel(v: string): Promise<void> {
+    this.host.patch({ model: v });
+    try {
+      await this.services.api.updateConfig({ model: v });
+    } catch (e) {
+      this.services.toast(t('切换模型失败：{msg}', { msg: (e as Error).message }), 'err');
+    }
+  }
+
+  /**
+   * 切换推理强度档位并写回配置。
+   * @param v 档位
+   * @returns 无
+   */
+  public async changeReasoning(v: string): Promise<void> {
+    this.host.patch({ reasoning: v });
+    try {
+      await this.services.api.updateConfig({ reasoning: v });
+    } catch (e) {
+      this.services.toast(t('切换推理强度失败：{msg}', { msg: (e as Error).message }), 'err');
+    }
+  }
+
+  /**
+   * 切换权限等级并写回配置。
+   * @param v 等级
+   * @returns 无
+   */
+  public async changePermission(v: string): Promise<void> {
+    this.host.patch({ permission: v });
+    try {
+      await this.services.api.updateConfig({ approval: v });
+    } catch (e) {
+      this.services.toast(t('切换权限等级失败：{msg}', { msg: (e as Error).message }), 'err');
+    }
+  }
+}

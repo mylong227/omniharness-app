@@ -1,0 +1,251 @@
+/**
+ * 治理台面板（**F2** 的 Web 工作台 tab）：把晋升台账的**逐行独立复核**结果渲染出来。
+ *
+ * ## 这一屏回答什么
+ *
+ * 「这条晋升记录**是否可被独立复核**」——每一行显示该行**自己**的复核结论（✓/✗ 与可读原因），
+ * 而不是一个笼统的"台账完整"。数据来自 `governance.history`（服务端直接转发
+ * `PromotionHistoryService.view()`，判据在数据面已钉死：改正文/删行/改哈希三类都能检出）。
+ *
+ * ## 三条 UI 纪律
+ *
+ * 1. **坏行必须显眼**：`verified:false` 的行标红并**直接显示原因**（"第 N 条自算哈希不符"），
+ *    而不是让用户自己去找哪一行坏了；
+ * 2. **台账读不出来就直说**：服务端 `available:false` ⇒ 显示原因，**不显示空列表**
+ *    （空列表会被误读成"没有晋升记录"）；
+ * 3. **回滚是显式动作**：本面板只**列出**可回滚快照锚点并提示命令入口；
+ *    真正回滚走 `omniharness evolution rollback --seq N --yes`——治理动作不能在 UI 上一点就改历史
+ *    （与 `rollback` tab 的会话检查点回滚是两回事：那是会话级，这是**进化台账**级）。
+ *
+ * @returns 治理面板节点
+ */
+// 标准 React 项目写法：`import * as React from 'react'`（Vite 负责解析裸标识符；
+// 整页会因模块解析失败而完全不挂载；web e2e 正是靠这一条把这类错误挡在提交前）。
+import * as React from 'react';
+import { useApp } from '../../context.ts';
+import { icon } from '../../models/Icon.ts';
+import type { ReactElement } from 'react';
+import { t } from '../../i18n/i18n.ts';
+// 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
+import Table from 'antd/es/table';
+import type { ColumnsType } from 'antd/es/table';
+
+/** 治理台一行的形状（与服务端 `PromotionHistoryRow` 同形）。 */
+interface GovernanceRow {
+  readonly seq: number;
+  readonly ts: string;
+  readonly action: string;
+  readonly name?: string;
+  readonly source?: string;
+  readonly rollbackTo?: number;
+  readonly hash: string;
+  readonly prev: string;
+  readonly verified: boolean;
+  readonly reason?: string;
+}
+
+/** 服务端 `governance.history` 的返回形状。 */
+type GovernanceHistory =
+  | {
+      readonly available: true;
+      readonly view: {
+        readonly rows: readonly GovernanceRow[];
+        readonly summary: {
+          readonly total: number;
+          readonly verified: number;
+          readonly firstFailureSeq?: number;
+        };
+        readonly rollbackTargets: readonly {
+          readonly seq: number;
+          readonly ts: string;
+          readonly skillCount: number;
+        }[];
+      };
+    }
+  | { readonly available: false; readonly reason: string };
+
+/**
+ * 晋升台账行列表（2026-10-29 W4：antd Table）。
+ *
+ * 纪律①的落点在 `rowClassName`：坏行（verified:false）带 `row err` 类并**直接显示原因**，
+ * 不让用户自己找哪行坏了；行内容与哈希 title 同源。
+ * @param props 行数组。
+ * @returns 表格或空提示。
+ */
+function GovernanceRows(props: { rows: readonly GovernanceRow[] }): ReactElement {
+  if (props.rows.length === 0) {
+    return <p className="hint">{t('台账为空：还没有晋升记录（进化默认关，属预期状态）。')}</p>;
+  }
+  const columns: ColumnsType<GovernanceRow> = [
+    { title: t('链序号'), dataIndex: 'seq', key: 'seq', width: 80, render: (seq) => `#${String(seq)}` },
+    { title: t('动作'), dataIndex: 'action', key: 'action', width: 110 },
+    {
+      title: t('条目'),
+      key: 'name',
+      render: (_, row) =>
+        row.name === undefined
+          ? ''
+          : `${row.name}${row.source === undefined ? '' : ` ← ${row.source}`}`,
+    },
+    {
+      title: t('复核'),
+      key: 'verified',
+      width: 64,
+      render: (_, row) => icon(row.verified ? 'check' : 'x', { size: 12 }),
+    },
+    { title: t('原因'), dataIndex: 'reason', key: 'reason' },
+    {
+      title: t('哈希'),
+      key: 'hash',
+      width: 130,
+      render: (_, row) => (
+        <span className="hash" title={`prev ${row.prev}`}>
+          {row.hash.slice(0, 12)}…
+        </span>
+      ),
+    },
+  ];
+  return (
+    <Table<GovernanceRow>
+      className="governance-table"
+      size="small"
+      bordered={false}
+      pagination={false}
+      columns={columns}
+      dataSource={[...props.rows]}
+      rowKey="seq"
+      rowClassName={(row) => (row.verified ? 'row' : 'row err')}
+      scroll={{ x: 'max-content' }}
+    />
+  );
+}
+
+/**
+ * 可回滚快照列表。
+ * @param props 快照数组。
+ * @returns 区块节点。
+ */
+function RollbackTargets(props: {
+  targets: readonly { seq: number; ts: string; skillCount: number }[];
+}): ReactElement {
+  return (
+    <section className="rollback-targets">
+      <strong>{t('可回滚快照')}</strong>
+      {props.targets.length === 0 ? (
+        <p className="hint">{t('（无）')}</p>
+      ) : (
+        <ul>
+          {props.targets.map((target) => (
+            <li key={target.seq}>
+              {t('#{seq}（{count} 技能，{ts}）', {
+                seq: target.seq,
+                count: target.skillCount,
+                ts: target.ts,
+              })}
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="hint">
+        {t('回滚是治理动作，需显式确认：`omniharness evolution rollback --seq <N> --yes`')}
+      </p>
+    </section>
+  );
+}
+
+/**
+ * 治理读取失败提示。
+ * @param props 错误文案与重试回调。
+ * @returns 提示节点。
+ */
+function GovernanceError(props: { message: string; onRetry: () => void }): ReactElement {
+  return (
+    <div className="governance-tab">
+      <p className="err">{t('读取治理数据失败：{msg}', { msg: props.message })}</p>
+      <button type="button" onClick={props.onRetry}>
+        {t('重试')}
+      </button>
+    </div>
+  );
+}
+
+/**
+ * 治理面板：晋升台账逐行复核 + 回滚锚点。
+ * @returns 治理面板节点
+ */
+export function GovernanceTab(): ReactElement {
+  const { api, sessionTick } = useApp();
+  const [data, setData] = React.useState<GovernanceHistory | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState<boolean>(true);
+
+  /** 拉取治理视图（失败也进状态：UI 必须能显示"读不出来"，不许静默空列表）。 */
+  const refresh = React.useCallback(async (): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const r = await api.governanceHistory<GovernanceHistory>();
+      setData(r);
+    } catch (e) {
+      setError((e as Error).message);
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [api]);
+
+  React.useEffect(() => {
+    void refresh();
+  }, [refresh, sessionTick]);
+
+  if (loading) return <div className="governance-tab">{t('载入晋升台账…')}</div>;
+  if (error !== null) {
+    return <GovernanceError message={error} onRetry={() => void refresh()} />;
+  }
+  if (data === null) return <div className="governance-tab">{t('暂无治理数据。')}</div>;
+  if (!data.available) {
+    // 读不出来要**直说**：空列表会被误读成"没有晋升记录"。
+    return (
+      <div className="governance-tab">
+        <p className="err">{data.reason || t('未提供原因')}</p>
+        <p className="hint">{t('台账尚未产生时可忽略；若已产生过晋升，请检查工作区 .omniharness/evolution。')}</p>
+        <button type="button" onClick={() => void refresh()}>
+          {t('重试')}
+        </button>
+      </div>
+    );
+  }
+
+  // 形状归一：view/rows 缺失时按空台账渲染，别让异常响应把整棵树卸载。
+  const view = (
+    data as {
+      view?: {
+        rows?: readonly GovernanceRow[];
+        summary?: { total: number; verified: number; firstFailureSeq?: number };
+        rollbackTargets?: readonly { seq: number; ts: string; skillCount: number }[];
+      };
+    }
+  ).view ?? {};
+  const rows = Array.isArray(view.rows) ? view.rows : [];
+  const summary = view.summary ?? { total: 0, verified: 0, firstFailureSeq: undefined };
+  const rollbackTargets = Array.isArray(view.rollbackTargets) ? view.rollbackTargets : [];
+  return (
+    <div className="governance-tab">
+      <header className="row">
+        <strong>{t('进化治理')}</strong>
+        <span className={summary.verified === summary.total ? 'ok' : 'err'}>
+          {t('独立复核通过 {verified} / {total}', { verified: summary.verified, total: summary.total })}
+          {summary.firstFailureSeq === undefined
+            ? ''
+            : t('（首个失败 #{seq}）', { seq: summary.firstFailureSeq })}
+        </span>
+        <button type="button" onClick={() => void refresh()}>
+          {t('刷新')}
+        </button>
+      </header>
+      <GovernanceRows rows={rows} />
+      <RollbackTargets targets={rollbackTargets} />
+    </div>
+  );
+}
+

@@ -1,0 +1,165 @@
+/**
+ * 审计面板（Web 交付项，2026-10-11）：把服务端审计事件（哈希链）按过滤条件列出。
+ *
+ * ## 为什么这一屏重要
+ *
+ * 审计是"事后可复核"的唯一凭据面。它最容易出的错**不是**渲染难看，而是把**没有数据**当成
+ * "没有问题"：服务端未接线 audit sink 时，旧实现回**空数组** ⇒ 面板渲染成"审计无记录"。
+ * 故本面板第一纪律：`ok:false` ⇒ 显示**未接线 + 原因**，绝不显示成"无记录"。
+ *
+ * 其余两条：
+ * 2. **链序号可见**：每条显示 `#seq`（哈希链写入后才有值）——它是"这条记录在链上的位置"，
+ *    排查篡改时是第一个要看的字段；
+ * 3. **过滤条件照实回显**：类型过滤生效时必须让用户看到"当前过滤的是什么"，否则"只有 1 条"
+ *    会被误读成"总共就 1 条"。
+ *
+ * @returns 审计面板节点
+ */
+// 标准 React 项目写法：`import * as React from 'react'`（Vite 解析裸标识符）。
+import * as React from 'react';
+// 子路径导入（不走 'antd' 桶文件）：桶文件在 vendor 块里静态 re-export 每个组件族，
+// 面板组件走 barrel 导入会把该族钉死在首屏 vendor（见 vite.config.ts「分块改造」注释）。
+import Table from 'antd/es/table';
+import type { ColumnsType } from 'antd/es/table';
+import { useApp } from '../../context.ts';
+import { timeOf } from '../../format.ts';
+import type { ReactElement } from 'react';
+import type { AuditQueryResult } from '../../../types/models.ts';
+import { t } from '../../i18n/i18n.ts';
+
+/** 审计事件（只取展示所需字段）。 */
+interface AuditEventView {
+  readonly seq?: number | undefined;
+  readonly ts?: string | undefined;
+  readonly type: string;
+  readonly sessionId?: string | undefined;
+  readonly actor?: string | undefined;
+}
+
+/** 表格行（列值与展示文案同源，避免"表格里一套、导出/读屏另一套"）。 */
+interface AuditRow {
+  readonly key: string;
+  readonly seq: string;
+  readonly time: string;
+  readonly type: string;
+  readonly session: string;
+  readonly actor: string;
+}
+
+/**
+ * 审计事件表。
+ *
+ * 2026-10-29（W4 模板）：原来是 `<ul><li>` 的单行拼接——列不可扫读、窄屏换行后字段错位。
+ * 换 antd `Table` 后列对齐、可按列扫读；**纪律不变**：链序号列显式写「（未入链）」，不静默留空。
+ *
+ * @param props 事件数组
+ * @returns 表格节点
+ */
+function AuditEventTable(props: { events: readonly AuditEventView[] }): ReactElement {
+  const rows: AuditRow[] = props.events.map((event, index) => ({
+    key: `${String(index)}-${event.type}-${String(event.seq ?? '')}`,
+    seq: event.seq === undefined ? t('（未入链）') : `#${String(event.seq)}`,
+    time: event.ts === undefined ? t('（无时间戳）') : timeOf(Date.parse(event.ts)),
+    type: event.type,
+    session: event.sessionId === undefined ? '' : t('会话 {id}', { id: event.sessionId }),
+    actor: event.actor ?? '',
+  }));
+  const columns: ColumnsType<AuditRow> = [
+    { title: t('链序号'), dataIndex: 'seq', key: 'seq', width: 96 },
+    { title: t('时间'), dataIndex: 'time', key: 'time', width: 160 },
+    { title: t('类型'), dataIndex: 'type', key: 'type', width: 160 },
+    { title: t('会话'), dataIndex: 'session', key: 'session' },
+    { title: t('执行者'), dataIndex: 'actor', key: 'actor', width: 140 },
+  ];
+  return (
+    <div className="detail-section">
+      <div className="detail-h">{t('事件（{count}）', { count: props.events.length })}</div>
+      <Table<AuditRow>
+        className="audit-log-table"
+        size="small"
+        bordered={false}
+        pagination={false}
+        columns={columns}
+        dataSource={rows}
+        scroll={{ x: 'max-content' }}
+      />
+    </div>
+  );
+}
+
+/** 审计面板：过滤 + 列表。 */
+export function AuditTab(): ReactElement {
+  const { api, sessionTick } = useApp();
+  const [data, setData] = React.useState<AuditQueryResult | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState<boolean>(true);
+  const [typeFilter, setTypeFilter] = React.useState<string>('');
+
+  /** 拉取审计事件（失败也进状态：UI 必须能显示"读不出来"）。 */
+  const refresh = React.useCallback(async (): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const r = await api.auditQuery(typeFilter === '' ? {} : { type: typeFilter });
+      setData(r);
+    } catch (e) {
+      setError((e as Error).message);
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [api, typeFilter]);
+
+  React.useEffect(() => {
+    void refresh();
+  }, [refresh, sessionTick]);
+
+  // 只有**首次**取数（尚无数据）才占整屏：刷新期间保持过滤输入框挂载，否则每敲一个字符
+  // 都会被切成「载入…」而卸载输入框 ⇒ 失焦，多字符过滤实际不可用。
+  if (loading && data === null) return <div className="audit-tab">{t('载入审计事件…')}</div>;
+  if (error !== null) {
+    return (
+      <div className="audit-tab">
+        <p className="err">{t('读取审计数据失败：{msg}', { msg: error })}</p>
+        <button type="button" className="btn" onClick={() => void refresh()}>
+          {t('重试')}
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="audit-tab" aria-busy={loading ? 'true' : 'false'}>
+      <div className="detail-section">
+        <div className="detail-h">{t('过滤')}</div>
+        <div className="filter-bar">
+          <label className="filter-field">
+            <span>{t('类型')}</span>
+            <input
+              type="text"
+              value={typeFilter}
+              placeholder={t('如 tool_call（留空＝全部）')}
+              onChange={(e: { target: { value: string } }) => setTypeFilter(e.target.value)}
+            />
+          </label>
+          <button type="button" className="btn" onClick={() => void refresh()}>
+            {t('查询')}
+          </button>
+        </div>
+        {typeFilter !== '' ? <span className="hint">{t('当前过滤类型：{type}', { type: typeFilter })}</span> : null}
+      </div>
+
+      {data !== null && !data.ok ? (
+        // 纪律①：未接线必须直说——不得退化成"无记录"。
+        <p className="err">{t('未接线：{reason}', { reason: data.reason || t('未提供原因') })}</p>
+      ) : data !== null && data.ok ? (
+        data.events.length === 0 ? (
+          <p className="hint">{t('本次查询无匹配事件（审计 sink 已接线）。')}</p>
+        ) : (
+          <AuditEventTable events={data.events as readonly AuditEventView[]} />
+        )
+      ) : (
+        <p className="hint">{t('暂无审计数据。')}</p>
+      )}
+    </div>
+  );
+}

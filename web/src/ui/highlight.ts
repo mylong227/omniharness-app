@@ -1,0 +1,391 @@
+// 轻量语法高亮（无第三方依赖，本地内置）：把源码文本按 token 切成带 class 的 span，
+// 供右侧文件面板做「编辑器式」分色预览。工程零网络依赖，不引 highlight.js，
+// 只覆盖常见语言（js/ts/json/md/css/html/shell/python/yaml），未识别语言退化为纯文本。
+// 安全：始终先 esc() 再包 span，绝不直接注入原文（与项目「不用 innerHTML」铁律一致）。
+
+import * as React from 'react';
+
+type Tok =
+  | { t: 'comment'; v: string }
+  | { t: 'string'; v: string }
+  | { t: 'kw'; v: string }
+  | { t: 'num'; v: string }
+  | { t: 'fn'; v: string }
+  | { t: 'type'; v: string }
+  | { t: 'prop'; v: string }
+  | { t: 'punct'; v: string }
+  | { t: 'plain'; v: string };
+
+const LANG_CLASS: Record<string, string> = {
+  '.js': 'js', '.jsx': 'jsx', '.mjs': 'js', '.cjs': 'js', '.ts': 'ts', '.tsx': 'tsx',
+  '.json': 'json', '.jsonc': 'json', '.md': 'md', '.markdown': 'md',
+  '.css': 'css', '.scss': 'css', '.html': 'html', '.htm': 'html',
+  '.sh': 'sh', '.bash': 'sh', '.py': 'py', '.yaml': 'yaml', '.yml': 'yaml',
+  '.rs': 'rs', '.go': 'go', '.sql': 'sql', '.java': 'java',
+};
+
+/** 从文件路径 / 文件名提取语言 class；未知回退空串（纯文本）。 */
+export function langOf(nameOrPath: string): string {
+  const base = nameOrPath.toLowerCase().split('?')[0]!;
+  // 取最后一段，剥掉前导路径分隔符
+  const name = base.slice(base.lastIndexOf('/') + 1).slice(base.lastIndexOf('\\') + 1);
+  for (const [ext, l] of Object.entries(LANG_CLASS)) {
+    if (name.endsWith(ext)) return l;
+  }
+  return '';
+}
+
+/** 语言敏感的分词规则：对 JS/TS/JSON/Java/C/Rust/Go/SQL 等 C 系语言生效。 */
+const CJ_KW = new Set([
+  'const','let','var','function','return','if','else','for','while','do','switch','case','break','continue',
+  'new','class','extends','super','import','export','from','default','async','await','try','catch','finally','throw',
+  'typeof','instanceof','in','of','void','delete','this','null','undefined','true','false','interface','type',
+  'enum','public','private','protected','static','readonly','abstract','implements','as','namespace','declare',
+  'get','set','yield','int','float','double','bool','boolean','string','char','void','long','short','byte',
+  'struct','union','typedef','fn','pub','use','mod','let','mut','impl','trait','package','select','from','where',
+  'group','by','order','having','join','on','insert','into','values','update','set','delete','create','table',
+  'def','class','lambda','pass','with','elif','global','nonlocal','is','not','and','or',
+]);
+const CJ_TYPE_WORDS = new Set([
+  'string','number','boolean','object','Array','Promise','Map','Set','Record','Partial','Pick','Omit',
+  'unknown','any','never','void','bigint','symbol','Error','Date','RegExp','Function','Buffer','console',
+]);
+// 关键字优先整体匹配，避免误把 key 里的 "type" 当关键字。
+const KW_RE = /[A-Za-z_$][\w$]*/;
+
+/**
+ * 单 token 分类。c 语言 type（js/ts/json/rs/go/java/sql/py）。
+ */
+function classify(word: string, lang: string): Tok['t'] {
+  if (CJ_KW.has(word)) return 'kw';
+  if (CJ_TYPE_WORDS.has(word) && lang !== 'py') return 'type';
+  return 'plain';
+}
+
+/**
+ * 扫描一个字符串/模板串 token（含 JSON 键识别）。
+ * @param src 源码。
+ * @param start 起始引号下标。
+ * @param end 源码长度。
+ * @param lang 语言 id。
+ * @returns token 与下一个扫描位置。
+ */
+function scanString(
+  src: string,
+  start: number,
+  end: number,
+  lang: string,
+): { tok: Tok; next: number } {
+  const quote = src[start]!;
+  let j = start + 1;
+  while (j < end) {
+    const c = src[j]!;
+    if (c === '\\') {
+      j += 2;
+      continue;
+    }
+    if (c === quote) {
+      j++;
+      break;
+    }
+    j++;
+  }
+  let isKey = false;
+  if (lang === 'json') {
+    let k = j;
+    while (k < end && /\s/.test(src[k]!)) k++;
+    isKey = src[k] === ':';
+  }
+  return { tok: { t: isKey ? 'prop' : 'string', v: src.slice(start, j) }, next: j };
+}
+
+/** 把一段源码切成 token 序列。lang 是小写 id（'js'|'ts'|...）。 */
+function tokenize(src: string, lang: string): Tok[] {
+  if (lang === 'md') return tokenizeMarkdown(src);
+  if (lang === 'css' || lang === 'scss') return tokenizeCss(src);
+  if (lang === 'html') return tokenizeHtml(src);
+  // 默认走 C 系通用
+  const out: Tok[] = [];
+  const buf: string[] = [];
+  const flushPlain = (): void => {
+    if (buf.length) {
+      out.push({ t: 'plain', v: buf.join('') });
+      buf.length = 0;
+    }
+  };
+  let i = 0;
+  const n = src.length;
+  while (i < n) {
+    const ch = src[i]!;
+    // 行注释
+    if (ch === '/' && src[i + 1] === '/') {
+      flushPlain();
+      const e = src.indexOf('\n', i);
+      const end = e === -1 ? n : e;
+      out.push({ t: 'comment', v: src.slice(i, end) });
+      i = end;
+      continue;
+    }
+    // 块注释
+    if (ch === '/' && src[i + 1] === '*') {
+      flushPlain();
+      const e = src.indexOf('*/', i + 2);
+      const end = e === -1 ? n : e + 2;
+      out.push({ t: 'comment', v: src.slice(i, end) });
+      i = end;
+      continue;
+    }
+    // 字符串 / 模板串（含单双反引号）
+    if (ch === '"' || ch === "'" || ch === '`') {
+      flushPlain();
+      const scanned = scanString(src, i, n, lang);
+      out.push(scanned.tok);
+      i = scanned.next;
+      continue;
+    }
+    // 数字
+    if (/[0-9]/.test(ch)) {
+      flushPlain();
+      const m = /^\d[\w.]*/.exec(src.slice(i));
+      const word = m ? m[0] : ch;
+      out.push({ t: 'num', v: word });
+      i += word.length;
+      continue;
+    }
+    // 标识符
+    if (/[A-Za-z_$]/.test(ch)) {
+      flushPlain();
+      const m = KW_RE.exec(src.slice(i));
+      const word = m ? m[0] : ch;
+      const k = classify(word, lang);
+      // 函数名启发：后随 '('
+      let finalK: Tok['t'] = k;
+      const after = src[i + word.length];
+      if ((k === 'plain' || k === 'type') && after === '(' && /[a-z_$]/.test(word[0]!)) {
+        finalK = 'fn';
+      }
+      out.push({ t: finalK, v: word });
+      i += word.length;
+      continue;
+    }
+    buf.push(ch);
+    i++;
+  }
+  flushPlain();
+  return out;
+}
+
+// Markdown：标题(#)、粗体(**)、行内码(`)、链接、列表标记浅分类（主要保可读性，不强求全 token）。
+function tokenizeMarkdown(src: string): Tok[] {
+  const out: Tok[] = [];
+  for (const line of src.split('\n')) {
+    const m = /^(\s*)(#{1,6}\s+|[-*+]\s+|\d+\.\s+|>\s*)/.exec(line);
+    if (m) {
+      out.push({ t: 'kw', v: m[1]! + m[2]! });
+      out.push({ t: 'plain', v: line.slice(m[0].length) });
+    } else if (/^```/.test(line.trim())) {
+      out.push({ t: 'comment', v: line });
+    } else if (/^---+$/.test(line.trim()) || /^===+$/.test(line.trim())) {
+      out.push({ t: 'comment', v: line });
+    } else {
+      // 行内高亮：`` `code` ``
+      const parts = splitInline(line);
+      for (const [txt, isCode] of parts) {
+        out.push(isCode ? { t: 'string', v: txt } : { t: 'plain', v: txt });
+      }
+    }
+    out.push({ t: 'plain', v: '\n' });
+  }
+  return out;
+}
+
+function splitInline(line: string): Array<[string, boolean]> {
+  const parts: Array<[string, boolean]> = [];
+  let cur = '';
+  let inCode = false;
+  for (const ch of line) {
+    if (ch === '`') {
+      if (cur !== '') {
+        parts.push([cur, inCode]);
+        cur = '';
+      }
+      inCode = !inCode;
+      continue;
+    }
+    cur += ch;
+  }
+  if (cur !== '') parts.push([cur, inCode]);
+  return parts;
+}
+
+// CSS：注释、字符串、选择器里的类/ID、属性和值基本可用。
+function tokenizeCss(src: string): Tok[] {
+  const out: Tok[] = [];
+  const buf: string[] = [];
+  const flush = (): void => {
+    if (buf.length) {
+      out.push({ t: 'plain', v: buf.join('') });
+      buf.length = 0;
+    }
+  };
+  let i = 0;
+  const n = src.length;
+  while (i < n) {
+    const ch = src[i]!;
+    if (ch === '/' && src[i + 1] === '*') {
+      flush();
+      const e = src.indexOf('*/', i + 2);
+      const end = e === -1 ? n : e + 2;
+      out.push({ t: 'comment', v: src.slice(i, end) });
+      i = end;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      flush();
+      let j = i + 1;
+      while (j < n && src[j] !== ch) j++;
+      out.push({ t: 'string', v: src.slice(i, j + 1) });
+      i = j + 1;
+      continue;
+    }
+    if (ch === '#') {
+      flush();
+      const m = /^#[0-9a-fA-F]{3,8}\b|^#[A-Za-z_][\w-]*/.exec(src.slice(i));
+      out.push({ t: 'num', v: m ? m[0] : ch });
+      i += m ? m[0].length : 1;
+      continue;
+    }
+    if (ch === '.') {
+      flush();
+      const m = /^\.[A-Za-z_][\w-]*/.exec(src.slice(i));
+      out.push({ t: 'type', v: m ? m[0] : ch });
+      i += m ? m[0].length : 1;
+      continue;
+    }
+    if (/[A-Za-z-]/.test(ch)) {
+      flush();
+      const m = /^[A-Za-z-]+/.exec(src.slice(i));
+      const word = m ? m[0] : ch;
+      // 属性名冒号前 or 值是关键字
+      let j = i + word.length;
+      while (j < n && src[j] === ' ') j++;
+      if (src[j] === ':') {
+        out.push({ t: 'prop', v: word });
+      } else {
+        out.push({ t: 'kw', v: word }); // 值里的关键词
+      }
+      i += word.length;
+      continue;
+    }
+    buf.push(ch);
+    i++;
+  }
+  flush();
+  return out;
+}
+
+// HTML：标签名 + 属性 + 引号字符串 + 注释。
+function tokenizeHtml(src: string): Tok[] {
+  const out: Tok[] = [];
+  const buf: string[] = [];
+  const flush = (): void => {
+    if (buf.length) {
+      out.push({ t: 'plain', v: buf.join('') });
+      buf.length = 0;
+    }
+  };
+  let i = 0;
+  const n = src.length;
+  while (i < n) {
+    const ch = src[i]!;
+    if (ch === '<' && src[i + 1] === '!') {
+      flush();
+      const e = src.indexOf('>', i);
+      const end = e === -1 ? n : e + 1;
+      out.push({ t: 'comment', v: src.slice(i, end) });
+      i = end;
+      continue;
+    }
+    if (ch === '<') {
+      flush();
+      const m = /^<\/?[A-Za-z][\w-]*/.exec(src.slice(i));
+      const tag = m ? m[0] : '<';
+      out.push({ t: 'kw', v: tag });
+      i += tag.length;
+      continue;
+    }
+    if (ch === '>' || ch === '/' || ch === '=') {
+      flush();
+      out.push({ t: 'punct', v: ch });
+      i++;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      flush();
+      let j = i + 1;
+      while (j < n && src[j] !== ch) j++;
+      out.push({ t: 'string', v: src.slice(i, j + 1) });
+      i = j + 1;
+      continue;
+    }
+    if (/[A-Za-z]/.test(ch)) {
+      flush();
+      const m = /^[A-Za-z_:][\w:-]*/.exec(src.slice(i));
+      const word = m ? m[0] : ch;
+      out.push({ t: 'prop', v: word });
+      i += word.length;
+      continue;
+    }
+    buf.push(ch);
+    i++;
+  }
+  flush();
+  return out;
+}
+
+/**
+ * token 类型 → CSS 类名。
+ *
+ * 2026-10-17 修正（真实缺陷，非改名）：这里原本发 `tok-cmt` / `tok-typ` / `tok-pln`，
+ * 而 `web/styles/highlight.css` 定义的是 `.tok-com` / `.tok-type` / `.tok-plain`
+ * ⇒ 注释、类型、普通文本三类**从来没有拿到颜色**，文件预览的语法高亮一直只对了一半，
+ * 且因为不报错、只是「少了一层色」，长期没人发现（单测也照不到颜色是否真的生效）。
+ * 三个名字已与 CSS 对齐；`highlight.css` 里同时补齐了 `.tok-plain` 的声明。
+ * 再改这里时请一并核对 `web/styles/highlight.css` 的 `.tok-*` 清单。
+ */
+const CLS: Record<Tok['t'], string> = {
+  comment: 'tok-com',
+  string: 'tok-str',
+  kw: 'tok-kw',
+  num: 'tok-num',
+  fn: 'tok-fn',
+  type: 'tok-type',
+  prop: 'tok-prop',
+  punct: 'tok-pun',
+  plain: 'tok-plain',
+};
+
+/**
+ * 把源码渲染成带高亮的 <pre><code>。lang 小写（js/ts/...）。空返回 null。
+ * 安全：token 文本以 React 子节点形式输出（由 React 自动转义），全链路不走 innerHTML；
+ * 原注释声称「每个 token 都经过 esc() 转义」与实现不符，已更正。
+ */
+export function highlightCode(src: string, lang: string): ReactElement | null {
+  const text = src ?? '';
+  if (text === '') return null;
+  const toks = tokenize(text, lang);
+  const spans = toks.map((tk, idx) => {
+    const cls = CLS[tk.t];
+    // 换行 token 必须显式带上 '\n' 子节点：原 htm 实现会丢弃纯空白文本节点，
+    // 导致 tokenizeMarkdown 产出的行尾换行全部丢失（md 代码块挤成一行）。
+    if (tk.t === 'plain' && tk.v === '\n') {
+      return React.createElement('span', { key: idx }, '\n');
+    }
+    return React.createElement('span', { key: idx, className: cls }, tk.v);
+  });
+  return React.createElement(
+    'pre',
+    { className: 'hl-code' + (lang ? ' hl-' + lang : ''), spellCheck: 'false' },
+    React.createElement('code', null, spans),
+  );
+}

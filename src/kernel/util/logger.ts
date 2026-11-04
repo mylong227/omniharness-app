@@ -1,0 +1,93 @@
+/**
+ * 无第三方依赖结构化日志基座（P1 可观测性补课，续十七）。
+ *
+ * 设计约束：仅用 node: 内置（async_hooks），不引入任何运行时依赖。
+ * - 日志以 JSON 行写入 stderr，保证 stdout 仅承载「最终答案」（CLI 契约）。
+ * - 级别：debug < info < warn < error，受 `OMNI_LOG_LEVEL` 环境变量控制（默认 info）。
+ * - traceId：通过 AsyncLocalStorage 在当前异步上下文自动传播，无需逐层透传形参；
+ *   也可由 `X-Trace-Id` 请求头注入，便于跨服务串联。
+ */
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { randomUUID } from 'node:crypto';
+
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+
+const ORDER: Record<LogLevel, number> = { debug: 0, info: 1, warn: 2, error: 3 };
+
+const traceStorage = new AsyncLocalStorage<string | undefined>();
+
+export type LogSink = (line: string) => void;
+
+export class Logger {
+  public constructor(
+    private readonly minLevel: LogLevel = Logger.envLevel(),
+    private readonly sink: LogSink = (line) => {
+      process.stderr.write(line + '\n');
+    },
+  ) {}
+
+  /** 在带 traceId 的上下文中执行 fn，期间所有日志自动携带该 traceId。 */
+  public withTrace<T>(traceId: string | undefined, fn: () => T): T {
+    return traceStorage.run(traceId, fn);
+  }
+
+  private emit(level: LogLevel, msg: string, fields?: Record<string, unknown>): void {
+    if (ORDER[level] < ORDER[this.minLevel]) return;
+    const trace = traceStorage.getStore();
+    const entry: Record<string, unknown> = {
+      ts: new Date().toISOString(),
+      level,
+      msg,
+    };
+    if (trace !== undefined) entry['traceId'] = trace;
+    if (fields !== undefined) Object.assign(entry, fields);
+    this.sink(JSON.stringify(entry));
+  }
+
+  /** 记录 debug 级别日志（低于日志级别阈值时被丢弃）。
+   * @returns 无返回值。
+   */
+  public debug(msg: string, fields?: Record<string, unknown>): void {
+    this.emit('debug', msg, fields);
+  }
+  /** 记录 info 级别日志。
+   * @returns 无返回值。
+   */
+  public info(msg: string, fields?: Record<string, unknown>): void {
+    this.emit('info', msg, fields);
+  }
+  /** 记录 warn 级别日志。
+   * @returns 无返回值。
+   */
+  public warn(msg: string, fields?: Record<string, unknown>): void {
+    this.emit('warn', msg, fields);
+  }
+  /** 记录 error 级别日志。
+   * @returns 无返回值。
+   */
+  public error(msg: string, fields?: Record<string, unknown>): void {
+    this.emit('error', msg, fields);
+  }
+
+  /**
+   * envLevel — module-level helper moved into Logger.
+   * @returns {LogLevel} - result
+   */
+  private static envLevel(): LogLevel {
+    const v = (process.env['OMNI_LOG_LEVEL'] ?? 'info').toLowerCase();
+    return v in ORDER ? (v as LogLevel) : 'info';
+  }
+
+  /** 当前异步上下文的 traceId（无则为 undefined）。 */
+  public static currentTrace(): string | undefined {
+    return traceStorage.getStore();
+  }
+
+  /** 为传入的 traceId 生成 UUID（无则为随机值），供 HTTP 层统一建号。 */
+  public static nextTraceId(provided?: string | undefined): string {
+    return provided && provided.length > 0 ? provided : randomUUID();
+  }
+}
+
+/** 默认单例：级别取自环境变量，写入 stderr。 */
+export const log = new Logger();

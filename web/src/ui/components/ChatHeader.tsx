@@ -1,0 +1,175 @@
+// 中栏头（截图式三栏壳）：会话标题 + 忙碌徽标 + 「对话 / 轨迹」视图切换。
+// 取代原全局 TopBar 在中栏的位置；移动端抽屉开关（左栏 / 右栏）也收编在这两枚仅窄屏显示的按钮里。
+// 视图切换是组件内局部状态吗——不是：视图由父组件（StreamView）持有，切到「轨迹」要换整个流区。
+// 纯展示组件（函数组件范式）：展示 + 回调，无内部状态、无副作用。
+
+import * as React from 'react';
+import { icon } from '../models/Icon.ts';
+import { PathJoiner } from '../models/PathJoiner.ts';
+import { t } from '../i18n/i18n.ts';
+
+/** 中栏视图（对话流 / 工具轨迹）。 */
+export type ChatViewKind = 'chat' | 'trace';
+
+/** ChatHeader 组件的入参。 */
+export interface ChatHeaderProps {
+  /** 当前会话标题（未命名会话显示占位）。 */
+  title: string;
+  /** 当前项目绝对路径（Codex 式「项目 / 线程」面包屑；空串不渲染项目段）。 */
+  projectPath?: string;
+  /** 回合进行中——显示忙碌徽标（诚实口径：有多少显示多少，不虚构后台任务数）。 */
+  busy: boolean;
+  /** 当前会话时长文案（形如「已完成，用时 4秒」；空串/缺省不渲染）。 */
+  duration?: string;
+  /** 时长展示态（running 高亮计时、done 常规）。 */
+  durationState?: 'running' | 'done';
+  /** 当前视图。 */
+  view: ChatViewKind;
+  /** 切换视图。 */
+  onView: (v: ChatViewKind) => void;
+  /** 打开左栏抽屉（仅窄屏渲染）。 */
+  onToggleLeft?: () => void;
+  /** 切换右栏（桌面=收起/展开面板；移动=抽屉）。未提供则不渲染。 */
+  onToggleRight?: () => void;
+  /** 右栏当前是否处于收起态（切换按钮的高亮/文案）。 */
+  rightCollapsed?: boolean;
+}
+
+/** 「对话 / 轨迹」两个视图的静态清单（渲染顺序即展示顺序）。 */
+const VIEWS: readonly { key: ChatViewKind; label: string }[] = [
+  { key: 'chat', label: '对话' },
+  { key: 'trace', label: '轨迹' },
+];
+
+/**
+ * 「对话 / 轨迹」视图标签（WAI-ARIA Tabs：tablist / tab + aria-selected + roving tabindex）。
+ *
+ * 键盘模型（APG）：←/→/↑/↓ 环绕切换视图、Home/End 到首尾。视图切换会换整个流区，
+ * 所以是**自动激活**（焦点与选中一起走），不做"先聚焦再 Enter"。
+ *
+ * @param props 当前视图与切换回调
+ * @returns 标签组节点
+ */
+function ViewTabs(props: {
+  view: ChatViewKind;
+  onView: (v: ChatViewKind) => void;
+}): ReactElement {
+  const { view, onView } = props;
+  /** 标签按钮引用：方向键要把焦点送到下一枚。 */
+  const tabRefs = React.useRef<Array<HTMLButtonElement | null>>([]);
+
+  /**
+   * @param e 键盘事件
+   * @param index 当前标签下标
+   * @returns 无
+   */
+  const onTabKey = (e: React.KeyboardEvent, index: number): void => {
+    let next = index;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (index + 1) % VIEWS.length;
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      next = (index - 1 + VIEWS.length) % VIEWS.length;
+    } else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = VIEWS.length - 1;
+    else return;
+    e.preventDefault();
+    const target = VIEWS[next];
+    if (target === undefined) return;
+    onView(target.key);
+    tabRefs.current[next]?.focus();
+  };
+
+  return (
+    <div className="chat-tabs" role="tablist" aria-label={t('中栏视图')}>
+      {VIEWS.map((v, index) => (
+        <button
+          key={v.key}
+          ref={(el) => {
+            tabRefs.current[index] = el;
+          }}
+          role="tab"
+          aria-selected={view === v.key ? 'true' : 'false'}
+          // 整组只有一个 Tab 落点（当前项）——WAI-ARIA Tabs 的 roving tabindex。
+          tabIndex={view === v.key ? 0 : -1}
+          className={'chat-tab' + (view === v.key ? ' active' : '')}
+          onClick={() => onView(v.key)}
+          onKeyDown={(e: React.KeyboardEvent) => onTabKey(e, index)}
+        >
+          {t(v.label)}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * 中栏头：标题行 + 视图标签（WAI-ARIA Tabs 的 tablist / tab + aria-selected）。
+ * @param props 组件入参
+ * @returns 中栏头节点
+ */
+export function ChatHeader(props: ChatHeaderProps): ReactElement {
+  const { title, projectPath, busy, view, onView, onToggleLeft, onToggleRight, rightCollapsed } = props;
+  const project =
+    projectPath === undefined || projectPath === '' ? '' : PathJoiner.basename(projectPath);
+  return (
+    <div className="chat-head">
+      {onToggleLeft === undefined ? null : (
+        <button
+          className="iconbtn mob-only"
+          title={t('会话侧栏')}
+          aria-label={t('打开会话侧栏')}
+          onClick={onToggleLeft}
+        >
+          {icon('menu', { size: 16 })}
+        </button>
+      )}
+      {project === '' ? null : (
+        <span className="chat-project" title={projectPath}>
+          <span className="chat-project-ico" aria-hidden="true">
+            {icon('folder', { size: 14 })}
+          </span>
+          {project}
+          <span className="chat-slash" aria-hidden="true">
+            {' / '}
+          </span>
+        </span>
+      )}
+      <div className="chat-title" title={title}>
+        {title === '' ? t('新会话') : title}
+      </div>
+      {props.duration === undefined || props.duration === '' ? null : (
+        <span
+          className={
+            'chat-duration' +
+            (props.durationState === 'running' ? ' chat-duration-running' : '')
+          }
+          role="status"
+          aria-live="off"
+        >
+          {props.duration}
+        </span>
+      )}
+      {busy ? (
+        <span className="chat-busy" role="status">
+          <span className="wi-dot" aria-hidden="true"></span>{t('任务进行中')}
+        </span>
+      ) : null}
+      <span className="flex-spacer" aria-hidden="true"></span>
+      <ViewTabs view={view} onView={onView} />
+      <span className="flex-spacer" aria-hidden="true"></span>
+      {onToggleRight === undefined ? null : (
+        <button
+          // 2026-10-21（用户按截图「按钮去掉换成小箭头形式」）：原来是 `columns` 图标 + `.active`
+          // 的淡色底块，看着像一枚「选中态视图」；它其实是「把右栏推到右边 / 拉回来」的开关，
+          // 故改成与左栏「«」、右栏头「»」同源的**纯字形小箭头**，也不再加 `.active` 底块。
+          className="iconbtn chat-panel-toggle"
+          title={rightCollapsed ? t('展开功能面板（Ctrl/Cmd+Shift+E）') : t('收起功能面板（Ctrl/Cmd+Shift+E）')}
+          aria-label={rightCollapsed ? t('展开功能面板') : t('收起功能面板')}
+          aria-expanded={rightCollapsed ? 'false' : 'true'}
+          onClick={onToggleRight}
+        >
+          {rightCollapsed ? '«' : '»'}
+        </button>
+      )}
+    </div>
+  );
+}

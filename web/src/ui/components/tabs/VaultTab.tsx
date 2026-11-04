@@ -1,0 +1,248 @@
+/**
+ * 凭据保险库面板（Web 交付第 6 个入口，2026-10-11）：列出凭据名、写入/覆盖、删除。
+ *
+ * ## 为什么这一屏**故意**看不到凭据值
+ *
+ * 服务端**没有** `vault.get`（见 `vaultRpc.test.ts` 判据③）。理由是用途：面板要的是"管理 agent 用的
+ * 凭据"——列出名字、写入、删除；把密文读回浏览器页面没有任何必要用途，只会多一条泄露面
+ * （HTTP 响应、前端状态、DevTools、日志）。故本面板：
+ *
+ * 1. **只渲染名字**：数据来自 `vault.list`（契约就是"只回名字"），面板里不存在"取回值"的路径；
+ * 2. **输入框是单向的**：写入成功后**立即清空**密码输入框（既不回显也不保留在组件状态里）；
+ * 3. **未接线如实说**：`ok:false` ⇒ 显示原因与开启方式（多半是 `OMNIHARNESS_VAULT=0` 把保险库
+ *    整个关掉了；serve 默认就接线 `~/.omniharness/vault.key`），**不得**渲染成"保险库为空"
+ *    （那会被读成"我的凭据丢了"）。
+ *
+ * @returns 保险库面板节点
+ */
+// 标准 React 项目写法：`import * as React from 'react'`（Vite 解析裸标识符）。
+import * as React from 'react';
+import { useApp } from '../../context.ts';
+import type { ReactElement } from 'react';
+import type { VaultListResult } from '../../../types/models.ts';
+import { t } from '../../i18n/i18n.ts';
+// 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
+import Table from 'antd/es/table';
+import type { ColumnsType } from 'antd/es/table';
+import Alert from 'antd/es/alert';
+import Input from 'antd/es/input';
+import Button from 'antd/es/button';
+
+/**
+ * 凭据名表列定义（2026-10-29 W4）：只列名字（纪律①），删除是行尾显式动作。
+ * @param onRemove 删除回调
+ * @returns 列定义
+ */
+function vaultNameColumns(
+  onRemove: (name: string) => void,
+): ColumnsType<{ key: string; name: string }> {
+  return [
+    { title: t('名称'), dataIndex: 'name', key: 'name' },
+    {
+      title: t('操作'),
+      key: 'op',
+      width: 90,
+      render: (_, row) => (
+        <Button size="small" onClick={() => onRemove(row.name)}>
+          {t('删除')}
+        </Button>
+      ),
+    },
+  ];
+}
+
+/** err/notice 提示条（W4：antd Alert，统一卡片间距）。 */
+function VaultNotice(props: { kind: 'error' | 'success'; message: string }): ReactElement {
+  return <Alert className="vault-alert" type={props.kind} showIcon message={props.message} />;
+}
+
+/** 保险库面板。 */
+/** 写入 / 覆盖表单（VaultTab 的抽出段）：名称 + 密文两输入与提交。 */
+function VaultForm(props: {
+  readonly name: string;
+  readonly secret: string;
+  readonly onName: (value: string) => void;
+  readonly onSecret: (value: string) => void;
+  readonly onSave: () => void;
+}): ReactElement {
+  return (
+    <div className="detail-section">
+      <div className="detail-h">{t('写入 / 覆盖')}</div>
+      <label className="field">
+        <span>{t('名称')}</span>
+        <Input
+          value={props.name}
+          placeholder={t('如 OPENAI_API_KEY')}
+          autoComplete="off"
+          onChange={(e: { target: { value: string } }) => props.onName(e.target.value)}
+        />
+      </label>
+      <label className="field">
+        <span>{t('凭据')}</span>
+        <Input.Password
+          value={props.secret}
+          placeholder={t('粘贴凭据值')}
+          autoComplete="new-password"
+          visibilityToggle={false}
+          onChange={(e: { target: { value: string } }) => props.onSecret(e.target.value)}
+        />
+      </label>
+      <div className="pane-actions">
+        <span className="panel-note" style={{ margin: 0 }}>
+          {t('写入后即清空，不会回显')}
+        </span>
+        <Button
+          type="primary"
+          disabled={props.name.trim() === '' || props.secret === ''}
+          onClick={props.onSave}
+        >
+          {t('写入')}
+        </Button>
+      </div>
+    </div>
+  );
+}
+/** 凭据列表（VaultTab 的抽出段）：未接线如实说明 / 空库提示 / 名称表。 */
+function VaultList(props: {
+  readonly data: VaultListResult | null;
+  readonly onRemove: (name: string) => void;
+}): ReactElement {
+  const data = props.data;
+  if (data === null) return <p className="hint">{t('暂无数据。')}</p>;
+  if (!data.ok) {
+    // 未接线必须直说 + 给出开启方式（不得渲染成「保险库为空」）。
+    // 默认口径下 serve 本身就接线（用户级密钥文件），最常见原因是 OMNIHARNESS_VAULT=0 被显式关闭。
+    return (
+      <VaultNotice
+        kind="error"
+        message={t('未接线：{reason}（若设过 OMNIHARNESS_VAULT=0，去掉它后重启 serve；密钥默认来自 <OMNI_HOME>/vault.key）', { reason: data.reason })}
+      />
+    );
+  }
+  if (data.names.length === 0) return <p className="hint">{t('保险库为空（已接线，尚无凭据）。')}</p>;
+  return (
+    <Table
+      className="vault-table"
+      size="small"
+      bordered={false}
+      pagination={false}
+      columns={vaultNameColumns(props.onRemove)}
+      dataSource={data.names.map((n) => ({ key: n, name: n }))}
+      rowKey="key"
+      scroll={{ x: 'max-content' }}
+    />
+  );
+}
+/** 数据与操作（VaultTab 的抽出段）：拉取 / 写入 / 删除 + 错误与提示状态。 */
+function useVaultTab(api: ReturnType<typeof useApp>['api']): {
+  readonly data: VaultListResult | null;
+  readonly error: string | null;
+  readonly notice: string | null;
+  readonly loading: boolean;
+  readonly name: string;
+  readonly secret: string;
+  readonly setName: (value: string) => void;
+  readonly setSecret: (value: string) => void;
+  readonly save: () => Promise<void>;
+  readonly remove: (target: string) => Promise<void>;
+} {
+  const [data, setData] = React.useState<VaultListResult | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+  const [notice, setNotice] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState<boolean>(true);
+  const [name, setName] = React.useState<string>('');
+  const [secret, setSecret] = React.useState<string>('');
+
+  /** 拉取凭据名列表。 */
+  const refresh = React.useCallback(async (): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    try {
+      setData(await api.vaultList());
+    } catch (e) {
+      setError((e as Error).message);
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [api]);
+
+  React.useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  /** 写入（或覆盖）一项；成功后清空两个输入（不保留密文）。 */
+  const save = React.useCallback(async (): Promise<void> => {
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await api.vaultSet(name, secret);
+      if (!result.ok) {
+        setError(result.reason);
+        return;
+      }
+      setName('');
+      setSecret('');
+      setNotice(t('已写入 {name}（服务端不回读，值不会在界面上出现）', { name: result.name }));
+      await refresh();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [api, name, secret, refresh]);
+
+  /** 删除一项。 */
+  const remove = React.useCallback(
+    async (target: string): Promise<void> => {
+      setError(null);
+      setNotice(null);
+      try {
+        const result = await api.vaultDelete(target);
+        if (!result.ok) {
+          setError(result.reason);
+          return;
+        }
+        setNotice(result.removed === true ? t('已删除 {name}', { name: target }) : t('{name} 本来就不存在', { name: target }));
+        await refresh();
+      } catch (e) {
+        setError((e as Error).message);
+      }
+    },
+    [api, refresh],
+  );
+
+  return { data, error, notice, loading, name, secret, setName, setSecret, save, remove };
+}
+
+/**
+ * 凭据保险库面板：列表（未接线/空库/名称表三分支）+ 写入表单。
+ * @returns 面板节点（载入中显示占位）。
+ */
+export function VaultTab(): ReactElement {
+  const { api } = useApp();
+
+  const vault = useVaultTab(api);
+  const { data, error, notice, loading, name, secret, setName, setSecret, save, remove } = vault;
+  if (loading) return <div className="vault-tab">{t('载入凭据列表…')}</div>;
+
+  return (
+    <div className="vault-tab">
+      <div className="detail-section">
+        <div className="detail-h">{t('凭据保险库')}</div>
+        <p className="hint">
+          {t('只列出名字：服务端不提供读回值的接口（凭据写入后仅供运行时取用）。')}
+        </p>
+        {error !== null ? <VaultNotice kind="error" message={error} /> : null}
+        {notice !== null ? <VaultNotice kind="success" message={notice} /> : null}
+        <VaultList data={data} onRemove={(n) => void remove(n)} />
+      </div>
+
+      <VaultForm
+        name={name}
+        secret={secret}
+        onName={setName}
+        onSecret={setSecret}
+        onSave={() => void save()}
+      />
+    </div>
+  );
+}
