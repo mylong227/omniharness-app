@@ -1,6 +1,6 @@
-import type { StoragePort } from '../../../../contracts/ports/memory/storage.ts';
-import { CheckpointManager } from '../../../../kernel/core/checkpointManager.ts';
-import { GitWorkspaceSnapshot } from '../../../../kernel/adapters/workspace/gitWorkspaceSnapshot.ts';
+import type { StoragePort } from '@omniharness/kernel/contracts/ports/memory/storage.js';
+import { CheckpointManager } from '@omniharness/kernel/kernel/core/checkpointManager.js';
+import { GitWorkspaceSnapshot } from '@omniharness/kernel/kernel/adapters/workspace/gitWorkspaceSnapshot.js';
 
 /** SessionCheckpoints 构造选项。 */
 export interface SessionCheckpointsOptions {

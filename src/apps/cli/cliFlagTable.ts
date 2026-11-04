@@ -1,7 +1,7 @@
 import type { CliArgs } from './argParser.ts';
-import { McpServerCommand } from '../../protocols/mcp/mcpServerCommand.ts';
-import { ExternalCliWorker } from '../../kernel/worker/externalCliWorker.ts';
-import type { ModelRouterConfig } from '../../kernel/config/configFile.ts';
+import { McpServerCommand } from '@omniharness/kernel/protocols/mcp/mcpServerCommand.js';
+import { ExternalCliWorker } from '@omniharness/kernel/kernel/worker/externalCliWorker.js';
+import type { ModelRouterConfig } from '@omniharness/kernel/kernel/config/configFile.js';
 import { KNOWN_EXTRA_FLAGS } from './knownFlags.ts';
 import { VALUE_FLAGS } from './cliValueFlags.ts';
 import {

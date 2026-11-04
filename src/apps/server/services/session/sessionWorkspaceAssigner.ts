@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { WorkspaceIdentity } from '../../../../kernel/util/workspaceIdentity.ts';
+import { WorkspaceIdentity } from '@omniharness/kernel/kernel/util/workspaceIdentity.js';
 
 /**
  * 会话**归入项目**的存档改写器（用户显式指认「未归属」会话的入口，2026-10-07 用户口径

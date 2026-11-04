@@ -12,7 +12,7 @@
  * - `hasMore` 只表示「更早还有」，不表示「更晚」。
  */
 
-import type { SessionEvent } from '../../../../contracts/ports/runtime/event.ts';
+import type { SessionEvent } from '@omniharness/kernel/contracts/ports/runtime/event.js';
 
 /** 分页切片结果。 */
 export interface ThreadPageSlice {

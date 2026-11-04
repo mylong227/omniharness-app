@@ -3,13 +3,13 @@
  * probe：拿配置好的 Key 真实请求厂商 /models 端点（不可用时回退 1-token chat 探测），
  * 返回实测连通状态与真实模型清单——「有 Key 支持接多少显示多少」的数据来源。
  */
-import type { ModelPort } from '../../../contracts/ports/model/model.ts';
-import { modelAdapterRegistry } from '../../../kernel/adapters/model/modelAdapterRegistry.ts';
-import { ConfigError } from '../../../kernel/config/configError.ts';
+import type { ModelPort } from '@omniharness/kernel/contracts/ports/model/model.js';
+import { modelAdapterRegistry } from '@omniharness/kernel/kernel/adapters/model/modelAdapterRegistry.js';
+import { ConfigError } from '@omniharness/kernel/kernel/config/configError.js';
 import type { ProviderPreset } from './providerPresets.ts';
-import { SsrfGuard } from '../../../kernel/security/ssrfGuard.ts';
-import type { SsrfPolicy } from '../../../kernel/security/ssrfPolicy.ts';
-import { Retry } from '../../../kernel/util/concurrency/retry.ts';
+import { SsrfGuard } from '@omniharness/kernel/kernel/security/ssrfGuard.js';
+import type { SsrfPolicy } from '@omniharness/kernel/kernel/security/ssrfPolicy.js';
+import { Retry } from '@omniharness/kernel/kernel/util/concurrency/retry.js';
 
 /**
  * ProviderProbe 相关纯函数工具（C7 收口：原顶层内部函数迁入）。

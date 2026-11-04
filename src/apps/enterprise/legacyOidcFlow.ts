@@ -19,8 +19,8 @@ import type {
   OidcFlowPort,
   PkcePair,
   TokenSet,
-} from '../../contracts/ports/enterprise/oidcFlow.ts';
-import type { OidcProviderConfig } from '../../contracts/ports/enterprise/oidcProviderConfig.ts';
+} from './../../host/contracts/ports/enterprise/oidcFlow.ts';
+import type { OidcProviderConfig } from './../../host/contracts/ports/enterprise/oidcProviderConfig.ts';
 import { OidcClient } from './oidcClient.ts';
 
 /**

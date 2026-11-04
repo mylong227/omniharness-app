@@ -1,17 +1,17 @@
-import { Container } from '../../../kernel/core/container.ts';
+import { Container } from '@omniharness/kernel/kernel/core/container.js';
 import { ServiceKeys } from '../../composition/runtime.ts';
-import { PluginManager } from '../../../kernel/plugin/pluginManager.ts';
-import { PluginLoader } from '../../../kernel/plugin/pluginLoader.ts';
+import { PluginManager } from '@omniharness/kernel/kernel/plugin/pluginManager.js';
+import { PluginLoader } from '@omniharness/kernel/kernel/plugin/pluginLoader.js';
 import { PluginHostPermissions } from './pluginHostPermissions.ts';
 import {
   PluginProfileStore,
   type PluginProfile,
   type ApplyProfileResult,
-} from '../../../kernel/plugin/pluginProfileStore.ts';
-import type { PluginRegistry } from '../../../kernel/plugin/pluginRegistry.ts';
+} from '@omniharness/kernel/kernel/plugin/pluginProfileStore.js';
+import type { PluginRegistry } from '@omniharness/kernel/kernel/plugin/pluginRegistry.js';
 import { jsonRpc } from '../core/jsonRpc.ts';
 import type { Transport } from '../transport/lineTransport.ts';
-import type { ResolvedConfig } from '../../../contracts/ports/config/resolvedConfig.ts';
+import type { ResolvedConfig } from '@omniharness/kernel/contracts/ports/config/resolvedConfig.js';
 
 /** 插件宿主依赖。 */
 export interface PluginHostDeps {

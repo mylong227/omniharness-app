@@ -6,8 +6,8 @@
  * 纯函数、无第三方依赖（仅 ANSI 转义），便于单测与在 `interactive.ts` 中复用。
  */
 
-import type { TuiEvent } from '../../contracts/ports/tui/tuiEvent.ts';
-import type { TuiEventKind } from '../../contracts/ports/tui/tuiEventKind.ts';
+import type { TuiEvent } from './../../host/contracts/ports/tui/tuiEvent.ts';
+import type { TuiEventKind } from './../../host/contracts/ports/tui/tuiEventKind.ts';
 
 /** ANSI 颜色码（暗色终端友好，跟随终端主题）。 */
 const ANSI = {
@@ -211,5 +211,5 @@ export class TuiRenderer {
 // ---- 门面兼容：保留原导出名，委托默认实例 ----
 const tuiRenderer = new TuiRenderer();
 
-export type { TuiEventKind } from '../../contracts/ports/tui/tuiEventKind.ts';
-export type { TuiEvent } from '../../contracts/ports/tui/tuiEvent.ts';
+export type { TuiEventKind } from './../../host/contracts/ports/tui/tuiEventKind.ts';
+export type { TuiEvent } from './../../host/contracts/ports/tui/tuiEvent.ts';

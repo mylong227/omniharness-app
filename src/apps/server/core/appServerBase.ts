@@ -1,9 +1,9 @@
-import { ConfigFactory } from '../../../kernel/config/configFactory.ts';
-import { ConfigRebase } from '../../../kernel/config/configRebase.ts';
-import { SandboxManager, type SandboxProfile } from '../../../kernel/adapters/sandbox/sandboxManager.ts';
-import type { PluginManager } from '../../../kernel/plugin/pluginManager.ts';
-import type { PluginProfile, ApplyProfileResult } from '../../../kernel/plugin/pluginProfileStore.ts';
-import type { SupervisorPort } from '../../../contracts/ports/runtime/supervisor.ts';
+import { ConfigFactory } from '@omniharness/kernel/kernel/config/configFactory.js';
+import { ConfigRebase } from '@omniharness/kernel/kernel/config/configRebase.js';
+import { SandboxManager, type SandboxProfile } from '@omniharness/kernel/kernel/adapters/sandbox/sandboxManager.js';
+import type { PluginManager } from '@omniharness/kernel/kernel/plugin/pluginManager.js';
+import type { PluginProfile, ApplyProfileResult } from '@omniharness/kernel/kernel/plugin/pluginProfileStore.js';
+import type { SupervisorPort } from '@omniharness/kernel/contracts/ports/runtime/supervisor.js';
 import { jsonRpc, type RpcMessage } from './jsonRpc.ts';
 import type { AppServerOptions } from './appServerState.ts';
 import { GraphRunRegistry } from './graphRunRegistry.ts';
@@ -16,8 +16,8 @@ import { ModelCatalogService } from '../services/modelCatalogService.ts';
 import { PluginHost } from '../services/pluginHost.ts';
 import { ServerEventBridge } from './serverEventBridge.ts';
 import { AgentRuntimeHost } from './agentRuntimeHost.ts';
-import type { ResolvedConfig } from '../../../contracts/ports/config/resolvedConfig.ts';
-import { log } from '../../../kernel/util/logger.ts';
+import type { ResolvedConfig } from '@omniharness/kernel/contracts/ports/config/resolvedConfig.js';
+import { log } from '@omniharness/kernel/kernel/util/logger.js';
 
 /**
  * AppServer 共享基座：**组合根 + 方法调度**。

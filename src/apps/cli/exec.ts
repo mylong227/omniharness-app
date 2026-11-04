@@ -59,7 +59,7 @@ export class Exec {
     // 漏掉 `.catch` 的第 N 个照样能把进程带走；逐点补 catch 治标不治本。
     const [{ CrashGuard }, { log }, { ExecLocal }] = await Promise.all([
       import('./crashGuard.ts'),
-      import('../../kernel/util/logger.ts'),
+      import('@omniharness/kernel/kernel/util/logger.js'),
       import('./execLocal.ts'),
     ]);
     CrashGuard.install({

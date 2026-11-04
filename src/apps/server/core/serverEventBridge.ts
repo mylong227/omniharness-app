@@ -2,23 +2,23 @@ import { jsonRpc } from './jsonRpc.ts';
 import type { Transport } from '../transport/lineTransport.ts';
 import type { Metrics } from '../services/metrics.ts';
 import type { AuditSink } from '../services/auditSink.ts';
-import { Id } from '../../../kernel/util/id.ts';
-import { log } from '../../../kernel/util/logger.ts';
+import { Id } from '@omniharness/kernel/kernel/util/id.js';
+import { log } from '@omniharness/kernel/kernel/util/logger.js';
 import type {
   ApprovalDecision,
   ApprovalPort,
   ApprovalRequest,
-} from '../../../contracts/ports/runtime/approval.ts';
+} from '@omniharness/kernel/contracts/ports/runtime/approval.js';
 import type {
   AskAnswer,
   AskContext,
   AskQuestion,
   UserResponder,
-} from '../../../contracts/ports/runtime/userResponder.ts';
-import { DefaultUserResponder } from '../../../kernel/adapters/user/defaultUserResponder.ts';
+} from '@omniharness/kernel/contracts/ports/runtime/userResponder.js';
+import { DefaultUserResponder } from '@omniharness/kernel/kernel/adapters/user/defaultUserResponder.js';
 import { QuestionAnswers } from './questionAnswers.ts';
-import type { EventPort } from '../../../contracts/ports/runtime/eventPort.ts';
-import { PendingRequests, type PendingTimeout } from '../../../kernel/util/concurrency/pendingRequests.ts';
+import type { EventPort } from '@omniharness/kernel/contracts/ports/runtime/eventPort.js';
+import { PendingRequests, type PendingTimeout } from '@omniharness/kernel/kernel/util/concurrency/pendingRequests.js';
 
 /** 审批上行缺省等待上限（毫秒）：超时按 deny 兑现（fail-closed）。 */
 const DEFAULT_APPROVAL_TIMEOUT_MS = 120_000;

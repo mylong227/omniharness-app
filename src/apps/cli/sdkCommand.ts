@@ -9,8 +9,8 @@
  * 与「生成 SDK 文本」（`schema` 子命令）的分工：那个产出代码，本命令**真的连上去打一发**，
  * 是「SDK 能力在真实传输上可用」的可执行证据。
  */
-import { SdkClient } from '../../contracts/sdk/sdkClient.ts';
-import { WebSocketSdkSocket, type SdkSocket } from '../../contracts/sdk/webSocketSdkSocket.ts';
+import { SdkClient } from './../../host/contracts/sdk/sdkClient.ts';
+import { WebSocketSdkSocket, type SdkSocket } from '@omniharness/kernel/contracts/sdk/webSocketSdkSocket.js';
 import { CliArgReader } from './cliArgReader.ts';
 
 /** 用法提示。 */

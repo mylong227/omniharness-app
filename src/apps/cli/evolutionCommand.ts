@@ -22,15 +22,15 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { HashChainPromotionLedger } from '../../kernel/evolution/hashChainPromotionLedger.ts';
-import { PromotionHistoryService } from '../../kernel/governance/promotionHistoryService.ts';
-import { ProvenanceIssuer } from '../../kernel/governance/provenanceIssuer.ts';
+import { HashChainPromotionLedger } from '@omniharness/kernel/kernel/evolution/hashChainPromotionLedger.js';
+import { PromotionHistoryService } from '@omniharness/kernel/kernel/governance/promotionHistoryService.js';
+import { ProvenanceIssuer } from '@omniharness/kernel/kernel/governance/provenanceIssuer.js';
 import type {
   ProvenanceCertificate,
   ProvenanceIssuerIdentity,
-} from '../../kernel/governance/provenanceIssuer.ts';
-import { Ed25519AgentIdentity } from '../../kernel/adapters/identity/ed25519AgentIdentity.ts';
-import type { PromotionLedgerEntry, SkillRestorePlan } from '../../contracts/ports/runtime/evolution.ts';
+} from '@omniharness/kernel/kernel/governance/provenanceIssuer.js';
+import { Ed25519AgentIdentity } from '@omniharness/kernel/kernel/adapters/identity/ed25519AgentIdentity.js';
+import type { PromotionLedgerEntry, SkillRestorePlan } from '@omniharness/kernel/contracts/ports/runtime/evolution.js';
 import { CliArgReader } from './cliArgReader.ts';
 
 /** 默认台账目录（与组合根同一口径：`<workspace>/.omniharness/evolution`）。 */

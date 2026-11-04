@@ -1,18 +1,18 @@
-import type { McpServerConfig } from '../../protocols/mcp/mcpGateway.ts';
-import type { ExternalCliWorkerSpec } from '../../kernel/worker/externalCliWorker.ts';
-import type { SkillEntry } from '../../kernel/skill/skill.ts';
+import type { McpServerConfig } from '@omniharness/kernel/protocols/mcp/mcpGateway.js';
+import type { ExternalCliWorkerSpec } from '@omniharness/kernel/kernel/worker/externalCliWorker.js';
+import type { SkillEntry } from '@omniharness/kernel/kernel/skill/skill.js';
 import type {
   ModelRouterConfig,
   PermissionRuleConfig,
   PermissionRuleDecision,
   SsrfPolicyConfig,
-} from '../../kernel/config/configFile.ts';
-import type { ModelAdapterId } from '../../contracts/ports/model/modelAdapterId.ts';
-import type { MediaAnalysisConfig } from '../../kernel/config/mediaConfigResolver.ts';
-import type { CapabilityConfig } from '../../contracts/ports/config/capabilityConfig.ts';
-import type { RbacConfig } from '../../contracts/ports/config/rbacConfig.ts';
-import type { DecisionEngineConfig } from '../../contracts/ports/config/decisionEngineConfig.ts';
-import type { RuntimeLimitsConfig } from '../../kernel/util/runtimeLimits.ts';
+} from '@omniharness/kernel/kernel/config/configFile.js';
+import type { ModelAdapterId } from '@omniharness/kernel/contracts/ports/model/modelAdapterId.js';
+import type { MediaAnalysisConfig } from '@omniharness/kernel/kernel/config/mediaConfigResolver.js';
+import type { CapabilityConfig } from '@omniharness/kernel/contracts/ports/config/capabilityConfig.js';
+import type { RbacConfig } from '@omniharness/kernel/contracts/ports/config/rbacConfig.js';
+import type { DecisionEngineConfig } from '@omniharness/kernel/contracts/ports/config/decisionEngineConfig.js';
+import type { RuntimeLimitsConfig } from '@omniharness/kernel/contracts/ports/config/runtimeLimits.js';
 /**
  * CLI 参数 DTO（2026-10-31 从 argParser.ts 抽出，断开 argParser ⇄ 协作类的依赖环）。
  * 只放类型：默认值实例（CliDefaults）留在 argParser。

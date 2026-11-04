@@ -16,9 +16,9 @@
  *   `--version` / `--help` 等无需执行引擎的路径不再加载本文件。
  */
 
-import { AsyncChildProcess } from '../../kernel/util/asyncChildProcess.ts';
+import { AsyncChildProcess } from '@omniharness/kernel/kernel/util/asyncChildProcess.js';
 import { join } from 'node:path';
-import { Agent } from '../../kernel/core/agent.ts';
+import { Agent } from '@omniharness/kernel/kernel/core/agent.js';
 import { Runtime } from '../composition/runtime.ts';
 import { JsonlWriter } from '../output/jsonlWriter.ts';
 import type { CliArgs } from './argParser.ts';
@@ -29,12 +29,12 @@ import { ExecLocal } from './execLocal.ts';
 import { EvolutionCommand } from './evolutionCommand.ts';
 import { CapabilityCommand } from './capabilityCommand.ts';
 import { LicenseCommand } from './licenseCommand.ts';
-import { AssetPackInstaller } from '../../kernel/asset/assetPackInstaller.ts';
-import { IsolationLadderFactory } from '../../kernel/adapters/isolation/isolationLadderFactory.ts';
-import { WasmSkillPack } from '../../kernel/asset/wasmSkillPack.ts';
-import { HashChainPromotionLedger } from '../../kernel/evolution/hashChainPromotionLedger.ts';
-import type { AssetPackPort } from '../../contracts/ports/asset.ts';
-import type { CapabilityStack } from '../../contracts/ports/config/capabilityStack.ts';
+import { AssetPackInstaller } from '@omniharness/kernel/kernel/asset/assetPackInstaller.js';
+import { IsolationLadderFactory } from '@omniharness/kernel/kernel/adapters/isolation/isolationLadderFactory.js';
+import { WasmSkillPack } from '@omniharness/kernel/kernel/asset/wasmSkillPack.js';
+import { HashChainPromotionLedger } from '@omniharness/kernel/kernel/evolution/hashChainPromotionLedger.js';
+import type { AssetPackPort } from '@omniharness/kernel/contracts/ports/asset.js';
+import type { CapabilityStack } from '@omniharness/kernel/contracts/ports/config/capabilityStack.js';
 
 /** 可报告体检的进化控制器（Kernel 与 RLVR 控制器都实现 `report()`；`EvolutionController` 端口未声明它）。 */
 interface ReportableController {
@@ -201,7 +201,7 @@ export class ExecCli extends CliAgentCmds {
    */
   private async emitRunOutcome(
     result: {
-      readonly events: readonly import('../../contracts/ports/runtime/event.ts').SessionEvent[];
+      readonly events: readonly import('@omniharness/kernel/contracts/ports/runtime/event.js').SessionEvent[];
       readonly summary: unknown;
     },
     args: CliArgs,

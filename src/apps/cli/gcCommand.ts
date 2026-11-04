@@ -15,7 +15,7 @@ import {
   MaintenanceRunner,
   type MaintenanceOptions,
   type MaintenanceReport,
-} from '../../kernel/util/maintenanceRunner.ts';
+} from '@omniharness/kernel/kernel/util/maintenanceRunner.js';
 import { ServeInstance } from './serveInstance.ts';
 
 /** gc 子命令：手动维护巡检。 */

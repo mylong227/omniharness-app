@@ -3,7 +3,7 @@ import type { Transport } from './lineTransport.ts';
 import { type WsConnection } from './wsConnection.ts';
 import { SseFanout } from './sseFanout.ts';
 import { EnterpriseAuth } from '../../enterprise/index.ts';
-import { PendingRequests } from '../../../kernel/util/concurrency/pendingRequests.ts';
+import { PendingRequests } from '@omniharness/kernel/kernel/util/concurrency/pendingRequests.js';
 
 /**
  * 「全部客户端断开」宽限期解析：显式入参 > env `OMNI_CLIENTS_GONE_GRACE_MS` > 缺省 10s；

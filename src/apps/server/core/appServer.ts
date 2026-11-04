@@ -2,13 +2,13 @@ import type {
   LongTermMemoryPort,
   MemoryFact,
   MemoryFactPatch,
-} from '../../../contracts/ports/memory/longTermMemory.ts';
-import { WorkflowRunner } from '../../../kernel/autonomy/workflowRunner.ts';
-import { WorkflowRunLog } from '../../../kernel/autonomy/workflowRunLog.ts';
-import type { WorkflowDef } from '../../../kernel/autonomy/workflowTypes.ts';
+} from '@omniharness/kernel/contracts/ports/memory/longTermMemory.js';
+import { WorkflowRunner } from '@omniharness/kernel/kernel/autonomy/workflowRunner.js';
+import { WorkflowRunLog } from '@omniharness/kernel/kernel/autonomy/workflowRunLog.js';
+import type { WorkflowDef } from '@omniharness/kernel/kernel/autonomy/workflowTypes.js';
 import { jsonRpc } from './jsonRpc.ts';
-import type { ImageContent, FileAttachment } from '../../../contracts/ports/model/model.ts';
-import { Id } from '../../../kernel/util/id.ts';
+import type { ImageContent, FileAttachment } from '@omniharness/kernel/contracts/ports/model/model.js';
+import { Id } from '@omniharness/kernel/kernel/util/id.js';
 import { AppServerVaultHandlers } from './appServerVaultHandlers.ts';
 import type { AppServerOptions } from './appServerState.ts';
 import { providerPresets } from '../services/providerPresets.ts';
@@ -21,7 +21,7 @@ import { SessionCheckpoints } from '../services/session/sessionCheckpoints.ts';
 import { SessionRewindService } from '../services/session/sessionRewindService.ts';
 import type { SessionRewindOutcome } from '../services/session/sessionRewindService.ts';
 import { ThreadPage } from '../services/session/threadPage.ts';
-import { InterjectionClassifier } from '../../../kernel/core/steering/interjectionClassifier.ts';
+import { InterjectionClassifier } from '@omniharness/kernel/kernel/core/steering/interjectionClassifier.js';
 
 export type { AppServerOptions } from './appServerState.ts';
 

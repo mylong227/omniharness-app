@@ -22,8 +22,8 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
-import { FileLock } from '../../../../kernel/util/concurrency/fileLock.ts';
-import { log } from '../../../../kernel/util/logger.ts';
+import { FileLock } from '@omniharness/kernel/kernel/util/concurrency/fileLock.js';
+import { log } from '@omniharness/kernel/kernel/util/logger.js';
 // 排序模型（显式名次 + 新会话置顶）单独成文件：本文件只管侧车文件的读写。
 import { SessionRanking, type OrderDoc } from './sessionRanking.ts';
 

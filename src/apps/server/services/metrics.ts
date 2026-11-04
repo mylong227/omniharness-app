@@ -1,5 +1,5 @@
-import type { SessionEvent } from '../../../contracts/ports/runtime/event.ts';
-import { QuantileSketch } from '../../../kernel/util/quantileSketch.ts';
+import type { SessionEvent } from '@omniharness/kernel/contracts/ports/runtime/event.js';
+import { QuantileSketch } from '@omniharness/kernel/kernel/util/quantileSketch.js';
 
 /** 单指标对象（Prometheus 文本用）。 */
 export interface MetricLine {

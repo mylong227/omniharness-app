@@ -10,8 +10,8 @@ import { execFileSync, spawn } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { OmniHome } from '../../kernel/util/omniHome.ts';
-import { log } from '../../kernel/util/logger.ts';
+import { OmniHome } from '@omniharness/kernel/kernel/util/omniHome.js';
+import { log } from '@omniharness/kernel/kernel/util/logger.js';
 
 /** PID 文件记录：pid + 进程启动时刻（毫秒，尽力采集；旧文件只有 pid）。 */
 interface DaemonRecord {

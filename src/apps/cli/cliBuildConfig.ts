@@ -13,60 +13,60 @@
 import { CliCredentialBuild } from './cliCredentialBuild.ts';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { OmniHome } from '../../kernel/util/omniHome.ts';
-import { BuiltinDefaults } from '../../kernel/util/builtinDefaults.ts';
+import { OmniHome } from '@omniharness/kernel/kernel/util/omniHome.js';
+import { BuiltinDefaults } from '@omniharness/kernel/kernel/util/builtinDefaults.js';
 import { readFile } from 'node:fs/promises';
-import { NativeKernel } from '../../kernel/native/nativeKernel.ts';
+import { NativeKernel } from '@omniharness/kernel/kernel/native/nativeKernel.js';
 // 2026-10-11 启动成本（目标 (9)「CLI 子命令启动 ~2s」）：`configFactory`（净 ~580ms）与
 // `sdkPreferredMcpConnector`（净 ~480ms）**只在构建运行时/MCP 桥接时才需要**，而它们此前是顶层
 // 值导入 ⇒ 任何子命令（含 `kv list`）都要为整条继承链付这份 ESM 解析成本。改成方法内动态 import：
 // 调用方零改动，只有真正走到那些方法的命令才付这份成本。
 import { CliSkillFlags } from './cliSkillFlags.ts';
 import { CliSubsystemSections } from './cliSubsystemSections.ts';
-import { DefaultPromptFragments } from '../../kernel/config/defaultPromptFragments.ts';
+import { DefaultPromptFragments } from '@omniharness/kernel/kernel/config/defaultPromptFragments.js';
 
-import { ConsoleLiveView } from '../../kernel/adapters/live/consoleLiveView.ts';
-import { PluginRegistry } from '../../kernel/plugin/pluginRegistry.ts';
+import { ConsoleLiveView } from '@omniharness/kernel/kernel/adapters/live/consoleLiveView.js';
+import { PluginRegistry } from '@omniharness/kernel/kernel/plugin/pluginRegistry.js';
 import { AuditSink } from '../server/services/auditSink.ts';
 import {
   NetworkEgressGuard,
   type NetworkEgressOptions,
-} from '../../kernel/adapters/sandbox/networkEgressGuard.ts';
-import { SsrfPolicy } from '../../kernel/security/ssrfPolicy.ts';
-import { endpointDefaults, type ResolvedAdapterDefaults } from '../../kernel/util/endpointDefaults.ts';
-import { WorkerRegistry } from '../../kernel/worker/workerRegistry.ts';
-import { ExternalCliWorker } from '../../kernel/worker/externalCliWorker.ts';
-import { RegistryToolPort } from '../../kernel/adapters/tool/registryToolPort.ts';
-import { McpGateway } from '../../protocols/mcp/mcpGateway.ts';
-import { McpServerCommand } from '../../protocols/mcp/mcpServerCommand.ts';
-import { modelAdapterRegistry, MOCK_ADAPTER_ID } from '../../kernel/adapters/model/modelAdapterRegistry.ts';
+} from '@omniharness/kernel/kernel/adapters/sandbox/networkEgressGuard.js';
+import { SsrfPolicy } from '@omniharness/kernel/kernel/security/ssrfPolicy.js';
+import { endpointDefaults, type ResolvedAdapterDefaults } from '@omniharness/kernel/kernel/util/endpointDefaults.js';
+import { WorkerRegistry } from '@omniharness/kernel/kernel/worker/workerRegistry.js';
+import { ExternalCliWorker } from '@omniharness/kernel/kernel/worker/externalCliWorker.js';
+import { RegistryToolPort } from '@omniharness/kernel/kernel/adapters/tool/registryToolPort.js';
+import { McpGateway } from '@omniharness/kernel/protocols/mcp/mcpGateway.js';
+import { McpServerCommand } from '@omniharness/kernel/protocols/mcp/mcpServerCommand.js';
+import { modelAdapterRegistry, MOCK_ADAPTER_ID } from '@omniharness/kernel/kernel/adapters/model/modelAdapterRegistry.js';
 import { storageFactory, type StorageHandle } from './storageFactory.ts';
-import { AutoApproval } from '../../kernel/adapters/approval/autoApproval.ts';
-import { DenyApproval } from '../../kernel/adapters/approval/denyApproval.ts';
-import { RuleApproval } from '../../kernel/adapters/approval/ruleApproval.ts';
-import { GuardianApproval } from '../../kernel/adapters/approval/guardianApproval.ts';
-import { PlanApproval } from '../../kernel/adapters/approval/planApproval.ts';
-import { AskApproval } from '../../kernel/adapters/approval/askApproval.ts';
-import { BUILTIN_APPROVAL_RULES } from '../../kernel/adapters/approval/builtinApprovalRules.ts';
-import type { ApprovalRule } from '../../kernel/adapters/approval/approvalRule.ts';
-import { dangerousCommands } from '../../kernel/adapters/sandbox/dangerousCommands.ts';
-import { SandboxManager } from '../../kernel/adapters/sandbox/sandboxManager.ts';
-import { DenyEscalation } from '../../kernel/adapters/escalation/denyEscalation.ts';
-import { AskEscalation } from '../../kernel/adapters/escalation/askEscalation.ts';
-import { AutoEscalation } from '../../kernel/adapters/escalation/autoEscalation.ts';
-import type { EscalationRequest, EscalationDecision } from '../../contracts/ports/runtime/escalation.ts';
-import type { ModelPort } from '../../contracts/ports/model/model.ts';
-import type { ModelRouterConfig } from '../../kernel/config/configFile.ts';
-import type { LspServerConfig } from '../../contracts/ports/tool/lsp.ts';
+import { AutoApproval } from '@omniharness/kernel/kernel/adapters/approval/autoApproval.js';
+import { DenyApproval } from '@omniharness/kernel/kernel/adapters/approval/denyApproval.js';
+import { RuleApproval } from '@omniharness/kernel/kernel/adapters/approval/ruleApproval.js';
+import { GuardianApproval } from '@omniharness/kernel/kernel/adapters/approval/guardianApproval.js';
+import { PlanApproval } from '@omniharness/kernel/kernel/adapters/approval/planApproval.js';
+import { AskApproval } from '@omniharness/kernel/kernel/adapters/approval/askApproval.js';
+import { BUILTIN_APPROVAL_RULES } from '@omniharness/kernel/kernel/adapters/approval/builtinApprovalRules.js';
+import type { ApprovalRule } from '@omniharness/kernel/kernel/adapters/approval/approvalRule.js';
+import { dangerousCommands } from '@omniharness/kernel/kernel/adapters/sandbox/dangerousCommands.js';
+import { SandboxManager } from '@omniharness/kernel/kernel/adapters/sandbox/sandboxManager.js';
+import { DenyEscalation } from '@omniharness/kernel/kernel/adapters/escalation/denyEscalation.js';
+import { AskEscalation } from '@omniharness/kernel/kernel/adapters/escalation/askEscalation.js';
+import { AutoEscalation } from '@omniharness/kernel/kernel/adapters/escalation/autoEscalation.js';
+import type { EscalationRequest, EscalationDecision } from '@omniharness/kernel/contracts/ports/runtime/escalation.js';
+import type { ModelPort } from '@omniharness/kernel/contracts/ports/model/model.js';
+import type { ModelRouterConfig } from '@omniharness/kernel/kernel/config/configFile.js';
+import type { LspServerConfig } from '@omniharness/kernel/contracts/ports/tool/lsp.js';
 import { ToolLoader } from './toolLoader.ts';
 import { CliArgReader } from './cliArgReader.ts';
 import { CliEventPort } from './cliEventPort.ts';
 import type { CliArgs } from './argParser.ts';
 import { CliConfigSections } from './cliConfigSections.ts';
-import type { ResolvedConfig } from '../../contracts/ports/config/resolvedConfig.ts';
-import type { ExtraTool } from '../../contracts/ports/tool/extraTool.ts';
-import type { UserResponder } from '../../contracts/ports/runtime/userResponder.ts';
-import type { EventPort } from '../../contracts/ports/runtime/eventPort.ts';
+import type { ResolvedConfig } from '@omniharness/kernel/contracts/ports/config/resolvedConfig.js';
+import type { ExtraTool } from '@omniharness/kernel/contracts/ports/tool/extraTool.js';
+import type { UserResponder } from '@omniharness/kernel/contracts/ports/runtime/userResponder.js';
+import type { EventPort } from '@omniharness/kernel/contracts/ports/runtime/eventPort.js';
 
 /**
  * F3 凭据水合的内置默认名列表。
@@ -249,7 +249,7 @@ export class CliBuildConfig extends CliCredentialBuild {
     // F3：凭据水合必须早于 buildModel——模型适配器与模型路由都在构造期直接读 process.env。
     await this.hydrateCredentials(args);
     const model = this.buildModel(args);
-    const { ConfigFactory } = await import('../../kernel/config/configFactory.ts');
+    const { ConfigFactory } = await import('@omniharness/kernel/kernel/config/configFactory.js');
     const config = ConfigFactory.build({
       workspaceRoot: args.workspace,
       // serve 的提问上行端口：`ask_user` / `plan_present` 在 ConfigFactory.build 期就捕获了
@@ -267,6 +267,7 @@ export class CliBuildConfig extends CliCredentialBuild {
       // V2.1（A3/B4）：模型重试 / 熔断 / 回合 token 预算 / 成本预算 / 护栏 / 自验证 / 决策引擎
       // ——「未显式配置 = 缺省关闭/观测档」语义的分段装配，见 {@link budgetGuardSection}。
       ...CliConfigSections.budgetGuard(args),
+      ...CliConfigSections.decisionEnginePort(args),
       // (U4) RLVR 进化闭环 / (U6) A2A 互操作 / 媒体抽帧（`view_media`）：三段共同的语义是
       // 「**未显式配置就不写 partial** = 零行为变更」，故收在 `CliSubsystemSections` 里
       // （不放在本类：本类方法数已贴上帝类红线，再加一刻即越线）。
@@ -361,7 +362,7 @@ export class CliBuildConfig extends CliCredentialBuild {
       return;
     }
     const { SdkPreferredMcpConnector } =
-      await import('../../kernel/adapters/mcp/sdkPreferredMcpConnector.ts');
+      await import('@omniharness/kernel/kernel/adapters/mcp/sdkPreferredMcpConnector.js');
     const gateway = new McpGateway({
       registry: tools,
       context: { sessionId: 'mcp-bridge', workspaceRoot: args.workspace },

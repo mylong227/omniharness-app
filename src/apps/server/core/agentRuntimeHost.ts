@@ -1,20 +1,20 @@
-import type { ApprovalPort } from '../../../contracts/ports/runtime/approval.ts';
-import type { EventPort } from '../../../contracts/ports/runtime/eventPort.ts';
-import type { ModelPort } from '../../../contracts/ports/model/model.ts';
+import type { ApprovalPort } from '@omniharness/kernel/contracts/ports/runtime/approval.js';
+import type { EventPort } from '@omniharness/kernel/contracts/ports/runtime/eventPort.js';
+import type { ModelPort } from '@omniharness/kernel/contracts/ports/model/model.js';
 
-import type { SkillRegistry } from '../../../kernel/skill/skillRegistry.ts';
-import type { SupervisorPort } from '../../../contracts/ports/runtime/supervisor.ts';
+import type { SkillRegistry } from '@omniharness/kernel/kernel/skill/skillRegistry.js';
+import type { SupervisorPort } from '@omniharness/kernel/contracts/ports/runtime/supervisor.js';
 import { Runtime } from '../../composition/runtime.ts';
-import { Agent } from '../../../kernel/core/agent.ts';
-import { GraphStore } from '../../../kernel/autonomy/graphStore.ts';
-import { SubagentPorts } from '../../../kernel/subagent/subagentPorts.ts';
+import { Agent } from '@omniharness/kernel/kernel/core/agent.js';
+import { GraphStore } from '@omniharness/kernel/kernel/autonomy/graphStore.js';
+import { SubagentPorts } from '@omniharness/kernel/kernel/subagent/subagentPorts.js';
 
 import { AUTO_ALLOW, DENY_ALL, RULES_DEFAULT } from './appServerState.ts';
-import { PlanApproval } from '../../../kernel/adapters/approval/planApproval.ts';
-import { AskApproval } from '../../../kernel/adapters/approval/askApproval.ts';
+import { PlanApproval } from '@omniharness/kernel/kernel/adapters/approval/planApproval.js';
+import { AskApproval } from '@omniharness/kernel/kernel/adapters/approval/askApproval.js';
 import { ServerNoopSupervisor } from './serverNoopSupervisor.ts';
-import type { ResolvedConfig } from '../../../contracts/ports/config/resolvedConfig.ts';
-import type { SubagentPortsShape } from '../../../contracts/ports/subagent/subagentPortsShape.ts';
+import type { ResolvedConfig } from '@omniharness/kernel/contracts/ports/config/resolvedConfig.js';
+import type { SubagentPortsShape } from '@omniharness/kernel/contracts/ports/subagent/subagentPortsShape.js';
 
 /** Agent/图运行时宿主依赖。 */
 export interface AgentRuntimeDeps {

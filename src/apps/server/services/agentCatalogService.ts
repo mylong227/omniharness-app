@@ -1,6 +1,6 @@
-import type { GraphSummary } from '../../../kernel/autonomy/graphStore.ts';
-import type { PluginManifest } from '../../../kernel/plugin/manifest.ts';
-import { BUILTIN_AGENT_PERSONAS } from '../../../kernel/subagent/agentPersonas.ts';
+import type { GraphSummary } from '@omniharness/kernel/kernel/autonomy/graphStore.js';
+import type { PluginManifest } from '@omniharness/kernel/kernel/plugin/manifest.js';
+import { BUILTIN_AGENT_PERSONAS } from '@omniharness/kernel/kernel/subagent/agentPersonas.js';
 
 /** 智能体目录条目的来源类型。 */
 export type AgentKind = 'builtin' | 'graph' | 'plugin';

@@ -1,5 +1,5 @@
-import type { SessionEvent } from '../../contracts/ports/runtime/event.ts';
-import type { EventPort } from '../../contracts/ports/runtime/eventPort.ts';
+import type { SessionEvent } from '@omniharness/kernel/contracts/ports/runtime/event.js';
+import type { EventPort } from '@omniharness/kernel/contracts/ports/runtime/eventPort.js';
 import type { HookConsumer } from './formats.ts';
 import { GenericHooksMapper } from './genericHooksMapper.ts';
 import { ClaudeCodeHooksMapper } from './claudeCodeHooksMapper.ts';

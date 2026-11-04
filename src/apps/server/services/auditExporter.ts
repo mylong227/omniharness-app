@@ -1,20 +1,20 @@
 import crypto from 'node:crypto';
 import type { AuditChainReport, AuditEvent } from './auditSink.ts';
-import type { AuditQuery } from '../../../contracts/ports/server/auditQuery.ts';
-import type { AuditFormat } from '../../../contracts/ports/server/auditFormat.ts';
-import { ArrayAt } from '../../../kernel/util/arrayAt.ts';
+import type { AuditQuery } from './../../../host/contracts/ports/server/auditQuery.ts';
+import type { AuditFormat } from './../../../host/contracts/ports/server/auditFormat.ts';
+import { ArrayAt } from '@omniharness/kernel/kernel/util/arrayAt.js';
 
 /**
  * @beta
  * 审计导出查询条件（全字段可选；未给则不过滤）。
  */
-export type { AuditQuery } from '../../../contracts/ports/server/auditQuery.ts';
+export type { AuditQuery } from './../../../host/contracts/ports/server/auditQuery.ts';
 
 /**
  * @beta
  * 导出格式。
  */
-export type { AuditFormat } from '../../../contracts/ports/server/auditFormat.ts';
+export type { AuditFormat } from './../../../host/contracts/ports/server/auditFormat.ts';
 
 /**
  * 审计导出器。

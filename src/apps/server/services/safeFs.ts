@@ -11,7 +11,7 @@
 // 现改为复用 {@link WorkspaceGuard.resolveSafe}：词法判定 + realpath 判定两层一致。
 import { closeSync, openSync, readSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { WorkspaceGuard } from '../../../kernel/util/workspaceGuard.ts';
+import { WorkspaceGuard } from '@omniharness/kernel/kernel/util/workspaceGuard.js';
 
 /**
  * `safeStat` 的结果：成功时给出大小与「是否是普通文件」；失败时带前端可读原因。

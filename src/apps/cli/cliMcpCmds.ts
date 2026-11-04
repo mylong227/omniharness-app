@@ -7,9 +7,9 @@
 
 import { ArgParser } from './argParser.ts';
 import { CliServerCmds } from './cliServerCmds.ts';
-import type { ResolvedConfig } from '../../contracts/ports/config/resolvedConfig.ts';
-import type { ToolContext } from '../../contracts/ports/tool/tool.ts';
-import type { ToolGatePort } from '../../contracts/ports/runtime/toolGatePort.ts';
+import type { ResolvedConfig } from '@omniharness/kernel/contracts/ports/config/resolvedConfig.js';
+import type { ToolContext } from '@omniharness/kernel/contracts/ports/tool/tool.js';
+import type { ToolGatePort } from '@omniharness/kernel/contracts/ports/runtime/toolGatePort.js';
 
 /** `mcp serve` 的 Streamable HTTP 接线参数（仅解析/校验，不持有服务实例）。 */
 interface McpHttpServeCliOptions {
@@ -95,7 +95,7 @@ export class CliMcpCmds extends CliServerCmds {
       process.stdout.write('--port 必须是 0..65535 的整数\n');
       return 2;
     }
-    const { McpAuthFlow } = await import('../../protocols/mcp/mcpAuthFlow.ts');
+    const { McpAuthFlow } = await import('@omniharness/kernel/protocols/mcp/mcpAuthFlow.js');
     const stored = await McpAuthFlow.run({
       authorizeUrl,
       tokenUrl,
@@ -135,7 +135,7 @@ export class CliMcpCmds extends CliServerCmds {
       if (arg !== undefined && !arg.startsWith('-')) queryParts.push(arg);
     }
     const query = queryParts.join(' ').trim();
-    const { McpRegistryClient } = await import('../../protocols/mcp/mcpRegistryClient.ts');
+    const { McpRegistryClient } = await import('@omniharness/kernel/protocols/mcp/mcpRegistryClient.js');
     const entries = await McpRegistryClient.search(query, { limit });
     if (entries.length === 0) {
       process.stdout.write('（没有匹配的 MCP server）\n');
@@ -173,7 +173,7 @@ export class CliMcpCmds extends CliServerCmds {
     const config = await this.buildConfig(cliArgs);
     const sessionId = 'mcp';
     const context = { sessionId, workspaceRoot: cliArgs.workspace };
-    const { ToolGate } = await import('../../kernel/core/toolGate.ts');
+    const { ToolGate } = await import('@omniharness/kernel/kernel/core/toolGate.js');
     const gate = new ToolGate(
       config.approvals,
       config.sandbox,
@@ -195,8 +195,8 @@ export class CliMcpCmds extends CliServerCmds {
     }
     // 模式选择经 stderr 如实上报（stdout 是 MCP 协议通道，不得混入提示）。
     const [{ McpServeRunner }, { McpAskUserInputHandler }] = await Promise.all([
-      import('../../kernel/adapters/mcp/mcpServeRunner.ts'),
-      import('../../protocols/mcp/mcpAskUserInputHandler.ts'),
+      import('@omniharness/kernel/kernel/adapters/mcp/mcpServeRunner.js'),
+      import('@omniharness/kernel/protocols/mcp/mcpAskUserInputHandler.js'),
     ]);
     return new McpServeRunner().run(
       {
@@ -243,9 +243,9 @@ export class CliMcpCmds extends CliServerCmds {
       return 2;
     }
     const [{ McpHttpServer }, { McpAskUserInputHandler }, { McpProtocol }] = await Promise.all([
-      import('../../protocols/mcp/mcpHttpServer.ts'),
-      import('../../protocols/mcp/mcpAskUserInputHandler.ts'),
-      import('../../protocols/mcp/mcpProtocol.ts'),
+      import('@omniharness/kernel/protocols/mcp/mcpHttpServer.js'),
+      import('@omniharness/kernel/protocols/mcp/mcpAskUserInputHandler.js'),
+      import('@omniharness/kernel/protocols/mcp/mcpProtocol.js'),
     ]);
     const server = new McpHttpServer(
       {
@@ -286,8 +286,8 @@ export class CliMcpCmds extends CliServerCmds {
     }
     // 客户端方向走官方 SDK 优先（协议协商 + 远端 url 支持）；失败回落手写并打到 stderr。
     const [{ SdkPreferredMcpConnector }, { McpServerCommand }] = await Promise.all([
-      import('../../kernel/adapters/mcp/sdkPreferredMcpConnector.ts'),
-      import('../../protocols/mcp/mcpServerCommand.ts'),
+      import('@omniharness/kernel/kernel/adapters/mcp/sdkPreferredMcpConnector.js'),
+      import('@omniharness/kernel/protocols/mcp/mcpServerCommand.js'),
     ]);
     const connection = await new SdkPreferredMcpConnector().connect(
       McpServerCommand.parseMcpServerSpec(spec),
@@ -322,8 +322,8 @@ export class CliMcpCmds extends CliServerCmds {
       return 2;
     }
     const [{ SdkPreferredMcpConnector }, { McpServerCommand }] = await Promise.all([
-      import('../../kernel/adapters/mcp/sdkPreferredMcpConnector.ts'),
-      import('../../protocols/mcp/mcpServerCommand.ts'),
+      import('@omniharness/kernel/kernel/adapters/mcp/sdkPreferredMcpConnector.js'),
+      import('@omniharness/kernel/protocols/mcp/mcpServerCommand.js'),
     ]);
     const connection = await new SdkPreferredMcpConnector().connect(
       McpServerCommand.parseMcpServerSpec(spec),

@@ -19,12 +19,12 @@
  */
 import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { OmniHome } from '../../kernel/util/omniHome.ts';
-import type { Routine } from '../../contracts/ports/daemon/routine.ts';
-import { log } from '../../kernel/util/logger.ts';
-import type { RoutineModelAdapter } from '../../contracts/ports/daemon/routineModelAdapter.ts';
-import type { RoutineSchedule } from '../../contracts/ports/daemon/routineSchedule.ts';
-import type { CronSchedulePort } from '../../contracts/ports/daemon/cronSchedule.ts';
+import { OmniHome } from '@omniharness/kernel/kernel/util/omniHome.js';
+import type { Routine } from '@omniharness/kernel/contracts/ports/daemon/routine.js';
+import { log } from '@omniharness/kernel/kernel/util/logger.js';
+import type { RoutineModelAdapter } from '@omniharness/kernel/contracts/ports/daemon/routineModelAdapter.js';
+import type { RoutineSchedule } from '@omniharness/kernel/contracts/ports/daemon/routineSchedule.js';
+import type { CronSchedulePort } from '@omniharness/kernel/contracts/ports/daemon/cronSchedule.js';
 
 /**
  * 定时任务相关契约（唯一声明见 `src/contracts/ports/daemon/`：`routine.ts` / `routineModelAdapter.ts` /

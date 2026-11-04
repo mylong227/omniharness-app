@@ -1,6 +1,6 @@
-import { PluginLoader } from '../../../kernel/plugin/pluginLoader.ts';
-import { PluginProfileStore, type PluginProfile } from '../../../kernel/plugin/pluginProfileStore.ts';
-import { PluginBundler } from '../../../kernel/plugin/pluginBundler.ts';
+import { PluginLoader } from '@omniharness/kernel/kernel/plugin/pluginLoader.js';
+import { PluginProfileStore, type PluginProfile } from '@omniharness/kernel/kernel/plugin/pluginProfileStore.js';
+import { PluginBundler } from '@omniharness/kernel/kernel/plugin/pluginBundler.js';
 import { jsonRpc } from './jsonRpc.ts';
 import { AppServerBase } from './appServerBase.ts';
 

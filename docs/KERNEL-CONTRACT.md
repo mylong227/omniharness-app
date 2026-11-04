@@ -1,83 +1,124 @@
-# 本仓与内核（`@omniharness/kernel`）的关系与缺口
+# 本仓与内核（`@omniharness/kernel`）的契约
 
-> 实测日期 2026-11-04。**结论分两句**：
-> ① 本仓当前**是完整应用**（后端在 `src/`，87 个 RPC 方法都在、能跑、冒烟 5/5）；
-> ② 它**还没有**依赖 `@omniharness/kernel` —— `src/{kernel,contracts,protocols}` 是上游 0.4.0 的
-> 内嵌副本。把这份副本换成包里的一份，是本文档第 4 节的迁移，不是"接线"。
+> 实测日期 2026-11-04。**结论**：迁移已完成——应用不再有 `src/{kernel,contracts,protocols}`
+> 内嵌副本，后端核心从 `vendor/omniharness-kernel-0.1.0-alpha.4.tgz` 导入；应用只保留
+> **30 个内核明确不发布的应用形状模块**（`src/host/`）。`npm run kernel:check` 是这条边界的机检。
 
-## 1. 两侧实测
+## 1. 现在的依赖方向
 
-| | 本仓（应用） | `omniharness-kernel` |
-| --- | --- | --- |
-| 形态 | 应用宿主：静态托管 + JSON-RPC + SSE + CLI | 可嵌入库：`Runtime` + `Agent` + 端口 + workbench 桥 |
-| 后端文件 | `src/` 1334 个文件（1331 `.ts`；`src/apps` 167，其中 server 62） | `src/` 约 1200 个文件；公开面 **60 符号**（`api:check` 严守） |
-| HTTP 面 | `POST /rpc`（**87** 方法）、`GET /events`、`GET /files`、`GET /healthz`、`/readyz`、工作区预览源 | `GET /api/sessions`、`/api/sessions/:id/events`、`/state`、`POST /api/sessions/:id/answers`、`POST /api/audit/verify`、`GET /health` |
-| 事件模型 | 全局 `/events` → `ThreadEvent`（UI 侧再归约成 20+ 种面板状态） | 每会话 SSE → `SessionEvent`（`seq` 追加、`Last-Event-ID` 续传）+ 服务端 `WorkbenchState` 投影 |
-| 依赖关系 | 内嵌内核副本；**不 import 包**（包名导入 0 处） | 不知道 CLI/HTTP/React 的存在 |
+```text
+web/ + desktop/ ──HTTP/SSE──▶ src/apps（宿主：CLI / RPC / 会话 / 审批 / 插件宿主）
+                                   │
+                                   ├─▶ src/host（30 个应用形状模块：OIDC / license / tui /
+                                   │              codegen / SDK / Laya / toolHandler / A2A 补充）
+                                   │
+                                   └─▶ @omniharness/kernel@0.1.0-alpha.4（vendored tarball）
+                                          ├─ dist/kernel/**        主循环 / 工具 / 门禁 / 存储 / 审计
+                                          ├─ dist/contracts/**     端口 / 类型 / schema
+                                          ├─ dist/protocols/**     ACP / MCP / AG-UI / A2A
+                                          └─ native/omni_napi.node 原生内核（随包）
+```
 
-> 数字口径：`Select-String -Path (Get-ChildItem src/apps -Recurse -Filter *.ts) -Pattern "from '[^']*(kernel|contracts|protocols)/"`
-> → **421 处 / 104 个文件**（与上游 `docs/M2_APP_MIGRATION.md` 的测绘完全一致：切分时未改动应用代码）。
+- 应用**不**再通过相对路径穿透内核；`src/**` 的 649 处导入都指向包路径。
+- `src/host/**` 内部允许相对导入——它们指向 `src/host/contracts/**` 等同层文件，不是内嵌副本。
+- 内核包内的 `kernel/composition/{runtime,serviceKeys,a2aBridge}.ts`、`kernel/rpc/jsonRpc.ts`、
+  `kernel/transport/**` 是内核仓自带的宿主装配件；本应用使用自己的
+  `src/apps/composition` 与 `src/apps/server/transport`，不依赖这些重复实现。
 
-## 2. 为什么不能"直接把 UI 接到内核 workbench 上"
+## 2. 迁移规模（可复核）
 
-UI 需要 87 个方法，内核 workbench 只提供 4 个端点。按域展开：
+| 指标 | 数值 | 复核方式 |
+| ---- | ---- | -------- |
+| 原 `src/apps` 对内核的相对导入 | 421 处 / 104 文件 | 迁移前 `Select-String`（旧文档基线） |
+| 迁移后 `src/**` 包导入 | **649 处 / 200 个源文件** | `npm run kernel:check` |
+| 删除的内嵌文件 | **1163 个**（`src/{kernel,contracts,protocols}` 全量文件，含非 TS） | `git diff --name-only HEAD -- src/kernel src/contracts src/protocols` |
+| 删除行数 | 144,585 行 | `git diff --stat HEAD` |
+| `src/host` 应用形状模块 | **30 个文件**（29 `.ts` + `laya_infer.py`） | `Get-ChildItem src/host -Recurse -File` |
+| vendored 内核包 | `omniharness-kernel-0.1.0-alpha.4.tgz`（含原生内核） | `src/../vendor/` |
 
-| 域 | 方法（节选） | 内核现状 |
-| --- | --- | --- |
-| 回合 | `turns.run/abort/steer/interject`、`threads.get/rewind` | 能力在内核（`Agent.runTask`、`CancellationToken`、rewindRegistry），**无 HTTP 面** |
-| 会话 | `sessions.list/archive/delete/fork/rename/reorder/setWorkspace` | 部分（storage + hub）；归档/分叉/排序是应用逻辑 |
-| 配置/模型 | `config.get/update`、`model.catalog/probe`、`profile.*`、`quota.*`、`modes.*` | `ConfigFactory` 有；目录/探测/配额是应用服务 |
-| 工作区/文件 | `workspace.*`、`fs.*`、`search.all`、`attach.read`、`changes.*`、`checkpoint.*` | 文件工具在内核；浏览/差异/暂存/检查点是应用编排 |
-| 审批/提问 | `approval.*`、`question.pending/respond` | `ApprovalPort` + `WorkbenchHub` 提问桥 ✅ |
-| 审计/追踪 | `audit.query`、`trace.read`、`governance.history`、`usage.stats` | 回执链/审计包复核 ✅；查询/追踪在应用侧 |
-| 扩展 | `plugins.*`、`skills.list`、`memory.*`、`automations.*`、`graph.*`、`bundle.*`、`vault.*`、`doctor.report`、`daemon.status` | 内核有 skill/memory 原语；插件宿主/自动化/图谱/打包/保险库在应用侧 |
+## 3. 为什么钉 alpha.4，而不是当前 alpha.6
 
-## 3. 三条路径（本仓已选 A 的第一段）
+内核 alpha.5 的「应用形状清零」删除了本应用仍在使用的整棵能力：
 
-| 路径 | 做法 | 代价 | 现状 |
-| --- | --- | --- | --- |
-| **A. 应用自带宿主**（当前） | `src/apps` 实现 87 个方法；内核只作为库被 `src/apps` 使用 | 应用与内核同仓共演进；内核副本需迁移 | ✅ 已完整切出并跑通 |
-| **B. UI 直连 workbench** | 砍到 4 端点能表达的面板 | UI 功能大幅缩水、159 个前端判据多数重写 | 未选 |
-| **C. RPC 面下沉内核** | 87 方法进 `@omniharness/kernel/rpc` | 违反内核公开面 ≤60 与"内核卖边界" | 不选 |
+- `kernel/plugin/**`（插件宿主 / 打包 / 签名 / 权限）
+- `kernel/asset/**`（资产包 / WASM 技能包）
+- `kernel/media/**` 与 `protocols/a2a` 的部分实现
+- `kernel/adapters/laya`、`kernel/adapters/enterprise`、`kernel/sdk`
+- `contracts/ports/{license,tui,daemon,enterprise,server/audit*}` 等应用契约
 
-## 4. 把内嵌副本换成内核包的迁移（M2 口径）
+alpha.4 是**最后一个完整面**，也是内核仓为「第一个消费者迁移」发布的 subpath bridge
+（`package.json#exports` 的 `./*` / `./*.js` 就是为此加的）。在应用侧完成这些模块的归位之前，
+升到 alpha.5/6 会把「能跑」换成「少功能」，所以本次选择 alpha.4 并把差异固定在锁定文件里。
 
-当前 `src/{kernel,contracts,protocols}` 是副本；迁移 = 删副本 + 钉 `@omniharness/kernel` 版本。
-上游已测绘过，数字可直接复用：
+**升级触发条件**（满足任一再做）：
 
-| 类别 | 规模 | 处置 |
-| --- | --- | --- |
-| A. 契约类型（`contracts/ports/**`） | 144 处 | 换公开面/子路径；缺的类型先在内核加导出（受 ≤60 约束） |
-| B. 通用工具（`kernel/util/**`、`kernel/plugin`） | 105 处 | 要么内核公开，要么应用自带 |
-| C. 装配面（`kernel/adapters/**`、`kernel/config/**`） | 86 处 | 改 `ConfigFactory` 注入，不 import 适配器 |
-| 合计 | **421 处 / 104 文件** | 没有一处应原样保留 |
+1. 内核把插件/资产/A2A/企业能力重新收编并进入公开面或稳定子路径；
+2. 应用把 `src/host` 的对应模块迁到应用自己的服务层（不再依赖内核内部路径）；
+3. 本应用不再提供这些功能（明确砍需求），此时可删 host 模块并升 alpha.6。
 
-**顺序**（每批 ≤15 文件、一个可回归 commit）：
+## 4. `src/host` 清单（30 个文件，按归位方向分组）
 
-1. 基线：本仓 `npm run verify` 记下绿/红（当前绿）；
-2. A 类（类型面）→ C 类（装配面）→ B 类（工具面）；
-3. 删 `src/{kernel,contracts,protocols}`，`package.json` 钉版本；
-4. 再跑 `npm run verify`——**删了还绿**才算迁移完成（否则只是两套内核并存）。
+| 组 | 文件 | 为什么在本仓 |
+| -- | ---- | ------------ |
+| 企业 OIDC | `contracts/ports/enterprise/*`（5）、`kernel/adapters/enterprise/{joseIdTokenVerifier,openIdClientFlow}.ts` | alpha.3 起被内核判为应用形状；CLI/企业登录仍在用 |
+| License | `contracts/ports/license/{entitlement,licenseTier}.ts` | 商业授权属于应用域 |
+| TUI | `contracts/ports/tui/{tuiEvent,tuiEventKind,tuiTaskRunner}.ts` | TUI 是应用外壳，不是内核 |
+| 服务端审计 | `contracts/ports/server/{auditFormat,auditQuery}.ts` | Web 审计查询面属于宿主 |
+| 代码生成 | `contracts/schema/codeGenerator.ts` | 生成 CLI/协议代码，依赖应用的 schema 清单 |
+| SDK | `contracts/sdk/{sdkClient,webSocketSdkSocket}.ts` | 面向本应用 RPC 的客户端 |
+| Laya 决策引擎 | `kernel/adapters/laya/*`（10 个 `.ts` + `laya_infer.py`）、`kernel/config/decisionEngineResolver.ts` | 第三方 venv/权重绑定，内核 alpha.2 起移出；由应用在装配期注入 `decisionEnginePort` |
+| 工具类型 | `kernel/adapters/tool/toolHandler.ts` | 仅做类型转出口，内核已把契约移到 `contracts/ports/tool/toolHandler.ts` |
+| A2A 补充 | `protocols/a2a/{a2aProtocol,a2aTaskHandler}.ts` | 应用侧对 A2A v0.3 的兼容类型/处理器 |
 
-**已知风险**：内核 alpha 仍在演进（如 `adapters/laya` 已移出、`decisionEngine` 改为注入）。
-上游 `migration/kernel-package` 分支是 WIP（tsc 绿、75 个测试文件待分流），不能直接当基线；
-应按当前内核版本重跑类型检查，缺的符号走内核 issue。
+> 这些文件不是「复制内核」：它们在内核 alpha.4 的源码树里**不存在**。
+> `src/host` 的导入若指向内核已有模块，一律走包路径（如 `@omniharness/kernel/kernel/util/logger.js`）。
 
-## 5. 本仓已做的适配（可审计，见 git log）
+## 5. 迁移时做的三件非机械改动
 
-| 位置 | 改动 | 目的 |
-| ---- | ---- | ---- |
-| 根 `package.json` | 前后端依赖合并、`build`/`dev`/`start`/`smoke`/`verify` | 一套安装、一套命令，不依赖上游 |
-| `vite.config.ts` / `vitest.config.ts` | 独立配置；`OMNI_BACKEND_ORIGIN` 可覆盖代理目标 | 前端可指向任意后端；判据单项目运行 |
-| `tsconfig.json` | include 收窄为 `src/**/*.ts`（不再含 tests/examples） | 后端只编自己的源码 |
-| `scripts/copyAssets.mjs` | 额外镜像 `native/*.node → dist/native` | 从 `dist` 启动时 `NativeKernel` 能加载（否则必回退 TS） |
-| `scripts/smoke.mjs` | 新增：真起 serve 的五条端到端判据 | "能构建"不等于"能跑"，冒烟给出可复核证据 |
-| `desktop/src/main/lib/paths.ts` | `OMNI_BACKEND_ROOT` / `OMNI_HARNESS_ENTRY` | 桌面后端根可配（联调/回滚/未来内核宿主） |
-| `desktop/scripts/stageHarness.mjs` | `appRoot`（web 产物）与 `backendRoot`（dist/native/依赖）分开 | 打包时前端取本仓、后端可指向另一份工作树 |
-| `web/test/vendorAndTypeSource.test.ts` | 判据指向本仓真实门禁（`vitest.config.ts`、`web/tsconfig.json` 的 `.tsx` 覆盖） | 不抄上游 lint 配置，避免"配置存在但没人跑"的假绿 |
+1. **决策引擎注入**：alpha.2 起 `ConfigFactory` 不再内置 Laya；生产入口默认 `shadow`，
+   不注入会 fail-closed。`src/apps/cli/cliConfigSections.ts#decisionEnginePort()` 把
+   `DecisionEngineResolver` 构造的实例注入 `ConfigFactory.build`。
+2. **A2A 生产默认**：alpha.4 的 `A2aTaskExecutor` 要求 `buildSubagent / runTask / filterTools`
+   三项注入。组合根改用内核 `kernel/composition/a2aBridge.js` 的
+   `a2aBuildSubagent / a2aRunTask / a2aFilterTools`，不再依赖已删除的默认实现。
+3. **默认数据锚点**：`cliHelp.json` 是应用资产（alpha.3 从内核删除）。`cliHelp.ts` 改用
+   应用仓根的 `BuiltinDefaults.locatePackageRoot(...)`；其余 `defaults/*.json` 与内核包内容
+   逐字节一致（`git diff` 仅差 `cliHelp.json`）。
 
-## 6. 下一步（按价值排序）
+## 6. 门禁：`npm run kernel:check`
 
-1. **把 421 处导入换成包路径**（第 4 节 A→C→B）；完成后删除 1160 个文件的内嵌副本；
-2. 内核若需要新的宿主端点，先在内核开 issue 并过 `api:check`，不在本仓私接；
-3. 桌面 GUI 验收：在真实桌面跑 `npm run desktop:smoke`（受限会话起不来 Electron）。
+六条判据（任一失败退出码 1，`verify` 的第二道）：
+
+1. `package.json` 的 `@omniharness/kernel` 必须是 `file:vendor/*.tgz`；
+2. 仓库根不得存在 `src/{kernel,contracts,protocols}`；
+3. `src/**` 不得有解析到这三个目录的相对导入；
+4. `src/**` 必须存在包导入（防止「只改配置、代码没用上」）；
+5. `vendor/*.tgz` 的 SHA-512 必须等于 `package-lock.json` 的 integrity；
+6. `NativeKernel.available() === true` 且 `ping()` 成功。
+
+重建发行物：`npm run kernel:vendor`（默认从 `../omniharness-kernel` 的 `v0.1.0-alpha.4`
+建 worktree、build、注入 `native/omni_napi.node`、补 `files`、pack、更新 lock）。
+
+## 7. 已知边界与风险
+
+- **alpha.4 与 alpha.6 的 API 差异**：alpha.4 的 `AgentPort` 已带 `sessionId` /
+  `cancelCurrentRun`，`A2aTaskExecutor` 改为注入式；本仓已按 alpha.4 适配。若升 alpha.6，
+  需重跑 `npm run typecheck` 并复核 `agentPort` / `a2a` / 插件面。
+- **vendored tarball 是二进制发行物**：不是 `npm publish` 的 alpha.4。用 `kernel:vendor`
+  重建，`kernel:check` 钉 integrity；不要手工改 tarball。
+- **桌面打包**：`stageHarness.mjs` 会把 `vendor/` 一起带进 `.desktop-stage`，否则 stage 内
+  `npm ci` 无法解析 `file:` 依赖；这是迁移后新增的打包前提。
+- **原生内核**：随 tarball 分发；若内核升级，必须用 `kernel:vendor` 重新注入与应用 ABI 匹配的
+  `native/omni_napi.node`，否则 `kernel:check` 第 6 条会红。
+
+## 8. 证据
+
+| 检查 | 结果 |
+| ---- | ---- |
+| `npm run typecheck`（后端 / 前端 / 桌面） | ✅ 0 error |
+| `npm run kernel:check` | ✅ 200 源文件 / 649 包导入 / 内嵌副本 0 / integrity 一致 / native ping |
+| `npm run build` + `npm run smoke` | ✅ 7/7（banner token、healthz、readyz、HTML、config.get、sessions.list、原生内核实载） |
+| `npm run web:test` | ✅ 145 文件 / 717 用例 |
+| `npm run desktop:build` + `desktop:test` | ✅ 25/25 |
+| `npm run desktop:smoke` | ✅ 8/8：真实桌面窗口 / 侧车 / UI origin / DOM 挂载（见 [DESKTOP-SMOKE.md](DESKTOP-SMOKE.md)） |
+| `npm run desktop:stage` + staged serve | ✅ 251 个生产依赖；staged `NativeKernel` 可加载，`/healthz` `/readyz` `/rpc` 全 200 |

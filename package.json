@@ -29,6 +29,8 @@
     "typecheck:backend": "tsc -p tsconfig.json --noEmit",
     "typecheck:web": "tsc -p web/tsconfig.json --noEmit",
     "typecheck:desktop": "tsc -p desktop/tsconfig.json --noEmit",
+    "kernel:check": "node scripts/checkKernelBoundary.mjs",
+    "kernel:vendor": "node scripts/vendorKernel.mjs",
     "desktop:build": "npm --prefix desktop run build",
     "desktop:start": "npm --prefix desktop start",
     "desktop:test": "npm --prefix desktop test",
@@ -37,10 +39,11 @@
     "desktop:dist": "npm --prefix desktop run dist",
     "test": "npm run web:test",
     "smoke": "node scripts/smoke.mjs",
-    "verify": "npm run typecheck && npm run web:test && npm run build && npm run build:web && npm run smoke && npm run desktop:build && npm run desktop:test"
+    "verify": "npm run typecheck && npm run kernel:check && npm run web:test && npm run build && npm run build:web && npm run smoke && npm run desktop:build && npm run desktop:test"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.0",
+    "@omniharness/kernel": "file:vendor/omniharness-kernel-0.1.0-alpha.4.tgz",
     "antd": "6.6.8",
     "croner": "10.0.1",
     "highlight.js": "^11.12.0",

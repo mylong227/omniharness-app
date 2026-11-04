@@ -1,6 +1,6 @@
 /** 自动化调度器：按间隔把到期任务交给运行回调。 */
 import type { Automation, AutomationStore } from './automationStore.ts';
-import { log } from '../../../kernel/util/logger.ts';
+import { log } from '@omniharness/kernel/kernel/util/logger.js';
 
 /** 自动化调度器。 */
 export class AutomationScheduler {

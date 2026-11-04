@@ -1,7 +1,7 @@
 import { readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
-import type { SessionEvent } from '../../../contracts/ports/runtime/event.ts';
-import { AsyncChildProcess } from '../../../kernel/util/asyncChildProcess.ts';
+import type { SessionEvent } from '@omniharness/kernel/contracts/ports/runtime/event.js';
+import { AsyncChildProcess } from '@omniharness/kernel/kernel/util/asyncChildProcess.js';
 
 /**
  * 未跟踪文件预览/统计上限（2 MiB）。

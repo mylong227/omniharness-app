@@ -8,8 +8,8 @@
  */
 
 import { join } from 'node:path';
-import { configFile } from '../../kernel/config/configFile.ts';
-import { PluginProfileStore } from '../../kernel/plugin/pluginProfileStore.ts';
+import { configFile } from '@omniharness/kernel/kernel/config/configFile.js';
+import { PluginProfileStore } from '@omniharness/kernel/kernel/plugin/pluginProfileStore.js';
 import { CliArgReader } from './cliArgReader.ts';
 
 /** profile 用法提示。 */

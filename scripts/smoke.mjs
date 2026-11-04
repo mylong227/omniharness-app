@@ -7,7 +7,9 @@
  *   2. `GET /healthz` → 200 + JSON（公开，免鉴权）；
  *   3. `GET /readyz` → 200（公开，免鉴权）；
  *   4. `GET /?token=…` → 200 + HTML 含 `id="root"`（说明静态托管指到 `web/dist`）；
- *   5. `POST /rpc config.get`（Bearer）→ JSON-RPC `result` 对象（说明 RPC 分发与会话装配可用）。
+ *   5. `POST /rpc config.get`（Bearer）→ JSON-RPC `result` 对象（说明 RPC 分发与会话装配可用）；
+ *   6. `POST /rpc sessions.list`（Bearer）→ `result.sessions` 是数组（会话存储/工作区作用域可用）；
+ *   7. `@omniharness/kernel` 的 `NativeKernel.available()` 为真且 `ping()` 通过（原生内核随包可加载）。
  *
  * 用法：`npm run smoke`（可选 `--keep` 保留工作区目录便于排查）。
  * 退出码：0 全过 / 1 断言失败 / 2 启动超时。
@@ -87,6 +89,28 @@ try {
     'POST /rpc config.get 有 result',
     rpc.status === 200 && rpcBody !== null && typeof rpcBody === 'object' && 'result' in rpcBody,
     `HTTP ${String(rpc.status)}${'error' in rpcBody ? ` error=${JSON.stringify(rpcBody.error)}` : ''}`,
+  );
+
+  const sessionsRpc = await fetch(`${origin}/rpc`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${uiUrl.token}` },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'sessions.list', params: {} }),
+  });
+  const sessionsBody = await sessionsRpc.json().catch(() => ({}));
+  check(
+    'POST /rpc sessions.list 有数组',
+    sessionsRpc.status === 200 &&
+      Array.isArray(sessionsBody?.result?.sessions),
+    `HTTP ${String(sessionsRpc.status)} count=${String(sessionsBody?.result?.sessions?.length ?? '?')}`,
+  );
+
+  const { NativeKernel } = await import('@omniharness/kernel/kernel/native/nativeKernel.js');
+  const native = new NativeKernel();
+  const pong = native.available() ? native.ping() : { ok: false, native: false };
+  check(
+    '原生内核实载',
+    native.available() && pong.ok === true && pong.native === true,
+    `${native.modulePath()} ping=${JSON.stringify(pong)}`,
   );
 } catch (error) {
   process.stderr.write(`✗ 冒烟异常：${String(error?.message ?? error)}\n`);

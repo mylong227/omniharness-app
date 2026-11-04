@@ -1,19 +1,19 @@
-import type { SessionEvent } from '../../../contracts/ports/runtime/event.ts';
-import type { ModelContextSnapshot } from '../../../contracts/ports/model/model.ts';
-import type { ToolDefinition } from '../../../contracts/ports/tool/tool.ts';
-import { ContextAssembler } from '../../../kernel/context/contextAssembler.ts';
+import type { SessionEvent } from '@omniharness/kernel/contracts/ports/runtime/event.js';
+import type { ModelContextSnapshot } from '@omniharness/kernel/contracts/ports/model/model.js';
+import type { ToolDefinition } from '@omniharness/kernel/contracts/ports/tool/tool.js';
+import { ContextAssembler } from '@omniharness/kernel/kernel/context/contextAssembler.js';
 import {
   ContextBreakdownEstimator,
   type ContextBreakdown,
   type ContextBreakdownRow,
-} from '../../../kernel/context/contextBreakdownEstimator.ts';
-import { ContextWindowCatalog } from '../../../kernel/context/contextWindowCatalog.ts';
-import { CacheHitRateWatch } from '../../../kernel/observability/cacheHitRateWatch.ts';
+} from '@omniharness/kernel/kernel/context/contextBreakdownEstimator.js';
+import { ContextWindowCatalog } from '@omniharness/kernel/kernel/context/contextWindowCatalog.js';
+import { CacheHitRateWatch } from '@omniharness/kernel/kernel/observability/cacheHitRateWatch.js';
 import {
   CacheMissAttributionAnalyst,
   type CacheMissAttribution,
   type CacheMissCause,
-} from '../../../kernel/observability/cacheMissAttributionAnalyst.ts';
+} from '@omniharness/kernel/kernel/observability/cacheMissAttributionAnalyst.js';
 
 /** 单条**上报了缓存字段**的调用样本（`cacheStat` 内部备料用；不进公共 API 面）。 */
 interface CacheCallSample {

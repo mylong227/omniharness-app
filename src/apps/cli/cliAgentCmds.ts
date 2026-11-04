@@ -8,25 +8,25 @@
 
 import { resolve } from 'node:path';
 import { readFile } from 'node:fs/promises';
-import { configFile } from '../../kernel/config/configFile.ts';
-import { WorkspaceTrust } from '../../kernel/config/workspaceTrust.ts';
-import { Agent } from '../../kernel/core/agent.ts';
-import type { AgentResult } from '../../kernel/core/agent.ts';
+import { configFile } from '@omniharness/kernel/kernel/config/configFile.js';
+import { WorkspaceTrust } from '@omniharness/kernel/kernel/config/workspaceTrust.js';
+import { Agent } from '@omniharness/kernel/kernel/core/agent.js';
+import type { AgentResult } from '@omniharness/kernel/kernel/core/agent.js';
 import { Runtime } from '../composition/runtime.ts';
-import { GoalRunner } from '../../kernel/autonomy/goalRunner.ts';
-import { GoalChecker } from '../../kernel/autonomy/goalChecker.ts';
-import { WorkflowRunner } from '../../kernel/autonomy/workflowRunner.ts';
-import type { WorkflowDef } from '../../kernel/autonomy/workflowTypes.ts';
-import { SubagentPorts } from '../../kernel/subagent/subagentPorts.ts';
+import { GoalRunner } from '@omniharness/kernel/kernel/autonomy/goalRunner.js';
+import { GoalChecker } from '@omniharness/kernel/kernel/autonomy/goalChecker.js';
+import { WorkflowRunner } from '@omniharness/kernel/kernel/autonomy/workflowRunner.js';
+import type { WorkflowDef } from '@omniharness/kernel/kernel/autonomy/workflowTypes.js';
+import { SubagentPorts } from '@omniharness/kernel/kernel/subagent/subagentPorts.js';
 import { RoutineScheduler } from '../daemon/routineScheduler.ts';
 import type { Routine, RoutineSchedule, RoutineModelAdapter } from '../daemon/routineScheduler.ts';
 import { Interactive } from '../tui/interactive.ts';
 import { TuiAgentBridge } from '../tui/tuiAgentBridge.ts';
 import type { TuiEvent } from '../tui/tuiRenderer.ts';
 import { ArgParser, CliDefaults } from './argParser.ts';
-import { CronerSchedule } from '../../kernel/adapters/schedule/cronerSchedule.ts';
+import { CronerSchedule } from '@omniharness/kernel/kernel/adapters/schedule/cronerSchedule.js';
 import type { CliArgs } from './argParser.ts';
-import { ModelCapabilityProbe } from '../../kernel/adapters/model/modelCapabilityProbe.ts';
+import { ModelCapabilityProbe } from '@omniharness/kernel/kernel/adapters/model/modelCapabilityProbe.js';
 import { CliNativeCmds } from './cliNativeCmds.ts';
 import {
   ACP_PERMISSION_MODES,
@@ -36,7 +36,7 @@ import {
   type AcpPermissionMode,
   type AcpSessionOptions,
   type AcpSessionRuntime,
-} from '../../protocols/acp/index.ts';
+} from '@omniharness/kernel/protocols/acp/index.js';
 
 /** 自主 / 编排 / 交互类子命令。 */
 export class CliAgentCmds extends CliNativeCmds {
@@ -50,7 +50,7 @@ export class CliAgentCmds extends CliNativeCmds {
     agent: Agent,
     args: CliArgs,
   ): Promise<{
-    events: readonly import('../../contracts/ports/runtime/event.ts').SessionEvent[];
+    events: readonly import('@omniharness/kernel/contracts/ports/runtime/event.js').SessionEvent[];
     summary: unknown;
   }> {
     if (args.replayId !== undefined) {
@@ -76,7 +76,7 @@ export class CliAgentCmds extends CliNativeCmds {
     agent: Agent,
     args: CliArgs,
   ): Promise<{
-    events: readonly import('../../contracts/ports/runtime/event.ts').SessionEvent[];
+    events: readonly import('@omniharness/kernel/contracts/ports/runtime/event.js').SessionEvent[];
     summary: unknown;
   }> {
     const result = await agent.runTask(args.prompt);
@@ -93,7 +93,7 @@ export class CliAgentCmds extends CliNativeCmds {
     agent: Agent,
     args: CliArgs,
   ): Promise<{
-    events: readonly import('../../contracts/ports/runtime/event.ts').SessionEvent[];
+    events: readonly import('@omniharness/kernel/contracts/ports/runtime/event.js').SessionEvent[];
     summary: unknown;
   }> {
     const result = await agent.resume(args.resumeId!, args.prompt);
@@ -110,7 +110,7 @@ export class CliAgentCmds extends CliNativeCmds {
     agent: Agent,
     args: CliArgs,
   ): Promise<{
-    events: readonly import('../../contracts/ports/runtime/event.ts').SessionEvent[];
+    events: readonly import('@omniharness/kernel/contracts/ports/runtime/event.js').SessionEvent[];
     summary: unknown;
   }> {
     const result = await agent.fork(args.forkId!, args.prompt);

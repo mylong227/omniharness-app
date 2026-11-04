@@ -20,14 +20,14 @@
  * @maturityEvidence tests/unit/featureEntitlements.test.ts
  */
 import { LicenseEngine } from './licenseEngine.ts';
-import { log } from '../../kernel/util/logger.ts';
+import { log } from '@omniharness/kernel/kernel/util/logger.js';
 import type { LicenseVerdict } from './licenseEngine.ts';
 import type {
   EntitlementDecision,
   EntitlementDenialCode,
   EntitlementPort,
-} from '../../contracts/ports/license/entitlement.ts';
-import type { LicenseTier } from '../../contracts/ports/license/licenseTier.ts';
+} from './../../host/contracts/ports/license/entitlement.ts';
+import type { LicenseTier } from './../../host/contracts/ports/license/licenseTier.ts';
 
 /** 观测回调（缺省写共享 logger；判据注入采集器以钉死事件口径）。 */
 export type EntitlementObserver = (event: string, fields: Record<string, unknown>) => void;

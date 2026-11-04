@@ -11,16 +11,16 @@ import {
 import { readdir, stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { sessionSummaryPath } from '../../../../kernel/util/sessionSummarySidecar.ts';
+import { sessionSummaryPath } from '@omniharness/kernel/kernel/util/sessionSummarySidecar.js';
 import type { Metrics } from '../metrics.ts';
-import type { LocalDay } from '../../../../kernel/util/localDay.ts';
+import type { LocalDay } from '@omniharness/kernel/kernel/util/localDay.js';
 import { SessionSidecars } from './sessionSidecars.ts';
 import { SessionRanking } from './sessionRanking.ts';
-import { SessionArchiveLayout } from '../../../../kernel/util/sessionArchiveLayout.ts';
-import { log } from '../../../../kernel/util/logger.ts';
+import { SessionArchiveLayout } from '@omniharness/kernel/kernel/util/sessionArchiveLayout.js';
+import { log } from '@omniharness/kernel/kernel/util/logger.js';
 import { SessionFileScanner } from './sessionFileScanner.ts';
 import { SessionScanCache } from './sessionScanCache.ts';
-import { WorkspaceIdentity } from '../../../../kernel/util/workspaceIdentity.ts';
+import { WorkspaceIdentity } from '@omniharness/kernel/kernel/util/workspaceIdentity.js';
 
 /** 会话存档默认子目录（相对工作区）。 */
 const DEFAULT_SESSIONS_DIR = '.omniharness/sessions';

@@ -38,7 +38,8 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import sirv, { type RequestHandler } from 'sirv';
 import { SafeFs } from '../services/safeFs.ts';
-import { runtimeLimits, type PreviewLimits } from '../../../kernel/util/runtimeLimits.ts';
+import { runtimeLimits } from '@omniharness/kernel/kernel/util/runtimeLimits.js';
+import type { PreviewLimits } from '@omniharness/kernel/contracts/ports/config/runtimeLimits.js';
 
 /** 预览源选项。 */
 export interface PreviewServerOptions {

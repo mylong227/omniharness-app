@@ -1,7 +1,7 @@
-import type { RpcMessage } from '../../../contracts/ports/server/rpcMessage.ts';
-import type { Transport } from '../../../contracts/ports/server/transport.ts';
+import type { RpcMessage } from '@omniharness/kernel/contracts/ports/server/rpcMessage.js';
+import type { Transport } from '@omniharness/kernel/contracts/ports/server/transport.js';
 
-export type { Transport } from '../../../contracts/ports/server/transport.ts';
+export type { Transport } from '@omniharness/kernel/contracts/ports/server/transport.js';
 
 /** 行式 JSON 传输（stdio / 管道通用）。 */
 export class LineTransport implements Transport {

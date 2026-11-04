@@ -1,0 +1,112 @@
+#!/usr/bin/env node
+/**
+ * 内核边界门禁：证明本应用**真的**在消费 `@omniharness/kernel`，而不是又长回一份内嵌副本。
+ *
+ * 六条判据（任一失败退出码 1）：
+ * 1. `package.json` 的 `@omniharness/kernel` 必须是 `file:vendor/*.tgz`（单一真源 + 可复现）；
+ * 2. 仓库根不得再存在 `src/{kernel,contracts,protocols}`；
+ * 3. `src/**` 不得出现解析到这三个目录的相对导入（宿主的相对路径必须落在 `src/host` 内）；
+ * 4. `src/**` 必须存在指向包路径的导入（证明不是只改配置、代码没用上）；
+ * 5. `vendor/*.tgz` 的 SHA-512 必须与 `package-lock.json` 里记录的 integrity 逐字节一致；
+ * 6. 包内原生内核必须可加载（`NativeKernel.available() === true` 且 ping 成功）。
+ *
+ * 为什么需要它：迁移最容易出现的假绿是「删了目录、代码还靠 tsconfig paths / 缓存里的旧副本」。
+ * 本门禁以文件系统 + 锁文件 + 真实 require 三个角度钉住。
+ */
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { dirname, join, relative, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const failures = [];
+
+const fail = (message) => failures.push(message);
+
+// 1. 依赖钉的是 vendored tarball
+const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+const dep = pkg.dependencies?.['@omniharness/kernel'];
+if (typeof dep !== 'string' || !/^file:vendor\/.+\.tgz$/.test(dep)) {
+  fail(`package.json 的 @omniharness/kernel 必须是 file:vendor/*.tgz（当前 ${String(dep)}）`);
+}
+
+// 2. 内嵌副本目录必须消失
+for (const dir of ['kernel', 'contracts', 'protocols']) {
+  if (existsSync(join(ROOT, 'src', dir))) fail(`src/${dir} 仍存在：内嵌副本未删干净`);
+}
+
+// 3/4. 全源码扫描
+const importRe = /(?:\bfrom\s+|\bimport\s*\(\s*|\bimport\s+)['"]([^'"]+)['"]/g;
+const walk = (dir, out = []) => {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const abs = join(dir, entry.name);
+    if (entry.isDirectory()) walk(abs, out);
+    else if (/\.(ts|tsx|mts)$/.test(entry.name)) out.push(abs);
+  }
+  return out;
+};
+const srcFiles = walk(join(ROOT, 'src'));
+let packageImports = 0;
+const leaks = [];
+for (const file of srcFiles) {
+  const text = readFileSync(file, 'utf8');
+  let match;
+  while ((match = importRe.exec(text)) !== null) {
+    const spec = match[1];
+    if (spec.startsWith('@omniharness/kernel/') || spec === '@omniharness/kernel') {
+      packageImports += 1;
+      continue;
+    }
+    if (!spec.startsWith('.')) continue;
+    const target = resolve(dirname(file), spec);
+    const rel = relative(join(ROOT, 'src'), target).replaceAll(sep, '/');
+    if (/^(kernel|contracts|protocols)\//.test(rel)) {
+      leaks.push(`${relative(ROOT, file)} -> ${spec}`);
+    }
+  }
+}
+if (leaks.length > 0) {
+  fail(`仍有相对导入穿透内嵌目录（${String(leaks.length)} 处）：\n    ${leaks.slice(0, 10).join('\n    ')}`);
+}
+if (packageImports === 0) fail('src/** 没有任何 @omniharness/kernel 导入：代码没有真正切到包');
+
+// 5. tarball 与锁文件 integrity 一致
+if (typeof dep === 'string' && dep.startsWith('file:')) {
+  const tarball = resolve(ROOT, dep.slice('file:'.length));
+  if (!existsSync(tarball)) {
+    fail(`vendored tarball 不存在：${tarball}`);
+  } else {
+    const lock = JSON.parse(readFileSync(join(ROOT, 'package-lock.json'), 'utf8'));
+    const locked = lock.packages?.['node_modules/@omniharness/kernel'];
+    const actual = `sha512-${createHash('sha512').update(readFileSync(tarball)).digest('base64')}`;
+    if (locked?.integrity !== actual) {
+      fail(
+        `vendored tarball 与 package-lock integrity 不一致（lock=${String(locked?.integrity)}，actual=${actual}）`,
+      );
+    }
+  }
+}
+
+// 6. 原生内核真实可加载
+try {
+  const { NativeKernel } = await import('@omniharness/kernel/kernel/native/nativeKernel.js');
+  const native = new NativeKernel();
+  if (!native.available()) {
+    fail(`原生内核不可用（pluginPath=${native.modulePath()}）`);
+  } else {
+    const pong = native.ping();
+    if (pong.ok !== true || pong.native !== true) fail(`原生内核 ping 失败：${JSON.stringify(pong)}`);
+  }
+} catch (error) {
+  fail(`原生内核加载抛错：${error instanceof Error ? error.message : String(error)}`);
+}
+
+if (failures.length > 0) {
+  process.stderr.write(`kernel:check 失败 —— ${String(failures.length)} 项：\n`);
+  for (const message of failures) process.stderr.write(`  - ${message}\n`);
+  process.exit(1);
+}
+process.stdout.write(
+  `kernel:check OK —— ${String(srcFiles.length)} 个源文件 / ${String(packageImports)} 处包导入 / ` +
+    `内嵌副本 0 / vendored tarball integrity 一致 / 原生内核实载\n`,
+);

@@ -11,11 +11,11 @@
 import { existsSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { configFile } from '../../kernel/config/configFile.ts';
-import { OmniHome } from '../../kernel/util/omniHome.ts';
+import { configFile } from '@omniharness/kernel/kernel/config/configFile.js';
+import { OmniHome } from '@omniharness/kernel/kernel/util/omniHome.js';
 import { ArgParser } from './argParser.ts';
 import { CliArgReader } from './cliArgReader.ts';
-import { PortablePath } from '../../kernel/util/portablePath.ts';
+import { PortablePath } from '@omniharness/kernel/kernel/util/portablePath.js';
 
 /**
  * serve 的工作区解析器（无状态，纯静态）：显式旗标 > 本机固定项目 > 启动目录。

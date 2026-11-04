@@ -1,5 +1,5 @@
 import { appendFile } from 'node:fs/promises';
-import type { SessionEvent } from '../../contracts/ports/runtime/event.ts';
+import type { SessionEvent } from '@omniharness/kernel/contracts/ports/runtime/event.js';
 
 /** JSONL 写出器：事件流结构化输出（stdout 或文件）。 */
 export class JsonlWriter {

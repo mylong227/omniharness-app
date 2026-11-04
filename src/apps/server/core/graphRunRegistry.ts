@@ -12,8 +12,8 @@
  * 把上帝类推过代码行阈值。
  */
 
-import { Id } from '../../../kernel/util/id.ts';
-import type { WorkflowDef } from '../../../kernel/autonomy/workflowTypes.ts';
+import { Id } from '@omniharness/kernel/kernel/util/id.js';
+import type { WorkflowDef } from '@omniharness/kernel/kernel/autonomy/workflowTypes.js';
 import type { GraphRunState } from './appServerState.ts';
 
 /** 一次图运行的登记结果。 */

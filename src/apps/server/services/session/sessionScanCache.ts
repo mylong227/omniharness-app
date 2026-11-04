@@ -25,10 +25,10 @@
 
 import { readFile, stat } from 'node:fs/promises';
 import { SessionFileScanner } from './sessionFileScanner.ts';
-import { SessionSummaryBuilder, type SessionSummary } from '../../../../kernel/util/sessionSummaryBuilder.ts';
-import { readSessionSummary, writeSessionSummary } from '../../../../kernel/util/sessionSummarySidecar.ts';
+import { SessionSummaryBuilder, type SessionSummary } from '@omniharness/kernel/kernel/util/sessionSummaryBuilder.js';
+import { readSessionSummary, writeSessionSummary } from '@omniharness/kernel/kernel/util/sessionSummarySidecar.js';
 
-export type { SessionSummary } from '../../../../kernel/util/sessionSummaryBuilder.ts';
+export type { SessionSummary } from '@omniharness/kernel/kernel/util/sessionSummaryBuilder.js';
 
 /** 单个模型的 token 统计。 */
 export interface ModelUsage {

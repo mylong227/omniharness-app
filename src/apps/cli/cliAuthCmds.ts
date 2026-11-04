@@ -12,11 +12,11 @@
  */
 import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { OmniHome } from '../../kernel/util/omniHome.ts';
+import { OmniHome } from '@omniharness/kernel/kernel/util/omniHome.js';
 import crypto from 'node:crypto';
 import { OidcClient, type AuthState, type OidcProviderConfig } from '../enterprise/oidcClient.ts';
-import { OpenIdClientFlow } from '../../kernel/adapters/enterprise/openIdClientFlow.ts';
-import type { OidcFlowPort } from '../../contracts/ports/enterprise/oidcFlow.ts';
+import { OpenIdClientFlow } from './../../host/kernel/adapters/enterprise/openIdClientFlow.ts';
+import type { OidcFlowPort } from './../../host/contracts/ports/enterprise/oidcFlow.ts';
 
 /** 旗标读取器签名（与 CLI 链基的 `flagValue` 一致）。 */
 export type FlagValueReader = (args: readonly string[], flag: string) => string | undefined;

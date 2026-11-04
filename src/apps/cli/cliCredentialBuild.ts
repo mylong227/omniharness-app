@@ -10,11 +10,11 @@
  * 继承链：`CliCredentialBuild` ← `CliBuildConfig` ← `CliServerCmds` ← …；调用点零改动。
  * 两个方法都不依赖 `this` 的其它成员，故可干净外移。
  */
-import { CryptoVault } from '../../kernel/adapters/vault/cryptoVault.ts';
-import { CredentialResolver } from '../../kernel/config/credentialResolver.ts';
+import { CryptoVault } from '@omniharness/kernel/kernel/adapters/vault/cryptoVault.js';
+import { CredentialResolver } from '@omniharness/kernel/kernel/config/credentialResolver.js';
 import { KvStoreFactory } from './kvStoreFactory.ts';
 import { VaultKeyDefaults } from './vaultKeyDefaults.ts';
-import type { VaultPort } from '../../contracts/ports/memory/vault.ts';
+import type { VaultPort } from '@omniharness/kernel/contracts/ports/memory/vault.js';
 
 /** 凭据水合所需的最小参数集（原属 cliBuildConfig，随方法一并外移）。 */
 export interface CredentialHydrationArgs {

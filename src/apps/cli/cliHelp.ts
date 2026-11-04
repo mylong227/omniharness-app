@@ -1,5 +1,7 @@
-import { builtinDefaults } from '../../kernel/util/builtinDefaults.ts';
-import { ACP_PERMISSION_MODES } from '../../protocols/acp/acpProtocol.ts';
+import { BuiltinDefaults } from '@omniharness/kernel/kernel/util/builtinDefaults.js';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { ACP_PERMISSION_MODES } from '@omniharness/kernel/protocols/acp/acpProtocol.js';
 import {
   A2A_TRANSPORTS,
   APPROVAL_ASKS,
@@ -272,5 +274,14 @@ export class CliHelp {
   }
 }
 
+/**
+ * 帮助文本的数据锚点是**本应用仓根**的 `defaults/`，不是内核包的 `defaults/`：
+ * `cliHelp.json` 是应用形状的资产（内核 alpha.4 已按「应用形状清零」移除），
+ * 继续用内核默认实例会在启动期 fail-closed 报缺文件。
+ */
+const appDefaults = new BuiltinDefaults(
+  BuiltinDefaults.locatePackageRoot(dirname(fileURLToPath(import.meta.url))),
+);
+
 /** 默认实例：数据在构造期读出并校验，缺文件 / 结构非法 / 坏占位符即当场抛错。 */
-export const cliHelp = new CliHelp(builtinDefaults.json('cliHelp'));
+export const cliHelp = new CliHelp(appDefaults.json('cliHelp'));

@@ -5,8 +5,8 @@
  * ## 为什么需要它
  *
  * `tsc` **只编译 `.ts` → `.js`**，不会把 `.py` / `.json` / `.wasm` 等伴生资源拷进 `dist`。
- * 但部分适配器依赖与编译产物**同目录**的伴生资源（例如 `src/kernel/adapters/laya/laya_infer.py`
- * 由 `LayaDecisionEngine` 经子进程调用）。而 `package.json` 的 `files` 只含 `dist/src`、
+ * 但部分适配器依赖与编译产物**同目录**的伴生资源（例如 `src/host/kernel/adapters/laya/laya_infer.py`
+ * 由宿主侧 `LayaDecisionEngine` 经子进程调用）。而 `package.json` 的 `files` 只含 `dist/src`、
  * 不含 `src` —— 若不镜像，发布包会缺资源，生产/集成测试下适配器找不到脚本（fail-open 退化）。
  *
  * ## 范围
@@ -76,11 +76,10 @@ console.log(`[copyAssets] 已镜像 src 非 TS 资源 → dist/src`);
 
 // ---- 原生内核二进制：`dist/native/omni_napi.node` ----
 //
-// 为什么必须镜像（2026-11-04 独立应用仓实测）：`NativeKernel` 从**自身模块目录**向上找
-// `native/omni_napi.node`——源码位 `src/kernel/native/` 向上 3 级正好是仓库根；编译产物位
-// `dist/src/kernel/native/` 向上 3 级却是 `dist/`。不镜像的话，从 `dist` 启动的 `serve`
-// 永远拿不到原生内核（启动横幅必报「原生内核不可用，已回退 TS 路径」），而 `npm start`
-// 跑的正是 `dist`。源码布局/打包布局（`resources/harness/native`）本来就命中，无需改动。
+// 迁移到内核包后，`NativeKernel` 的实现位于 `node_modules/@omniharness/kernel`，它从**包根**
+// 找 `native/omni_napi.node`；因此内核 tarball 自带这份二进制（见 `scripts/vendorKernel.mjs`）。
+// 这里仍把应用根的 `native/*.node` 镜像进 `dist/native`：打包态 `resources/harness/native`
+// 与其它按仓库布局取原生库的脚本共用它，属于部署资产，不是内核加载路径。
 const nativeSrc = join(ROOT, 'native');
 if (statSync(nativeSrc, { throwIfNoEntry: false })?.isDirectory() === true) {
   const nativeDst = join(DIST_ROOT, 'native');

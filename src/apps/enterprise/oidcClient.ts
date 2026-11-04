@@ -1,11 +1,11 @@
 import crypto from 'node:crypto';
 import { chmodSync, readFileSync, writeFileSync } from 'node:fs';
-import { ArrayAt } from '../../kernel/util/arrayAt.ts';
-import type { OidcProviderConfig } from '../../contracts/ports/enterprise/oidcProviderConfig.ts';
-import type { OidcDiscovery } from '../../contracts/ports/enterprise/oidcDiscovery.ts';
-import type { AuthState } from '../../contracts/ports/enterprise/authState.ts';
-import type { IdTokenVerifierPort } from '../../contracts/ports/enterprise/idTokenVerifier.ts';
-import type { PkcePair, TokenSet } from '../../contracts/ports/enterprise/oidcFlow.ts';
+import { ArrayAt } from '@omniharness/kernel/kernel/util/arrayAt.js';
+import type { OidcProviderConfig } from './../../host/contracts/ports/enterprise/oidcProviderConfig.ts';
+import type { OidcDiscovery } from './../../host/contracts/ports/enterprise/oidcDiscovery.ts';
+import type { AuthState } from './../../host/contracts/ports/enterprise/authState.ts';
+import type { IdTokenVerifierPort } from './../../host/contracts/ports/enterprise/idTokenVerifier.ts';
+import type { PkcePair, TokenSet } from './../../host/contracts/ports/enterprise/oidcFlow.ts';
 
 /**
  * 企业级 SSO（OIDC）无第三方依赖实现（D2）。
@@ -23,9 +23,9 @@ import type { PkcePair, TokenSet } from '../../contracts/ports/enterprise/oidcFl
  * 原模块级导出名以门面函数保留（签名不变，调用点零改动）；`EnterpriseAuth` 门禁委托门面。
  */
 
-export type { OidcProviderConfig } from '../../contracts/ports/enterprise/oidcProviderConfig.ts';
+export type { OidcProviderConfig } from './../../host/contracts/ports/enterprise/oidcProviderConfig.ts';
 
-export type { OidcDiscovery } from '../../contracts/ports/enterprise/oidcDiscovery.ts';
+export type { OidcDiscovery } from './../../host/contracts/ports/enterprise/oidcDiscovery.ts';
 
 /**
  * @beta
@@ -33,7 +33,7 @@ export type { OidcDiscovery } from '../../contracts/ports/enterprise/oidcDiscove
  *
  * 已外迁到 ports/enterprise/oidcFlow.ts（A.5 第四项准入引入双实现端口）：原文件退化为纯再导出，调用点零改动。
  */
-export type { PkcePair } from '../../contracts/ports/enterprise/oidcFlow.ts';
+export type { PkcePair } from './../../host/contracts/ports/enterprise/oidcFlow.ts';
 
 /**
  * @beta
@@ -41,7 +41,7 @@ export type { PkcePair } from '../../contracts/ports/enterprise/oidcFlow.ts';
  *
  * 已外迁到 ports/enterprise/oidcFlow.ts（A.5 第四项准入引入双实现端口）：原文件退化为纯再导出，调用点零改动。
  */
-export type { TokenSet } from '../../contracts/ports/enterprise/oidcFlow.ts';
+export type { TokenSet } from './../../host/contracts/ports/enterprise/oidcFlow.ts';
 
 /**
  * @beta
@@ -67,7 +67,7 @@ export interface JwtParts {
   readonly signingInput: string;
 }
 
-export type { AuthState } from '../../contracts/ports/enterprise/authState.ts';
+export type { AuthState } from './../../host/contracts/ports/enterprise/authState.ts';
 
 // ---------------------------------------------------------------------------
 // OIDC 客户端：OAuth/OIDC 流程族（纯函数 + 内聚操作）

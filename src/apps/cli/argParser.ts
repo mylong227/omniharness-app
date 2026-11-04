@@ -1,8 +1,8 @@
-import type { FileConfig } from '../../kernel/config/configFile.ts';
+import type { FileConfig } from '@omniharness/kernel/kernel/config/configFile.js';
 import { CliFlagTable, FLAG_TABLE, VALUE_FLAGS } from './cliFlagTable.ts';
 import { ArgConfigDefaults } from './argConfigDefaults.ts';
-import { SessionStorageLocation } from '../../kernel/util/sessionStorageLocation.ts';
-import { ArrayAt } from '../../kernel/util/arrayAt.ts';
+import { SessionStorageLocation } from '@omniharness/kernel/kernel/util/sessionStorageLocation.js';
+import { ArrayAt } from '@omniharness/kernel/kernel/util/arrayAt.js';
 import { providerPresets, type ProviderPreset } from '../server/services/providerPresets.ts';
 import { cliHelp } from './cliHelp.ts';
 import { FlagSuggestion } from './flagSuggestion.ts';

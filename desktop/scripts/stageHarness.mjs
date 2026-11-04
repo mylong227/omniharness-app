@@ -50,6 +50,11 @@ cpSync(join(appRoot, 'web', 'dist'), join(stage, 'web'), { recursive: true });
 cpSync(join(backendRoot, 'omniharness.json.example'), join(stage, 'omniharness.json.example'));
 cpSync(join(backendRoot, 'package.json'), join(stage, 'package.json'));
 cpSync(join(backendRoot, 'package-lock.json'), join(stage, 'package-lock.json'));
+// 内核包是 vendored tarball（`file:vendor/...`）：stage 里的 `npm ci` 必须能解析同一路径，
+// 否则打包态会在安装依赖这一步失败（2026-11-04 切到 kernel 包后的新增前提）。
+if (existsSync(join(backendRoot, 'vendor'))) {
+  cpSync(join(backendRoot, 'vendor'), join(stage, 'vendor'), { recursive: true });
+}
 
 // 侧车 Node 运行时：优先显式指定，否则用当前 node；必须是真的 node 可执行文件。
 const nodeSource = (process.env.OMNI_NODE_BIN ?? '').trim() || process.execPath;

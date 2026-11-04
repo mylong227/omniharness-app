@@ -1,18 +1,18 @@
-import type { ApprovalPort } from '../../../contracts/ports/runtime/approval.ts';
-import type { EntitlementPort } from '../../../contracts/ports/license/entitlement.ts';
-import { RuleApproval } from '../../../kernel/adapters/approval/ruleApproval.ts';
-import { BUILTIN_APPROVAL_RULES } from '../../../kernel/adapters/approval/builtinApprovalRules.ts';
+import type { ApprovalPort } from '@omniharness/kernel/contracts/ports/runtime/approval.js';
+import type { EntitlementPort } from './../../../host/contracts/ports/license/entitlement.ts';
+import { RuleApproval } from '@omniharness/kernel/kernel/adapters/approval/ruleApproval.js';
+import { BUILTIN_APPROVAL_RULES } from '@omniharness/kernel/kernel/adapters/approval/builtinApprovalRules.js';
 
-import type { SkillRegistry } from '../../../kernel/skill/skillRegistry.ts';
+import type { SkillRegistry } from '@omniharness/kernel/kernel/skill/skillRegistry.js';
 import type { AutomationStore } from '../services/automationStore.ts';
-import type { PluginRegistry } from '../../../kernel/plugin/pluginRegistry.ts';
+import type { PluginRegistry } from '@omniharness/kernel/kernel/plugin/pluginRegistry.js';
 import type { Transport } from '../transport/lineTransport.ts';
 import type { Metrics } from '../services/metrics.ts';
 import type { AuditSink } from '../services/auditSink.ts';
-import type { DoctorOptions, DoctorReport } from '../../../contracts/ports/observability/doctorReport.ts';
-import type { VaultPort } from '../../../contracts/ports/memory/vault.ts';
-import type { GraphNodeStatus } from '../../../kernel/autonomy/workflowRunner.ts';
-import type { ResolvedConfig } from '../../../contracts/ports/config/resolvedConfig.ts';
+import type { DoctorOptions, DoctorReport } from '@omniharness/kernel/contracts/ports/observability/doctorReport.js';
+import type { VaultPort } from '@omniharness/kernel/contracts/ports/memory/vault.js';
+import type { GraphNodeStatus } from '@omniharness/kernel/kernel/autonomy/workflowRunner.js';
+import type { ResolvedConfig } from '@omniharness/kernel/contracts/ports/config/resolvedConfig.js';
 import type { ServerEventBridge } from './serverEventBridge.ts';
 
 /** AppServer 选项。 */

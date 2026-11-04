@@ -1,4 +1,4 @@
-import type { SessionEvent } from '../../contracts/ports/runtime/event.ts';
+import type { SessionEvent } from '@omniharness/kernel/contracts/ports/runtime/event.js';
 
 /**
  * 外部 hooks 事件信封（通用 / claude-code 共用最小字段）。

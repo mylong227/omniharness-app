@@ -23,7 +23,7 @@
  */
 
 import type { CliArgs } from './argParser.ts';
-import type { DecisionEngineConfig } from '../../contracts/ports/config/decisionEngineConfig.ts';
+import type { DecisionEngineConfig } from '@omniharness/kernel/contracts/ports/config/decisionEngineConfig.js';
 
 /** 生产入口默认档位：只观测、不改行为（详见类注释「为什么默认 shadow」）。 */
 const DEFAULT_MODE: DecisionEngineConfig['mode'] = 'shadow';

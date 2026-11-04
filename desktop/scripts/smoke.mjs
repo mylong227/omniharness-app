@@ -16,10 +16,14 @@ if (!existsSync(electronCli)) {
   process.exit(1);
 }
 
+const env = { ...process.env, OMNI_SMOKE: '1' };
+// 受限/自动化会话可能带 `ELECTRON_RUN_AS_NODE=1`（Electron 会退化成纯 Node，不建 GUI）。
+// 冒烟要验的正是**真实桌面窗口**，故显式摘掉；普通桌面会话本来就没有这个变量。
+delete env.ELECTRON_RUN_AS_NODE;
 const child = spawn(process.execPath, [electronCli, '.', ...process.argv.slice(2)], {
   cwd: process.cwd(),
   stdio: 'inherit',
-  env: { ...process.env, OMNI_SMOKE: '1' },
+  env,
 });
 child.on('exit', (code, signal) => {
   if (signal !== null) process.exit(1);

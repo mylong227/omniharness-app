@@ -1,7 +1,9 @@
 import type { CliArgs } from './argParser.ts';
-import type { OmniHarnessConfig } from '../../contracts/ports/config/omniHarnessConfig.ts';
+import type { OmniHarnessConfig } from '@omniharness/kernel/contracts/ports/config/omniHarnessConfig.js';
 import { CliDecisionEngineFlags } from './cliDecisionEngineFlags.ts';
-import { EnforcementModeResolver } from '../../kernel/security/enforcementModeResolver.ts';
+import { EnforcementModeResolver } from '@omniharness/kernel/kernel/security/enforcementModeResolver.js';
+import type { DecisionEngine } from '@omniharness/kernel/contracts/ports/decision/decisionEngine.js';
+import { DecisionEngineResolver } from '../../host/kernel/config/decisionEngineResolver.ts';
 
 /**
  * `CliBuildConfig.buildConfig` 的**对象字面量分段**协作类（2026-10-31 抽出；原方法 129 行、
@@ -65,6 +67,24 @@ export class CliConfigSections {
         return decisionEngine === undefined ? {} : { decisionEngine };
       })(),
     };
+  }
+
+  /**
+   * 决策引擎端口分段（配置 → 适配器的注入缝）。
+   *
+   * 内核 alpha.4 起不再内置 Laya：`ConfigFactory` 只读 `decisionEnginePort`，而
+   * `decisionEngine` 仍是声明式配置。应用仓库拥有 Laya 适配器，故由本仓在装配期
+   * 把两者接上——否则生产入口默认 `shadow` 会让内核 fail-closed 拒绝启动。
+   * @param args 解析后的 CLI 参数。
+   * @returns 引擎非 off 时给出 `decisionEnginePort`，否则空对象（零行为）。
+   */
+  public static decisionEnginePort(args: CliArgs): {
+    readonly decisionEnginePort?: DecisionEngine | undefined;
+  } {
+    const decisionEngine = CliDecisionEngineFlags.resolve(args);
+    if (decisionEngine === undefined || decisionEngine.mode === 'off') return {};
+    const port = new DecisionEngineResolver().resolve({ decisionEngine });
+    return port === undefined ? {} : { decisionEnginePort: port };
   }
 
   /**

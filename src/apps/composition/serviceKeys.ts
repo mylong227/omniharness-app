@@ -1,10 +1,10 @@
-import { ServiceKey } from '../../kernel/core/serviceKey.ts';
-import type { ApprovalPort } from '../../contracts/ports/runtime/approval.ts';
-import type { EventPort } from '../../contracts/ports/runtime/eventPort.ts';
-import type { SandboxPort } from '../../contracts/ports/runtime/sandbox.ts';
-import type { ModelPort } from '../../contracts/ports/model/model.ts';
-import type { ToolPort } from '../../contracts/ports/tool/tool.ts';
-import type { StoragePort } from '../../contracts/ports/memory/storage.ts';
+import { ServiceKey } from '@omniharness/kernel/kernel/core/serviceKey.js';
+import type { ApprovalPort } from '@omniharness/kernel/contracts/ports/runtime/approval.js';
+import type { EventPort } from '@omniharness/kernel/contracts/ports/runtime/eventPort.js';
+import type { SandboxPort } from '@omniharness/kernel/contracts/ports/runtime/sandbox.js';
+import type { ModelPort } from '@omniharness/kernel/contracts/ports/model/model.js';
+import type { ToolPort } from '@omniharness/kernel/contracts/ports/tool/tool.js';
+import type { StoragePort } from '@omniharness/kernel/contracts/ports/memory/storage.js';
 
 /**
  * 端口服务键（容器内标准键）——**独立模块以打断组合根 ↔ 子代理的真值环**。

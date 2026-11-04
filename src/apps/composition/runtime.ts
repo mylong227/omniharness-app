@@ -1,33 +1,38 @@
-import { SsrfGuard, type SsrfOptions } from '../../kernel/security/ssrfGuard.ts';
+import { SsrfGuard, type SsrfOptions } from '@omniharness/kernel/kernel/security/ssrfGuard.js';
 
-import { NativeBackend } from '../../kernel/native/nativeBackend.ts';
-import { WorkflowMemoryStore } from '../../kernel/adapters/memory/workflowMemoryStore.ts';
-import { MUTATING_TOOLS, ToolGate } from '../../kernel/core/toolGate.ts';
-import { ToolResourceGate } from '../../kernel/core/toolResourceGate.ts';
-import { SupervisorKernel } from '../../kernel/supervisor/supervisorKernel.ts';
-import { RbacPolicy } from '../../kernel/security/rbacPolicy.ts';
-import { TOOL_NAMES } from '../../contracts/ports/tool/toolNames.ts';
-import type { SupervisorPort } from '../../contracts/ports/runtime/supervisor.ts';
-import type { EvolutionController } from '../../contracts/ports/runtime/evolution.ts';
-import { Container } from '../../kernel/core/container.ts';
-import { RlvrController } from '../../kernel/evolution/rlvrController.ts';
-import { EvolutionKernel } from '../../kernel/evolution/evolutionKernel.ts';
-import { EvolutionSignalCollector } from '../../kernel/evolution/evolutionSignalCollector.ts';
-import { BucketedCandidateArchive } from '../../kernel/evolution/bucketedCandidateArchive.ts';
-import { EliteReentryDiscovery } from '../../kernel/evolution/eliteReentryDiscovery.ts';
-import { HashChainPromotionLedger } from '../../kernel/evolution/hashChainPromotionLedger.ts';
-import { DormantExecutorActivation } from '../../kernel/evolution/dormantExecutorActivation.ts';
-import { TwistDiscoveryEngine } from '../../kernel/evolution/twistDiscoveryEngine.ts';
-import { MoireComposer } from '../../kernel/skill/moireComposer.ts';
-import type { SkillRegistryPort } from '../../contracts/ports/skill/skillRegistryPort.ts';
-import type { Skill, MoireOptions } from '../../kernel/skill/skill.ts';
-import type { PromotionLedgerPort, SkillRestorePlan } from '../../contracts/ports/runtime/evolution.ts';
+import { NativeBackend } from '@omniharness/kernel/kernel/native/nativeBackend.js';
+import { WorkflowMemoryStore } from '@omniharness/kernel/kernel/adapters/memory/workflowMemoryStore.js';
+import { MUTATING_TOOLS, ToolGate } from '@omniharness/kernel/kernel/core/toolGate.js';
+import { ToolResourceGate } from '@omniharness/kernel/kernel/core/toolResourceGate.js';
+import { SupervisorKernel } from '@omniharness/kernel/kernel/supervisor/supervisorKernel.js';
+import { RbacPolicy } from '@omniharness/kernel/kernel/security/rbacPolicy.js';
+import { TOOL_NAMES } from '@omniharness/kernel/contracts/ports/tool/toolNames.js';
+import type { SupervisorPort } from '@omniharness/kernel/contracts/ports/runtime/supervisor.js';
+import type { EvolutionController } from '@omniharness/kernel/contracts/ports/runtime/evolution.js';
+import { Container } from '@omniharness/kernel/kernel/core/container.js';
+import { RlvrController } from '@omniharness/kernel/kernel/evolution/rlvrController.js';
+import { EvolutionKernel } from '@omniharness/kernel/kernel/evolution/evolutionKernel.js';
+import { EvolutionSignalCollector } from '@omniharness/kernel/kernel/evolution/evolutionSignalCollector.js';
+import { BucketedCandidateArchive } from '@omniharness/kernel/kernel/evolution/bucketedCandidateArchive.js';
+import { EliteReentryDiscovery } from '@omniharness/kernel/kernel/evolution/eliteReentryDiscovery.js';
+import { HashChainPromotionLedger } from '@omniharness/kernel/kernel/evolution/hashChainPromotionLedger.js';
+import { DormantExecutorActivation } from '@omniharness/kernel/kernel/evolution/dormantExecutorActivation.js';
+import { TwistDiscoveryEngine } from '@omniharness/kernel/kernel/evolution/twistDiscoveryEngine.js';
+import { MoireComposer } from '@omniharness/kernel/kernel/skill/moireComposer.js';
+import type { SkillRegistryPort } from '@omniharness/kernel/contracts/ports/skill/skillRegistryPort.js';
+import type { Skill, MoireOptions } from '@omniharness/kernel/kernel/skill/skill.js';
+import type { PromotionLedgerPort, SkillRestorePlan } from '@omniharness/kernel/contracts/ports/runtime/evolution.js';
 import { join } from 'node:path';
-import { A2aTaskExecutor } from '../../protocols/a2a/a2aTaskExecutor.ts';
-import { A2aDelegateTool } from '../../protocols/a2a/a2aDelegateTool.ts';
-import { RegistryToolPort } from '../../kernel/adapters/tool/registryToolPort.ts';
-import { TurnCompletionGateFactory } from '../../kernel/adapters/tool/verify/turnCompletionGateFactory.ts';
-import { ReviewDiffTool } from '../../kernel/adapters/tool/verify/reviewDiffTool.ts';
+import { A2aTaskExecutor } from '@omniharness/kernel/protocols/a2a/a2aTaskExecutor.js';
+import {
+  a2aBuildSubagent,
+  a2aFilterTools,
+  a2aRunTask,
+} from '@omniharness/kernel/kernel/composition/a2aBridge.js';
+import { A2aDelegateTool } from '@omniharness/kernel/protocols/a2a/a2aDelegateTool.js';
+import { RegistryToolPort } from '@omniharness/kernel/kernel/adapters/tool/registryToolPort.js';
+import { TurnCompletionGateFactory } from '@omniharness/kernel/kernel/adapters/tool/verify/turnCompletionGateFactory.js';
+import { ReviewDiffTool } from '@omniharness/kernel/kernel/adapters/tool/verify/reviewDiffTool.js';
 import {
   A2aAgentCardSigner,
   A2aPushNotifications,
@@ -38,12 +43,12 @@ import {
   HttpA2aServerTransport,
   WsA2aTransport,
   WsA2aServerTransport,
-} from '../../protocols/a2a/index.ts';
-import type { A2aTransport, A2aAgentCard } from '../../protocols/a2a/a2aProtocol.ts';
+} from '@omniharness/kernel/protocols/a2a/index.js';
+import type { A2aTransport, A2aAgentCard } from './../../host/protocols/a2a/a2aProtocol.ts';
 import { ServiceKeys } from './serviceKeys.ts';
-import { SsrfPolicy } from '../../kernel/security/ssrfPolicy.ts';
-import { log } from '../../kernel/util/logger.ts';
-import { runtimeLimits } from '../../kernel/util/runtimeLimits.ts';
+import { SsrfPolicy } from '@omniharness/kernel/kernel/security/ssrfPolicy.js';
+import { log } from '@omniharness/kernel/kernel/util/logger.js';
+import { runtimeLimits } from '@omniharness/kernel/kernel/util/runtimeLimits.js';
 
 /**
  * Runtime —— 由本文件原顶层函数归并而来（每个方法对应一个原函数，语义与签名逐字保留）。
@@ -409,7 +414,11 @@ export class Runtime {
     }
     // 委托执行器：并发闸门 + 受限工具子集（剔除 MUTATING_TOOLS，若委托声明 tools 授权则取交集），
     // 复用既有子代理隔离运行时，避免对等方突发委托拖垮进程或越权调用写类工具。
-    const executor = new A2aTaskExecutor(runtime);
+    const executor = new A2aTaskExecutor(runtime, {
+      buildSubagent: a2aBuildSubagent,
+      runTask: a2aRunTask,
+      filterTools: a2aFilterTools,
+    });
     server.setTaskHandler(executor);
     Runtime.listenA2aOrFail(serverTransport, a2aPort, runtime);
     // 委托工具面（2026-10-05 收口）：此前只有「服务端收委托」半边——client 装配进 runtime.a2a
@@ -509,8 +518,8 @@ export class Runtime {
 // 保持既有公共 API：`ServiceKeys` 定义已下沉到 `./serviceKeys.js`（为打断组合根↔子代理的真值环），
 // 此处再导出，使 `src/index.ts` 等既有调用点零改动。
 export { ServiceKeys };
-import type { OmniHarnessRuntime } from '../../contracts/ports/composition/omniHarnessRuntime.ts';
-import type { ResolvedConfig } from '../../contracts/ports/config/resolvedConfig.ts';
+import type { OmniHarnessRuntime } from '@omniharness/kernel/contracts/ports/composition/omniHarnessRuntime.js';
+import type { ResolvedConfig } from '@omniharness/kernel/contracts/ports/config/resolvedConfig.js';
 export type { OmniHarnessRuntime };
 
 /** OmniHarness运行时：装配全部端口 + 注册进容器（供自定义扩展查询）。 */

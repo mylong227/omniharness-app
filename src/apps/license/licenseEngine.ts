@@ -26,13 +26,13 @@
  * @maturityEvidence tests/unit/licenseEngine.test.ts
  */
 import { createHash } from 'node:crypto';
-import type { LicenseTier } from '../../contracts/ports/license/licenseTier.ts';
-import { log } from '../../kernel/util/logger.ts';
+import type { LicenseTier } from './../../host/contracts/ports/license/licenseTier.ts';
+import { log } from '@omniharness/kernel/kernel/util/logger.js';
 import { arch, cpus, hostname, platform } from 'node:os';
-import { Ed25519PublicKey } from '../../kernel/util/ed25519PublicKey.ts';
+import { Ed25519PublicKey } from '@omniharness/kernel/kernel/util/ed25519PublicKey.js';
 
 /** 档位（由低到高；`core` 永远可用）。 */
-export type { LicenseTier } from '../../contracts/ports/license/licenseTier.ts';
+export type { LicenseTier } from './../../host/contracts/ports/license/licenseTier.ts';
 
 /** License 正文（**被签名**的部分；键序在规范化时固定）。 */
 export interface LicensePayload {

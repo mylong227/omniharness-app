@@ -1,4 +1,4 @@
-import { ArrayAt } from '../../../kernel/util/arrayAt.ts';
+import { ArrayAt } from '@omniharness/kernel/kernel/util/arrayAt.js';
 /**
  * 审批档位目录：审批等级的唯一事实源（后端定语义，UI 只做展示）。
  *

@@ -23,7 +23,7 @@
  * 宁可报错，也不让调用方拿到错误的凭据。
  */
 import { join } from 'node:path';
-import { OmniHome } from '../../kernel/util/omniHome.ts';
+import { OmniHome } from '@omniharness/kernel/kernel/util/omniHome.js';
 
 /** 默认主密钥文件（用户级归属根下；归属根由 `OmniHome` 裁决，`OMNI_HOME` 可整体搬盘）。 */
 export const DEFAULT_VAULT_KEY_FILE: string = join(OmniHome.dir(), 'vault.key');

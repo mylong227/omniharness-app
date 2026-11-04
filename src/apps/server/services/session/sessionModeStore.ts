@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { JsonObjectFile } from '../../../../kernel/util/jsonObjectFile.ts';
+import { JsonObjectFile } from '@omniharness/kernel/kernel/util/jsonObjectFile.js';
 
 /**
  * 会话级模式（UI「+」菜单里的三个开关）。
