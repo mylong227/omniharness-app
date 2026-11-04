@@ -1,8 +1,8 @@
 import { ConfigFactory } from '@omniharness/kernel/kernel/config/configFactory.js';
-import { ConfigRebase } from '@omniharness/kernel/kernel/config/configRebase.js';
+import { ConfigRebase } from '../../../host/kernel-compat/kernel/config/configRebase.ts';
 import { SandboxManager, type SandboxProfile } from '@omniharness/kernel/kernel/adapters/sandbox/sandboxManager.js';
-import type { PluginManager } from '@omniharness/kernel/kernel/plugin/pluginManager.js';
-import type { PluginProfile, ApplyProfileResult } from '@omniharness/kernel/kernel/plugin/pluginProfileStore.js';
+import type { PluginManager } from '../../../host/kernel-compat/kernel/plugin/pluginManager.ts';
+import type { PluginProfile, ApplyProfileResult } from '../../../host/kernel-compat/kernel/plugin/pluginProfileStore.ts';
 import type { SupervisorPort } from '@omniharness/kernel/contracts/ports/runtime/supervisor.js';
 import { jsonRpc, type RpcMessage } from './jsonRpc.ts';
 import type { AppServerOptions } from './appServerState.ts';

@@ -26,7 +26,7 @@ import { CliSubsystemSections } from './cliSubsystemSections.ts';
 import { DefaultPromptFragments } from '@omniharness/kernel/kernel/config/defaultPromptFragments.js';
 
 import { ConsoleLiveView } from '@omniharness/kernel/kernel/adapters/live/consoleLiveView.js';
-import { PluginRegistry } from '@omniharness/kernel/kernel/plugin/pluginRegistry.js';
+import { PluginRegistry } from '../../host/kernel-compat/kernel/plugin/pluginRegistry.ts';
 import { AuditSink } from '../server/services/auditSink.ts';
 import {
   NetworkEgressGuard,
@@ -35,7 +35,7 @@ import {
 import { SsrfPolicy } from '@omniharness/kernel/kernel/security/ssrfPolicy.js';
 import { endpointDefaults, type ResolvedAdapterDefaults } from '@omniharness/kernel/kernel/util/endpointDefaults.js';
 import { WorkerRegistry } from '@omniharness/kernel/kernel/worker/workerRegistry.js';
-import { ExternalCliWorker } from '@omniharness/kernel/kernel/worker/externalCliWorker.js';
+import { ExternalCliWorker } from '../../host/kernel-compat/kernel/worker/externalCliWorker.ts';
 import { RegistryToolPort } from '@omniharness/kernel/kernel/adapters/tool/registryToolPort.js';
 import { McpGateway } from '@omniharness/kernel/protocols/mcp/mcpGateway.js';
 import { McpServerCommand } from '@omniharness/kernel/protocols/mcp/mcpServerCommand.js';
@@ -52,8 +52,8 @@ import type { ApprovalRule } from '@omniharness/kernel/kernel/adapters/approval/
 import { dangerousCommands } from '@omniharness/kernel/kernel/adapters/sandbox/dangerousCommands.js';
 import { SandboxManager } from '@omniharness/kernel/kernel/adapters/sandbox/sandboxManager.js';
 import { DenyEscalation } from '@omniharness/kernel/kernel/adapters/escalation/denyEscalation.js';
-import { AskEscalation } from '@omniharness/kernel/kernel/adapters/escalation/askEscalation.js';
-import { AutoEscalation } from '@omniharness/kernel/kernel/adapters/escalation/autoEscalation.js';
+import { AskEscalation } from '../../host/kernel-compat/kernel/adapters/escalation/askEscalation.ts';
+import { AutoEscalation } from '../../host/kernel-compat/kernel/adapters/escalation/autoEscalation.ts';
 import type { EscalationRequest, EscalationDecision } from '@omniharness/kernel/contracts/ports/runtime/escalation.js';
 import type { ModelPort } from '@omniharness/kernel/contracts/ports/model/model.js';
 import type { ModelRouterConfig } from '@omniharness/kernel/kernel/config/configFile.js';

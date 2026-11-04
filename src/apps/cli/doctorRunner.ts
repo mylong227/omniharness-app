@@ -9,9 +9,9 @@ import { ToolOutputTrust } from '@omniharness/kernel/kernel/security/toolOutputT
 import {
   InjectionSelfCheck,
   type InjectionSelfCheckSummary,
-} from '@omniharness/kernel/kernel/security/injectionSelfCheck.js';
+} from '../../host/kernel-compat/kernel/security/injectionSelfCheck.ts';
 import type { SandboxCapabilityEntry } from '@omniharness/kernel/kernel/adapters/sandbox/sandboxCapabilityTable.js';
-import { PluginWorkerMetrics } from '@omniharness/kernel/kernel/plugin/worker/pluginWorkerMetrics.js';
+import { PluginWorkerMetrics } from '../../host/kernel-compat/kernel/plugin/worker/pluginWorkerMetrics.ts';
 
 /** 由**内核**强制隔离的 profile（其余为纯 TS 策略类：passthrough / policy / restricted）。 */
 const KERNEL_ENFORCED_PROFILES: ReadonlySet<string> = new Set([
@@ -38,7 +38,7 @@ import type {
   DoctorReport,
   SandboxStatus,
   SecurityBoundary,
-} from '@omniharness/kernel/contracts/ports/observability/doctorReport.js';
+} from '../../host/kernel-compat/contracts/ports/observability/doctorReport.ts';
 
 export type {
   ConfigStatus,
@@ -46,7 +46,7 @@ export type {
   DoctorReport,
   SandboxStatus,
   SecurityBoundary,
-} from '@omniharness/kernel/contracts/ports/observability/doctorReport.js';
+} from '../../host/kernel-compat/contracts/ports/observability/doctorReport.ts';
 
 /**
  * 运行环境诊断器：原是模块级纯函数，后归拢为 `DoctorRunner` 静态方法族，

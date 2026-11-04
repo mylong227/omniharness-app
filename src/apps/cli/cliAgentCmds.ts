@@ -17,16 +17,16 @@ import { GoalRunner } from '@omniharness/kernel/kernel/autonomy/goalRunner.js';
 import { GoalChecker } from '@omniharness/kernel/kernel/autonomy/goalChecker.js';
 import { WorkflowRunner } from '@omniharness/kernel/kernel/autonomy/workflowRunner.js';
 import type { WorkflowDef } from '@omniharness/kernel/kernel/autonomy/workflowTypes.js';
-import { SubagentPorts } from '@omniharness/kernel/kernel/subagent/subagentPorts.js';
+import { SubagentPorts } from '../../host/kernel-compat/kernel/subagent/subagentPorts.ts';
 import { RoutineScheduler } from '../daemon/routineScheduler.ts';
 import type { Routine, RoutineSchedule, RoutineModelAdapter } from '../daemon/routineScheduler.ts';
 import { Interactive } from '../tui/interactive.ts';
 import { TuiAgentBridge } from '../tui/tuiAgentBridge.ts';
 import type { TuiEvent } from '../tui/tuiRenderer.ts';
 import { ArgParser, CliDefaults } from './argParser.ts';
-import { CronerSchedule } from '@omniharness/kernel/kernel/adapters/schedule/cronerSchedule.js';
+import { CronerSchedule } from '../../host/kernel-compat/kernel/adapters/schedule/cronerSchedule.ts';
 import type { CliArgs } from './argParser.ts';
-import { ModelCapabilityProbe } from '@omniharness/kernel/kernel/adapters/model/modelCapabilityProbe.js';
+import { ModelCapabilityProbe } from '../../host/kernel-compat/kernel/adapters/model/modelCapabilityProbe.ts';
 import { CliNativeCmds } from './cliNativeCmds.ts';
 import {
   ACP_PERMISSION_MODES,

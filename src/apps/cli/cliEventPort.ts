@@ -1,6 +1,6 @@
 import { ConsoleEventPort } from '@omniharness/kernel/kernel/adapters/event/consoleEventPort.js';
 import { SilentEventPort } from '@omniharness/kernel/kernel/adapters/event/silentEventPort.js';
-import { CompositeEventPort } from '@omniharness/kernel/kernel/adapters/event/compositeEventPort.js';
+import { CompositeEventPort } from '../../host/kernel-compat/kernel/adapters/event/compositeEventPort.ts';
 import type { EventPort } from '@omniharness/kernel/contracts/ports/runtime/eventPort.js';
 import type { CliArgs } from './argParser.ts';
 

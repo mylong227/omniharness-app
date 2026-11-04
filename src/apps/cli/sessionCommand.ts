@@ -8,7 +8,7 @@
 import { join } from 'node:path';
 import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { CliArgReader } from './cliArgReader.ts';
-import { SessionStorageLocation } from '@omniharness/kernel/kernel/util/sessionStorageLocation.js';
+import { SessionStorageLocation } from '../../host/kernel-compat/kernel/util/sessionStorageLocation.ts';
 import { SessionTransfer } from './sessionTransfer.ts';
 import { JsonlStorage } from '@omniharness/kernel/kernel/adapters/storage/jsonlStorage.js';
 import { SessionArchive } from '../server/services/session/sessionArchive.ts';

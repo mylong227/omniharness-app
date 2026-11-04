@@ -21,7 +21,7 @@ import { basename } from 'node:path';
 
 import type { SkillEntry } from '@omniharness/kernel/kernel/skill/skill.js';
 import { SkillMdCodec } from '@omniharness/kernel/kernel/skill/skillMdCodec.js';
-import { SkillManifestSigner } from '@omniharness/kernel/kernel/skill/skillManifestSigner.js';
+import { SkillManifestSigner } from '../../host/kernel-compat/kernel/skill/skillManifestSigner.ts';
 import { ConfigError } from '@omniharness/kernel/kernel/config/configError.js';
 import type { CliArgs } from './argParser.ts';
 

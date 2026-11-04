@@ -9,10 +9,10 @@
  *   vault get|set|del|list [--name N] [--value V] [--vault-backend crypto|env] [--kv-* ...] [--vault-key-file PATH]
  */
 
-import { CryptoVault } from '@omniharness/kernel/kernel/adapters/vault/cryptoVault.js';
+import { CryptoVault } from '../../host/kernel-compat/kernel/adapters/vault/cryptoVault.ts';
 import { VaultKeyDefaults } from './vaultKeyDefaults.ts';
-import { EnvVault } from '@omniharness/kernel/kernel/adapters/vault/envVault.js';
-import type { VaultPort } from '@omniharness/kernel/contracts/ports/memory/vault.js';
+import { EnvVault } from '../../host/kernel-compat/kernel/adapters/vault/envVault.ts';
+import type { VaultPort } from '../../host/kernel-compat/contracts/ports/memory/vault.ts';
 import { ArgParser } from './argParser.ts';
 import { CliArgReader } from './cliArgReader.ts';
 import { KvStoreFactory, type KvHandle } from './kvStoreFactory.ts';

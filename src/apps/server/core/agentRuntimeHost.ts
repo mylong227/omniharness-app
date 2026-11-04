@@ -6,8 +6,8 @@ import type { SkillRegistry } from '@omniharness/kernel/kernel/skill/skillRegist
 import type { SupervisorPort } from '@omniharness/kernel/contracts/ports/runtime/supervisor.js';
 import { Runtime } from '../../composition/runtime.ts';
 import { Agent } from '@omniharness/kernel/kernel/core/agent.js';
-import { GraphStore } from '@omniharness/kernel/kernel/autonomy/graphStore.js';
-import { SubagentPorts } from '@omniharness/kernel/kernel/subagent/subagentPorts.js';
+import { GraphStore } from '../../../host/kernel-compat/kernel/autonomy/graphStore.ts';
+import { SubagentPorts } from '../../../host/kernel-compat/kernel/subagent/subagentPorts.ts';
 
 import { AUTO_ALLOW, DENY_ALL, RULES_DEFAULT } from './appServerState.ts';
 import { PlanApproval } from '@omniharness/kernel/kernel/adapters/approval/planApproval.js';

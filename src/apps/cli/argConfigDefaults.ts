@@ -33,10 +33,6 @@ export class ArgConfigDefaults {
     if (file.skills !== undefined) {
       result.skills = file.skills;
     }
-    // 媒体抽帧配置：整段透传（结构同一份，字段校验已在「配置文件归一化」阶段 fail-closed 完成）。
-    if (file.media !== undefined) {
-      result.media = file.media;
-    }
     // 统一资产协议段（Wave B）：同上，整段透传。**不映射 = CLI 通道丢配置**——本仓已十次同形态，
     // 故此处与 `media` 一样显式接线（接线完整性门禁 I5a 会拦下遗漏）。
     if (file.capability !== undefined) {
@@ -170,20 +166,5 @@ export class ArgConfigDefaults {
     }
     // (U4) RLVR 进化闭环：文件对象形态 → 扁平 CliArgs 字段（CLI 旗标在更上层继续覆盖）。
     applyEvolutionRlvr();
-    // (U6) A2A 互操作：文件对象形态 → 扁平 CliArgs 字段（CLI 旗标在更上层继续覆盖）。
-    if (file.a2a !== undefined) {
-      if (file.a2a.enabled !== undefined) {
-        result.a2a = file.a2a.enabled;
-      }
-      if (file.a2a.port !== undefined) {
-        result.a2aPort = file.a2a.port;
-      }
-      if (file.a2a.peerEndpoint !== undefined) {
-        result.a2aPeer = file.a2a.peerEndpoint;
-      }
-      if (file.a2a.transport !== undefined) {
-        result.a2aTransport = file.a2a.transport;
-      }
-    }
   }
 }

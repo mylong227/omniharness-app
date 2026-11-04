@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { JsonObjectFile } from '@omniharness/kernel/kernel/util/jsonObjectFile.js';
+import { JsonObjectFile } from '../../../host/kernel-compat/kernel/util/jsonObjectFile.ts';
 
 /**
  * 配额设置（落盘字段，全部可选——缺失即用缺省值）。

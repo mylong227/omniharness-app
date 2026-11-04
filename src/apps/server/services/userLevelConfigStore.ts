@@ -1,7 +1,7 @@
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { configFile, type FileConfig } from '@omniharness/kernel/kernel/config/configFile.js';
-import { PortablePath } from '@omniharness/kernel/kernel/util/portablePath.js';
+import { PortablePath } from '../../../host/kernel-compat/kernel/util/portablePath.ts';
 import { OmniHome } from '@omniharness/kernel/kernel/util/omniHome.js';
 
 /**

@@ -8,13 +8,6 @@ export { ToolIndex } from '@omniharness/kernel/kernel/search/toolIndex.js';
 export { ToolDiscovery } from '@omniharness/kernel/kernel/search/toolDiscovery.js';
 export { ToolSearchTool } from '@omniharness/kernel/kernel/adapters/tool/meta/toolSearchTool.js';
 
-// @beta 会话检索（#M2：BM25 会话历史检索，跨长对话 recall）
-export type {
-  RetrievalDoc,
-  RetrievalHit,
-  RetrievalPort,
-  RetrievalRole,
-} from '@omniharness/kernel/contracts/ports/intelligence/retrieval.js';
 export { Bm25MemoryIndex } from '@omniharness/kernel/kernel/adapters/retrieval/bm25MemoryIndex.js';
 export { MemorySearchTool } from '@omniharness/kernel/kernel/adapters/tool/memory/memorySearchTool.js';
 export { FileLongTermMemory } from '@omniharness/kernel/kernel/adapters/memory/fileLongTermMemory.js';
@@ -28,9 +21,6 @@ export type {
 export { MemoryExtractor } from '@omniharness/kernel/kernel/adapters/memory/memoryExtractor.js';
 export { RememberTool, RecallTool } from '@omniharness/kernel/kernel/adapters/tool/memory/longTermMemoryTools.js';
 
-// @beta 确定性测试模型（可重放 ModelPort，零 API Key；核心单测用于驱动真实 Agent 主循环）
-export { ScriptedModel } from '@omniharness/kernel/kernel/core/scriptedModel.js';
-export type { ScriptStep } from '@omniharness/kernel/kernel/core/scriptedModel.js';
 
 // @beta 子智能体（#76：进程内独立 Agent 循环，深度限制 + 并发限流 + 父子关系）
 export { SubagentOrchestrator } from '@omniharness/kernel/kernel/subagent/subagentOrchestrator.js';
@@ -41,8 +31,6 @@ export { ToolSubset } from '@omniharness/kernel/kernel/subagent/toolSubset.js';
 export { SubagentTool } from '@omniharness/kernel/kernel/adapters/tool/workflow/subagentTool.js';
 export { ConcurrencyLimiter } from '@omniharness/kernel/kernel/util/concurrency/concurrencyLimiter.js';
 export { ParallelMap } from '@omniharness/kernel/kernel/util/concurrency/parallelMap.js';
-export type { SubagentPortsShape } from '@omniharness/kernel/kernel/subagent/subagentPorts.js';
-export { SubagentPorts } from '@omniharness/kernel/kernel/subagent/subagentPorts.js';
 export type { SubagentOptions, SubagentRequest, SubagentResult } from '@omniharness/kernel/kernel/subagent/subagentTypes.js';
 
 // @beta 自主目标循环（#S30：自主目标循环，多轮自主推进直到达成或达上限）
@@ -137,7 +125,6 @@ export { MemoryTodo } from '@omniharness/kernel/kernel/adapters/todo/memoryTodo.
 export { MemoryPlan } from '@omniharness/kernel/kernel/adapters/plan/memoryPlan.js';
 export { ConsoleUserResponder } from '@omniharness/kernel/kernel/adapters/user/consoleUserResponder.js';
 export { DefaultUserResponder } from '@omniharness/kernel/kernel/adapters/user/defaultUserResponder.js';
-export { MemoryUserResponder } from '@omniharness/kernel/kernel/adapters/user/memoryUserResponder.js';
 export { MUTATING_TOOLS } from '@omniharness/kernel/kernel/core/toolGate.js';
 export type {
   UserResponder,
@@ -148,26 +135,8 @@ export type {
 export type { TodoPort, TodoItem, TodoStatus } from '@omniharness/kernel/contracts/ports/runtime/todo.js';
 export type { PlanPort, PlanDraft, PlanState, PlanStep, PlanStatus } from '@omniharness/kernel/contracts/ports/runtime/plan.js';
 
-// @beta Bundle 发布单元（#G-E 5.2/5.3：自包含 .ohb + 补丁层 + 可选 HMAC 签名）
-export { PluginBundler } from '@omniharness/kernel/kernel/plugin/pluginBundler.js';
-export type {
-  BundlePluginRef,
-  BundlePatch,
-  BundleManifest,
-  PackBundleOptions,
-  PackBundleResult,
-  UnpackBundleOptions,
-  UnpackBundleResult,
-} from '@omniharness/kernel/kernel/plugin/pluginBundler.js';
 // @beta 运行时消费 bundle 补丁层（注入 config 四层合并，叠在 profile 之上、低于 env）
 export { ConfigError } from '@omniharness/kernel/kernel/config/configError.js';
 
-// @beta 成本预算与 token 归因（P5：缓存折抵 + per-tool 归因 + 软阈值信号）
-export { TokenAttribution, INITIAL_BUCKET } from '@omniharness/kernel/kernel/observability/tokenAttribution.js';
-export type {
-  TokenAttributionBucket,
-  TokenAttributionReport,
-  TokenAttributionTally,
-} from '@omniharness/kernel/kernel/observability/tokenAttribution.js';
 export { DEFAULT_SOFT_RATIO } from '@omniharness/kernel/kernel/adapters/model/costBudget.js';
 export type { BudgetSnapshot } from '@omniharness/kernel/kernel/adapters/model/costBudget.js';

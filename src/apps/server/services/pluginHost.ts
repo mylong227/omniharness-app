@@ -1,14 +1,14 @@
 import { Container } from '@omniharness/kernel/kernel/core/container.js';
 import { ServiceKeys } from '../../composition/runtime.ts';
-import { PluginManager } from '@omniharness/kernel/kernel/plugin/pluginManager.js';
-import { PluginLoader } from '@omniharness/kernel/kernel/plugin/pluginLoader.js';
+import { PluginManager } from '../../../host/kernel-compat/kernel/plugin/pluginManager.ts';
+import { PluginLoader } from '../../../host/kernel-compat/kernel/plugin/pluginLoader.ts';
 import { PluginHostPermissions } from './pluginHostPermissions.ts';
 import {
   PluginProfileStore,
   type PluginProfile,
   type ApplyProfileResult,
-} from '@omniharness/kernel/kernel/plugin/pluginProfileStore.js';
-import type { PluginRegistry } from '@omniharness/kernel/kernel/plugin/pluginRegistry.js';
+} from '../../../host/kernel-compat/kernel/plugin/pluginProfileStore.ts';
+import type { PluginRegistry } from '../../../host/kernel-compat/kernel/plugin/pluginRegistry.ts';
 import { jsonRpc } from '../core/jsonRpc.ts';
 import type { Transport } from '../transport/lineTransport.ts';
 import type { ResolvedConfig } from '@omniharness/kernel/contracts/ports/config/resolvedConfig.js';

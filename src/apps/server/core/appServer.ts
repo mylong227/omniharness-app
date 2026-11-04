@@ -21,7 +21,7 @@ import { SessionCheckpoints } from '../services/session/sessionCheckpoints.ts';
 import { SessionRewindService } from '../services/session/sessionRewindService.ts';
 import type { SessionRewindOutcome } from '../services/session/sessionRewindService.ts';
 import { ThreadPage } from '../services/session/threadPage.ts';
-import { InterjectionClassifier } from '@omniharness/kernel/kernel/core/steering/interjectionClassifier.js';
+import { InterjectionClassifier } from '../../../host/kernel-compat/kernel/core/steering/interjectionClassifier.ts';
 
 export type { AppServerOptions } from './appServerState.ts';
 

@@ -10,13 +10,13 @@
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { Container } from '@omniharness/kernel/kernel/core/container.js';
-import { PluginManager } from '@omniharness/kernel/kernel/plugin/pluginManager.js';
-import { Manifest } from '@omniharness/kernel/kernel/plugin/manifest.js';
-import { PermissionGate, PermissionDeniedError } from '@omniharness/kernel/kernel/plugin/permissionGate.js';
-import { Permission } from '@omniharness/kernel/kernel/plugin/permission.js';
-import type { PluginPermission } from '@omniharness/kernel/kernel/plugin/permission.js';
-import type { Plugin } from '@omniharness/kernel/kernel/plugin/plugin.js';
-import type { PluginRegistry } from '@omniharness/kernel/kernel/plugin/pluginRegistry.js';
+import { PluginManager } from '../../host/kernel-compat/kernel/plugin/pluginManager.ts';
+import { Manifest } from '../../host/kernel-compat/kernel/plugin/manifest.ts';
+import { PermissionGate, PermissionDeniedError } from '../../host/kernel-compat/kernel/plugin/permissionGate.ts';
+import { Permission } from '../../host/kernel-compat/kernel/plugin/permission.ts';
+import type { PluginPermission } from '../../host/kernel-compat/kernel/plugin/permission.ts';
+import type { Plugin } from '../../host/kernel-compat/kernel/plugin/plugin.ts';
+import type { PluginRegistry } from '../../host/kernel-compat/kernel/plugin/pluginRegistry.ts';
 import { ArgParser } from './argParser.ts';
 import { CliArgReader } from './cliArgReader.ts';
 

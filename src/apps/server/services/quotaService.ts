@@ -1,4 +1,4 @@
-import { LocalDay } from '@omniharness/kernel/kernel/util/localDay.js';
+import { LocalDay } from '../../../host/kernel-compat/kernel/util/localDay.ts';
 import { QuotaPlans, type QuotaPlan } from './quotaPlans.ts';
 import type { QuotaStore } from './quotaStore.ts';
 import type { SessionArchive } from './session/sessionArchive.ts';

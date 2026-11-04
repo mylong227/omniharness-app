@@ -9,7 +9,7 @@
 
 import { join } from 'node:path';
 import { configFile } from '@omniharness/kernel/kernel/config/configFile.js';
-import { PluginProfileStore } from '@omniharness/kernel/kernel/plugin/pluginProfileStore.js';
+import { PluginProfileStore } from '../../host/kernel-compat/kernel/plugin/pluginProfileStore.ts';
 import { CliArgReader } from './cliArgReader.ts';
 
 /** profile 用法提示。 */

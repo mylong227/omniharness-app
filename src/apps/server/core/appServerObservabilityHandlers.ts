@@ -25,7 +25,7 @@ import { AuditExporter, type AuditQuery } from '../services/auditExporter.ts';
 import type {
   TraceReadRequest,
   TraceReadResult,
-} from '@omniharness/kernel/contracts/ports/intelligence/traceIntrospection.js';
+} from '../../../host/kernel-compat/contracts/ports/intelligence/traceIntrospection.ts';
 
 /** 只读可观测处理器层。 */
 export class AppServerObservabilityHandlers extends AppServerGovernanceHandlers {

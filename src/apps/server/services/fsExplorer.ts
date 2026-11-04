@@ -2,7 +2,7 @@ import { access, mkdir, readFile, readdir, stat } from 'node:fs/promises';
 import type { Dirent } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
-import { MimeType } from '@omniharness/kernel/kernel/util/mimeType.js';
+import { MimeType } from '../../../host/kernel-compat/kernel/util/mimeType.ts';
 
 /** 单文件附加大小上限（20MB）。 */
 const MAX_ATTACH_BYTES = 20 * 1024 * 1024;

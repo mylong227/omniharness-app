@@ -8,12 +8,12 @@ import {
   type ContextBreakdownRow,
 } from '@omniharness/kernel/kernel/context/contextBreakdownEstimator.js';
 import { ContextWindowCatalog } from '@omniharness/kernel/kernel/context/contextWindowCatalog.js';
-import { CacheHitRateWatch } from '@omniharness/kernel/kernel/observability/cacheHitRateWatch.js';
+import { CacheHitRateWatch } from '../../../host/kernel-compat/kernel/observability/cacheHitRateWatch.ts';
 import {
   CacheMissAttributionAnalyst,
   type CacheMissAttribution,
   type CacheMissCause,
-} from '@omniharness/kernel/kernel/observability/cacheMissAttributionAnalyst.js';
+} from '../../../host/kernel-compat/kernel/observability/cacheMissAttributionAnalyst.ts';
 
 /** 单条**上报了缓存字段**的调用样本（`cacheStat` 内部备料用；不进公共 API 面）。 */
 interface CacheCallSample {

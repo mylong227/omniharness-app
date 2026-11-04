@@ -15,7 +15,7 @@ import { configFile } from '@omniharness/kernel/kernel/config/configFile.js';
 import { OmniHome } from '@omniharness/kernel/kernel/util/omniHome.js';
 import { ArgParser } from './argParser.ts';
 import { CliArgReader } from './cliArgReader.ts';
-import { PortablePath } from '@omniharness/kernel/kernel/util/portablePath.js';
+import { PortablePath } from '../../host/kernel-compat/kernel/util/portablePath.ts';
 
 /**
  * serve 的工作区解析器（无状态，纯静态）：显式旗标 > 本机固定项目 > 启动目录。

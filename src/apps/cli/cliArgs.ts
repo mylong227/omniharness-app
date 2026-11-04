@@ -1,5 +1,5 @@
 import type { McpServerConfig } from '@omniharness/kernel/protocols/mcp/mcpGateway.js';
-import type { ExternalCliWorkerSpec } from '@omniharness/kernel/kernel/worker/externalCliWorker.js';
+import type { ExternalCliWorkerSpec } from '../../host/kernel-compat/kernel/worker/externalCliWorker.ts';
 import type { SkillEntry } from '@omniharness/kernel/kernel/skill/skill.js';
 import type {
   ModelRouterConfig,
@@ -8,7 +8,7 @@ import type {
   SsrfPolicyConfig,
 } from '@omniharness/kernel/kernel/config/configFile.js';
 import type { ModelAdapterId } from '@omniharness/kernel/contracts/ports/model/modelAdapterId.js';
-import type { MediaAnalysisConfig } from '@omniharness/kernel/kernel/config/mediaConfigResolver.js';
+import type { MediaAnalysisConfig } from '../../host/kernel-compat/kernel/config/mediaConfigResolver.ts';
 import type { CapabilityConfig } from '@omniharness/kernel/contracts/ports/config/capabilityConfig.js';
 import type { RbacConfig } from '@omniharness/kernel/contracts/ports/config/rbacConfig.js';
 import type { DecisionEngineConfig } from '@omniharness/kernel/contracts/ports/config/decisionEngineConfig.js';

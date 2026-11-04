@@ -1,4 +1,4 @@
-import type { FieldSchema, MethodSchema, ProtocolSchema } from '@omniharness/kernel/contracts/schema/protocolSchema.js';
+import type { FieldSchema, MethodSchema, ProtocolSchema } from '../../kernel-compat/contracts/schema/protocolSchema.ts';
 
 /**
  * @beta

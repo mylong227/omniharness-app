@@ -11,18 +11,18 @@
 
 import { join } from 'node:path';
 import { OmniHome } from '@omniharness/kernel/kernel/util/omniHome.js';
-import { PluginProfileStore } from '@omniharness/kernel/kernel/plugin/pluginProfileStore.js';
+import { PluginProfileStore } from '../../host/kernel-compat/kernel/plugin/pluginProfileStore.ts';
 import { FeatureEntitlements } from '../license/featureEntitlements.ts';
 import type { EntitlementPort } from './../../host/contracts/ports/license/entitlement.ts';
-import { PluginBundler } from '@omniharness/kernel/kernel/plugin/pluginBundler.js';
-import { PrivateSkillSource } from '@omniharness/kernel/kernel/plugin/privateSkillSource.js';
-import { BundleCodec } from '@omniharness/kernel/kernel/plugin/bundleCodec.js';
-import { PackGrader } from '@omniharness/kernel/kernel/plugin/packGrader.js';
-import { IsolationLadderFactory } from '@omniharness/kernel/kernel/adapters/isolation/isolationLadderFactory.js';
+import { PluginBundler } from '../../host/kernel-compat/kernel/plugin/pluginBundler.ts';
+import { PrivateSkillSource } from '../../host/kernel-compat/kernel/plugin/privateSkillSource.ts';
+import { BundleCodec } from '../../host/kernel-compat/kernel/plugin/bundleCodec.ts';
+import { PackGrader } from '../../host/kernel-compat/kernel/plugin/packGrader.ts';
+import { IsolationLadderFactory } from '../../host/kernel-compat/kernel/adapters/isolation/isolationLadderFactory.ts';
 import { ArgParser } from './argParser.ts';
 import { CliArgReader } from './cliArgReader.ts';
-import type { PackCapability } from '@omniharness/kernel/kernel/plugin/packStaticScanner.js';
-import type { SandboxLegVerdict } from '@omniharness/kernel/kernel/plugin/packGrader.js';
+import type { PackCapability } from '../../host/kernel-compat/kernel/plugin/packStaticScanner.ts';
+import type { SandboxLegVerdict } from '../../host/kernel-compat/kernel/plugin/packGrader.ts';
 import type { PluginRegistryFactory } from './pluginCommand.ts';
 
 /** bundle 用法提示。 */

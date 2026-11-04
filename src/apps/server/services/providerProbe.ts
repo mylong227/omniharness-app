@@ -9,7 +9,7 @@ import { ConfigError } from '@omniharness/kernel/kernel/config/configError.js';
 import type { ProviderPreset } from './providerPresets.ts';
 import { SsrfGuard } from '@omniharness/kernel/kernel/security/ssrfGuard.js';
 import type { SsrfPolicy } from '@omniharness/kernel/kernel/security/ssrfPolicy.js';
-import { Retry } from '@omniharness/kernel/kernel/util/concurrency/retry.js';
+import { Retry } from '../../../host/kernel-compat/kernel/util/concurrency/retry.ts';
 
 /**
  * ProviderProbe 相关纯函数工具（C7 收口：原顶层内部函数迁入）。

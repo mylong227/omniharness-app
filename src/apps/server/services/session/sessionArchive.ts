@@ -13,7 +13,7 @@ import { join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { sessionSummaryPath } from '@omniharness/kernel/kernel/util/sessionSummarySidecar.js';
 import type { Metrics } from '../metrics.ts';
-import type { LocalDay } from '@omniharness/kernel/kernel/util/localDay.js';
+import type { LocalDay } from '../../../../host/kernel-compat/kernel/util/localDay.ts';
 import { SessionSidecars } from './sessionSidecars.ts';
 import { SessionRanking } from './sessionRanking.ts';
 import { SessionArchiveLayout } from '@omniharness/kernel/kernel/util/sessionArchiveLayout.js';

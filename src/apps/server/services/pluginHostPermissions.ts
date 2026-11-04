@@ -6,9 +6,9 @@
  * （fs.read / net.connect / env.read / store.read），危险能力必须由操作者经
  * `OMNI_PLUGIN_PERMISSIONS` 环境变量显式授予（逗号分隔权限名，或 `all` 全开）。
  */
-import { ALL_PERMISSIONS, DANGEROUS_PERMISSIONS, Permission } from '@omniharness/kernel/kernel/plugin/permission.js';
-import type { PluginPermission } from '@omniharness/kernel/kernel/plugin/permission.js';
-import { PermissionGate } from '@omniharness/kernel/kernel/plugin/permissionGate.js';
+import { ALL_PERMISSIONS, DANGEROUS_PERMISSIONS, Permission } from '../../../host/kernel-compat/kernel/plugin/permission.ts';
+import type { PluginPermission } from '../../../host/kernel-compat/kernel/plugin/permission.ts';
+import { PermissionGate } from '../../../host/kernel-compat/kernel/plugin/permissionGate.ts';
 import { log } from '@omniharness/kernel/kernel/util/logger.js';
 
 /** 宿主权限白名单的环境变量名（逗号分隔的额外授权，或 `all`）。 */
