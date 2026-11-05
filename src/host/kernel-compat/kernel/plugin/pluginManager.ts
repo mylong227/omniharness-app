@@ -43,6 +43,11 @@ export class PluginManager {
     return this.pluginRpc.get(method)?.handler;
   }
 
+  /** 插件贡献的 RPC 方法清单（`rpc.list` 内省用；method → 插件名）。 */
+  public rpcMethods(): readonly { method: string; plugin: string }[] {
+    return [...this.pluginRpc].map(([method, owner]) => ({ method, plugin: owner.plugin }));
+  }
+
   /** 注册插件；先过权限门禁，依赖就绪则立即启动（await 等待启动完成）。
    * @returns 无返回值。
    */

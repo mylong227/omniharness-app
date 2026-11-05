@@ -112,6 +112,12 @@ export class ServerServices {
   /** 回合/线程跨域编排（线程模块与自动化模块共享的「起一个回合」事实源）。 */
   readonly turns: TurnOrchestration;
 
+  /**
+   * 内置 RPC 台账（方法 → 域模块名）。AppServer 注册完模块后赋值（模块构造期不可见，
+   * 但 `rpc.list` 在请求期才读——时序安全）。空表 = 尚未装配完。
+   */
+  rpcOwners: ReadonlyMap<string, string> = new Map();
+
   /** 插件就绪闸门（serve 先监听、回合前再等插件；见 setPluginsReady）。 */
   private pluginsReady: Promise<void> = Promise.resolve();
 

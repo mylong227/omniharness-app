@@ -82,6 +82,8 @@ export interface SecurityBoundary {
 export interface DoctorReport {
   /** Node 版本。 */
   readonly nodeVersion: string;
+  /** 内核包版本（读自 node_modules/@omniharness/kernel/package.json；读不到为 undefined）。 */
+  readonly kernelVersion?: string | undefined;
   /** 配置文件检查。 */
   readonly config: ConfigStatus;
   /** 沙箱后端可用性。 */

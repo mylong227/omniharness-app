@@ -1,6 +1,6 @@
 {
   "name": "@omniharness/app",
-  "version": "0.6.0-alpha.1",
+  "version": "0.6.0-alpha.2",
   "private": true,
   "description": "OmniHarness 独立应用：React 工作台（web/）+ Electron 桌面端（desktop/）+ 后端宿主（src/）",
   "type": "module",
@@ -20,6 +20,7 @@
     "dev": "node scripts/devAll.mjs",
     "start": "node scripts/startAll.mjs",
     "serve": "node dist/src/apps/cli/exec.js serve",
+    "example:embed": "node examples/embed-demo.mjs",
     "web:dev": "vite",
     "web:build": "vite build",
     "web:watch": "vite build --watch",

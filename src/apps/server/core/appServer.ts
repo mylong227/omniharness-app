@@ -48,6 +48,8 @@ export class AppServer {
     );
     this.handlers = registered.handlers;
     this.moduleOwners = registered.owners;
+    // 台账交给共享服务（rpc.list 内省模块在请求期读取）。
+    this.services.rpcOwners = registered.owners;
     // 插件 RPC 面（2026-11 能力开放）：内置方法表为保留面——插件注册同名即加载失败；
     // 分发顺序：内置模块 → 插件贡献 → 404。提供器是惰性的（插件在 listen 后才加载）。
     this.services.plugins.setReservedRpcProvider(() => new Set(this.handlers.keys()));

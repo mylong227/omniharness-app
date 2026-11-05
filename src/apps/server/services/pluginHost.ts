@@ -80,6 +80,11 @@ export class PluginHost {
     return this.pluginManager?.rpcHandlerOf(method);
   }
 
+  /** 插件贡献的 RPC 方法清单（`rpc.list` 内省用；管理器未就绪为空表）。 */
+  public pluginRpcMethods(): readonly { method: string; plugin: string }[] {
+    return this.pluginManager?.rpcMethods() ?? [];
+  }
+
   /**
    * 启动阶段加载已安装插件（闭环 G-B：市场安装 → 运行时可用）。
    * @returns 加载完成后 resolve，无载荷（失败降级为 plugin.loadError 通知）。

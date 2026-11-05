@@ -42,8 +42,8 @@ describe('RPC parity 快照（coreModules）', () => {
   const entries = collectMethods(coreModules());
   const methods = entries.map((e) => e.method).sort();
 
-  it('方法总数 == 91（重构基线；有意识地增减并同步 web ApiClient）', () => {
-    expect(methods.length).toBe(91);
+  it('方法总数 == 92（重构基线 91 + rpc.list 内省；有意识地增减并同步 web ApiClient）', () => {
+    expect(methods.length).toBe(92);
   });
 
   it('全量方法清单（按域前缀分组快照）', () => {
@@ -114,6 +114,7 @@ describe('RPC parity 快照（coreModules）', () => {
         "question.respond",
         "quota.get",
         "quota.set",
+        "rpc.list",
         "search.all",
         "sessions.archive",
         "sessions.delete",
@@ -162,5 +163,6 @@ describe('RPC parity 快照（coreModules）', () => {
     expect(byOwner.get('trace.read')).toBe('observability');
     expect(byOwner.get('vault.set')).toBe('vault');
     expect(byOwner.get('governance.history')).toBe('governance');
+    expect(byOwner.get('rpc.list')).toBe('introspect');
   });
 });

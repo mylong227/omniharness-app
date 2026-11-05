@@ -44,6 +44,24 @@ export class InitCommand {
       return 2;
     }
 
+    // ── 选模型（交互式且未给 --model 时，从厂商已知模型里选；回车 = 厂商默认） ────
+    let chosenModel = modelArg;
+    if (chosenModel === undefined && interactive && preset.models.length > 0) {
+      process.stdout.write(
+        `选择 ${preset.label} 的模型（回车 = ${preset.defaultModel}）：\n` +
+          preset.models.map((m, i) => `  ${String(i + 1).padStart(2)}. ${m}`).join('\n') +
+          '\n',
+      );
+      const answer = (await this.ask('> ')).trim();
+      if (answer !== '') {
+        const byIndex = Number(answer);
+        chosenModel =
+          Number.isInteger(byIndex) && byIndex >= 1 && byIndex <= preset.models.length
+            ? preset.models[byIndex - 1]
+            : answer; // 也接受直接粘贴模型名
+      }
+    }
+
     // ── 凭据 ──────────────────────────────────────────────────────────────────
     let apiKey = keyArg;
     if (apiKey === undefined && preset.needsKey) {
@@ -68,7 +86,7 @@ export class InitCommand {
       modelAdapter: force || existing.modelAdapter === undefined ? preset.adapter : existing.modelAdapter,
       baseUrl: force || existing.baseUrl === undefined ? preset.baseUrl : existing.baseUrl,
       model:
-        modelArg ??
+        chosenModel ??
         (force || existing.model === undefined ? preset.defaultModel : existing.model),
       providerKeys,
       ...(workspaceArg !== undefined ? { workspace: workspaceArg } : {}),

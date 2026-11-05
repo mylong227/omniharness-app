@@ -106,6 +106,9 @@ export class DoctorRunner {
     // ① Node 版本
     const nodeVersion = process.version;
 
+    // ①b 内核包版本（2026-11 打磨）：报告里一眼看出「在跑哪个内核」，排障少一次翻 node_modules。
+    const kernelVersion = this.kernelVersion();
+
     // ② 配置文件：存在且 JSON 合法
     const config = this.checkConfig(opts.configPath, workspaceRoot, issues);
 
@@ -161,6 +164,7 @@ export class DoctorRunner {
 
     return {
       nodeVersion,
+      kernelVersion,
       config,
       sandbox,
       sandboxCapabilities,
@@ -174,6 +178,20 @@ export class DoctorRunner {
       servePort,
       modelProbe,
     };
+  }
+
+  /**
+   * 读内核包版本（`node_modules/@omniharness/kernel/package.json`；任何失败回 undefined）。
+   */
+  private kernelVersion(): string | undefined {
+    try {
+      const pkg = join(this.repoRoot(), 'node_modules', '@omniharness', 'kernel', 'package.json');
+      return (JSON.parse(readFileSync(pkg, 'utf8')) as { version?: unknown }).version as
+        | string
+        | undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   /**
@@ -467,6 +485,9 @@ export class DoctorRunner {
     lines.push('OmniHarness 诊断报告');
     lines.push('--------------------------------------------------');
     lines.push(`  Node 版本        : ${report.nodeVersion}`);
+    if (report.kernelVersion !== undefined) {
+      lines.push(`  内核版本         : @omniharness/kernel ${report.kernelVersion}`);
+    }
     lines.push(
       `  配置文件          : ${report.config.exists ? '存在' : '缺失'} / ${report.config.valid ? '合法' : '非法'}` +
         (report.config.error !== undefined ? ` (${report.config.error})` : ''),
