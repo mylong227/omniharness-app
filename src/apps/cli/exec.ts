@@ -39,8 +39,12 @@ export class Exec {
       return;
     }
 
-    // 快速路径 ②：显式求助 —— 零重模块加载（退出码与原先 parseArgs 失败路径一致，为 2）
-    if (argv.some((flag) => HELP_FLAGS.has(flag))) {
+    // 快速路径 ②：显式求助 —— 零重模块加载（退出码与原先 parseArgs 失败路径一致，为 2）。
+    // 仅**裸**求助（`omniharness --help`）走这里；`<子命令> --help` 必须交给子命令自己的
+    // USAGE（gc/init/… 都有自己的用法页）——历史上被本快路径吞掉、错打主用法（2026-11 修）。
+    const helpRequested = argv.some((flag) => HELP_FLAGS.has(flag));
+    const hasSubcommand = argv[0] !== undefined && !argv[0].startsWith('-');
+    if (helpRequested && !hasSubcommand) {
       ArgParser.printUsage();
       process.exitCode = 2;
       return;

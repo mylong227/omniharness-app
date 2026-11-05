@@ -44,6 +44,7 @@ export class ExecLocal extends CliDataCmds {
     if (command === 'schema') return this.runSchema(argv.slice(1));
     if (command === 'session') return this.runSession(argv.slice(1));
     if (command === 'gc') return this.runGc(argv.slice(1));
+    if (command === 'init') return this.runInit(argv.slice(1));
     if (command === 'plugin') return this.runPlugin(argv.slice(1));
     if (command === 'profile') return this.runProfile(argv.slice(1));
     if (command === 'bundle') return this.runBundle(argv.slice(1));

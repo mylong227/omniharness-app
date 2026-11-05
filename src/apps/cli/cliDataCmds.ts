@@ -24,6 +24,7 @@ import { StoreCommand } from './storeCommand.ts';
 import { TraceCommand } from './traceCommand.ts';
 import { SdkCommand } from './sdkCommand.ts';
 import { GcCommand } from './gcCommand.ts';
+import { InitCommand } from './initCommand.ts';
 import { BoostCommand, BOOST_PROBE_TIMEOUT_MS, type BoostOptions } from './boostCommand.ts';
 import { CliArgReader } from './cliArgReader.ts';
 
@@ -52,6 +53,8 @@ export class CliDataCmds extends CliMcpCmds {
   private readonly traceCommand = new TraceCommand();
   /** gc 子命令（手动维护巡检）。 */
   private readonly gcCommand = new GcCommand();
+  /** init 子命令（一键初始化：选厂商 → 填 Key → 写用户级配置）。 */
+  private readonly initCommand = new InitCommand();
   /** sdk 子命令（连 app-server WS 端点发 JSON-RPC）。 */
   private readonly sdkCommand = new SdkCommand();
   /** boost 子命令（探针归档比对 / 按改动挑门禁子集；只读外部脚本，不改它们）。 */
@@ -73,6 +76,15 @@ export class CliDataCmds extends CliMcpCmds {
    */
   protected async runGc(args: readonly string[]): Promise<number> {
     return this.gcCommand.run(args);
+  }
+
+  /**
+   * init 子命令入口（一键初始化）。
+   * @param args 子命令参数（已去掉 `init`）。
+   * @returns 进程退出码。
+   */
+  protected async runInit(args: readonly string[]): Promise<number> {
+    return this.initCommand.run(args);
   }
 
   /**

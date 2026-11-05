@@ -6,12 +6,17 @@
     "  起工作台    npm start                      构建并启动，浏览器打开 http://127.0.0.1:8787",
     "  跑一次任务  omniharness \"列出当前目录的 .md 文件并总结\"",
     "  零额度试跑  omniharness --mock \"你好\"          不配 API Key 也能跑（脚本化响应，离线可用）",
+    "  一键初始化  omniharness init                 选厂商+填 Key，自动写 ~/.omniharness/omniharness.json",
     "  环境诊断    omniharness doctor                 模型 / 沙箱 / 存储 / 权限一次看全"
   ],
   "commands": [
     {
       "usage": "omniharness server [选项]",
       "description": "启动 JSON-RPC stdio 服务"
+    },
+    {
+      "usage": "omniharness init [--provider ID] [--api-key KEY] [--model NAME] [--workspace P] [--force] [--print]",
+      "description": "一键初始化：选厂商→填 Key→写用户级 ~/.omniharness/omniharness.json（TTY 下交互式；--print 只预览不落盘）"
     },
     {
       "usage": "omniharness serve [选项]",

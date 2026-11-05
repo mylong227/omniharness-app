@@ -381,7 +381,7 @@ export class CliAgentCmds extends CliNativeCmds {
         '[omniharness] 未找到 omniharness.json，使用内置默认配置（mock 模型）。\n',
       );
       process.stderr.write(
-        '              可复制 omniharness.json.example，或运行 node scripts/init-config.mjs 生成。\n',
+        '              可运行 omniharness init 一键生成（或复制 omniharness.json.example 手改）。\n',
       );
     }
     let workspaceTrusted = false;
@@ -416,7 +416,7 @@ export class CliAgentCmds extends CliNativeCmds {
   protected async runTui(args: readonly string[]): Promise<number> {
     if (!process.stdout.isTTY) {
       process.stdout.write(
-        'TUI 需要交互式终端（TTY）。非 TTY 环境下请用 omniharness chat/goal 等子命令。\n',
+        'TUI 需要交互式终端（TTY）。非 TTY 环境下请用 omniharness goal / 直接 `omniharness 任务描述` 等方式。\n',
       );
       return 1;
     }

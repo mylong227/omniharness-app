@@ -123,7 +123,7 @@ export class CliNativeCmds extends CliCompareCmds {
    */
   protected runNativeBench(kernel: NativeKernel, iterations: number): number {
     if (!kernel.available()) {
-      throw new Error('原生内核不可用，无法基准（请先 npm run native:build）');
+      throw new Error('原生内核不可用，无法基准（原生内核随包预编译；本仓无 native:build 脚本）');
     }
     const jsEngine = new RuleApproval({ rules: [] });
     const req = { sessionId: 'bench', toolName: 'shell.run', target: 'echo hi' };
@@ -168,7 +168,7 @@ export class CliNativeCmds extends CliCompareCmds {
    */
   protected runNativeBenchShell(kernel: NativeKernel, iterations: number): number {
     if (!kernel.available()) {
-      throw new Error('原生内核不可用，无法基准（请先 npm run native:build）');
+      throw new Error('原生内核不可用，无法基准（原生内核随包预编译；本仓无 native:build 脚本）');
     }
     const command = 'echo bench-ffi';
     const omniCli = this.findOmniCli();

@@ -18,6 +18,11 @@ export interface DoctorOptions {
   readonly workspaceRoot?: string | undefined;
   /** 显式配置文件路径（优先于向上查找 omniharness.json）。 */
   readonly configPath?: string | undefined;
+  /**
+   * 是否做模型连通性探测（`--probe-model`；2026-11 新增）。
+   * 缺省**关**：doctor 保持零网络调用的快诊断；显式开启才发一次 /models（失败只记 info，不改退出码）。
+   */
+  readonly probeModel?: boolean | undefined;
 }
 
 /** 配置检查状态。 */
@@ -110,4 +115,37 @@ export interface DoctorReport {
   >;
   /** 不合格项清单。 */
   readonly issues: string[];
+  /** 构建产物状态（2026-11 新增；web/dist 缺失是「白页」陷阱的常见成因）。 */
+  readonly build?: BuildStatus | undefined;
+  /** 缺省 serve 端口占用状态（2026-11 新增；被占用只作 info——可能已有 serve 在跑）。 */
+  readonly servePort?: ServePortStatus | undefined;
+  /** 模型连通性探测（2026-11 新增；仅 `--probe-model` 时尝试，未开/不可判定为 attempted:false）。 */
+  readonly modelProbe?: ModelProbeStatus | undefined;
+}
+
+/** 构建产物状态。 */
+export interface BuildStatus {
+  /** 后端 dist 可用（doctor 自身经 dist 运行即为真；源码直跑为 false）。 */
+  readonly backend: boolean;
+  /** 工作台 web/dist/index.html 是否存在。 */
+  readonly web: boolean;
+  /** 检查的 web 目录绝对路径。 */
+  readonly webDir: string;
+}
+
+/** 缺省 serve 端口状态。 */
+export interface ServePortStatus {
+  readonly port: number;
+  /** 端口空闲（可 bind）。 */
+  readonly available: boolean;
+}
+
+/** 模型连通性探测结果。 */
+export interface ModelProbeStatus {
+  /** 是否实际发了探测请求（缺省关闭 / 纯 mock / 无凭据时不发）。 */
+  readonly attempted: boolean;
+  /** 探测结论（attempted 时必有）。 */
+  readonly ok?: boolean | undefined;
+  /** 人可读结论（厂商、方式、失败原因）。 */
+  readonly detail: string;
 }

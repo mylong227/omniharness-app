@@ -19,18 +19,18 @@
 omniharness --skills defaults/skills/harness-core.json "帮我加一个新能力"
 
 # 2) 配置文件：把 skills 数组内联进 omniharness.json 的 skills 键
-#    字段要求见 docs/integration.md（name / description / instructions 非空，tags 可选）
+#    字段要求：name / description / instructions 非空，tags 可选（inline skills 数组或 --skills 文件）
 
-# 3) 评测：技能路由对照评测默认读本文件
-node evals/skill-routing-ab.mjs --gate
-OMNI_SKILLS_FILE=/path/to/other.json node evals/skill-routing-ab.mjs   # 换语料
+# 3) 评测（上游仓的 skill-routing-ab 脚本未切到本仓，以下两条仅上游适用）：
+# (上游) node evals/skill-routing-ab.mjs --gate
+# (上游) OMNI_SKILLS_FILE=… node evals/skill-routing-ab.mjs
 ```
 
 ## 内容口径（诚实登记）
 
-- 这些技能是**真实可用的**，且每条要点都可由仓库内文件核对（`docs/CODE_STANDARD.md`、
-  `docs/PROJECT_BOARD.md`（§5 纪律摘录）、`docs/POLISH_PLAN.md`、`docs/DEPENDENCY_POLICY.md` 等），
+- 这些技能是**真实可用的**，且每条要点都可由仓库内文件核对（上游仓文档：
+  纪律与依赖策略等上游文档未切到本仓），
   **不复制任何外部项目的文本**。
 - 语料规模 **13 条**是刻意的下限而非目标：它足以让「字面包含 vs 相关性检索」的差异可测
-  （见 `evals/skill-routing-ab.mjs`），但**远低于**本仓「扩到 n≥80 再下统计结论」的历史口径——
+  （上游评测脚本，未切到本仓），但**远低于**本仓「扩到 n≥80 再下统计结论」的历史口径——
   该 eval 的结论里已明确登记这一边界，引用其数字时不得省略。

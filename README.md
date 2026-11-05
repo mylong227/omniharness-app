@@ -1,17 +1,18 @@
 # OmniHarness App
 
 > **独立应用仓：完整后端宿主 + React 工作台 + Electron 桌面端。**
-> 内核是 [`@omniharness/kernel`](../omniharness-kernel) 的**固定发行物**（vendored tarball），
-> 应用仓不再内嵌 `src/{kernel,contracts,protocols}` 副本。
-> 2026-11-04 从 [OmniHarness](https://github.com/mylong227/OmniHarness) 切出，并完成内核包迁移；
+> 内核是 [`@omniharness/kernel`](../omniharness-kernel) 的**固定发行物**（vendored tarball，当前 `0.1.0-alpha.6`），
+> 应用经 `src/host/kernel/` **分域对接面**消费内核（全仓唯一的包导入点，门禁强制），
+> 内核切片清理掉的应用能力收留在 `src/host/kernel-compat/`（app 自有扩展层）。
+> 2026-11-04 从 [OmniHarness](https://github.com/mylong227/OmniHarness) 切出并完成内核包迁移（M2）；
 > 本仓不依赖上游任何文件。
 
 ## 1. 三个部分
 
 | 目录 | 内容 | 规模 |
 | ---- | ---- | ---- |
-| `src/` | **后端宿主**：HTTP/SSE、JSON-RPC（87 方法）、会话存储、审批/沙箱、插件宿主、CLI、MCP/ACP/AG-UI。内核核心从 `@omniharness/kernel` 导入 | 167 个 `src/apps` 文件 + 30 个 `src/host` 应用形状模块 |
-| `web/` | **前端**：React 19 工作台（会话/工具/计划/变更/设置/审计/插件…） | 252 个源文件 + 145 个判据文件 / 717 用例 |
+| `src/` | **后端宿主**：HTTP/SSE、JSON-RPC（91 方法，15 个域模块声明式注册）、会话存储、审批/沙箱、插件宿主、CLI、MCP/ACP/AG-UI | `src/apps` + `src/host/kernel/`（17 域对接面）+ `src/host/kernel-compat/`（app 自有扩展层） |
+| `web/` | **前端**：React 19 工作台（会话/工具/计划/变更/设置/审计/插件…） | 252 个源文件 + 146 个判据文件 / 720 用例 |
 | `desktop/` | **桌面端**：Electron 主进程 + preload（窗口/托盘/菜单/更新/侧车监督） | 30 个源文件，25 条纯逻辑判据 |
 
 运行形态：
@@ -21,14 +22,14 @@ Electron main（受信） ──spawn──▶ node dist/src/apps/cli/exec.js se
         │                              │  HTTP+SSE 127.0.0.1:<port>（Bearer + HttpOnly Cookie）
         └── BrowserWindow ──load──▶ http://127.0.0.1:<port>/?token=…
                                        ├─ GET  /            → web/dist（Vite 产物）
-                                       ├─ POST /rpc         → JSON-RPC 2.0（87 个方法）
+                                       ├─ POST /rpc         → JSON-RPC 2.0（91 个方法）
                                        ├─ GET  /events      → SSE 事件流
                                        ├─ GET  /files       → 工作区文件
                                        └─ GET  /healthz     → 运行时自述（含 previewPort）
 ```
 
-后端的「内核」不再由本仓源码提供：`src/apps` 与 `src/host` 都从
-`node_modules/@omniharness/kernel` 的内核模块导入。桌面的「后端根目录」缺省就是本仓根；
+后端的「内核」不再由本仓源码提供：全部内核符号经 `src/host/kernel/<域>.ts` 对接面导入
+（323 条再导出、门禁第 7 条强制单点）；桌面的「后端根目录」缺省就是本仓根；
 `OMNI_BACKEND_ROOT` / `OMNI_HARNESS_ENTRY` 仍可指向另一份后端工作树。
 
 ## 2. 快速开始
@@ -42,6 +43,14 @@ npm run dev            # 开发回路：后端 serve + Vite dev server（HMR，5
 `npm start` 打印的 `OmniHarness UI: http://127.0.0.1:<port>/?token=…` 是唯一可用入口
 （回环 serve 默认带一次性令牌，裸地址会 401）。
 
+接真模型（缺省 mock 适配器，零凭据可跑）：
+
+```powershell
+omniharness init                  # TTY 交互式：选厂商 → 填 Key → 写 ~/.omniharness/omniharness.json
+omniharness init --provider deepseek --api-key sk-xxx   # 脚本/CI 直达
+omniharness doctor --probe-model  # 环境诊断 + 模型连通性探测
+```
+
 桌面端：
 
 ```powershell
@@ -50,22 +59,30 @@ npm install            # Electron（首次约 100 MB）
 npm start              # 构建主进程并启动窗口；后端由侧车自动拉起
 ```
 
+嵌入到别的 Node 应用（3 行）：
+
+```ts
+import { createOmniHarness } from '@omniharness/app';
+const harness = await createOmniHarness({ transport: { http: { port: 0 } } });
+console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
+```
+
 ## 3. 脚本
 
 | 命令 | 作用 |
 | ---- | ---- |
 | `npm run build` | 后端：`tsc` → `dist`（原子换入）+ 伴生资源/原生库镜像 |
 | `npm run build:web` / `web:dev` | 前端 Vite 构建 / 开发服务器 |
-| `npm run web:test` | 前端判据（145 文件 / 717 用例，文件级串行） |
+| `npm run web:test` | 判据（前端 146 文件 717 用例 + 后端 parity 快照，文件级串行） |
 | `npm run typecheck` | 后端 + 前端 + 桌面三份 strict 类型检查 |
-| `npm run kernel:check` | **内核边界门禁**：无内嵌副本 / 包导入非空 / tarball 与锁文件一致 / 原生内核实载 |
-| `npm run kernel:vendor` | 从内核仓 tag 重新构建并固定 `vendor/*.tgz`（同时更新 lock integrity） |
+| `npm run kernel:check` | **内核边界门禁（7 条）**：vendored 钉定 / 无内嵌副本 / 对接面单点 / tarball 与锁文件一致 / 原生内核实载 |
+| `npm run kernel:vendor` | 从内核仓重新构建并固定 `vendor/*.tgz`（tag 自 package.json 钉定版本解析） |
 | `npm run smoke` | **端到端**：真起 serve，验启动令牌、`/healthz` `/readyz` `/`、`/rpc config.get` |
 | `npm run serve` | 只起 backend serve（需先 `npm run build` + `build:web`） |
 | `npm run desktop:build` / `desktop:test` | 打包主进程 / 25 条纯逻辑判据 |
 | `npm run desktop:smoke` | **真实桌面 GUI 验收**：窗口 / 侧车 / UI origin / DOM 挂载，退出码即结论 |
 | `npm run desktop:stage` / `desktop:dist` | 打包资源（含 vendor）/ NSIS 安装包 |
-| `npm run verify` | typecheck → kernel:check → 前端判据 → 后端构建 → 前端构建 → 冒烟 → 桌面构建与判据 |
+| `npm run verify` | typecheck → kernel:check → 判据 → 后端构建 → 前端构建 → 冒烟 → 桌面构建与判据 |
 
 ## 4. 环境变量
 
@@ -78,53 +95,68 @@ npm start              # 构建主进程并启动窗口；后端由侧车自动�
 | `OMNI_HARNESS_ENTRY` | 桌面主进程 | 侧车入口脚本（优先于 backendRoot 推导） |
 | `OMNI_NODE_BIN` | 桌面主进程 / stage | 侧车 Node 可执行文件 |
 | `OMNI_SERVE_TOKEN` | serve | 固定访问令牌（缺省每次启动随机生成） |
-| `OMNI_KERNEL_ROOT` / `OMNI_KERNEL_TAG` | `kernel:vendor` | 内核仓位置（缺省 `../omniharness-kernel`）/ 发行 tag（缺省 `v0.1.0-alpha.4`） |
+| `OMNI_KERNEL_ROOT` / `OMNI_KERNEL_TAG` | `kernel:vendor` | 内核仓位置（缺省 `../omniharness-kernel`）/ 发行 tag（**缺省 = package.json 钉定的版本**，可覆盖） |
 
-## 5. 内核依赖：唯一真源与固定版本
+## 5. 内核依赖：唯一真源、单点对接
 
 `package.json`：
 
 ```json
 "dependencies": {
-  "@omniharness/kernel": "file:vendor/omniharness-kernel-0.1.0-alpha.4.tgz"
+  "@omniharness/kernel": "file:vendor/omniharness-kernel-0.1.0-alpha.6.tgz"
 }
 ```
 
-- **为什么是 alpha.4**：这是内核仓最后一个仍包含本应用所需完整面的发行物
-  （插件宿主、媒体/资产、A2A、belief、laya 注入缝等）。alpha.5 起内核按「应用形状清零」
-  删除了这些能力；应用要么自己拥有它们，要么等内核重新收编。本次选择前者。
-- **30 个 `src/host` 文件**是应用形状的残留（OIDC/企业、license/tui 契约、
-  schema codegen、SDK client、Laya 决策引擎、toolHandler、A2A 协议补充、决策引擎注入解析）。
-  它们**不是**内嵌内核副本：内核 alpha.4 已明确不发布这些模块，应用必须自己拥有。
-- **649 处包导入 / 1163 个内嵌文件删除**：`src/{kernel,contracts,protocols}` 已从工作树移除
-  （历史仍在 git 里，可审计）。
+- **alpha.6**（内核 M4/M5/M6 闭环）：内核完成了「应用形状切片」并把运行时编排收敛为
+  `Runtime.createRuntime` 单源——app 的 `Runtime` 现在只是内核 Runtime 的薄扩展。
+- **`src/host/kernel/` 对接面（17 个域文件）**：全仓**唯一**允许导入 `@omniharness/kernel`
+  的地方（`checkKernelBoundary.mjs` 第 7 条强制）。分域而非单文件桶的原因：实测根入口整包
+  加载 ~780ms vs 单域 ~60ms——单文件桶会给每个 CLI 冷启动平添 ~700ms。
+  **升级内核 = 换 tgz + 适配这一个目录**，业务代码零改动。
+- **`src/host/kernel-compat/`（app 自有扩展层）**：插件宿主体系、图存储、资产、媒体、
+  审计演化等内核切片清理掉的应用能力收留于此。归属契约见
+  [其 README](src/host/kernel-compat/README.md)：app 自有、随 app 演进、不得反向要求内核兼容。
+- **91 个 RPC 方法**由 `src/apps/server/modules/` 的 15 个域模块声明式注册
+  （parity 快照 `tests/serverModulesParity.test.ts` 钉住全表）；stdio 与 serve 两条组合根
+  共用 `composedServerCore()` 不变量核心（历史「serve 漏接 doctor」缺陷类已结构性消灭）。
 - **原生内核随包**：内核 tarball 包含 `native/omni_napi.node`（`kernel:vendor` 注入），
   `NativeKernel.available() === true`，`kernel:check` 会实载并 ping。
-- **升级路径**：把 `src/host` 的模块按方向归位（内核能力回内核、应用能力留应用），
-  改 `OMNI_KERNEL_TAG` 跑 `npm run kernel:vendor`，再跑 `npm run verify`。
-  细节与逐项迁移依据见 [docs/KERNEL-CONTRACT.md](docs/KERNEL-CONTRACT.md)。
+- **升级路径**：改 package.json 钉新 tgz → `npm run kernel:vendor` → 适配 `src/host/kernel/`
+  （typecheck 指出缺哪些符号）→ `npm run verify`。细节见 [docs/KERNEL-CONTRACT.md](docs/KERNEL-CONTRACT.md)。
 
-## 6. 今日实测（2026-11-04，本机 Node 22.20 / Windows）
+## 6. 扩展指南（三种方式，按介入深度递增）
+
+| 方式 | 适合 | 最少改动 |
+| ---- | ---- | ---- |
+| **插件**（`omni.plugin.json` + `~/.omniharness/plugins`） | 第三方能力包：加工具/服务，**可注册新 RPC 方法**（需声明危险权限 `rpc.register`，缺省拒绝） | 一个 JS 文件 + manifest；`plugin load --file …` 安装 |
+| **技能**（`omniharness.json` 的 `skills` 数组 / `--skills` / `SKILL.md`） | 只改提示词与流程，不写代码 | 一段 JSON 或一个 markdown |
+| **模块**（`src/apps/server/modules/` 或嵌入方 `defineModule`） | 一等能力：新 RPC 域、新服务 | 新建 1 个模块文件 + `modules/index.ts` 登记 1 行；嵌入方 0 行（`createOmniHarness({ modules })`） |
+
+加一个新 RPC 能力的完整清单：`modules/<域>.ts` 写 `ctx.rpc('x.y', handler)` →
+（可选）在 `tests/serverModulesParity.test.ts` 快照补方法名 →（可选）`web/src/core/ApiClient.ts` 加客户端方法。
+冲突（两处注册同名）在启动期即抛错。
+
+## 7. 今日实测（2026-11-05，本机 Node 22.20 / Windows）
 
 | 检查 | 结果 |
 | ---- | ---- |
 | 三份 typecheck（后端 / 前端 / 桌面） | ✅ 0 error |
-| `npm run kernel:check` | ✅ 200 源文件 / 649 包导入 / 内嵌副本 0 / tarball integrity 一致 / 原生内核实载 |
+| `npm run kernel:check` | ✅ 348 源文件 / 323 包导入（全部收敛对接面）/ 内嵌副本 0 / tarball integrity 一致 / 原生内核实载 |
 | 后端构建 `npm run build` | ✅ dist 原子换入；原生内核可加载 |
 | 前端构建 `npm run build:web` | ✅ 单入口 + vendor/panel-antd 分块 |
-| 前端判据 `npm run web:test` | ✅ 145 文件 / 717 用例 |
+| 判据 `npm run web:test` | ✅ 146 文件 / 720 用例（含 RPC parity 快照 3 条） |
 | 端到端 `npm run smoke` | ✅ 7/7（banner token、`/healthz`、`/readyz`、`/` HTML、`/rpc config.get`、`sessions.list`、原生内核实载） |
 | 桌面 `desktop:build` + `desktop:test` | ✅ 25/25 |
-| 桌面 GUI `desktop:smoke` | ✅ 8/8：真实窗口 / 侧车 / UI origin / DOM 挂载（见 [DESKTOP-SMOKE.md](docs/DESKTOP-SMOKE.md)） |
-| 桌面打包 `desktop:stage` | ✅ 251 个生产依赖；staged harness 内 `NativeKernel` 可加载，`/healthz` `/readyz` `/rpc` 全 200 |
+| 嵌入 API 实测 | ✅ `createOmniHarness` 1.8s 启动 / healthz 200 / RPC 往返 / 优雅关闭 |
 
-## 7. 与上游 / 内核仓的关系
+## 8. 与上游 / 内核仓的关系
 
-- 应用代码来自上游 `OmniHarness@main`（0.4.0）；本仓的仓库级解耦与内核迁移用 `git log` 可审。
-- 内核来自 `../omniharness-kernel` 的 `v0.1.0-alpha.4` tag；`vendor/*.tgz` 是它的发行物，
-  **不是**第二份源码。重建用 `npm run kernel:vendor`。
+- 应用代码来自上游 `OmniHarness@main`（0.4.0）；本仓的仓库级解耦、内核包迁移（M2）与
+  模块化重构用 `git log` 可审。
+- 内核来自 `../omniharness-kernel` 的 `v0.1.0-alpha.6` tag；`vendor/*.tgz` 是它的发行物，
+  **不是**第二份源码。重建用 `npm run kernel:vendor`（tag 缺省自 package.json 解析）。
 - 上游的 `tests/`、`crates/`、`third-party/`、看板与审计脚本没有切过来：本仓的判据是
-  前端 717 用例 + 桌面 25 条 + 冒烟 7 条 + 内核边界 6 条。
+  前端 720 用例 + 桌面 25 条 + 冒烟 7 条 + 内核边界 7 条 + RPC parity 快照。
 
 ## License
 

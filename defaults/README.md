@@ -9,13 +9,13 @@
 
 | 文件             | 内容                                                | 单一来源实现                                          | 覆盖入口                                                         |
 | ---------------- | --------------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------- |
-| `ssrf.json`      | 云元数据主机 / 内网域名后缀 / IPv4 私有保留网段     | `src/kernel/security/ssrfPolicy.ts`（`DEFAULT_SSRF_POLICY`） | `omniharness.json` 的 `ssrfPolicy`                               |
-| `providers.json` | 大模型厂商目录（端点 / 模型 / 推理档位 / CLI 映射） | `src/kernel/config/providerPresets.ts`（`ProviderPresets`）  | `omniharness.json` 的 `providerPresets`                          |
-| `endpoints.json` | 适配器兜底端点/模型/凭据 env 名 + 各服务端点地址    | `src/kernel/util/endpointDefaults.ts`（`EndpointDefaults`）  | CLI/配置文件显式值 > 该适配器的 env > 本文件（服务端点见 `env`） |
-| `limits.json`    | 运维限制（HTTP/预览源/A2A/工具缺省限额）            | `src/kernel/util/runtimeLimits.ts`（`RuntimeLimits`）        | `omniharness.json` 的 `limits` > 数据里的 `env` > 本文件         |
+| `ssrf.json`      | 云元数据主机 / 内网域名后缀 / IPv4 私有保留网段     | `src/host/kernel/adapters-sandbox.ts`（内核 security/ssrfPolicy，经对接面） | `omniharness.json` 的 `ssrfPolicy`                               |
+| `providers.json` | 大模型厂商目录（端点 / 模型 / 推理档位 / CLI 映射） | `src/host/kernel/config.ts`（内核 config/providerPresets，经对接面）  | `omniharness.json` 的 `providerPresets`                          |
+| `endpoints.json` | 适配器兜底端点/模型/凭据 env 名 + 各服务端点地址    | `src/host/kernel/util.ts`（内核 util/endpointDefaults，经对接面）  | CLI/配置文件显式值 > 该适配器的 env > 本文件（服务端点见 `env`） |
+| `limits.json`    | 运维限制（HTTP/预览源/A2A/工具缺省限额）            | `src/host/kernel/util.ts`（内核 util/runtimeLimits，经对接面）        | `omniharness.json` 的 `limits` > 数据里的 `env` > 本文件         |
 | `cliHelp.json`   | `omniharness --help` 的文案（命令与选项说明）       | `src/apps/cli/cliHelp.ts`（`CliHelp`）                     | 无（面向用户的帮助文案；枚举取值在渲染时从 `cliEnums` 派生）     |
 
-四个文件都由 `src/kernel/util/builtinDefaults.ts` 按**模块相对路径**读包根下的 `defaults/`（不做 cwd 推断），
+四个文件都由 `src/host/kernel/util.ts`（内核 util/builtinDefaults，经对接面） 按**模块相对路径**读包根下的 `defaults/`（不做 cwd 推断），
 结果缓存。**文件缺失 / 不可读 / 不是合法 JSON 一律抛错**（fail-closed）：安全默认档读不到时静默退化成空表，
 等于护栏「看着还在、实际更松」。
 
@@ -315,40 +315,16 @@
   `sandboxProfiles` / `outputFormats` …）。
 - **排版**：描述列固定第 36 列；spec 过长则留 3 空格（渲染器统一保证，不需要手工对齐）。
 - **改文案**：直接改本文件的 `description` 即可；**新增旗标**要在这里补一条，否则
-  `tests/unit/cliHelp.test.ts` 的「新增旗标必须文档化」会失败（存量 15 个未文档化旗标已冻结在测试里）。
+  （上游仓有「新增旗标必须文档化」机检；本仓暂无该判据，改文案请自查 `--help` 渲染）。
 
 ## 改完怎么验
 
 ```bash
-npm run typecheck && npm test          # 钉住「默认值与历史逐字一致」「CLI 映射等价」「地址不再出现在 src」
-node scripts/auditConfigWiring.mjs     # 配置字段的「声明→装配→运行时→消费」四段接线
-node scripts/check.mjs --strict        # 文件/函数体量等铁律
-npm run audit:hardcodes                # 硬编码清单（报告型：还剩哪些地址/路径/运维数值，按类列出）
+npm run typecheck && npm run web:test   # 三端类型 + 全部判据（本仓判据在 web/test 与 tests/）
+npm run build && npm run smoke          # 端到端冒烟（真起 serve 验默认数据生效）
+npm run kernel:check                    # 内核边界门禁（7 条）
 ```
 
-`tests/unit/endpointDefaults.test.ts` 里有一条**反硬编码守卫**：它会扫描 `src/**` 的代码行（注释除外），
-若 `api.openai.com` / `api.anthropic.com` / `localhost:11434` / `registry.omniharness.dev` / `api.github.com`
-/ `github.com/` / `/json/version` 再次出现在实现里（而不是本目录的数据文件），测试直接失败。
-
-`tests/unit/hardcodeAudit.test.ts` 是上面那些「具体字面量守卫」的**一般化版本**：它调用清单脚本，
-断言**已迁移的消费者里一条 ≥1000 的运维数值字面量都没有**（不管是不是旧值），且 `src` 里没有
-`LimitEnv.int('OMNI_X', <数字>)` 这种「env 名 + 内联默认值」的老写法。行内注 `hardcode-exempt`
-可豁免（当前仅 SSE `retry:` 协议值与 PowerShell 清理探针的本地超时两条，见看板 §195）。
-
-`tests/unit/runtimeLimits.test.ts` 有同形的守卫：`httpServer.ts` 不得再出现 `30_000` / `60_000` / `2048` /
-`8 * 1024 * 1024`，`previewServer.ts` 不得再出现 `15_000` / `30_000` / `maxConnections = 64`，
-`a2aClient.ts` 不得再出现 `60_000`、`a2aPushNotifications.ts` 不得再出现 `DEFAULT_WEBHOOK_TIMEOUT_MS`、
-`a2aTaskPager.ts` 不得再出现 `DEFAULT_PAGE_SIZE` / `DEFAULT_TTL_MS`、`webFetchTool.ts` 不得再出现
-`DEFAULT_MAX_BYTES` / `DEFAULT_TIMEOUT_MS` / `200_000`，`sessionGc.ts` 不得再出现 `DEFAULT_KEEP_NEWEST = 50` /
-`90 * 24` / `4 * 1024 * 1024 * 1024`、`tmpSweep.ts` 不得再出现 `DEFAULT_AGE_MS = 24 * 60 * 60 * 1000`、
-`maintenanceRunner.ts` 不得再出现 `DEFAULT_INTERVAL_HOURS = 6`、`lspJsonRpcConnection.ts` 不得再出现
-`DEFAULT_REQUEST_TIMEOUT_MS = 15000`、`lspProcessAdapter.ts` 不得再出现
-`DEFAULT_DIAGNOSTICS_TIMEOUT_MS = 5000`，浏览器族的 `cdpClient.ts` / `chromeProcess.ts` /
-`browserAvailability.ts` / `browserSession.ts` / `playwrightBrowserSession.ts` 与两个浏览器工具
-也不得再写死各自的超时/空闲关闭值——
-这些值只能来自本目录的 `limits.json`。该判据还实构造一个 `HttpServer` 断言连接级参数就是配置值
-（"声明未接线"在结构判据里也会被抓）；`webFetchTool.test.ts` 另有两例断言 `web_fetch` 的缺省值
-真的来自限额（注入后调用参数与工具说明同时变化）；`maintenanceRunner.test.ts` 有一例断言
-`limits.maintenance.tmpOlderThanMs` 真的改变了清扫结果（阈值 10 天时 2 天前的条目不被删）；
-`lspProcess.test.ts` 有一例用 1ms 请求超时对真实 mock LSP 断言 fail-closed；
-`browserActFallback.test.ts` 有一例把 `limits.browser.idleCloseMs` 设成 5ms，断言空闲后真的自动关闭。
+> 注：上游仓的 `tests/unit/*` 守卫（反硬编码 / 体量铁律 / 接线审计）**没有**切到本仓；
+> 上文提及的「具体字面量守卫」属上游看板内容，仅作历史背景。本仓的对应防线是
+> `kernel:check` 门禁 + 冒烟 + parity 快照（`tests/serverModulesParity.test.ts`）。

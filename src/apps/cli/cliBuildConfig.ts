@@ -243,7 +243,7 @@ export class CliBuildConfig extends CliCredentialBuild {
   ): Promise<ResolvedConfig> {
     if (args.native && !new NativeKernel().available()) {
       process.stderr.write(
-        '⚠️ --native 已请求但原生内核不可用（请先 npm run native:build），已回退 TS 路径\n',
+        '⚠️ --native 已请求但原生内核不可用（原生内核随包预编译；本仓无 native:build 脚本），已回退 TS 路径\n',
       );
     }
     // F3：凭据水合必须早于 buildModel——模型适配器与模型路由都在构造期直接读 process.env。

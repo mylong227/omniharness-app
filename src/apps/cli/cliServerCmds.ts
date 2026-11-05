@@ -106,7 +106,7 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
       audit: this.createAudit(deps.args),
       // (F4) 治理台（Pro）与审计中台（Team）按档位可用；无授权 ⇒ core 档并给可读拒因。
       entitlements: LicenseSource.resolve({ env: process.env }),
-      doctorReport: (options) => DoctorRunner.runDoctor(options ?? {}),
+      doctorReport: (options) => DoctorRunner.runDoctor(options ?? {}), // runDoctor 现为 async；RPC 侧 await 兼容
       // 启动档位兜底：UI 切档落盘后重启，内存覆盖态为空时按它还原生效档位
       // （历史 bug：approval='ask' 落盘重启后静默落回 AutoApproval 全放行）。
       startupApproval: deps.startupApproval,
@@ -163,7 +163,12 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
    */
   protected async runDoctor(args: readonly string[]): Promise<number> {
     const configPath = this.flagValue(args, '--config');
-    const report = DoctorRunner.runDoctor({ configPath });
+    // --probe-model：显式开启模型连通性探测（发一次 /models；失败只记 info，不改退出码）。
+    const probeModel = args.includes('--probe-model');
+    const report = await DoctorRunner.runDoctor({
+      configPath,
+      ...(probeModel ? { probeModel } : {}),
+    });
     DoctorRunner.printDoctor(report);
     return DoctorRunner.exitCode(report);
   }
@@ -472,7 +477,7 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
       );
       process.stderr.write(
         '              可在项目里放一份 omniharness.json（模板见 omniharness.json.example，' +
-          '或运行 node scripts/init-config.mjs）。\n',
+          '或运行 omniharness init 一键生成）。\n',
       );
     }
     const configPath = foundConfig ?? join(wsRoot, configFile.FILE_NAME);

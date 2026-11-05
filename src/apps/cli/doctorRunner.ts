@@ -1,11 +1,17 @@
-import { accessSync, existsSync, readFileSync } from 'node:fs';
+import { accessSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { dirname, join } from 'node:path';
+import { createServer } from 'node:net';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { OmniHome } from '../../host/kernel/util.ts';
 import { NetworkEgressGuard } from '../../host/kernel/adapters-sandbox.ts';
 import { SandboxCapabilityTable } from '../../host/kernel/adapters-sandbox.ts';
 import { SandboxManager } from '../../host/kernel/adapters-sandbox.ts';
 import { ToolOutputTrust } from '../../host/kernel/security.ts';
+import { providerPresets } from '../../host/kernel/config.ts';
+import type { ProviderPreset } from '../../host/kernel/config.ts';
+import { ProviderProbe } from '../server/services/providerProbe.ts';
+import { ServeDefaults } from './serveDefaults.ts';
 import {
   InjectionSelfCheck,
   type InjectionSelfCheckSummary,
@@ -33,19 +39,25 @@ const PERMISSIONS_MANIFEST_NAME = 'omniharness.permissions.json';
 // 而实现住在 CLI 层（`cli → server` 已存在，反向会成环）。此处导入供本文件使用 + 再导出，
 // 公共 API 面零改动。
 import type {
+  BuildStatus,
   ConfigStatus,
   DoctorOptions,
   DoctorReport,
+  ModelProbeStatus,
   SandboxStatus,
   SecurityBoundary,
+  ServePortStatus,
 } from '../../host/kernel-compat/contracts/ports/observability/doctorReport.ts';
 
 export type {
+  BuildStatus,
   ConfigStatus,
   DoctorOptions,
   DoctorReport,
+  ModelProbeStatus,
   SandboxStatus,
   SecurityBoundary,
+  ServePortStatus,
 } from '../../host/kernel-compat/contracts/ports/observability/doctorReport.ts';
 
 /**
@@ -87,7 +99,7 @@ export class DoctorRunner {
    * @param opts 诊断选项（工作区根与显式配置路径，缺省取 process.cwd()）。
    * @returns 汇总 Node 版本、配置、沙箱、插件目录、权限清单的诊断报告。
    */
-  public runDoctor(opts: DoctorOptions = {}): DoctorReport {
+  public async runDoctor(opts: DoctorOptions = {}): Promise<DoctorReport> {
     const issues: string[] = [];
     const workspaceRoot = opts.workspaceRoot ?? process.cwd();
 
@@ -106,14 +118,21 @@ export class DoctorRunner {
       elevated: sandbox.restrictedToken,
     });
 
-    // ④ 插件目录可读
+    // ④ 插件目录：缺失则**自动创建**（2026-11 改）：目录不存在曾经报 issue，但首次运行本就没有
+    // 插件目录——那是「尚未用过插件」而非「环境坏了」。自动建好 + 提示一句，诊断不再吓人。
     const pluginsDir = this.defaultPluginsDir();
     let pluginsDirReadable = false;
     try {
       accessSync(pluginsDir);
       pluginsDirReadable = true;
     } catch {
-      issues.push(`插件目录不可读或不存在: ${pluginsDir}`);
+      try {
+        mkdirSync(pluginsDir, { recursive: true });
+        pluginsDirReadable = true;
+        process.stdout.write(`[doctor] 插件目录不存在，已自动创建: ${pluginsDir}\n`);
+      } catch (error) {
+        issues.push(`插件目录不可创建: ${pluginsDir} (${this.messageOf(error)})`);
+      }
     }
 
     // ⑤ 权限清单可读（仅当存在时校验）
@@ -128,6 +147,18 @@ export class DoctorRunner {
       }
     }
 
+    // ⑥ 构建产物（2026-11 新增）：web/dist 缺失是「serve 起来了但白页」的头号成因。
+    const build = this.checkBuild();
+
+    // ⑦ 缺省 serve 端口占用（2026-11 新增）：被占用只作 info（很可能已有 serve 在跑，是常态）。
+    const servePort = await this.checkServePort(ServeDefaults.DEFAULT_SERVE_PORT);
+
+    // ⑧ 模型连通性探测（2026-11 新增）：仅 `--probe-model` 时发一次 /models；
+    // 结果只作 info（网络问题不该让「环境诊断」退出码变红——那是配置/安装问题的信号）。
+    const modelProbe = opts.probeModel === true
+      ? await this.probeModel(workspaceRoot)
+      : { attempted: false, detail: '未开启（--probe-model 可探测模型连通性）' };
+
     return {
       nodeVersion,
       config,
@@ -139,7 +170,111 @@ export class DoctorRunner {
       permissionsManifestReadable,
       workers: PluginWorkerMetrics.all(),
       issues,
+      build,
+      servePort,
+      modelProbe,
     };
+  }
+
+  /**
+   * 构建产物检查（dist/ 与 web/dist）。
+   * @returns 后端/工作台构建状态。
+   */
+  private checkBuild(): BuildStatus {
+    const webDir = resolve(this.repoRoot(), 'web', 'dist');
+    // doctor 自身就是经 dist 运行时才存在的模块：本模块路径里含 dist/ 即视为后端已构建。
+    const backend = fileURLToPath(import.meta.url).replaceAll('\\', '/').includes('/dist/');
+    return { backend, web: existsSync(join(webDir, 'index.html')), webDir };
+  }
+
+  /**
+   * 仓库根定位（从本模块位置向上找 package.json 的 name 为 @omniharness/app 的目录）。
+   * @returns 仓库根绝对路径（找不到时回退模块上溯 5 层）。
+   */
+  private repoRoot(): string {
+    let dir = dirname(fileURLToPath(import.meta.url));
+    for (let i = 0; i < 6; i += 1) {
+      const pkg = join(dir, 'package.json');
+      if (existsSync(pkg)) {
+        try {
+          const name = (JSON.parse(readFileSync(pkg, 'utf8')) as { name?: unknown }).name;
+          if (name === '@omniharness/app') return dir;
+        } catch {
+          // 解析失败继续上溯
+        }
+      }
+      dir = dirname(dir);
+    }
+    return dir;
+  }
+
+  /**
+   * 缺省 serve 端口可用性（尝试 bind 一次，立即关闭）。
+   * @param port 待测端口。
+   * @returns 端口状态。
+   */
+  private async checkServePort(port: number): Promise<ServePortStatus> {
+    return await new Promise((resolveProbe) => {
+      const probe = createServer();
+      probe.once('error', () => resolveProbe({ port, available: false }));
+      probe.once('listening', () => {
+        probe.close(() => resolveProbe({ port, available: true }));
+      });
+      probe.listen(port, '127.0.0.1');
+    });
+  }
+
+  /**
+   * 模型连通性探测（复用 ProviderProbe，与 UI「检测」按钮同一事实源）。
+   *
+   * 从配置文件解析当前厂商（modelAdapter/baseUrl + providerKeys/apiKey），mock 适配器或
+   * 无凭据时如实报「未尝试」。失败不抛——doctor 是诊断，不是健康门。
+   * @param workspaceRoot 工作区根（向上找配置文件）。
+   * @returns 探测结果。
+   */
+  private async probeModel(workspaceRoot: string): Promise<ModelProbeStatus> {
+    try {
+      const path = this.findConfig(workspaceRoot);
+      if (path === undefined || !existsSync(path)) {
+        return { attempted: false, detail: '未找到配置文件（先运行 omniharness init）' };
+      }
+      const file = JSON.parse(readFileSync(path, 'utf8')) as {
+        modelAdapter?: unknown;
+        baseUrl?: unknown;
+        apiKey?: unknown;
+        providerKeys?: Record<string, string>;
+      };
+      if (file.modelAdapter === 'mock') {
+        return { attempted: false, detail: 'mock 适配器（脚本化应答，无需联网）' };
+      }
+      const presets = providerPresets.resolve();
+      const topKey = typeof file.apiKey === 'string' ? file.apiKey : undefined;
+      const keys = file.providerKeys ?? {};
+      const matched =
+        presets.find((p) => typeof file.baseUrl === 'string' && file.baseUrl === p.baseUrl) ??
+        presets.find(
+          (p) =>
+            p.adapter === file.modelAdapter && (topKey !== undefined || keys[p.id] !== undefined),
+        );
+      if (matched === undefined) {
+        return {
+          attempted: false,
+          detail: `未在配置中找到可用厂商（modelAdapter=${String(file.modelAdapter ?? '缺省')}；--provider 初始化后可探测）`,
+        };
+      }
+      const preset: ProviderPreset = matched;
+      const key = keys[preset.id] ?? topKey;
+      const result = await ProviderProbe.probeProvider(preset, key);
+      return {
+        attempted: true,
+        ok: result.ok,
+        detail: result.ok
+          ? `${preset.label} 连通（经 ${result.source}，模型 ${String(result.models.length)} 个）`
+          : `${preset.label} 不可达：${result.error ?? '未知原因'}`,
+      };
+    } catch (error) {
+      return { attempted: true, ok: false, detail: `探测失败：${this.messageOf(error)}` };
+    }
   }
 
   /**
@@ -240,7 +375,7 @@ export class DoctorRunner {
     const path = configPath ?? this.findConfig(workspaceRoot);
     if (path === undefined || !existsSync(path)) {
       issues.push(
-        `未找到 omniharness.json 配置文件（可使用 omniharness.json.example 或 init-config 生成）`,
+        `未找到 omniharness.json 配置文件（可运行 omniharness init 一键生成，或复制 omniharness.json.example 手改）`,
       );
       return { exists: false, valid: false };
     }
@@ -343,6 +478,22 @@ export class DoctorRunner {
     );
     lines.push(`  插件目录可读      : ${report.pluginsDirReadable ? '是' : '否'}`);
     lines.push(`  权限清单可读      : ${report.permissionsManifestReadable ? '是' : '否'}`);
+    // 2026-11 新增三项：构建产物 / 缺省端口 / 模型连通性（可选探测）。
+    const build = report.build;
+    if (build !== undefined) {
+      lines.push(`  后端构建          : ${build.backend ? 'OK（dist/）' : '未构建（源码直跑）'}`);
+      lines.push(
+        `  工作台构建        : ${build.web ? 'OK' : '缺失'}（${build.webDir}）` +
+          (build.web ? '' : ' —— serve 能起但浏览器白页；先跑 npm run build:web'),
+      );
+    }
+    const port = report.servePort;
+    if (port !== undefined) {
+      lines.push(
+        `  缺省 serve 端口   : ${String(port.port)} ${port.available ? '空闲' : '被占用（可能已有 serve 在跑；--port N 换端口）'}`,
+      );
+    }
+    lines.push(`  模型连通性        : ${report.modelProbe?.detail ?? '未探测'}`);
     const workers = Object.entries(report.workers ?? {});
     lines.push(
       `  Worker 指标       : ${workers.length === 0 ? '无活动 Worker' : `${String(workers.length)} 个`}`,
@@ -413,8 +564,8 @@ export class DoctorRunner {
    * @param opts 诊断选项（缺省取 process.cwd()）。
    * @returns 汇总诊断报告。
    */
-  public static runDoctor(opts: DoctorOptions = {}): DoctorReport {
-    return doctorRunner.runDoctor(opts);
+  public static async runDoctor(opts: DoctorOptions = {}): Promise<DoctorReport> {
+    return await doctorRunner.runDoctor(opts);
   }
 
   /**
