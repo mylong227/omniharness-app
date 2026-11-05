@@ -12,7 +12,7 @@
 | 目录 | 内容 | 规模 |
 | ---- | ---- | ---- |
 | `src/` | **后端宿主**：HTTP/SSE、JSON-RPC（92 方法，16 个域模块声明式注册）、会话存储、审批/沙箱、插件宿主、CLI、MCP/ACP/AG-UI | `src/apps` + `src/host/kernel/`（17 域对接面）+ `src/host/kernel-compat/`（app 自有扩展层） |
-| `web/` | **前端**：React 19 工作台（会话/工具/计划/变更/设置/审计/插件…） | 252 个源文件 + 144 个判据文件 / 717 用例（后端 4 文件 9 用例另计，合计 148 文件 / 726 用例） |
+| `web/` | **前端**：React 19 工作台（会话/工具/计划/变更/设置/审计/插件…） | 252 个源文件 + 144 个判据文件 / 717 用例（后端 5 文件 12 用例另计，合计 149 文件 / 729 用例） |
 | `desktop/` | **桌面端**：Electron 主进程 + preload（窗口/托盘/菜单/更新/侧车监督） | 30 个源文件，25 条纯逻辑判据 |
 
 运行形态：
@@ -75,7 +75,7 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 | ---- | ---- |
 | `npm run build` | 后端：`tsc` → `dist`（原子换入）+ 伴生资源/原生库镜像 |
 | `npm run build:web` / `web:dev` | 前端 Vite 构建 / 开发服务器 |
-| `npm run web:test` | 判据（前端 144 文件 + 后端 4 文件 / 共 726 用例，文件级串行） |
+| `npm run web:test` | 判据（前端 144 文件 + 后端 5 文件 / 共 729 用例，文件级串行） |
 | `npm run typecheck` | 后端 + 前端 + 桌面三份 strict 类型检查 |
 | `npm run kernel:check` | **内核边界门禁（7 条）**：vendored 钉定 / 无内嵌副本 / 对接面单点 / tarball 与锁文件一致 / 原生内核实载 |
 | `npm run kernel:vendor` | 从内核仓重新构建并固定 `vendor/*.tgz`（tag 自 package.json 钉定版本解析） |
@@ -148,7 +148,7 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 | `npm run kernel:check` | ✅ 350 源文件 / 323 包导入（全部收敛对接面）/ 内嵌副本 0 / tarball integrity 一致 / 原生内核实载 |
 | 后端构建 `npm run build` | ✅ dist 原子换入；原生内核可加载 |
 | 前端构建 `npm run build:web` | ✅ 单入口 + vendor/panel-antd 分块 |
-| 判据 `npm run web:test` | ✅ 148 文件 / 726 用例（含 parity/守卫/家具/嵌入 API） |
+| 判据 `npm run web:test` | ✅ 149 文件 / 729 用例（含 parity/守卫/家具/嵌入 API） |
 | 端到端 `npm run smoke` | ✅ 7/7（banner token、`/healthz`、`/readyz`、`/` HTML、`/rpc config.get`、`sessions.list`、原生内核实载） |
 | 桌面 `desktop:build` + `desktop:test` | ✅ 25/25 |
 | 嵌入 API 实测 | ✅ `createOmniHarness` 启动 / healthz 200 / RPC 往返 / 优雅关闭（另有自动判据 tests/embedApi.test.ts） |
@@ -161,7 +161,7 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 - 内核来自 `../omniharness-kernel` 的 `v0.1.0-alpha.6` tag；`vendor/*.tgz` 是它的发行物，
   **不是**第二份源码。重建用 `npm run kernel:vendor`（tag 缺省自 package.json 解析）。
 - 上游的 `tests/`、`crates/`、`third-party/`、看板与审计脚本没有切过来：本仓的判据是
-  726 用例（web 717 + 后端 9）+ 桌面 25 条 + 冒烟 7 条 + 内核边界 7 条。
+  729 用例（web 717 + 后端 12）+ 桌面 25 条 + 冒烟 7 条 + 内核边界 7 条。
 
 ## License
 

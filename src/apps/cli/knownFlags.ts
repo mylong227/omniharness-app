@@ -170,11 +170,11 @@ export const KNOWN_EXTRA_FLAGS: ReadonlySet<string> = new Set([
   '--probe-model',
   // init 子命令（2026-11-06 登记）：`InitCommand` 自解析（不经 ArgParser），此处登记是
   // 全仓旗标清单的完整性——某天 init 改走全局解析时不会像 `--auto-approve` 那样被打死。
+  // `-p` 不在此表：它是 init 内部 KNOWN 集合的私有小别名（本表只收 `--` 长旗标）。
   '--provider',
   '--api-key',
   '--model',
   '--workspace',
   '--force',
   '--print',
-  '-p',
 ]);

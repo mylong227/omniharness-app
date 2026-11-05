@@ -7,11 +7,11 @@
 
 ### Added（新增）
 - **自描述 RPC**：新增 `rpc.list` 内省方法（`introspect` 域模块）——一次调用返回全部方法 → 归属模块/插件，与分发顺序（内置 → 插件）同构。
-- **协议面双向护栏**：`tests/serverModulesParity.test.ts`（后端 92 方法快照）+ `tests/apiClientParity.test.ts`（Web 客户端每个 `this.rpc()` 字面量必须在后端存在）。
+- **协议面多向护栏**：`tests/serverModulesParity.test.ts`（后端 92 方法快照）+ `tests/apiClientParity.test.ts`（客户端每个 `this.rpc()` 字面量必须在后端存在）+ `tests/cliFlagsDiscipline.test.ts`（旗标「读取必须登记、登记必须有人读、帮助不许诺幽灵命令」双向核对）。
 - **嵌入 API**：`createOmniHarness()` / `defineModule()`（`src/index.ts` 导出）——3 行把完整服务端嵌进任意 Node 进程；可运行样例 `examples/embed-demo.mjs`（`npm run example:embed`）。
 - **一键初始化**：`omniharness init`（TTY 交互式 / 旗标直达）——选厂商、填 Key（Windows 落盘自动 DPAPI 加密；其余平台明文+0600）、合并写用户级 `~/.omniharness/omniharness.json`。
 - **doctor 增强**：构建产物检查、缺省 serve 端口占用、插件目录自动创建、`--probe-model` 模型连通性探测（复用 UI 同源探针）、内核版本自述。
-- **标品门面**：本 CHANGELOG、[CONTRIBUTING](CONTRIBUTING.md)、GitHub Actions 验证流水线、示例配置合法性判据。
+- **标品门面**：本 CHANGELOG、[CONTRIBUTING](CONTRIBUTING.md)、GitHub Actions 验证流水线、示例配置合法性判据、嵌入 API 生命周期判据（`tests/embedApi.test.ts`）。
 
 ### Changed（变更）
 - **内核对接单点化**：637 处散布的 `@omniharness/kernel` 深路径导入收敛为 `src/host/kernel/`（17 个域文件、323 条再导出）；门禁第 7 条强制「唯一导入点」。升级内核 = 换 tgz + 适配一个目录。
