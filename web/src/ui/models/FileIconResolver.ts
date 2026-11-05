@@ -11,7 +11,7 @@ export class FileIconResolver {
    *
    * 为什么不返回 emoji（曾有 `emoji()` 方法，2026-10-07 删除）：emoji 的字形由系统字体决定
    * （跨平台不一致）、尺寸与基线不受控、且不跟随 `currentColor`（hover / 选中态无法与文字同色）。
-   * 口径由 `web/test/iconPolicy.test.mjs` 机械把守。
+   * 口径由 `web/test/iconPolicy.test.ts` 机械把守。
    * @param mediaType 媒体类型（MIME）
    * @returns 图标名（喂给 models/Icon.js 的 `icon()`）
    */

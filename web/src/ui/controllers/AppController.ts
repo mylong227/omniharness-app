@@ -469,25 +469,7 @@ export class AppController {
       // 断连/刷新恢复（2026-11-01）：approval.request / question.request 是 live-only 通知
       // （不进 SSE 重放历史），刷新或重连后的新连接收不到「正在等待」这件事；服务端有 10s
       // 断连宽限期，宽限期内复联 ⇒ 挂起仍在 ⇒ 这里拉得到并重建卡片。已有卡片时不覆盖。
-      this.services.api
-        .pendingApprovals()
-        .then((list) => {
-          const first = list[0];
-          if (first !== undefined) this.host.patch((s) => (s.approval ? {} : { approval: first }));
-        })
-        .catch(() => {});
-      this.services.api
-        .pendingQuestions()
-        .then((list) => {
-          const first = list[0];
-          if (first !== undefined) {
-            const { threadId, ...rest } = first;
-            this.host.patch((s) =>
-              s.question ? {} : { question: { ...rest, sessionId: threadId ?? null } },
-            );
-          }
-        })
-        .catch(() => {});
+      this.restorePendingCards();
     };
     stream.onClose = () => {
       this.host.patch({ connected: true, streamState: 'connecting' });
@@ -506,6 +488,35 @@ export class AppController {
       this.children.shortcuts.run(action);
     };
     window.addEventListener('keydown', this.keyHandler);
+  }
+
+  /**
+   * 恢复挂起卡片（2026-11-06 审计 P2 修）：服务端可同时挂起**多条**审批/提问（多线程并行回合
+   * 是受支持形态），此前重连只恢复 list[0]、其余被静默丢弃到断连宽限期结束。现在把「恢复」
+   * 收口成一个方法：重连时拉一次；之后**每次收卡成功**（作答/到期/审批决定）都再拉一次——
+   * 单槽 UI 不变，但下一条挂起会被接续重建，不再滞留。
+   * @returns 无
+   */
+  private restorePendingCards(): void {
+    this.services.api
+      .pendingApprovals()
+      .then((list) => {
+        const first = list[0];
+        if (first !== undefined) this.host.patch((s) => (s.approval ? {} : { approval: first }));
+      })
+      .catch(() => {});
+    this.services.api
+      .pendingQuestions()
+      .then((list) => {
+        const first = list[0];
+        if (first !== undefined) {
+          const { threadId, ...rest } = first;
+          this.host.patch((s) =>
+            s.question ? {} : { question: { ...rest, sessionId: threadId ?? null } },
+          );
+        }
+      })
+      .catch(() => {});
   }
 
   /** 拉取当前厂商可用模型清单并写入状态 / 持久化（含推理强度档位）。 @returns 无 */
@@ -581,6 +592,7 @@ export class AppController {
       // **成功后才收卡片**：与 answerQuestion 同一纪律。先收卡片再发 RPC 会在失败时
       // 丢掉挂起（回合永久等待），而用户只看到一行 toast。
       this.host.patch({ approval: null });
+      this.restorePendingCards(); // 处理完一条，接续重建下一条挂起（如有）
     } catch (e) {
       this.services.toast(t('审批响应失败：{msg}', { msg: (e as Error).message }), 'err');
     }
@@ -613,6 +625,7 @@ export class AppController {
         return;
       }
       this.host.patch({ question: null });
+      this.restorePendingCards(); // 同上：接续下一条挂起提问
       this.showToast(t('回答已提交'), 'ok');
     } catch (e) {
       this.showToast(t('作答提交失败：{msg}', { msg: (e as Error).message }), 'err');
@@ -628,6 +641,7 @@ export class AppController {
   public expireQuestion(requestId: string): void {
     if (this.host.getState().question?.requestId !== requestId) return;
     this.host.patch({ question: null });
+    this.restorePendingCards(); // 同上：接续下一条挂起提问
     this.showToast(t('提问等待超时，已按「未作答」继续'), 'info');
   }
 

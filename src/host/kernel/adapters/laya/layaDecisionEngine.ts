@@ -23,7 +23,7 @@
  *
  * @maturity L2 — 本地 `laya` 后端（torch 2.14 CPU + 421M 权重）端到端真跑验证：冷启动加载 12.7s、
  *   热路径单次约 0.4s（noul/choice/score 三原语均有真实数值，见看板「Laya 接线修复」一节）。
- * @maturityEvidence tests/unit/decisionEngine.test.ts, tests/unit/layaWiring.test.ts, tests/unit/layaWarmWorker.test.ts, tests/unit/layaPaths.test.ts, tests/unit/selfVerifyVerdictProbe.test.ts, tests/integration/layaBackend.test.ts
+ * @maturityEvidence 上游判据 decisionEngine.test.ts（本仓未随迁）, 上游判据 layaWiring.test.ts（本仓未随迁）, 上游判据 layaWarmWorker.test.ts（本仓未随迁）, 上游判据 layaPaths.test.ts（本仓未随迁）, 上游判据 selfVerifyVerdictProbe.test.ts（本仓未随迁）, tests/integration/layaBackend.test.ts
  */
 import { log } from '@omniharness/kernel/kernel/util/logger.js';
 import type {

@@ -234,6 +234,12 @@ function useCountdown(timeoutMs: number | undefined, requestId: string, onExpire
   const [remaining, setRemaining] = React.useState(
     timeoutMs !== undefined && timeoutMs > 0 ? timeoutMs : 0,
   );
+  // 请求切换必须重置剩余时间（2026-11-06 审计 P1）：卡片被复用时（新 question.request
+  // patch 到同一挂载实例），useState 初值只生效于首挂载——新题继承旧题的剩余时间，
+  // 旧钟走到 0 会拿**新** requestId 去 onExpire，把可能不限时的提问误判「等待超时」。
+  React.useEffect(() => {
+    setRemaining(timeoutMs !== undefined && timeoutMs > 0 ? timeoutMs : 0);
+  }, [requestId, timeoutMs]);
   React.useEffect(() => {
     if (remaining <= 0) return undefined;
     const timer = window.setTimeout(() => {

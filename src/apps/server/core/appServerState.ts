@@ -28,7 +28,7 @@ export interface AppServerOptions {
    *
    * 为什么允许注入：组合根要在**构造 AppServer 之前**把「提问上行端口」塞进配置
    * （`userResponder`，工具在 `ConfigFactory.build` 期就捕获了它），而桥本身持有传输。
-   * 缺省时由 AppServerBase 自建（嵌入方与单测零改动）。
+   * 缺省时由 ServerServices 自建（嵌入方与单测零改动）。
    */
   readonly eventBridge?: ServerEventBridge | undefined;
   readonly metrics?: Metrics | undefined;

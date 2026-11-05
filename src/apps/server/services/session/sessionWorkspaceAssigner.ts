@@ -9,7 +9,7 @@ import { WorkspaceIdentity } from '../../../../host/kernel/util.ts';
  * 为什么单独成文件而不是塞进 `SessionArchive`：那个类已被编码标准门禁盯着（成员数/行数上限），
  * 而且"改写首行归属标记"这件事本身是**纯文件变换**，与归档的读取/索引职责不同。
  *
- * 契约（判据见 `tests/unit/sessionAssignWorkspace.test.ts`）：
+ * 契约（判据见 `上游判据 sessionAssignWorkspace.test.ts（本仓未随迁）`）：
  * ① 只改首行 `session_meta.payload.workspace`（写**归一值**），其余行**逐字不动**——存档是追加写的
  *    JSONL，历史事件一个字节都不该被这次归属变更碰到；
  * ② 整条没有 `session_meta` 的老存档补写一条（fail-safe：宁可补标记，也不让它继续"谁都不认"）；

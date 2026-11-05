@@ -15,7 +15,7 @@
 // 「卡片视图」里其实早就有「N 回合 · X 分钟前」，但它不是默认视图，客户不会去发现。
 //
 // 本模块把「悬停该显示什么」「行内该补什么」抽成纯函数，两个分组视图共用，
-// 判据见 `web/test/sessionRowMeta.test.mjs`。
+// 判据见 `web/test/sessionRowMeta.test.ts`。
 
 import type { SessionEntry } from '../shared.ts';
 import { timeAgo } from '../textUtils.ts';

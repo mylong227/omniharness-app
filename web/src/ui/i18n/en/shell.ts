@@ -81,6 +81,7 @@ export const EN_SHELL: Record<string, string> = {
   // core/ApiClient.ts
   'RPC 错误（code {code}）': 'RPC error (code {code})',
   'RPC 请求失败：HTTP {status}': 'RPC request failed: HTTP {status}',
+  '需要授权：令牌缺失或已失效——请重新用服务端打印的带 token 地址打开': 'Authorization required: token missing or invalid — reopen with the tokened URL printed by the server',
   'RPC 响应不是合法 JSON': 'RPC response is not valid JSON',
   'metrics 请求失败：{status}': 'metrics request failed: HTTP {status}',
   // core/DialogService.ts

@@ -19,7 +19,7 @@
 //   · 它本质上是一个**全局 UI 不变量**（同屏只有一个弹层），与"哪个组件树"无关。
 //   这与仓库里 `DialogService`（应用级对话框）的取舍一致：全局唯一的东西用单例最直白。
 //
-// 判据：`web/test/popoverExclusive.test.mjs`。
+// 判据：`web/test/popoverExclusive.test.ts`。
 
 /** 弹层句柄。 */
 export interface PopoverHandle {

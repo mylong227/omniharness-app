@@ -18,7 +18,7 @@ export type { AppServerOptions } from './appServerState.ts';
  * 是被「上帝类」行数门禁逼出来的分层，91 个 `handlers.set` 散布 6 个文件，加一个能力要改 6~9 个文件。
  * 现在的结构：
  *   - **装配**：全部协作者在 {@link ServerServices} 按原顺序构建（逐字节等价搬移）；
- *   - **注册**：91 个 RPC 方法按业务域拆进 `../modules/*`（每域一个模块文件，见 `coreModules()`）；
+ *   - **注册**：92 个 RPC 方法按业务域拆进 `../modules/*`（每域一个模块文件，见 `coreModules()`）；
  *   - **本类**只剩三件事——组装（services + modules + 传输挂钩 + 调度器）、分发（`handle`）、
  *     生命周期（`loadPlugins` / `setPluginsReady` / `applyPluginProfile` / `shutdown` / `effectiveWorkspace`）。
  *
@@ -30,8 +30,6 @@ export class AppServer {
   private readonly services: ServerServices;
   /** RPC 方法表（模块注册产出；分发唯一事实源）。 */
   private readonly handlers: Map<string, RpcHandler>;
-  /** 方法 → 模块名台账（诊断；parity 快照测试消费）。 */
-  public readonly moduleOwners: ReadonlyMap<string, string>;
   /** 自动化调度器（仅注入 automations 存储时启用）。 */
   private readonly automationScheduler?: AutomationScheduler;
 
@@ -47,7 +45,6 @@ export class AppServer {
       options,
     );
     this.handlers = registered.handlers;
-    this.moduleOwners = registered.owners;
     // 台账交给共享服务（rpc.list 内省模块在请求期读取）。
     this.services.rpcOwners = registered.owners;
     // 插件 RPC 面（2026-11 能力开放）：内置方法表为保留面——插件注册同名即加载失败；

@@ -144,7 +144,7 @@ export class CliFlagTable {
    * 用途只有一个：`FlagSuggestion.suggest` 要在"全部已知旗标"里找拼写最近的那个。
    * 刻意**不**另立清单——两处各写一份必然漂移，而漂移的后果正是"建议了一个不存在的旗标"
    * （比没有建议更糟）。这里直接复用 `isKnownFlag` 的三个数据源，判据
-   * `tests/unit/flagSuggestion.test.ts` 用 `isKnownFlag` 交叉核对本函数的每一项。
+   * `上游判据 flagSuggestion.test.ts（本仓未随迁）` 用 `isKnownFlag` 交叉核对本函数的每一项。
    * @returns 旗标名数组（去重，含前导 `-`；顺序不保证，调用方不应依赖）。
    */
   public static knownFlagNames(): readonly string[] {

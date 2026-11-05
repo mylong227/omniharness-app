@@ -3,7 +3,7 @@
 // 为什么抽出来（2026-10-17 设置面板重构）：
 //   旧 SettingsTab 把三件事混在一个组件里——取数、落盘、渲染。结果是**只有渲染能被测**，
 //   而真正容易坏的是「改动 → 落盘 → 重拉回填 → 命中模型相关键时刷新厂商目录」这条闭环。
-//   抽成模型后，这条闭环在 node 里可直测（判据见 web/test/configWiring.test.mjs），
+//   抽成模型后，这条闭环在 node 里可直测（判据见 web/test/configWiring.test.ts），
 //   组件退化成薄视图。
 //
 // 同时它承载「设置面清单」：哪些键可改、取值域是什么、归在哪一栏。单一事实源，
@@ -13,7 +13,7 @@
 //   ① 键（key）：`Config` 的字段名——`sandbox` / `autoApprove` / `baseUrl` …
 //   ② 字段（Field）：设置面板里的**一行**，带类型与取值域，负责"怎么编辑"
 //   ③ 分栏（TAB）：字段归到哪一屏，负责"去哪找"
-//   一个键只出现在一个字段里；一个字段只属于一个分栏。断言钉在 web/test/settingsPane.test.mjs。
+//   一个键只出现在一个字段里；一个字段只属于一个分栏。断言钉在 web/test/settingsPane.test.ts。
 
 import type { Config } from '../../types/models.ts';
 import type { IconName } from './Icon.ts';
@@ -370,7 +370,7 @@ export class SettingsModel {
   /**
    * 落盘一个补丁，成功后重拉配置并闪现「已保存」；命中 CATALOG_KEYS 时刷新厂商目录。
    *
-   * 失败语义（判据见 configWiring.test.mjs 第 4 条）：**只提示错误，不重拉配置**——
+   * 失败语义（判据见 configWiring.test.ts 第 4 条）：**只提示错误，不重拉配置**——
    * 失败后重拉会把表单回填成服务端旧值，用户会以为"改动生效了但又变回去了"（假刷新）。
    * @param patch 配置补丁
    * @returns 异步完成

@@ -145,6 +145,14 @@ export class CliAgentCmds extends CliNativeCmds {
       return 2;
     }
     const json = rest.includes('--json');
+    // `--help` 在 parseArgs 返回 undefined——历史上 `?? CliDefaults` 兜底会让「求助」直接
+    // 发起一次真实网络探测（2026-11-06 审计 P1）。求助必须止于用法页。
+    if (rest.includes('--help') || rest.includes('-h')) {
+      process.stdout.write(
+        '用法: omniharness model probe [--model-adapter X] [--base-url U] [--api-key K] [--model M] [--json]\n',
+      );
+      return 0;
+    }
     const cliArgs =
       ArgParser.parseArgs(
         ['--prompt', 'model-probe-placeholder', ...rest],
@@ -172,6 +180,14 @@ export class CliAgentCmds extends CliNativeCmds {
       return 2;
     }
     const maxIter = this.flagNumber(args, '--goal-max-iterations') ?? 10;
+    // `--help` 必须止于用法页：历史上 `?? CliDefaults` 兜底会让 `goal x --help` 真跑目标循环
+    // （2026-11-06 审计 P1，与 model probe 同型）。
+    if (args.includes('--help') || args.includes('-h')) {
+      process.stdout.write(
+        '用法: omniharness goal "<目标描述>" [--model-adapter ...] [--goal-max-iterations N]\n',
+      );
+      return 0;
+    }
     // 2026-10-21 修：goal 也是 agent 装配入口，必须走与 exec 相同的分层加载与守卫，
     // 否则 `--approval ask` 会在 buildApproval 落到 AutoApproval（静默全放行）。
     const cliArgs =
@@ -222,6 +238,13 @@ export class CliAgentCmds extends CliNativeCmds {
     const cliArgs =
       ArgParser.parseArgs(['--prompt', 'workflow-placeholder', ...args], this.loadDefaults(args)) ??
       CliDefaults;
+    // `--help` 必须止于用法页：`workflow --file x.json --help` 曾会真跑工作流（2026-11-06 审计 P1）。
+    if (args.includes('--help') || args.includes('-h')) {
+      process.stdout.write(
+        '用法: omniharness workflow --file workflow.json [--resume-run <runId>] [--model-adapter ...]\n',
+      );
+      return 0;
+    }
     if (cliArgs.approval === 'ask') {
       process.stderr.write(
         'workflow 子命令没有交互审批通道：`--approval ask` 会退化为全放行，已拒绝。' +

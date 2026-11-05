@@ -15,7 +15,7 @@
  * 而扫到了就一定是证据。这条不对称是本模块唯一重要的性质。
  *
  * @maturity L1 — 六类能力识别 / 注释与字符串里的"提及"不算证据 / 严重级归并 / 有界 判据钉死
- * @maturityEvidence tests/unit/packGrader.test.ts
+ * @maturityEvidence 上游判据 packGrader.test.ts（本仓未随迁）
  */
 
 /** 能力名（声明与实际比对的最小单位）。 */

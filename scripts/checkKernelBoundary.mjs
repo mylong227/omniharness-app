@@ -13,6 +13,10 @@
  *    业务代码一律经 `src/host/kernel/` 分域对接面消费内核，内核升级只适配这一个目录
  *    （分域而非单文件桶的原因见该目录文件头注释：整包加载 ~780ms vs 单域 ~60ms）。
  *
+ * 边界说明（2026-11-06 审计）：范围是 `src/**`（web/ 与 desktop/ 不消费内核包——它们的
+ * 通道是 HTTP/SSE 与侧车 spawn；scripts/ 里的门禁自身是合法消费者）。导入正则连注释里
+ * 的 `from '@omniharness/kernel…'` 一起算——宁可误报让人删注释，不可漏报放行真导入。
+ *
  * 为什么需要它：迁移最容易出现的假绿是「删了目录、代码还靠 tsconfig paths / 缓存里的旧副本」。
  * 本门禁以文件系统 + 锁文件 + 真实 require 三个角度钉住。
  */
@@ -44,7 +48,9 @@ const walk = (dir, out = []) => {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const abs = join(dir, entry.name);
     if (entry.isDirectory()) walk(abs, out);
-    else if (/\.(ts|tsx|mts)$/.test(entry.name)) out.push(abs);
+    // 2026-11-06 审计 P2：扫描面此前只有 .ts/.tsx/.mts——.cts/.js/.mjs/.cjs 落在 src/ 时
+    // 会完全绕过判据 3/7（门禁是执法点，不该有盲区类型）。
+    else if (/\.(ts|tsx|mts|cts|js|mjs|cjs)$/.test(entry.name)) out.push(abs);
   }
   return out;
 };

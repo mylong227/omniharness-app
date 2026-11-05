@@ -145,7 +145,12 @@ export class BrowserController {
       .getPreviewPort()
       .then((port) => (typeof port === 'number' && Number.isInteger(port) && port > 0 ? port : null))
       .catch(() => null);
-    return this.previewPortPromise;
+    const resolved = await this.previewPortPromise;
+    // null 不缓存（2026-11-06 审计 P2）：首次导航早于预览源启动（或 /healthz 抖动）时，
+    // 「未启用」会被钉住整个页面生命周期——预览源明明已起来，用户却要整页刷新才能解锁。
+    // 端口在一个页面生命周期内不变（预览源随 serve 启动），null 只是「这次还没就绪」。
+    if (resolved === null) this.previewPortPromise = null;
+    return resolved;
   }
 
   /**

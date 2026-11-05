@@ -16,7 +16,7 @@
  * 3. **如实申报**：`ok:false` 时原样透出引擎给出的可读原因，不打"授权失败"这种无信息量的话。
  *
  * @maturity L1 — 三类退出码（有效/降级/用法）+ 原因透出 + 不内置公钥 判据钉死
- * @maturityEvidence tests/unit/licenseCommand.test.ts
+ * @maturityEvidence 上游判据 licenseCommand.test.ts（本仓未随迁）
  */
 import { readFileSync } from 'node:fs';
 import { LicenseEngine } from '../license/licenseEngine.ts';

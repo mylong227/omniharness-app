@@ -69,20 +69,58 @@
     "delayMs": 1200
   },
   "security": {
-    "permissions": ["notifications", "clipboard-sanitized-write"],
+    "permissions": [
+      "notifications",
+      "clipboard-sanitized-write"
+    ],
     "csp": {
-      "defaultSrc": ["'none'"],
-      "scriptSrc": ["'self'", "'unsafe-inline'"],
-      "styleSrc": ["'self'", "'unsafe-inline'"],
-      "imgSrc": ["'self'", "data:", "blob:"],
-      "fontSrc": ["'self'", "data:"],
-      "connectSrc": ["'self'", "http://127.0.0.1:*", "ws://127.0.0.1:*"],
-      "frameSrc": ["http://127.0.0.1:*"],
-      "mediaSrc": ["'self'", "blob:"],
-      "baseUri": ["'none'"],
-      "formAction": ["'none'"],
-      "objectSrc": ["'none'"],
-      "frameAncestors": ["'none'"]
+      "defaultSrc": [
+        "'none'"
+      ],
+      "scriptSrc": [
+        "'self'",
+        "'unsafe-inline'"
+      ],
+      "styleSrc": [
+        "'self'",
+        "'unsafe-inline'"
+      ],
+      "imgSrc": [
+        "'self'",
+        "data:",
+        "blob:"
+      ],
+      "fontSrc": [
+        "'self'",
+        "data:"
+      ],
+      "connectSrc": [
+        "'self'",
+        "http://127.0.0.1:*",
+        "ws://127.0.0.1:*"
+      ],
+      "frameSrc": [
+        "http://127.0.0.1:*",
+        "http://localhost:*",
+        "http://*:*",
+        "https://*:*"
+      ],
+      "mediaSrc": [
+        "'self'",
+        "blob:"
+      ],
+      "baseUri": [
+        "'none'"
+      ],
+      "formAction": [
+        "'none'"
+      ],
+      "objectSrc": [
+        "'none'"
+      ],
+      "frameAncestors": [
+        "'none'"
+      ]
     }
   },
   "tray": {

@@ -27,7 +27,7 @@ import type { IconName } from './Icon.ts';
 export interface StarterTask {
   /** 短标签（按钮上显示）。 */
   readonly label: string;
-  /** 图标名（**必须**是 `models/Icon.ts` 里登记过的名字——`iconPolicy.test.mjs` 会拦下未登记的图标）。 */
+  /** 图标名（**必须**是 `models/Icon.ts` 里登记过的名字——`iconPolicy.test.ts` 会拦下未登记的图标）。 */
   readonly icon: IconName;
   /** 点一下填进输入框的完整任务描述。 */
   readonly prompt: string;

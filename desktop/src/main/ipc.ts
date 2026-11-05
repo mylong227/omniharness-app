@@ -11,7 +11,7 @@ import {
 import { existsSync, statSync } from 'node:fs';
 import type { NotifyInput } from './notifications.ts';
 import type { DesktopIpcConfig } from './config.ts';
-import { currentHarnessOrigin, openExternalSafely } from './security.ts';
+import { currentHarnessOrigin } from './security.ts';
 import type { UpdateStatus } from './updateService.ts';
 
 /** IPC 依赖。 */
@@ -36,10 +36,6 @@ export interface IpcDeps {
   openAtLogin(): boolean;
   /** 设置开机启动。 */
   setOpenAtLogin(enabled: boolean): void;
-  /** 选择工作区。 */
-  pickWorkspace(): Promise<string | null>;
-  /** 切换工作区并重启 Harness。 */
-  openWorkspace(path: string): Promise<void>;
   /** 打开日志目录。 */
   openLogs(): Promise<void>;
   /** 重启 Harness。 */
@@ -56,8 +52,9 @@ export interface IpcDeps {
   installUpdate(): Promise<void>;
   /** 当前更新状态。 */
   updateStatus(): UpdateStatus;
-  /** 退出应用。 */
-  quit(): void;
+  // 2026-11-06 审计 P2：删除 pickWorkspace / openWorkspace / openExternal / quit 四个零 UI
+  // 消费的桥面（见 preload.ts 同日注）。选目录/切工作区仍是主进程托盘与菜单的一等动作，
+  // 但不再暴露给渲染进程——那会把「把侧车指到任意目录」的权限送给一次 XSS。
 }
 
 /**
@@ -103,23 +100,9 @@ export function registerIpc(deps: IpcDeps): void {
     deps.setOpenAtLogin(enabled);
     return deps.openAtLogin();
   });
-  ipcMain.handle('omni:pickWorkspace', async (event) => {
-    assertTrusted(event, deps);
-    return deps.pickWorkspace();
-  });
-  ipcMain.handle('omni:openWorkspace', async (event, path: unknown) => {
-    assertTrusted(event, deps);
-    if (typeof path !== 'string') throw new Error('invalid path');
-    await deps.openWorkspace(path);
-  });
   ipcMain.handle('omni:openLogs', async (event) => {
     assertTrusted(event, deps);
     await deps.openLogs();
-  });
-  ipcMain.handle('omni:openExternal', async (event, url: unknown) => {
-    assertTrusted(event, deps);
-    if (typeof url !== 'string') throw new Error('invalid url');
-    await openExternalSafely(url);
   });
   ipcMain.handle('omni:restartHarness', async (event) => {
     assertTrusted(event, deps);
@@ -149,10 +132,6 @@ export function registerIpc(deps: IpcDeps): void {
   ipcMain.handle('omni:getUpdateStatus', (event) => {
     assertTrusted(event, deps);
     return deps.updateStatus();
-  });
-  ipcMain.handle('omni:quit', (event) => {
-    assertTrusted(event, deps);
-    deps.quit();
   });
   // 窗口控制（win32 隐藏系统标题栏后，UI 自绘标题条的三个动作；其它平台 harmless）：
   // 目标窗口一律从 sender 反查——不可能借道操控别的窗口；close 走正常 close 事件链，

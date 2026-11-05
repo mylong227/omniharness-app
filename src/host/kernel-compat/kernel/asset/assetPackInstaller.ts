@@ -20,7 +20,7 @@
  * 这正是「账实不符」。当前顺序下，账上出现的每一条 `pack-install` 都对应一次真实入册。
  *
  * @maturity L1 — J9 三类全拒 + 整包原子 + 档位只收紧 + 无台账拒装 判据钉死
- * @maturityEvidence tests/unit/assetPackInstaller.test.ts
+ * @maturityEvidence 上游判据 assetPackInstaller.test.ts（本仓未随迁）
  */
 import { AssetPackCodec } from './assetPackCodec.ts';
 import type {

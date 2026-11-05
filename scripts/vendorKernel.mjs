@@ -23,12 +23,23 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  renameSync,
   rmSync,
   symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+/** 同卷 rename（原子；跨卷回退 copy+delete）。 */
+function cpSyncLocal(from, to) {
+  try {
+    renameSync(from, to);
+  } catch {
+    copyFileSync(from, to);
+    rmSync(from);
+  }
+}
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const kernelRoot = resolve(process.env.OMNI_KERNEL_ROOT ?? join(ROOT, '..', 'omniharness-kernel'));
@@ -50,11 +61,14 @@ const vendorDir = join(ROOT, 'vendor');
 
 const run = (cmd, args, cwd) => {
   process.stdout.write(`[vendor] ${cmd} ${args.join(' ')}\n`);
-  // Windows 的 npm 是 `.cmd`，不经过 shell 无法直接 exec；本脚本传入的路径均在应用/内核仓内。
+  // Windows 的 npm 是 `.cmd`，不经过 shell 无法直接 exec；但 shell: true 会把命令与参数
+  // 按空格裸拼接——`C:\Program Files\nodejs\node.exe` 这类带空格路径会被 cmd 撕成两半
+  // （2026-11-06 审计 P2）。故仅 npm 走 shell，node/git 直接 exec（参数数组原样传递）。
+  const needsShell = process.platform === 'win32' && /npm(?:\.cmd)?$/i.test(cmd);
   execFileSync(cmd, args, {
     cwd,
     stdio: 'inherit',
-    shell: process.platform === 'win32',
+    shell: needsShell,
   });
 };
 
@@ -88,18 +102,30 @@ mkdirSync(join(worktree, 'native'), { recursive: true });
 copyFileSync(nativeSource, join(worktree, 'native', 'omni_napi.node'));
 const kernelPkgPath = join(worktree, 'package.json');
 const kernelPkg = JSON.parse(readFileSync(kernelPkgPath, 'utf8'));
-if (!kernelPkg.files.includes('native')) kernelPkg.files.unshift('native');
+// files 字段守卫（2026-11-06 审计 P3）：内核包极简形态可能没有 files 数组，直接 .includes 会 NPE。
+if (Array.isArray(kernelPkg.files)) {
+  if (!kernelPkg.files.includes('native')) kernelPkg.files.unshift('native');
+} else {
+  kernelPkg.files = ['native'];
+}
 writeFileSync(kernelPkgPath, `${JSON.stringify(kernelPkg, null, 2)}\n`);
 
-// 4. pack 到 vendor/
+// 4. pack（**原子替换**，2026-11-06 审计 P1 修）：先 pack 到 .tmp 暂存目录，成功后才
+// 删旧 tgz、搬入新 tgz。原实现先清空 vendor/ 再 pack——内核 build/pack 任何一步失败，
+// package.json 与 lock 仍指向已消失的 tarball ⇒ `npm ci` / `kernel:check` 全红，仓库被打断。
+// 头注释声称的 all-or-nothing 从这里才真正成立。
+const stagingDir = join(ROOT, '.tmp', 'kernel-pack');
+rmSync(stagingDir, { recursive: true, force: true });
+mkdirSync(stagingDir, { recursive: true });
+run('npm', ['pack', '--pack-destination', stagingDir], worktree);
+const packedStaged = readdirSync(stagingDir).filter((name) => /^omniharness-kernel-.*\.tgz$/.test(name));
+if (packedStaged.length !== 1) throw new Error(`期望恰好一个 kernel tarball，实际：${packedStaged.join(', ')}`);
 mkdirSync(vendorDir, { recursive: true });
 for (const name of readdirSync(vendorDir)) {
   if (/^omniharness-kernel-.*\.tgz$/.test(name)) rmSync(join(vendorDir, name));
 }
-run('npm', ['pack', '--pack-destination', vendorDir], worktree);
-const packed = readdirSync(vendorDir).filter((name) => /^omniharness-kernel-.*\.tgz$/.test(name));
-if (packed.length !== 1) throw new Error(`期望恰好一个 kernel tarball，实际：${packed.join(', ')}`);
-const tarball = join(vendorDir, packed[0]);
+const tarball = join(vendorDir, packedStaged[0]);
+cpSyncLocal(join(stagingDir, packedStaged[0]), tarball);
 const relTarball = relative(ROOT, tarball).replaceAll('\\', '/');
 const integrity = `sha512-${createHash('sha512').update(readFileSync(tarball)).digest('base64')}`;
 

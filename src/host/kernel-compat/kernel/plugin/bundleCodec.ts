@@ -11,7 +11,7 @@
  * 不需要 inflate。读取器对**畸形包**必须给出可读原因而不是抛不可读的错误。
  *
  * @maturity L1 — 多条目顺序解析 / 缺清单可读拒 / 非 zip 可读拒 / 与打包器往返 判据钉死
- * @maturityEvidence tests/unit/bundleCodec.test.ts
+ * @maturityEvidence 上游判据 bundleCodec.test.ts（本仓未随迁）
  */
 import { readFileSync } from 'node:fs';
 

@@ -16,7 +16,7 @@
  * - **关闭帧载荷**：2 字节大端状态码 + UTF-8 原因，总长 ≤125。
  *
  * @maturity L1 — 分片 / 掩码 / 扩展长度 / 上限 判据经 `wsFrameConformance.test.ts` 钉死
- * @maturityEvidence tests/unit/wsFrameConformance.test.ts
+ * @maturityEvidence 上游判据 wsFrameConformance.test.ts（本仓未随迁）
  */
 import { randomBytes } from 'node:crypto';
 

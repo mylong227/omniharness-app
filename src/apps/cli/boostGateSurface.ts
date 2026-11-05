@@ -54,7 +54,7 @@ export interface BoostGateSurface {
 /**
  * 门禁 id → 判定输入表面。
  *
- * 键必须覆盖 `scripts/runGates.mjs --list` 的全部 id：`tests/unit/boostCommand.test.ts`
+ * 键必须覆盖 `scripts/runGates.mjs --list` 的全部 id：`上游判据 boostCommand.test.ts（本仓未随迁）`
  * 有一条判据现场读清单并比对，漏一条即红（这正是"上游新增门禁"能被立刻发现的原因）。
  */
 export const GATE_SURFACE: Readonly<Record<string, BoostGateSurface>> = {

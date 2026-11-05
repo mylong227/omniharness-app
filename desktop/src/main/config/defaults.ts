@@ -60,7 +60,11 @@ export const DEFAULT_DESKTOP_CONFIG: DesktopConfig = {
       imgSrc: ["'self'", 'data:', 'blob:'],
       fontSrc: ["'self'", 'data:'],
       connectSrc: ["'self'", 'http://127.0.0.1:*', 'ws://127.0.0.1:*'],
-      frameSrc: ['http://127.0.0.1:*'],
+      // frame-src 必须同时放行 `localhost`：web 侧 PreviewUrl 为隔离 cookie **故意**把
+      // 127.0.0.1 预览源显示为 `http://localhost:<port>`——desktop CSP 只放行 127.0.0.1 时，
+      // 工作区文件预览在壳内全白屏（浏览器里却正常，2026-11-06 审计 P1）。
+      // `http(s)://*:*` 是 BrowserController 远程浏览面板（任意站点 iframe）所需。
+      frameSrc: ['http://127.0.0.1:*', 'http://localhost:*', 'http://*:*', 'https://*:*'],
       mediaSrc: ["'self'", 'blob:'],
       baseUri: ["'none'"],
       formAction: ["'none'"],

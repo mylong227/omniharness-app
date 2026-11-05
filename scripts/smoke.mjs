@@ -45,25 +45,28 @@ child.stdout.on('data', (chunk) => {
 });
 child.stderr.on('data', (chunk) => process.stderr.write(chunk.toString('utf8')));
 
-/** 等横幅出现（最多 90s；serve 首次启动要读默认策略表）。 */
-const uiUrl = await new Promise((resolvePromise, rejectPromise) => {
-  const timer = setTimeout(() => rejectPromise(new Error('等待 serve 启动横幅超时')), 90_000);
-  const tick = setInterval(() => {
-    const match = banner.match(/OmniHarness UI:\s*(https?:\/\/\S+\?token=([0-9a-fA-F]+))/u);
-    if (match !== null) {
+// 2026-11-06 审计 P2 修：横幅等待此前在 try/finally **之外**——超时/serve 提前退出时
+// 顶层 reject 直接终止脚本，serve 子进程与临时工作区双双泄漏（孤儿进程 + omni-app-smoke-* 残目录）。
+// 现在整段收纳进 try/finally，任何失败路径都会走同一份清理。
+try {
+  /** 等横幅出现（最多 90s；serve 首次启动要读默认策略表）。 */
+  const uiUrl = await new Promise((resolvePromise, rejectPromise) => {
+    const timer = setTimeout(() => rejectPromise(new Error('等待 serve 启动横幅超时')), 90_000);
+    const tick = setInterval(() => {
+      const match = banner.match(/OmniHarness UI:\s*(https?:\/\/\S+\?token=([0-9a-fA-F]+))/u);
+      if (match !== null) {
+        clearTimeout(timer);
+        clearInterval(tick);
+        resolvePromise({ url: match[1], token: match[2] });
+      }
+    }, 100);
+    child.on('exit', (code) => {
       clearTimeout(timer);
       clearInterval(tick);
-      resolvePromise({ url: match[1], token: match[2] });
-    }
-  }, 100);
-  child.on('exit', (code) => {
-    clearTimeout(timer);
-    clearInterval(tick);
-    rejectPromise(new Error(`serve 提前退出（code ${String(code)}）`));
+      rejectPromise(new Error(`serve 提前退出（code ${String(code)}）`));
+    });
   });
-});
 
-try {
   const origin = new URL(uiUrl.url).origin;
   check('启动横幅含 token', uiUrl.token.length >= 16, `token 长度 ${String(uiUrl.token.length)}`);
 

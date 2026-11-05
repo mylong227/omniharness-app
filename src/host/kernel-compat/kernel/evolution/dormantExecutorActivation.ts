@@ -16,7 +16,7 @@
  * - 单轮排队提案数有上限（编辑成本是评估预算的一部分，提案数无上限而编辑预算有上限）。
  *
  * @maturity L1 — 两条转正路径的端到端判据钉死（差异测试拦截/回滚、固化加法式与密度归零）
- * @maturityEvidence tests/unit/dormantExecutorActivation.test.ts
+ * @maturityEvidence 上游判据 dormantExecutorActivation.test.ts（本仓未随迁）
  */
 import type { CapabilityCrystallizerPort } from '../../contracts/ports/intelligence/capability.ts';
 import type { CRISPRSkillEditorPort, CrisprEditSpec } from '../../../kernel/contracts.ts';

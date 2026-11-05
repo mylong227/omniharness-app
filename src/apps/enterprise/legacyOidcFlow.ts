@@ -8,7 +8,7 @@
  * {@link OidcFlowPort}，与第三方实现做**同端口差分对照**，并作为回退路径——
  * 回退 = 换一个实现实例，调用点零改动。资产保留但不闲置：差分判据持续在 CI 里跑。
  *
- * ## 差分已知面（判据逐条记录于 tests/unit/oidcFlowContract.test.ts）
+ * ## 差分已知面（判据逐条记录于 上游判据 oidcFlowContract.test.ts（本仓未随迁））
  *
  * - discovery 文档 issuer 与请求 issuer 不一致：本实现**如实透传**（不裁决），
  *   第三方实现**拒绝**——生产切第三方后此校验收紧；

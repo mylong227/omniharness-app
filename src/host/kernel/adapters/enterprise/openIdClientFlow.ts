@@ -11,7 +11,7 @@
  - 分层：仅落在 `src/kernel/adapters/enterprise`（依赖只允许出现在适配层）；生产默认切本实现，
    自研 `LegacyOidcFlow` 同端口保留为回退资产（差分判据持续在 CI）。
  *
- * ## 与自研实现的行为差分（判据记录于 tests/unit/oidcFlowContract.test.ts）
+ * ## 与自研实现的行为差分（判据记录于 上游判据 oidcFlowContract.test.ts（本仓未随迁））
  *
  * - discovery 文档 issuer ≠ 请求 issuer ⇒ **拒绝**（自研版透传）；
  * - discovery 默认拒绝 **http**（测试经 `insecureHttp` 显式降档访问本地 mock IdP；

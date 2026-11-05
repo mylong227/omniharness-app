@@ -130,7 +130,7 @@ export class ServerConfigStore {
    * —— 于是表现为「命令行能用、Web UI 不能用」。
    *
    * 这与 2026-09-27 修过的是**同一类**「用户级被静默忽略」，只是换了条通路（那次修的是启动路径，
-   * 这次是 RPC 面）。回归判据见 `tests/unit/serverConfigStoreLayering.test.ts`。
+   * 这次是 RPC 面）。回归判据见 `上游判据 serverConfigStoreLayering.test.ts（本仓未随迁）`。
    *
    * @returns 合并后的文件级配置。
    */

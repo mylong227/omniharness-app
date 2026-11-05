@@ -163,7 +163,7 @@ export class CliDataCmds extends CliMcpCmds {
    * boost 子命令入口（`boost probe …` / `boost gate …`）。
    *
    * 旗标在本层用 `CliArgReader` **字面量读取**，命令类只收一个已解析的选项对象：
-   * 这样做的直接理由是本仓的 `tests/unit/knownFlags.test.ts` 判据③——登记进 `KNOWN_EXTRA_FLAGS`
+   * 这样做的直接理由是本仓的 `上游判据 knownFlags.test.ts（本仓未随迁）` 判据③——登记进 `KNOWN_EXTRA_FLAGS`
    * 的旗标必须在 `src/apps/cli/**` 里被真实读取，否则判"白名单腐化"。把读取放在本层，
    * "登记了、也有人读"这件事就在同一处可核。
    * @param args 子命令参数（已去掉 `boost`）。

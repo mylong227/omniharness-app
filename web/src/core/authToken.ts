@@ -32,6 +32,39 @@ export class AuthToken {
   }
 
   /**
+   * 启动期令牌安置（2026-11-06 审计 P2）：URL `?token=` 存在时——写入覆盖 + 持久化到
+   * localStorage，然后 `history.replaceState` **把 token 从地址栏抹掉**。
+   *
+   * 为什么必须做：令牌留在 URL 里会进浏览器历史、屏幕共享与复制粘贴的链接
+   * （服务端的 `Referrer-Policy: no-referrer` 管不到这些通道）；此前 localStorage 层是
+   * 死代码（没人写），本方法就是那个「写的人」。页面刷新后从 localStorage 恢复。
+   * @returns 无返回值。
+   */
+  public adoptFromUrl(): void {
+    const urlToken = this.readUrlToken();
+    if (urlToken === '') return;
+    this.set(urlToken);
+    const store = (globalThis as unknown as BrowserGlobals & { localStorage?: KeyValueStore & { setItem?: (k: string, v: string) => void } }).localStorage;
+    try {
+      store?.setItem?.('omni.serveToken', urlToken);
+    } catch {
+      // 隐私模式等存储不可用：仅本次会话内有效（覆盖层仍在），不阻断启动。
+    }
+    const history = (globalThis as unknown as { history?: { replaceState?: (s: unknown, t: string, u: string) => void } }).history;
+    const location = (globalThis as unknown as { location?: { pathname?: string; search?: string } }).location;
+    try {
+      if (history?.replaceState !== undefined && location?.pathname !== undefined) {
+        const params = new URLSearchParams(location.search ?? '');
+        params.delete('token');
+        const qs = params.toString();
+        history.replaceState(null, '', `${location.pathname}${qs === '' ? '' : `?${qs}`}`);
+      }
+    } catch {
+      // replaceState 失败（如 file: 协议）不影响令牌已在覆盖层生效。
+    }
+  }
+
+  /**
    * 解析当前应随请求发送的 Bearer 令牌。
    * @returns 令牌原文；无配置时返回空串（调用方跳过 Authorization 头）。
    */

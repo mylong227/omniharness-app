@@ -27,6 +27,7 @@ export function StreamBottom(props: StreamViewProps): React.ReactElement {
       props.onAnswerQuestion === undefined ||
       props.onQuestionExpired === undefined ? null : (
         <QuestionCard
+          key={props.question.requestId}
           request={props.question}
           onSubmit={props.onAnswerQuestion}
           onExpire={props.onQuestionExpired}

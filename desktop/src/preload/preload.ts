@@ -38,12 +38,9 @@ const api = Object.freeze({
   getInfo: () => ipcRenderer.invoke('omni:getInfo'),
   setCloseToTray: (enabled: boolean) => ipcRenderer.invoke('omni:setCloseToTray', enabled),
   setOpenAtLogin: (enabled: boolean) => ipcRenderer.invoke('omni:setOpenAtLogin', enabled),
-  pickWorkspace: () => ipcRenderer.invoke('omni:pickWorkspace'),
-  openWorkspace: (path: string) => ipcRenderer.invoke('omni:openWorkspace', path),
   openLogs: () => ipcRenderer.invoke('omni:openLogs'),
   showDiagnostics: () => ipcRenderer.invoke('omni:showDiagnostics'),
   setProgress: (value: number) => ipcRenderer.invoke('omni:setProgress', value),
-  openExternal: (url: string) => ipcRenderer.invoke('omni:openExternal', url),
   restartHarness: () => ipcRenderer.invoke('omni:restartHarness'),
   revealPath: (path: string) => ipcRenderer.invoke('omni:revealPath', path),
   notify: (input: NotifyInput) => ipcRenderer.invoke('omni:notify', input),
@@ -67,7 +64,9 @@ const api = Object.freeze({
   onNotificationClick: (listener: (sessionId: string | undefined) => void) =>
     subscribe<string | undefined>('omni:notificationClick', listener),
   onDeepLink: (listener: (url: string) => void) => subscribe<string>('omni:deepLink', listener),
-  quit: () => ipcRenderer.invoke('omni:quit'),
+  // 2026-11-06 审计 P2：删除四个**零 UI 消费**的桥能力（pickWorkspace / openWorkspace /
+  // openExternal / quit）——「只暴露最小桥」的自我声明必须属实；openWorkspace 尤其不该让
+  // 渲染进程（即一次 XSS）把侧车指到任意目录。主进程托盘/菜单仍直接调用同一批实现，不经 IPC。
 });
 
 contextBridge.exposeInMainWorld('omni', api);

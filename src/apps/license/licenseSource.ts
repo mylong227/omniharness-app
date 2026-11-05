@@ -19,7 +19,7 @@
  *    因为"授权问题"绝不该让 harness 起不来。
  *
  * @maturity L1 — 无配置 / 内联有效 / 文件优先 / 超限拒 / 验签失败降级 + 事件 判据钉死
- * @maturityEvidence tests/unit/licenseSource.test.ts
+ * @maturityEvidence 上游判据 licenseSource.test.ts（本仓未随迁）
  */
 import { readFileSync, statSync } from 'node:fs';
 

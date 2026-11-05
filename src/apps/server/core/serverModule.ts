@@ -55,12 +55,6 @@ export function defineModule(module: ServerModule): ServerModule {
   return module;
 }
 
-/** 模块注册台账（owner → 方法集），供诊断与 parity 快照。 */
-export interface ModuleRpcMap {
-  readonly owner: string;
-  readonly method: string;
-}
-
 /**
  * 把模块依次注册进方法表。
  * @param modules 模块列表（顺序即注册顺序；后注册者撞名即抛错）。

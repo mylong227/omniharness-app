@@ -6,7 +6,7 @@
  * 故把**类型**放端口层：CLI 侧照旧用实现并再导出（零改动），server 只依赖本契约，
  * 实现经 `AppServerOptions.doctorReport` 由 CLI **注入**（六边形该有的分工）。
  *
- * 判据 `tests/unit/doctorReportContract.test.ts` 会**逐字比对**本文件与 CLI 侧的再导出，
+ * 判据 `上游判据 doctorReportContract.test.ts（本仓未随迁）` 会**逐字比对**本文件与 CLI 侧的再导出，
  * 防两侧漂移（本文件首版就是手抄错了 `SandboxStatus` 的字段名，被 tsc 当场抓到）。
  */
 import type { InjectionSelfCheckSummary } from './injectionSelfCheckSummary.ts';

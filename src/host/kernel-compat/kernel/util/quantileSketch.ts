@@ -15,7 +15,7 @@
  * - 压缩条件：`g_i + g_{i+1} + Δ_{i+1} ≤ ⌊2εn⌋` 时合并相邻元组。
  *
  * @maturity L2 — 真实 GK 插入/压缩/查询；未做多草图 merge 与加权样本
- * @maturityEvidence tests/unit/quantileSketch.test.ts
+ * @maturityEvidence 上游判据 quantileSketch.test.ts（本仓未随迁）
  */
 
 /** 一个有序元组。 */

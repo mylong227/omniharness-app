@@ -13,7 +13,7 @@
  *
  * `ArgParser.collectPositional` 用它判断「某 token 是旗标的取值还是位置参数」：漏登记会让
  * 取值被当成 prompt（实测：`--decision-engine shadow` 会把 `shadow` 当任务跑）。
- * 判据由 `tests/unit/cliFlagValueRegistry.test.ts` 机器兜底（凡消费取值的旗标必须在此登记）。
+ * 判据由 `上游判据 cliFlagValueRegistry.test.ts（本仓未随迁）` 机器兜底（凡消费取值的旗标必须在此登记）。
  */
 export const VALUE_FLAGS: ReadonlySet<string> = new Set([
   '--config',

@@ -24,7 +24,7 @@
  *   · 出现**并列最优**时不给建议（让用户自己看帮助，好过猜错）；
  *   · 前缀缩写（`--work` ⇒ `--workspace`）只在**唯一匹配**时给出。
  *
- * 判据见 `tests/unit/flagSuggestion.test.ts`（含"不认识的名字不得瞎猜"这条负对照）。
+ * 判据见 `上游判据 flagSuggestion.test.ts（本仓未随迁）`（含"不认识的名字不得瞎猜"这条负对照）。
  *
  * **本文件是叶子模块**：不 import 任何 `src/apps/cli/**` 兄弟（尤其 `cliFlagTable`）——已知旗标清单由
  * 调用方注入。理由不是洁癖：`cli/{argParser,cliEnums,cliFlagTable,cliHelp}` 本来就是架构门禁里

@@ -40,7 +40,7 @@ export type { ServerModule };
  * 缺省即安全可用：MockModel（零凭据）+ MemoryStorage + AutoApproval + PassthroughSandbox，
  * 与内核 `examples/headless.mjs` 同一口径；给真实 `ModelPort` 即接任意厂商。
  * 自定义能力经 `modules: [defineModule({ name, register(ctx) { ctx.rpc(...) } })]`
- * 与内置 91 个 RPC 同权注册（同名冲突启动即抛错）。
+ * 与内置 92 个 RPC 同权注册（同名冲突启动即抛错）。
  */
 export interface OmniHarnessInput {
   /** 工作区根（缺省 `process.cwd()`）。 */
@@ -75,6 +75,12 @@ export interface OmniHarnessInput {
   readonly pluginsDir?: string;
   /** 工作台静态目录（http 模式；缺省仓库内 `web/dist`，嵌入方可指向自己的构建产物）。 */
   readonly webDir?: string;
+  /**
+   * 是否允许模型目录/本机配置覆盖 `model` 入参（缺省 **false**：给的模型就是生效模型）。
+   * 为什么缺省关：开启后会读本机用户级 `~/.omniharness/omniharness.json` 的 modelAdapter/baseUrl
+   * 并可能拿真实凭据构造真适配器——「缺省即安全」的口子不能被开发机配置静默击穿。
+   */
+  readonly allowModelOverride?: boolean;
   /** 完整接管配置的高级口（给了则忽略上面各端口语）。 */
   readonly config?: ResolvedConfig;
 }
@@ -120,14 +126,24 @@ function resolveTransport(input: OmniHarnessInput): TransportMode {
   };
 }
 
-/** stdio 逐行传输（与 CLI `runServer` 同一形态：一行一条 JSON-RPC）。 */
-function makeLineTransport(): Transport {
-  return new LineTransport(
+/** stdio 逐行传输（与 CLI `runServer` 同一形态：一行一条 JSON-RPC）；返回传输 + 可退出清理。 */
+function makeLineTransport(): { transport: Transport; dispose: () => void } {
+  const rl = createInterface({ input: process.stdin, crlfDelay: Infinity });
+  const transport = new LineTransport(
     (onLine) => {
-      createInterface({ input: process.stdin, crlfDelay: Infinity }).on('line', onLine);
+      rl.on('line', onLine);
     },
     (line) => process.stdout.write(`${line}\n`),
   );
+  return {
+    transport,
+    // 不关闭 stdin 进程就退不出去：close() 必须 close readline 并 unref stdin，
+    // 否则 `await harness.close()` 后事件循环仍被 stdin 挂住（嵌入方只能 process.exit）。
+    dispose: () => {
+      rl.close();
+      process.stdin.unref();
+    },
+  };
 }
 
 /**
@@ -167,6 +183,10 @@ export async function createOmniHarness(input: OmniHarnessInput = {}): Promise<O
       pluginsDir,
       workspaceRoot,
       modules: input.modules,
+      // 缺省**不**允许模型目录覆盖启动模型：嵌入方给的 `model`（缺省 MockModel）就是生效模型。
+      // 否则 `resolveOverride()` 会读本机用户级配置（modelAdapter 非 mock 时）拿真实凭据构造
+      // 真适配器——「缺省即安全可用」的承诺被开发者本机配置静默击穿（2026-11-06 审计 P1）。
+      modelOverrideEnabled: input.allowModelOverride === true,
     };
     const app = new AppServer(options);
     const server = new HttpServer({
@@ -178,6 +198,17 @@ export async function createOmniHarness(input: OmniHarnessInput = {}): Promise<O
       authToken: mode.token,
     });
     const actualPort = await server.start(mode.port);
+    // 插件加载不挡 listen（与 CLI serve 同一口径）：先起服务，再登记就绪闸门，
+    // 真正需要插件的回合入口会 await 它。不做这步，http 模式的插件工具/RPC 会永远缺席。
+    app.setPluginsReady(
+      app.loadPlugins().catch((error: unknown) => {
+        process.stderr.write(
+          `[omniharness] 插件加载失败（后台继续，插件工具可能缺失）：${
+            error instanceof Error ? error.message : String(error)
+          }\n`,
+        );
+      }),
+    );
     const shownHost = mode.host === '0.0.0.0' ? '127.0.0.1' : mode.host;
     return {
       app,
@@ -192,8 +223,8 @@ export async function createOmniHarness(input: OmniHarnessInput = {}): Promise<O
   }
 
   // ── stdio / 注入 Transport 模式 ──────────────────────────────────────────────
-  const transport =
-    mode.kind === 'injected' ? mode.transport : makeLineTransport();
+  const stdio = mode.kind === 'stdio' ? makeLineTransport() : undefined;
+  const transport = mode.kind === 'injected' ? mode.transport : stdio!.transport;
   const config =
     input.config ??
     ConfigFactory.build({
@@ -207,6 +238,8 @@ export async function createOmniHarness(input: OmniHarnessInput = {}): Promise<O
     pluginsDir,
     workspaceRoot,
     modules: input.modules,
+    // 同 http 模式：嵌入方的 model 即生效模型，缺省不许本机配置覆盖。
+    modelOverrideEnabled: input.allowModelOverride === true,
   };
   const app = new AppServer(options);
   await app.loadPlugins();
@@ -217,6 +250,7 @@ export async function createOmniHarness(input: OmniHarnessInput = {}): Promise<O
     run: () => new Promise(() => undefined),
     close: async () => {
       await app.shutdown();
+      stdio?.dispose();
     },
   };
 }

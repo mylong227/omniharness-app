@@ -82,6 +82,13 @@ export class ApiClient {
       throw new Error(data.error.message || t('RPC 错误（code {code}）', { code: data.error.code }));
     }
     if (res.ok === false) {
+      // 401 单列（2026-11-06 审计 P2）：令牌失效/服务端重启换令牌时，用户需要的不是
+      // 一面板「HTTP 401」报错，而是一句「重新用带 token 的地址打开」。发全局事件供
+      // App 挂授权提示横幅；SSE 的 EventSource 不暴露状态码，401 提示只能由 RPC 路径触发。
+      if (res.status === 401 && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('omni:auth-required'));
+        throw new Error(t('需要授权：令牌缺失或已失效——请重新用服务端打印的带 token 地址打开'));
+      }
       throw new Error(t('RPC 请求失败：HTTP {status}', { status: res.status }));
     }
     if (data === undefined) {

@@ -1,10 +1,21 @@
-# `defaults/` —— 随包发布的内建默认数据
+# `defaults/` —— 内建默认数据
 
-这里的 JSON 是**数据**，不是代码。它们此前写死在 `.ts` 实现里，改一条网段、加一家模型厂商、
-换一个端点地址都要改代码重新发布，或在多个文件间手工同步（CLI 的 `ADAPTER_PRESETS` 就曾是
-`providerPresets.ts` 的手工副本；`https://api.openai.com/v1` 曾在 `cliBuildConfig` 与 `configBuilder`
-里各写一遍）。现在改数据即可，用户特有的差异走 `omniharness.json` 或环境变量覆盖。
+## 数据流真相（2026-11-06 审计后如实化）
 
+内核的 `builtinDefaults.locatePackageRoot` 从**内核模块目录**向上找最近的「package.json + defaults/
+」目录——即 `node_modules/@omniharness/kernel/defaults/`（随 vendored tarball 发布的那份）。
+因此：**运行时真正被读的是内核包内那份**；本目录的 ssrf / providers / endpoints / limits /
+injection-snapshot 五个 JSON 是**同源文档性拷贝**（改它们不改变运行时行为——要改默认值请改
+内核仓的 defaults 并重新 vendor）。两类例外是本仓的**活数据**：
+
+- `cliHelp.json`：CLI 帮助文案（`src/apps/cli/cliHelp.ts` 读**本目录**这份）；
+- `skills/harness-core.json`：随包技能包（`cliSkillFlags` 读本目录）。
+
+另外 `../examples/catalog/registry.json` 是离线插件市场 catalog（`createRegistry` 消费，打包
+stage 会带上）。
+
+本目录 `providers.json` 与内核包逐字节一致（可 diff 自检）；`limits.json` 仍含内核已退役的
+a2a 段（死数据，仅文档意义）。下文的字段字典保留作数据形状参考。
 ## 文件与消费方
 
 | 文件             | 内容                                                | 单一来源实现                                          | 覆盖入口                                                         |

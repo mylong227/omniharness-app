@@ -4,7 +4,7 @@
 // （由 `UnifiedDiff.renderUnifiedDiff` 按文件渲染、`\n` 直连拼接）拆解为
 // 「每文件：路径 + 增删行数 + 自身 diff 正文」，供 UI 渲染文件级清单。
 //
-// 纯函数、无 React、无 IO：同输入恒同输出，可脱离组件单测（web/test/turnDiffFiles.test.mjs）。
+// 纯函数、无 React、无 IO：同输入恒同输出，可脱离组件单测（web/test/turnDiffFiles.test.ts）。
 
 /** 回合内单个被修改文件的解析结果。 */
 export interface TurnDiffFile {

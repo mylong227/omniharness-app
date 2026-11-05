@@ -154,7 +154,7 @@ export class DoctorRunner {
     const build = this.checkBuild();
 
     // ⑦ 缺省 serve 端口占用（2026-11 新增）：被占用只作 info（很可能已有 serve 在跑，是常态）。
-    const servePort = await this.checkServePort(ServeDefaults.DEFAULT_SERVE_PORT);
+    const servePort = await this.checkServePort(ServeDefaults.resolveDefaultPort());
 
     // ⑧ 模型连通性探测（2026-11 新增）：仅 `--probe-model` 时发一次 /models；
     // 结果只作 info（网络问题不该让「环境诊断」退出码变红——那是配置/安装问题的信号）。
@@ -178,6 +178,13 @@ export class DoctorRunner {
       servePort,
       modelProbe,
     };
+  }
+
+  /**
+   * 用户级配置路径（`~/.omniharness/omniharness.json`；`init` 写的就是它）。
+   */
+  private userConfigPath(): string {
+    return join(OmniHome.dir(), 'omniharness.json');
   }
 
   /**
@@ -252,7 +259,7 @@ export class DoctorRunner {
    */
   private async probeModel(workspaceRoot: string): Promise<ModelProbeStatus> {
     try {
-      const path = this.findConfig(workspaceRoot);
+      const path = this.findConfig(workspaceRoot) ?? this.userConfigPath();
       if (path === undefined || !existsSync(path)) {
         return { attempted: false, detail: '未找到配置文件（先运行 omniharness init）' };
       }
@@ -364,7 +371,7 @@ export class DoctorRunner {
    * @returns 配置中的档位名；不可得时为 undefined。
    */
   private configuredSandboxProfile(workspaceRoot: string): string | undefined {
-    const path = this.findConfig(workspaceRoot);
+    const path = this.findConfig(workspaceRoot) ?? this.userConfigPath();
     if (path === undefined || !existsSync(path)) {
       return undefined;
     }
@@ -380,6 +387,9 @@ export class DoctorRunner {
 
   /**
    * 检查配置文件存在性与 JSON 合法性。
+   *
+   * 查找顺序（2026-11-06 修）：显式 --config → 项目级向上查找 → **用户级** `~/.omniharness/omniharness.json`
+   * ——`omniharness init` 写的是用户级文件，doctor 看不见它会得出「刚 init 完仍提示没配置」的自相矛盾。
    * @param configPath 显式配置路径（优先）；undefined 时向上查找。
    * @param workspaceRoot 向上查找的起点工作区根。
    * @param issues 累积问题的清单（本方法向其追加发现的问题）。
@@ -390,10 +400,10 @@ export class DoctorRunner {
     workspaceRoot: string,
     issues: string[],
   ): ConfigStatus {
-    const path = configPath ?? this.findConfig(workspaceRoot);
+    const path = configPath ?? this.findConfig(workspaceRoot) ?? this.userConfigPath();
     if (path === undefined || !existsSync(path)) {
       issues.push(
-        `未找到 omniharness.json 配置文件（可运行 omniharness init 一键生成，或复制 omniharness.json.example 手改）`,
+        `未找到 omniharness.json 配置文件（项目级或用户级均无；可运行 omniharness init 一键生成，或复制 omniharness.json.example 手改）`,
       );
       return { exists: false, valid: false };
     }
@@ -484,9 +494,9 @@ export class DoctorRunner {
     const lines: string[] = [];
     lines.push('OmniHarness 诊断报告');
     lines.push('--------------------------------------------------');
-    lines.push(`  Node 版本        : ${report.nodeVersion}`);
+    lines.push(`  Node 版本         : ${report.nodeVersion}`);
     if (report.kernelVersion !== undefined) {
-      lines.push(`  内核版本         : @omniharness/kernel ${report.kernelVersion}`);
+      lines.push(`  内核版本          : @omniharness/kernel ${report.kernelVersion}`);
     }
     lines.push(
       `  配置文件          : ${report.config.exists ? '存在' : '缺失'} / ${report.config.valid ? '合法' : '非法'}` +
@@ -511,7 +521,7 @@ export class DoctorRunner {
     const port = report.servePort;
     if (port !== undefined) {
       lines.push(
-        `  缺省 serve 端口   : ${String(port.port)} ${port.available ? '空闲' : '被占用（可能已有 serve 在跑；--port N 换端口）'}`,
+        `  缺省 serve 端口   : ${String(port.port)}（回环口径）${port.available ? ' 空闲' : ' 被占用（可能已有 serve 在跑；--port N 换端口）'}`,
       );
     }
     lines.push(`  模型连通性        : ${report.modelProbe?.detail ?? '未探测'}`);

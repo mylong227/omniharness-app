@@ -3,7 +3,7 @@
 // 设计口径（为什么用中文原文当键）：
 // - zh 语言恒等回落（t('已保存') === '已保存'），零词条维护成本，存量中文串只需包一层 t()；
 // - en 语言查 en/index.ts 聚合的词条表，缺词条时回落中文原文（优雅降级，页面不出空洞），
-//   词条完整性由 web/test/i18nCoverage.test.mjs 静态扫描兜底（源码里每个 t('…') 键必须入表）。
+//   词条完整性由 web/test/i18nCoverage.test.ts 静态扫描兜底（源码里每个 t('…') 键必须入表）。
 //
 // 语言状态：模块级单例 + 订阅通知（LayoutController.setLocale 经 App 状态触发全树重渲染，
 // 本订阅供未来非 React 场景使用）；持久化 localStorage('omni-locale')，挂载时 initLocale 恢复。

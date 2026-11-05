@@ -4,7 +4,7 @@
 export interface LaunchArgs {
   /** `--workspace` 指定的工作区（未指定为 null）。 */
   readonly workspace: string | null;
-  /** `--hidden`：启动到托盘/后台（当前仅记录，窗口仍会显示）。 */
+  /** `--hidden`：启动到托盘/后台（`autoShow: !hidden`，窗口不自动显示）。 */
   readonly hidden: boolean;
   /** `omniharness://` 深链（交给 `DeepLinkRouter`：workspace 切换 / UI 聚焦）。 */
   readonly deepLink: string | null;

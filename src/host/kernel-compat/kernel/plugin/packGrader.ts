@@ -25,7 +25,7 @@
  * 3. 任何一腿**异常/缺件** ⇒ 按 C 处理（fail-closed：判据坏掉不等于放行）。
  *
  * @maturity L1 — A/B/C 三档可达 / 未声明能力一票 C / 沙箱失败一票 C / 缺腿 fail-closed / 确定性 判据钉死
- * @maturityEvidence tests/unit/packGrader.test.ts
+ * @maturityEvidence 上游判据 packGrader.test.ts（本仓未随迁）
  */
 import { log } from '../../../kernel/util.ts';
 import { PackStaticScanner } from './packStaticScanner.ts';

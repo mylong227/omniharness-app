@@ -13,7 +13,7 @@
 //     门禁里「孤儿样式表」那条判据一直在防的事）；
 //   · 产物只有一条 CSS 请求。
 //
-// ⚠️ **顺序即级联优先级，不得重排**。判据：`web/test/a11yContrast.test.mjs`
+// ⚠️ **顺序即级联优先级，不得重排**。判据：`web/test/a11yContrast.test.ts`
 // （它检查本文件的 import 顺序与 `styles/` 下的文件集合一一对应）。
 import '../styles/theme.css'; // 唯一色彩事实源：token / reset / 原生控件
 import '../styles/antd.css'; // antd 缝合层（W1）：reduced-motion / 表面对齐；组件样式由 CSS-in-JS 注入
@@ -31,6 +31,14 @@ import '../styles/console.css'; // 工作台控制台（设置中心）：分组
 import '../styles/highlight.css'; // **必须最后**：语法色要盖住前面的基线
 
 import { mountApp } from './ui/App.ts';
+import { authToken } from './core/authToken.ts';
+import { installAuthRequiredBanner } from './core/authRequiredBanner.ts';
+
+// 令牌安置（2026-11-06 审计 P2）：URL ?token= 存在时先收进覆盖层 + localStorage 并把
+// token 从地址栏抹掉（防进历史/屏幕共享/复制外泄），再挂载应用——任何早于本行的
+// authToken.resolve() 都还读得到 URL，但挂载后的请求与刷新都走持久化层。
+authToken.adoptFromUrl();
+installAuthRequiredBanner();
 
 const root = document.getElementById('root');
 if (root) {

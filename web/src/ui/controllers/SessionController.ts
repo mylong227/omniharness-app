@@ -277,7 +277,11 @@ export class SessionController {
         liveInputs: [],
         streamText: '',
         finalizedStreamText: '',
-        busy: false,
+        // 打开「正在运行」的会话必须进 busy（2026-11-06 审计 P2）：此前无条件 busy:false ⇒
+        // 打开在跑会话时 thread.text_delta 全部被 appendTextDelta 丢弃（!busy 才接收），
+        // 用户看到的是静止的旧历史 + 无停止按钮，直到下一回合开始。running 取自最近一次
+        // sessions.list 的真实运行态（服务端以 activeTurns 维护，非猜测）。
+        busy: this.host.getState().sessions.find((x) => x.id === id)?.running === true,
         activeTool: null,
         historyHasMore: r.hasMore === true,
         oldestEventId: items[0]?.id ?? null,

@@ -19,6 +19,8 @@ import type { ImageAttachment } from '../models/ChatMessageQueue.ts';
 
 /** 输入框 / 发送控制器：单一职责，仅供 App 组合使用。 */
 export class ComposerController {
+  /** 系统便签 id 序列（同毫秒多条时不互相撞，loadEarlier 的去重 Set 不会误吞）。 */
+  private static sysNoteSeq = 0;
   /** 状态宿主（App class 组件）。 */
   private readonly host: AppHost;
   /** 共享服务。 */
@@ -462,7 +464,7 @@ export class ComposerController {
    */
   private systemNote(content: string): ThreadEvent {
     return {
-      id: 'sys-' + Date.now().toString(36),
+      id: 'sys-' + Date.now().toString(36) + '-' + (ComposerController.sysNoteSeq++).toString(36),
       type: 'system',
       timestamp: Date.now(),
       payload: { content },

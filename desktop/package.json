@@ -1,6 +1,6 @@
 {
   "name": "@omniharness/app-desktop",
-  "version": "0.6.0-alpha.1",
+  "version": "0.6.0-alpha.2",
   "private": true,
   "description": "OmniHarness 桌面端（Electron 壳 + 应用自己的 React 工作台；后端由外部宿主提供）",
   "author": "mylong227",

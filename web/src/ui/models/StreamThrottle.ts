@@ -8,7 +8,7 @@
 //   2) 零丢失：累计 emit 的文本拼接恒等于 push 过的全部增量拼接（收尾 flush 兜底）；
 //   3) 可注入 / 可释放：时间源经 ThrottleClock 注入（测试用确定性假时钟），dispose() 取消在飞定时器。
 //
-// 纯逻辑、零 React、零 DOM，可直接在 node 环境单测（见 web/test/longSessionPerf.test.mjs）。
+// 纯逻辑、零 React、零 DOM，可直接在 node 环境单测（见 web/test/longSessionPerf.test.ts）。
 
 /**
  * 可注入时钟：把「读时间 + 排程 + 取消」三件事抽出来，

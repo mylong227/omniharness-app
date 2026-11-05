@@ -74,7 +74,7 @@ export class ExecCli extends CliAgentCmds {
   /**
    * 执行并返回进程退出码。
    *
-   * 分两段：**先委托链基半段**（`ExecLocal.runLocal`，`server`/`serve`/`kv`/`vault`/`doctor`… 18 个命令，
+   * 分两段：**先委托链基半段**（`ExecLocal.runLocal`，`server`/`serve`/`kv`/`vault`/`doctor`… 20 个命令，
    * 不需要链顶的 `Agent`/`Runtime`），不认识才走本层的链顶命令与默认 agent 路径。
    * 这样做是为了让 `exec.ts` 能**先加载 `execLocal.js`**（实测比整条链省 ~280ms），
    * 同时保住"每个命令只有一处实现"（这里是委托，不是复制一份判定）。

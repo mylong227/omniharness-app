@@ -28,12 +28,12 @@ function backendMethods(): string[] {
   return out;
 }
 
-/** 从 ApiClient 源码提取 `this.rpc('X'` 的全部方法字面量。 */
+/** 从 ApiClient 源码提取 `this.rpc('X'` 的全部方法字面量（单/双引号/模板串均收）。 */
 function clientMethods(): string[] {
   const source = readFileSync(resolve('web/src/core/ApiClient.ts'), 'utf8');
-  const out = [...source.matchAll(/this\.rpc(?:HandleErrors)?[<(]?\s*'([a-z]+\.[a-zA-Z.]+)'/g)].map(
-    (m) => m[1]!,
-  );
+  const out = [
+    ...source.matchAll(/this\.rpc(?:HandleErrors)?[<(]?\s*(['"`])([a-z]+\.[a-zA-Z.]+)\1/g),
+  ].map((m) => m[2]!);
   return [...new Set(out)];
 }
 

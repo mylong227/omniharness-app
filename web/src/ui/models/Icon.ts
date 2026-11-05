@@ -13,7 +13,7 @@
 //
 // 契约：所有图标都是**装饰性**的 —— 根节点固定 `aria-hidden="true"` + `focusable="false"`，
 // 可读名字一律由外层容器（按钮 `aria-label` / 文案）提供。故按钮上的图标不会污染 a11y 名字。
-// 判据：web/test/a11yKeyboard.test.mjs（NavRail 9 项、每个纯图标按钮都有 aria-label）。
+// 判据：web/test/a11yKeyboard.test.ts（NavRail 9 项、每个纯图标按钮都有 aria-label）。
 
 import * as React from 'react';
 

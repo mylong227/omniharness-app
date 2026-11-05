@@ -18,7 +18,7 @@
  * 台账链里则留下 `rollback` 条目（治理事件不隐身）。
  *
  * @maturity L1 — status 只读 / rollback 门禁与产物格式判据钉死；CLI 不持活技能表（诚实边界）
- * @maturityEvidence tests/unit/evolutionCommand.test.ts
+ * @maturityEvidence 上游判据 evolutionCommand.test.ts（本仓未随迁）
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';

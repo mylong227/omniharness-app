@@ -23,7 +23,7 @@
  *   调用方只问 `featureAllowed(tier, feature)`——不把档位判断散落到业务代码里。
  *
  * @maturity L1 — 篡改（正文/签名/机器/未来签发）四类拒 + 过期降级不停摆 + 空输入 fail-closed 判据钉死
- * @maturityEvidence tests/unit/licenseEngine.test.ts
+ * @maturityEvidence 上游判据 licenseEngine.test.ts（本仓未随迁）
  */
 import { createHash } from 'node:crypto';
 import type { LicenseTier } from './../../host/contracts/ports/license/licenseTier.ts';

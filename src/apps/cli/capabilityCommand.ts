@@ -22,7 +22,7 @@
  * 关着的时候必须**如实报未启用**（退出码 1），而不是打一张空表让人以为「协议在跑但没资产」。
  *
  * @maturity L1 — 只读面 / 写操作门禁 / 未启用如实报错 / 拒装原因透出 判据钉死
- * @maturityEvidence tests/unit/capabilityCommand.test.ts
+ * @maturityEvidence 上游判据 capabilityCommand.test.ts（本仓未随迁）
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';

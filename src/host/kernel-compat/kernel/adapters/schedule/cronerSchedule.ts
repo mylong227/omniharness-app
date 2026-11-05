@@ -21,7 +21,7 @@
  *    另对 `afterMs` 做边界校验（非有限数直接拒），不让 `NaN` 静默变成「没有下次」。
  *
  * @maturity L1 — DST 顺延 / 时区语义 / 三类失败语义 / 缓存上限 判据钉死
- * @maturityEvidence tests/unit/cronerSchedule.test.ts
+ * @maturityEvidence 上游判据 cronerSchedule.test.ts（本仓未随迁）
  */
 import { Cron } from 'croner';
 import type {

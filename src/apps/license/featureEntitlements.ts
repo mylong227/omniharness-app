@@ -17,7 +17,7 @@
  *    因为"用户以为买了却用不了"这类问题只能靠日志定位。
  *
  * @maturity L1 — 无授权拒 / 档位不足拒 / 过期降级 / 未知功能拒 / 事件口径 判据钉死
- * @maturityEvidence tests/unit/featureEntitlements.test.ts
+ * @maturityEvidence 上游判据 featureEntitlements.test.ts（本仓未随迁）
  */
 import { LicenseEngine } from './licenseEngine.ts';
 import { log } from '../../host/kernel/util.ts';

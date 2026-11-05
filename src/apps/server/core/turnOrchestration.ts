@@ -1,6 +1,5 @@
 import type { ImageContent, FileAttachment } from '../../../host/kernel/contracts.ts';
 import { Id } from '../../../host/kernel/util.ts';
-import type { WorkflowDef } from '../../../host/kernel/autonomy.ts';
 import { log } from '../../../host/kernel/util.ts';
 import { InterjectionClassifier } from '../../../host/kernel-compat/kernel/core/steering/interjectionClassifier.ts';
 import type { SessionRewindOutcome } from '../services/session/sessionRewindService.ts';
@@ -300,12 +299,5 @@ export class TurnOrchestration {
     steps: number;
   }): unknown {
     return { threadId: result.sessionId, finalText: result.finalText, steps: result.steps };
-  }
-
-  /** 图运行定义守卫：`graph.run` / `graph.save` 共用的「def 需含 steps」检查。 */
-  public static isWorkflowDefLike(value: unknown): value is Partial<WorkflowDef> {
-    return (
-      value !== undefined && typeof value === 'object' && Array.isArray((value as Partial<WorkflowDef>).steps)
-    );
   }
 }

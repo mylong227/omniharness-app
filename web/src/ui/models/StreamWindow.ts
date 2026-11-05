@@ -10,7 +10,7 @@
 // 绝对像素会有漂移，但「窗口占比恒定、滚动位置不跳变、向上滚动不拉回」这三条体验契约成立，
 // 且无需 ResizeObserver / 逐块测量（零新增依赖、零 DOM 依赖、可确定性单测）。
 //
-// 纯计算、零 React、零 DOM：可直接在 node 环境单测（见 web/test/longSessionPerf.test.mjs）。
+// 纯计算、零 React、零 DOM：可直接在 node 环境单测（见 web/test/longSessionPerf.test.ts）。
 
 /** 虚拟窗口的可选参数。 */
 export interface StreamWindowOptions {

@@ -1,7 +1,7 @@
 ﻿// 会话排序（v2）：显式名次 + 「新会话置顶」+ 「历史垫后」三层模型。
 //
 // 见 SessionRanking 的类注释（为什么 v1 数组在跨客户端下会把新会话丢到列表底部）。
-// 纯计算、零 IO：可直接单测（见 tests/unit/sessionRanking.test.ts）。
+// 纯计算、零 IO：可直接单测（见 上游判据 sessionRanking.test.ts（本仓未随迁））。
 
 /** 排序侧车文档（v2）：显式名次表 + 最后一次排序的时刻。 */
 export interface OrderDoc {
@@ -27,7 +27,7 @@ const EMPTY_ORDER: OrderDoc = { rank: {}, at: 0 };
  * 2. **显式顺序层**（有名次）：按名次升序 —— 用户排过的位置不被新会话顶掉；
  * 3. **历史未登记层**（`mtime <= at` 且无名次）：按时间倒序垫后 —— 升级前的几百个老会话不会挤到前面。
  *
- * 纯计算、可单测（见 tests/unit/sessionRanking.test.ts）。
+ * 纯计算、可单测（见 上游判据 sessionRanking.test.ts（本仓未随迁））。
  */
 export class SessionRanking {
   /**

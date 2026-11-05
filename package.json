@@ -10,6 +10,19 @@
   },
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/src",
+    "defaults",
+    "examples",
+    "CHANGELOG.md"
+  ],
   "bin": {
     "omniharness": "dist/src/apps/cli/exec.js"
   },

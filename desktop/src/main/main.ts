@@ -178,11 +178,11 @@ function run(): void {
     }
   });
 
-  app.on('will-quit', () => {
+  // 2026-11-06 审计 P3：原 `will-quit` 钩子不可达——所有退出路径都走 before-quit →
+  // shutdownAndExit → app.exit(0)（跳过 will-quit）。全局快捷键与二级窗口的收尾并入 before-quit。
+  app.on('before-quit', (event) => {
     globalShortcut.unregisterAll();
     secondary.closeAll();
-  });
-  app.on('before-quit', (event) => {
     if (context === null || context.quitting) return;
     event.preventDefault();
     context.quitting = true;
@@ -362,12 +362,9 @@ async function bootstrap(): Promise<void> {
     setCloseToTray: (enabled) => windows.setCloseToTray(enabled),
     openAtLogin: () => context?.state.get().openAtLogin === true,
     setOpenAtLogin: (enabled) => windows.setOpenAtLogin(enabled),
-    pickWorkspace: () => pickWorkspace(),
-    openWorkspace: (path) => switchWorkspace(path),
     openLogs,
     restartHarness,
     revealPath,
-    quit: () => app.quit(),
     notify: (input) => context?.notifications.show(input) === true,
     checkForUpdates,
     downloadUpdate: () => context?.updates.download() ?? Promise.resolve(),
@@ -507,6 +504,9 @@ async function switchWorkspace(path: string): Promise<void> {
     if (ctx.window !== null) loadHarness(ctx.window, handle);
     secondary.reloadAll(handle);
   } catch (error) {
+    // 旧 supervisor 已在上文 stop ⇒ ctx.handle 此刻指向一个**已死**的端口/令牌；
+    // 不清空的话，托盘/菜单/新窗口路径仍会拿它去 loadHarness（连接拒答/401，2026-11-06 审计 P2）。
+    ctx.handle = null;
     const message = error instanceof Error ? error.message : String(error);
     ctx.logger.write('main', `switch workspace failed: ${message}`);
     await ctx.dialogs.switchFailed(message);
@@ -534,6 +534,8 @@ async function restartHarness(): Promise<void> {
     if (ctx.window !== null) loadHarness(ctx.window, handle);
     secondary.reloadAll(handle);
   } catch (error) {
+    // 同 switchWorkspace：旧实例已停，悬挂的 handle 必须清空（2026-11-06 审计 P2）。
+    ctx.handle = null;
     const message = error instanceof Error ? error.message : String(error);
     ctx.logger.write('main', `restart failed: ${message}`);
     await ctx.dialogs.restartFailed(message);
@@ -681,7 +683,9 @@ async function runSmoke(hiddenLaunch: boolean): Promise<void> {
     hiddenLaunch,
     harnessState: ctx?.supervisor?.getState() ?? null,
     harnessEndpoint: handle !== null ? `${handle.host}:${String(handle.port)}` : null,
-    loadedUrl: alive ? window.webContents.getURL() : null,
+    // 令牌打码（2026-11-06 审计 P1）：loadedUrl 是带 `?token=` 的地址，报告 JSON 号称
+    // 「可贴回 issue」——不脱敏等于鼓励把访问令牌贴进公共 issue。服务端日志都打码，桌面不能更松。
+    loadedUrl: alive ? window.webContents.getURL().replace(/([?&])token=[^&]*/g, '$1token=***') : null,
     dom,
     trayCreated: ctx?.tray !== null,
     notificationsSupported: Notification.isSupported(),

@@ -1,4 +1,4 @@
-// 领域模型：对齐 web/archive/index-classic.html（vanilla 版）中所有 JSON-RPC 方法的入参与返回形状。
+// 领域模型：对齐当前工作台 RPC 形体（历史 vanilla 版已删除）
 // 组件层与服务层共享这些类型，确保重构后的 UI 与后端协议逐字段一致。
 
 export type EventType =
@@ -93,7 +93,7 @@ export interface ProviderPreset {
    * 该厂商合法的 reasoning_effort 档位（#B6 扩展，2026-09-08）：
    * - undefined 或 []：UI 退回内置兜底列表（向后兼容）
    * - 非空：Composer「推理强度」下拉按此清单渲染
-   * 后端单一来源：src/kernel/config/providerPresets.ts（数据在随包发布的 defaults/providers.json，
+   * 后端单一来源：src/host/kernel/config.ts（内核 config/providerPresets 经对接面）（数据在随包发布的 defaults/providers.json，
    * 可由 omniharness.json 的 providerPresets 段按 id 整条覆盖）。
    */
   reasoningEffort?: string[];
@@ -487,7 +487,7 @@ export interface SessionModes {
  *
  * 为什么不直接复用服务端类型：Web 只经 RPC 消费 JSON，且 `web/tsconfig.json` 不跨到 `src/`；
  * 故这里只声明**面板真正会渲染的字段**。字段名与服务端
- * `src/contracts/ports/observability/doctorReport.ts` 逐字一致（判据 `web/test/diagnosticsTab.test.mjs`
+ * `src/host/kernel-compat/contracts/ports/observability/doctorReport.ts` 逐字一致（判据 `web/test/diagnosticsTab.test.ts`
  * 会核对本类型与面板用到的字段名）。
  */
 export interface DoctorReportLike {

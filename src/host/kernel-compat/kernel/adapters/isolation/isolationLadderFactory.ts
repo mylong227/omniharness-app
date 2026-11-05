@@ -24,7 +24,7 @@
  * 本工厂只负责"**声明了 wasm 的资产确实能在 wasm 档跑**"。
  *
  * @maturity L1 — 生产装配后 wasm 档可达且越界仍被拒 / 未注入档位仍 fail-closed 判据钉死
- * @maturityEvidence tests/unit/builtinWasmRunner.test.ts
+ * @maturityEvidence 上游判据 builtinWasmRunner.test.ts（本仓未随迁）
  */
 import { BuiltinWasmRunner } from '../../../../kernel/adapters-misc.ts';
 import { IsolationLadder } from '../../../../kernel/adapters-misc.ts';

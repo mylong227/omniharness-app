@@ -1,5 +1,6 @@
-# OmniHarness App 验证流水线：与本地 `npm run verify` 同一裁决链（桌面打包除外）。
-# 任何 PR / push 到受保护分支都必须全绿；判据布局见 CONTRIBUTING.md。
+# OmniHarness App 验证流水线：与本地 `npm run verify` 同一裁决链
+# （桌面 GUI 打包除外；桌面 25 条纯逻辑判据包含在最后一步）。
+# 判据布局见 CONTRIBUTING.md。
 name: verify
 
 on:
@@ -7,11 +8,20 @@ on:
     branches: [main]
   pull_request:
 
+# 同分支新推送取消旧跑（省配额；结论以最新一次为准）。
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   verify:
     # 冒烟会真起 serve 并加载 Windows 风格的桌面侧车路径探测；主开发机是 Windows，
     # 与其赌跨平台路径语义，不如钉在与发布一致的系统上。
     runs-on: windows-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -29,7 +39,7 @@ jobs:
       - name: 内核边界门禁（7 条判据）
         run: npm run kernel:check
 
-      - name: 判据（前端 + 后端 parity）
+      - name: 判据（前端 + 后端 parity/守卫）
         run: npm run web:test
 
       - name: 构建后端 + 前端
@@ -39,3 +49,9 @@ jobs:
 
       - name: 端到端冒烟（真起 serve）
         run: npm run smoke
+
+      - name: 桌面纯逻辑判据（25 条；需本地装 Electron 依赖，与本地 desktop:test 同源）
+        run: |
+          npm --prefix desktop ci --no-audit --no-fund
+          npm run desktop:build
+          npm run desktop:test

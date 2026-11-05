@@ -27,7 +27,7 @@
  * 复制就会漂移，而"两边对不上"在分发场景里等于绕过了门禁。
  *
  * @maturity L1 — 严格档无签名拒 / 非信任根拒 / 篡改拒 / 宽松档标注 community / 只装放行集 判据钉死
- * @maturityEvidence tests/unit/privateSkillSource.test.ts
+ * @maturityEvidence 上游判据 privateSkillSource.test.ts（本仓未随迁）
  */
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';

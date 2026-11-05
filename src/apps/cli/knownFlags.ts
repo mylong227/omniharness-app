@@ -4,7 +4,7 @@
  * 条目数以本文件的 `Set` 字面量为准——**故意不在注释里写死数字**：写死了就会漂移
  * （第五十八轮写"72 项"，第五十九轮把三个审计旗标移进 `VALUE_FLAGS` 后实际是 69，注释没跟着改；
  * 一次**真实 API 跑测**里模型读到这个不一致并如实报告了它）。维护规则由
- * `tests/unit/knownFlags.test.ts` 机械核对，不靠注释里的数字。
+ * `上游判据 knownFlags.test.ts（本仓未随迁）` 机械核对，不靠注释里的数字。
  *
  * ## 为什么要有这张表
  *
@@ -19,7 +19,7 @@
  * 为什么单独一个文件（而不是塞进 `cliFlagTable.ts`）：那份文件加完这张表就越过"上帝类"阈值
  * （codeLines > 500）——本仓的惯例是**抽出去**而不是放宽阈值；顺带也让"表数据"与"解析器"两件事分开。
  *
- * ## 维护规则（由 `tests/unit/knownFlags.test.ts` 机械核对，不靠自觉）
+ * ## 维护规则（由 `上游判据 knownFlags.test.ts（本仓未随迁）` 机械核对，不靠自觉）
  *
  * 1. 新增子命令旗标 ⇒ 本表补一行（判据①：源码里任何 `reader.value(...)` 式的字面旗标读取都必须被认识）；
  * 2. 已在 `FLAG_TABLE` / `VALUE_FLAGS` 的名字**不得**重复登记（判据②：防两处各写一份而漂移）；
@@ -164,4 +164,17 @@ export const KNOWN_EXTRA_FLAGS: ReadonlySet<string> = new Set([
   // gc 子命令（2026-10-26）：`gcCommand.run` 用 `args.includes('--dry-run')` 直读的布尔旗标
   // （审计面：只报告要清理什么、不动手）。未登记会被「未知旗标 fail-closed」口径的判据③点名。
   '--dry-run',
+  // doctor 子命令（2026-11-06 登记）：`--probe-model` 由 `cliServerCmds.runDoctor` 用
+  // `args.includes` 直读（显式开启模型连通性探测；缺省不发任何网络请求）。
+  // `--config` 已在 VALUE_FLAGS，不在此重复。
+  '--probe-model',
+  // init 子命令（2026-11-06 登记）：`InitCommand` 自解析（不经 ArgParser），此处登记是
+  // 全仓旗标清单的完整性——某天 init 改走全局解析时不会像 `--auto-approve` 那样被打死。
+  '--provider',
+  '--api-key',
+  '--model',
+  '--workspace',
+  '--force',
+  '--print',
+  '-p',
 ]);

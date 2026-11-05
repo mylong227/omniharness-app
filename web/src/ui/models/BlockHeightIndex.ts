@@ -2,7 +2,7 @@
 // 并为 StreamWindow 的虚拟窗口计算提供「按真实高度的前缀偏移 / 总高」。
 //
 // 为什么要单独成类：真实的逐块高度只能在浏览器里测到（Ref / getBoundingClientRect），
-// 但「偏移累加 / 二分定位 / 失效裁剪」这些纯算术必须可确定性单测（见 web/test/blockHeightIndex.test.mjs），
+// 但「偏移累加 / 二分定位 / 失效裁剪」这些纯算术必须可确定性单测（见 web/test/blockHeightIndex.test.ts），
 // 故把状态与算术收进本类，DOM 测量只负责 fill 这个索引（见 web/src/ui/components/StreamView.tsx）。
 //
 // 未测到的块一律回落到构造时给定的估算高度，因此「首屏未测量」与「长会话顶部块」不会崩；

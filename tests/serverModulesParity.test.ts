@@ -23,6 +23,10 @@ function collectMethods(modules: readonly { name: string; register(ctx: ServerMo
     const ctx: ServerModuleContext = {
       // 桩：只承载 `options`（plugins/automations 模块在 register 期读取一次）。
       // registry 给空对象（truthy）：市场 5 方法才会计数；闭包在调用期才会真正用到它。
+      // ⚠️ 脆弱性：本桩能工作依赖「register 期只读 options.registry/automations」这一现状——
+      // 未来模块在 register 期解引用更深字段会以 TypeError 暴露，属预期信号。
+      // 快照口径 = registry 已注入形态（92）；无 registry 部署少 5 个市场方法
+      // （嵌入模式 rpc.list.count=88 属正常，勿「修」）。
       services: { options: { registry: {} } } as unknown as ServerServices,
       rpc: (method) => {
         const previous = seen.get(method);

@@ -77,7 +77,7 @@ export class CliAuthCmds {
     };
     // 真实拉取 discovery（需可达 IdP；本机仅做编译/单测，真实接入需目标 IdP，见 D2 说明）。
     // A.5 第四项：生产默认走第三方实现（openid-client，issuer 严格校验 + https 强制）；
-    // 自研 LegacyOidcFlow 同端口保留为回退资产（差分判据见 tests/unit/oidcFlowContract.test.ts）。
+    // 自研 LegacyOidcFlow 同端口保留为回退资产（差分判据见 上游判据 oidcFlowContract.test.ts（本仓未随迁））。
     const oidcFlow: OidcFlowPort = new OpenIdClientFlow();
     const discovery = await oidcFlow.discovery(config);
     const pkce = await oidcFlow.generatePkcePair();

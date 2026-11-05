@@ -19,7 +19,7 @@
  * 故「签了清单 = 签了全部内容」；将来若包内引入独立文件，必须先把文件摘要并入清单再签。
  *
  * @maturity L1 — 三类验签失败（无签名/坏签名/篡改）与容器误读判据钉死（含变异自证）
- * @maturityEvidence tests/unit/assetPackCodec.test.ts
+ * @maturityEvidence 上游判据 assetPackCodec.test.ts（本仓未随迁）
  */
 import { verify as cryptoVerify, type KeyObject } from 'node:crypto';
 import { Ed25519PublicKey } from '../../../kernel/util.ts';

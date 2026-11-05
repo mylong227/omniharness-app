@@ -6,7 +6,7 @@
 // 下半截跑到视口外，用户看不到「删除…」等项。做法与系统右键菜单一致：**放不下就朝反方向翻**，
 // 翻完仍放不下（菜单比视口还大）则夹到留白内 —— 保证「菜单整体可见」这一条不变量。
 //
-// 纯计算、零 DOM、零 React：可直接单测（见 web/test/menuPlacement.test.mjs）。
+// 纯计算、零 DOM、零 React：可直接单测（见 web/test/menuPlacement.test.ts）。
 
 /** 菜单与视口边缘的最小留白（px）。 */
 const MARGIN = 8;

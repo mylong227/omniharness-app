@@ -15,7 +15,22 @@ export class InitCommand {
       process.stdout.write(InitCommand.USAGE);
       return 0;
     }
-    const printOnly = args.includes('--print');
+    // init 不走 ArgParser（自解析旗标）⇒ 没有全局的「未知旗标 fail-closed」护栏，
+    // 这里补上同口径：无法识别的 `-` 开头 token 一律打用法页退出 2，绝不静默忽略
+    //（`-p` 之类打错字若被吞掉，用户以为写入成功实则没有，2026-11-06 审计）。
+    const KNOWN = new Set([
+      '--help', '-h', '--print', '-p', '--force', '--provider', '--api-key', '--model',
+      '--workspace',
+    ]);
+    const unknown = args.filter(
+      (a) => a.startsWith('-') && a !== '-' && !KNOWN.has(a) && !KNOWN.has(a.split('=')[0] ?? ''),
+    );
+    if (unknown.length > 0) {
+      process.stderr.write(`未知旗标: ${unknown.join(', ')}（init 不经全局旗标校验，此处自检）\n`);
+      process.stdout.write(InitCommand.USAGE);
+      return 2;
+    }
+    const printOnly = args.includes('--print') || args.includes('-p');
     const force = args.includes('--force');
     const providerArg = reader.value('--provider');
     const keyArg = reader.value('--api-key');
@@ -98,11 +113,23 @@ export class InitCommand {
     // configFile.save：归一化严格校验 + 自动建目录 + pretty JSON（与 config.update 同一条落盘路径）。
     configFile.save(userConfigPath, next);
     process.stdout.write(`✔ 已写入 ${userConfigPath}\n`);
-    process.stdout.write(`  厂商 ${preset.label}（${preset.id}）· 模型 ${String(next.model)}\n`);
+    // 生效适配器**如实**展示（2026-11-06 审计）：未 --force 且已有配置时 modelAdapter/baseUrl
+    // 保留旧值——若旧值是 mock，用户看到「写入成功」却在 mock 上跑，必须当场点破而不是静默。
+    const adapterKept =
+      !force && existing.modelAdapter !== undefined && existing.modelAdapter !== preset.adapter;
+    process.stdout.write(
+      `  厂商 ${preset.label}（${preset.id}）· 模型 ${String(next.model)} · 生效适配器 ${String(next.modelAdapter)}` +
+        (adapterKept ? `（沿用既有值——要切到 ${preset.adapter} 请加 --force）` : '') +
+        '\n',
+    );
     if (apiKey !== undefined) {
-      process.stdout.write(
-        `  Key 已存入 providerKeys.${preset.id}（落盘自动经系统级加密；本机文件勿提交仓库）\n`,
-      );
+      // DPAPI 加密只在 Windows 生效；非 Windows 明文落盘（内核 DpapiConfig 的既定口径：
+      // 「绝不假装已加密」），文案必须分平台如实（2026-11-06 审计 P2）。
+      const secrecy =
+        process.platform === 'win32'
+          ? '落盘自动经 Windows DPAPI 系统级加密'
+          : '落盘为明文（当前平台无系统级加密；请保证本机文件权限）';
+      process.stdout.write(`  Key 已存入 providerKeys.${preset.id}（${secrecy}；本机文件勿提交仓库）\n`);
     }
     process.stdout.write('\n下一步：\n  omniharness serve        起工作台\n  omniharness "任务描述"    跑一次任务\n');
     return 0;
@@ -144,9 +171,9 @@ TTY 下不带参数运行即交互式；脚本/CI 用旗标直达。
   --provider <id>   模型厂商（deepseek / moonshot / zhipu / dashscope / openai / anthropic ...）
   --api-key <key>   API Key（needsKey 的厂商必填；存入 providerKeys，本机文件不回显）
   --model <name>    模型名（缺省用厂商默认模型）
-  --workspace <p>   顺带写入默认工作区根
+  --workspace <p>   写入 workspace 字段（仅 UI「当前选中工作区」显示态；serve/exec 的实际工作区由启动目录/--workspace 决定，不读此值）
   --force           覆盖已有的 modelAdapter/baseUrl/model（缺省只填空缺）
-  --print           只打印将写入的内容（Key 打码），不落盘
+  --print, -p       只打印将写入的内容（Key 打码），不落盘
   -h, --help        本帮助
 `;
 }

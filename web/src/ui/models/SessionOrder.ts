@@ -6,7 +6,7 @@
 // 因此这里只做**一次移动**的纯计算：把 `fromId` 移到 `toId` 的位置（`toId` 之前/之后由调用方决定，
 // 本实现为「插到 toId 当前位置」，与业界拖拽落点手感一致：落点行被顶下去）。
 //
-// 纯计算、零 React、零 DOM：可直接单测（见 web/test/sessionOrder.test.mjs）。
+// 纯计算、零 React、零 DOM：可直接单测（见 web/test/sessionOrder.test.ts）。
 
 /** 带 id 的条目。 */
 interface Identified {

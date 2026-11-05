@@ -3,11 +3,11 @@
   "usageLine": "用法: omniharness exec --prompt \"任务\" [选项]",
   "quickStart": [
     "快速开始（新手只看这五行；完整命令与旗标见下表）:",
-    "  起工作台    npm start                      构建并启动，浏览器打开 http://127.0.0.1:8787",
+    "  起工作台    npm start                      构建并启动；**复制打印出的带 token 的 URL** 打开（裸地址 401）",
     "  跑一次任务  omniharness \"列出当前目录的 .md 文件并总结\"",
     "  零额度试跑  omniharness --mock \"你好\"          不配 API Key 也能跑（脚本化响应，离线可用）",
     "  一键初始化  omniharness init                 选厂商+填 Key，自动写 ~/.omniharness/omniharness.json",
-    "  环境诊断    omniharness doctor                 模型 / 沙箱 / 存储 / 权限一次看全"
+    "  环境诊断    omniharness doctor                 构建 / 沙箱 / 配置 / 端口一次看全（--probe-model 加测模型连通）"
   ],
   "commands": [
     {
@@ -25,6 +25,10 @@
     {
       "usage": "omniharness gc [--dry-run]",
       "description": "手动维护巡检：临时目录 / 陈旧 serve 实例记录 / 会话保留策略 / 半截临时文件（--dry-run 只报告不删除；serve 启动与周期巡检共用同一实现）"
+    },
+    {
+      "usage": "omniharness doctor [--config PATH] [--probe-model]",
+      "description": "环境诊断：Node / 配置文件（含用户级） / 沙箱后端 / 构建产物 / 缺省端口 / 插件目录（--probe-model 加测当前厂商连通性，发一次真实请求；失败只记 info 不改退出码）"
     },
     {
       "usage": "omniharness mcp serve [--mcp-http-port N] [--mcp-http-host H] [--mcp-http-path P]",
@@ -64,7 +68,7 @@
     },
     {
       "usage": "omniharness native info|ping|tools|approval|session-submit|context|tool-call|bench",
-      "description": "进程内直调 Rust 内核（FFI 下沉，需 npm run native:build）"
+      "description": "进程内直调 Rust 内核（FFI 下沉，需 原生内核随包预编译（无需构建））"
     },
     {
       "usage": "omniharness goal \"<目标描述>\" [--goal-max-iterations N]",
@@ -423,7 +427,7 @@
     },
     {
       "spec": "--native",
-      "description": "启用 FFI 原生后端：工具执行路由到 Rust 内核 in-process（默认开启；需 npm run native:build；不可用自动回退 TS）"
+      "description": "启用 FFI 原生后端：工具执行路由到 Rust 内核 in-process（默认开启；原生内核随包预编译；不可用自动回退 TS）"
     },
     {
       "spec": "--dump-config",

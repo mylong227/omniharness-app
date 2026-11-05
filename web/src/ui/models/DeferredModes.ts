@@ -9,7 +9,7 @@
 // 正确语义：**暂存**用户的意图，等会话一出现（`ComposerController.send` 拿到 `res.threadId`）立刻落盘。
 //
 // 独立性：本类只依赖一个 `modesSet(threadId, patch)` 调用口（构造注入），因此既能被控制器复用，
-// 也能在 node 里用桩穷举时序（见 `web/test/pendingModes.test.mjs`）。
+// 也能在 node 里用桩穷举时序（见 `web/test/pendingModes.test.ts`）。
 
 import { PendingModes, type SessionModePatch } from './PendingModes.ts';
 

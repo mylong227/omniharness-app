@@ -68,10 +68,10 @@ export function installSessionSecurity(
  */
 export function guardContents(contents: WebContents): void {
   contents.on('will-navigate', (event, url) => {
-    // 只放行 Harness origin 与安装包内的 loading.html（`loadFile` 的程序化导航
-    // 通常不触发 will-navigate，但不同 Electron 版本/平台有差异，这里显式兜底）。
-    const isInternalLoading = url.startsWith('file://') && url.endsWith('/loading.html');
-    if (!isHarnessUrl(url) && !isInternalLoading) {
+    // 只放行 Harness origin。曾经的 `file://…/loading.html` 白名单是死条款：加载页实际是
+    // 内联 data: URL，仓库里根本没有 loading.html——留着它等于给被攻陷的渲染进程开一条
+    // 「导航到任意本地同名路径」的口子（2026-11-06 审计 P2，最小桥原则同样适用于导航白名单）。
+    if (!isHarnessUrl(url)) {
       event.preventDefault();
       void openExternalSafely(url);
     }

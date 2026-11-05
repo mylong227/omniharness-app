@@ -192,9 +192,16 @@ export class DaemonController {
    * 启动常驻 serve（detached 后台）。已在运行则返回现有 PID。
    * @param serveArgs 透传给 serve 的附加参数。
    * @param port 监听端口（缺省 8787）。
+   * @param extraEnv 追加到子进程的环境变量（如 `OMNI_SERVE_TOKEN`——daemon start 用它把
+   * 访问令牌固定为 CLI 侧生成的值；否则 serve 自生成的令牌随 `stdio: 'ignore'` 丢弃，
+   * 用户永远拿不到可认证的 URL，2026-11-06 审计 P1）。
    * @returns 后台进程 PID（同时写入 PID 文件）。
    */
-  public start(serveArgs: readonly string[], port = 8787): number {
+  public start(
+    serveArgs: readonly string[],
+    port = 8787,
+    extraEnv?: Record<string, string>,
+  ): number {
     const st = this.status();
     if (st.running && st.pid !== undefined) {
       return st.pid;
@@ -203,7 +210,7 @@ export class DaemonController {
     const child = spawn(
       process.execPath,
       [this.entry, 'serve', '--port', String(port), ...serveArgs],
-      { detached: true, stdio: 'ignore', env: process.env },
+      { detached: true, stdio: 'ignore', env: { ...process.env, ...extraEnv } },
     );
     child.unref();
     const pid = child.pid;

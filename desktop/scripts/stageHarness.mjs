@@ -40,21 +40,28 @@ function need(path, label) {
 need(join(backendRoot, 'dist', 'src', 'apps', 'cli', 'exec.js'), 'dist/src/apps/cli/exec.js');
 need(join(appRoot, 'web', 'dist', 'index.html'), 'web/dist/index.html');
 need(join(backendRoot, 'native', 'omni_napi.node'), 'native/omni_napi.node');
+// 离线插件市场 catalog 是打包态的**活数据**：`createRegistry` 把 catalog 指到
+// `<pkgRoot>/examples/catalog/registry.json`（serve 与 CLI 同一路径），不 stage 的后果是
+// 打包应用里 plugins.list/search 永远空表（fileRegistrySource 对缺文件 fail-open 静默降级，
+// 2026-11-06 审计 P1）——所以这里 need() 断言而不是可选拷贝。
+need(join(backendRoot, 'examples', 'catalog', 'registry.json'), 'examples/catalog/registry.json');
 
 rmSync(stage, { recursive: true, force: true });
 mkdirSync(stage, { recursive: true });
 for (const name of ['dist', 'defaults', 'native']) {
   cpSync(join(backendRoot, name), join(stage, name), { recursive: true });
 }
+cpSync(join(backendRoot, 'examples'), join(stage, 'examples'), { recursive: true });
 cpSync(join(appRoot, 'web', 'dist'), join(stage, 'web'), { recursive: true });
 cpSync(join(backendRoot, 'omniharness.json.example'), join(stage, 'omniharness.json.example'));
 cpSync(join(backendRoot, 'package.json'), join(stage, 'package.json'));
 cpSync(join(backendRoot, 'package-lock.json'), join(stage, 'package-lock.json'));
 // 内核包是 vendored tarball（`file:vendor/...`）：stage 里的 `npm ci` 必须能解析同一路径，
 // 否则打包态会在安装依赖这一步失败（2026-11-04 切到 kernel 包后的新增前提）。
-if (existsSync(join(backendRoot, 'vendor'))) {
-  cpSync(join(backendRoot, 'vendor'), join(stage, 'vendor'), { recursive: true });
-}
+// 2026-11-06 审计：此前是 existsSync 静默跳过——缺 vendor 会拖到 npm ci 才以
+// 难懂的 tarball ENOENT 爆掉，改成 fail-closed 断言（与上方 need() 同口径）。
+need(join(backendRoot, 'vendor'), 'vendor/（vendored 内核 tarball）');
+cpSync(join(backendRoot, 'vendor'), join(stage, 'vendor'), { recursive: true });
 
 // 侧车 Node 运行时：优先显式指定，否则用当前 node；必须是真的 node 可执行文件。
 const nodeSource = (process.env.OMNI_NODE_BIN ?? '').trim() || process.execPath;

@@ -547,7 +547,7 @@ export class EnterpriseAuth {
     const token = ArrayAt.at(m, 1);
     try {
       // Wave A.5：注入校验端口时改走它（多算法面 + 时钟容忍 + azp + 未知 kid 重取）。
-      // 未注入时保持既有自研路径——两条路径的差分结论由 tests/unit/joseIdTokenVerifier.test.ts 逐条记录。
+      // 未注入时保持既有自研路径——两条路径的差分结论由 上游判据 joseIdTokenVerifier.test.ts（本仓未随迁） 逐条记录。
       if (this.verifier !== undefined) {
         if (this.discovery.jwks_uri === undefined) return null;
         const verdict = await this.verifier.verify({

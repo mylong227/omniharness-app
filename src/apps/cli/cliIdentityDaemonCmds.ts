@@ -10,6 +10,7 @@
  *
  * 继承链：`CliCredentialBuild` ← `CliBuildConfig` ← **本层** ← `CliServerCmds` ← …；调用点零改动。
  */
+import { randomBytes } from 'node:crypto';
 import { DaemonController } from '../daemon/daemonController.ts';
 import { Ed25519AgentIdentity } from '../../host/kernel/adapters-misc.ts';
 import { CliBuildConfig } from './cliBuildConfig.ts';
@@ -103,12 +104,26 @@ export class CliIdentityDaemonCmds extends CliBuildConfig {
         serveArgs.push(rest[i] ?? '');
       }
     }
-    const pid = controller.start(serveArgs, port);
+    // 已在运行 ⇒ 我们拿不到既有实例的令牌（serve 实例记录**故意**不落盘令牌，防泄露）。
+    // 如实告知，而不是打印一个必然 401 的裸 URL。
+    const existing = controller.status();
+    if (existing.running && existing.pid !== undefined) {
+      process.stdout.write(
+        `daemon 已在运行 (pid ${existing.pid})。访问令牌在它**当时启动**的输出里；` +
+          '如已丢失，先 `omniharness daemon stop` 再 start（或启动前预设 OMNI_SERVE_TOKEN 固定令牌）。\n',
+      );
+      return 0;
+    }
+    // 令牌由 CLI 侧生成并经环境变量固定给子进程：serve 的 stdout 被丢弃（stdio: 'ignore'），
+    // 若不这样，serve 自生成的令牌无人可见 ⇒ 打印的 UI 地址必然 401（2026-11-06 审计 P1）。
+    const token = randomBytes(24).toString('hex');
+    const pid = controller.start(serveArgs, port, { OMNI_SERVE_TOKEN: token });
     // **必须报实际绑定地址**，不能写 `localhost`：服务端默认只绑 `127.0.0.1`（`ServerAuthGuard.DEFAULT_HOST`，
     // 见其文件头"默认只绑回环"），而 Windows 上 `localhost` 常先解析到 `::1` ⇒ 用户/脚本拿到这个 URL 会
     // **间歇性拒连**（本仓 httpServer 判据踩过同一个坑：看着能用、偶发连不上，最难查的一类）。
     process.stdout.write(
-      `daemon 已启动 (pid ${pid})，UI: http://${ServerAuthGuard.DEFAULT_HOST}:${port}\n`,
+      `daemon 已启动 (pid ${pid})，UI: http://${ServerAuthGuard.DEFAULT_HOST}:${port}/?token=${token}\n` +
+        '（令牌已固定为本次生成的值；停止后再启动会生成新令牌，旧 URL 失效）\n',
     );
     return 0;
   }
@@ -125,7 +140,7 @@ export class CliIdentityDaemonCmds extends CliBuildConfig {
    * （`modelAdapter` / `providerKeys` / `model` / `reasoning`）被**静默忽略**——UI 上 `config.get`
    * 报 `modelAdapter: mock`，而用户明明配了真实 provider 与凭据；而 CLI 的一次性执行路径走的是 loadLayered
    * （`execCli.loadDefaults`），于是同一个仓库里「一次性运行用真模型、Web UI 用 mock」这种自相矛盾
-   * 的表现会长期无人发现。回归见 `tests/unit/serveConfigLayering.test.ts`。
+   * 的表现会长期无人发现。回归见 `上游判据 serveConfigLayering.test.ts（本仓未随迁）`。
    * @param wsRoot 工作区根（项目级配置从这里向上查找）。
    * @param configPath 项目级配置路径（`--config` 显式指定或 `find` 结果）。
    * @param profile `--profile` 指定的配置 profile 名（缺省 undefined＝不叠加 profile 层）。

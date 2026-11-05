@@ -27,7 +27,7 @@ export class AttachmentIcon {
    *
    * 为什么不返回 emoji（曾有 `of()` 方法，2026-10-07 删除）：emoji 不跟随 `currentColor`
    * （hover / 选中态无法与文字同色）、字形随系统字体变、尺寸与基线不受控。
-   * 口径由 `web/test/iconPolicy.test.mjs` 机械把守。
+   * 口径由 `web/test/iconPolicy.test.ts` 机械把守。
    * @param mediaType 媒体类型（MIME）
    * @returns 图标名（喂给 models/Icon.js 的 `icon()`）
    */

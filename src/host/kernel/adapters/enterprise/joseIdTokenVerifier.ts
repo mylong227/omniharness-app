@@ -17,7 +17,7 @@
  * `jose` 为 MIT、**零传递依赖**（实测），退出答案：删本文件、切回既有自研实现（同端口，0 个调用点改动）。
  *
  * @maturity L1 — 算法混淆拒绝 / 时钟偏移边界 / azp / 轮换重取 / 取值有界 判据钉死
- * @maturityEvidence tests/unit/joseIdTokenVerifier.test.ts
+ * @maturityEvidence 上游判据 joseIdTokenVerifier.test.ts（本仓未随迁）
  */
 import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose';
 import type {

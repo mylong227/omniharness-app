@@ -4,7 +4,7 @@
  * 为什么单独成文件（而不是留在 `CliServerCmds` 里）：
  * ① 它是一组**纯决策**（读旗标、读用户级配置、判来源），与"起 HTTP 服务"无关，本就不该混在命令类里；
  * ② 实测教训——把它们塞进 `CliServerCmds` 直接把该文件顶过「上帝类」代码行阈值（增量门禁当场拦下）；
- * ③ 独立后可在**不绑端口、不起服务**的前提下被单测穷举（见 `tests/unit/serveRootResolution.test.ts`）。
+ * ③ 独立后可在**不绑端口、不起服务**的前提下被单测穷举（见 `上游判据 serveRootResolution.test.ts（本仓未随迁）`）。
  *
  * 判定链与"为什么不与第六十轮矛盾"见 {@link ServeWorkspace.serveRootOf} 的注释。
  */

@@ -123,7 +123,7 @@ export class ArgParser {
         // 于是①拼错的旗标**无声无效**；②它的取值还会被 `collectPositional` 当成 prompt
         // （`--porad x` ⇒ prompt 变成 `x`）——这是本板"拼错 = 没生效"反复出现的共同放大器。
         // 认识的旗标 = FLAG_TABLE ∪ VALUE_FLAGS ∪ 子命令/装配层自解析清单（`KNOWN_EXTRA_FLAGS`，
-        // 由 `tests/unit/knownFlags.test.ts` 与源码里的读取点机械对齐）。
+        // 由 `上游判据 knownFlags.test.ts（本仓未随迁）` 与源码里的读取点机械对齐）。
         if (CliFlagTable.isKnownFlag(arg)) {
           // 子命令 / 装配层自解析的旗标：本层不消费（其读取器在各自子命令里），但**认识**它。
           continue;

@@ -8,7 +8,7 @@
  *
  * **依赖约束（判据盯着）**：本文件不得 import execCli / execLocal / cliDataCmds /
  * cliBuildConfig / argParser / cliFlagTable 等装配层模块——一旦引入，bundle 会被
- * 整个 CLI 世界拖大，`tests/unit/auditBinDeps.test.ts` 与体积判据都会红。
+ * 整个 CLI 世界拖大，`上游判据 auditBinDeps.test.ts（本仓未随迁）` 与体积判据都会红。
  *
  * 旗标与退出码语义与 `omniharness audit` 完全一致（同一 {@link AuditCommand} 实现，
  * 契约见 docs/audit/EXIT_CODES.md）；`--help` 顶部多打一行 Node 版本门槛（P1 风险项：
@@ -23,7 +23,7 @@ import { AuditCommand } from './auditCommand.ts';
 /**
  * Node 版本下限（与 `package.json` 的 `engines.node` 必须逐字一致）。
  * 不从 package.json 运行时读取：bundle 是单文件，内联常量才离线可用；
- * 两处漂移由 `tests/unit/auditBinDeps.test.ts` 机械对账。
+ * 两处漂移由 `上游判据 auditBinDeps.test.ts（本仓未随迁）` 机械对账。
  */
 export const AUDIT_NODE_REQUIRE = '>=22.14.0';
 

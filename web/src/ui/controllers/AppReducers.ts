@@ -254,7 +254,7 @@ export class AppReducers {
    * 按当前工作区过滤——切到别的项目后，旧项目的会话正好「不在响应里」，旧契约会把它们
    * 永久留在内存列表 ⇒ 用户报「切换工作区，会话列表还显示之前的会话」。真正只存在内存
    * 的会话并不存在（会话由服务端创建、先落盘后返回 id）；删除路径也已改为本地先摘行
-   * （见 `sessionDeleteRefresh.test.mjs` 的三条判据）。
+   * （见 `sessionDeleteRefresh.test.ts` 的三条判据）。
    * @param prev 当前内存列表
    * @param fromDisk 服务端响应（线格式已映射为 SessionEntry）
    * @returns 合并后的新列表

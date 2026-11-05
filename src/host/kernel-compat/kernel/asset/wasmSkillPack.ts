@@ -17,7 +17,7 @@
  *    于是掩盖了"这个资产其实没声明入口"。
  *
  * @maturity L1 — 造包往返 / 冒烟载荷与资产体同源 / 缺入口不冒充 / 非 wasm 技能返回 undefined 判据钉死
- * @maturityEvidence tests/unit/wasmSkillPack.test.ts
+ * @maturityEvidence 上游判据 wasmSkillPack.test.ts（本仓未随迁）
  */
 import { AssetPackCodec } from './assetPackCodec.ts';
 import type { PackSigningIdentity } from './assetPackCodec.ts';

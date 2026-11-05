@@ -471,13 +471,14 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
         ? ArgParser.toWindowsPath(explicitConfig)
         : configFile.find(wsRoot);
     if (explicitConfig === undefined && foundConfig === undefined) {
+      // 注意口径：`omniharness init` 写的是**用户级**配置（这里已经被读到了）；
+      // 本提示只针对「项目级」缺省——别再把它指给 init（那永远消不掉这条提示，2026-11-06 审计）。
       process.stderr.write(
         `[omniharness] 未在 ${wsRoot} 找到项目级 omniharness.json；` +
           '将只用用户级（~/.omniharness/omniharness.json）与内置默认。\n',
       );
       process.stderr.write(
-        '              可在项目里放一份 omniharness.json（模板见 omniharness.json.example，' +
-          '或运行 omniharness init 一键生成）。\n',
+        '              需要项目级差异化配置时，复制 omniharness.json.example 到本目录改名即可。\n',
       );
     }
     const configPath = foundConfig ?? join(wsRoot, configFile.FILE_NAME);
@@ -611,7 +612,7 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
     //     落回 `web/` 能让"直接 serve 未构建的仓库"仍然给出可解释的行为——
     //     页面会因缺 `assets/` 而白屏，但至少 index.html 能取到，便于判断"是不是没构建"。
     //
-    // 判据：`tests/unit/webDirResolution.test.ts`。
+    // 判据：`上游判据 webDirResolution.test.ts（本仓未随迁）`。
     const webRoot = join(
       resolve(BuiltinDefaults.locatePackageRoot(dirname(fileURLToPath(import.meta.url))), '..'),
       'web',
