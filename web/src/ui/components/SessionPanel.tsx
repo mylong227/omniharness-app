@@ -37,6 +37,7 @@ import type { SessionGrouping } from './session/useSessionGrouping.ts';
 import type { SessionRenameApi } from './session/useSessionRename.ts';
 import type { SessionSearchApi } from './session/useSessionSearch.ts';
 import type { SessionWorkspaceApi } from './session/useSessionWorkspace.ts';
+import { SessionPins } from '../models/SessionPins.ts';
 import { nextPanelView } from './session/viewCycle.ts';
 import type { PanelView } from './session/viewCycle.ts';
 import { PathJoiner } from '../models/PathJoiner.ts';
@@ -160,6 +161,9 @@ interface SessionPanelBodyProps {
 function SessionPanelBody(props: SessionPanelBodyProps): ReactElement {
   const { api, panel, chrome, workspace, search, touch, menu, grouping, rename, remove } = props;
   const [view, setView] = React.useState<'time' | 'ws' | 'cards'>('ws');
+  // 置顶（2026-11-06 实用性打磨）：localStorage 单源，setState 只为让行内角标/分组即时刷新。
+  const [pinnedIds, setPinnedIds] = React.useState<ReadonlySet<string>>(() => SessionPins.all());
+  const onTogglePin = (id: string): void => setPinnedIds(new Set(SessionPins.toggle(id)));
   const rowEdit = makeRowEdit(rename, remove);
   const listCtx = makeListCtx({
     sessions: panel.sessions,
@@ -178,6 +182,8 @@ function SessionPanelBody(props: SessionPanelBodyProps): ReactElement {
     draggingId: touch.draggingId,
     setDraggingId: touch.setDraggingId,
     openMenu: menu.open,
+    pinnedIds,
+    onTogglePin,
   });
   const wsName = workspace.wsPath === '' ? t('未选择项目') : PathJoiner.basename(workspace.wsPath);
   return (
@@ -221,6 +227,8 @@ function SessionPanelBody(props: SessionPanelBodyProps): ReactElement {
         onStartRename={rowEdit.startRename}
         onAssign={workspace.assignToCurrentProject}
         onAskDelete={rowEdit.askDelete}
+        pinned={pinnedIds.has(menu.anchor?.id ?? '')}
+        onTogglePin={onTogglePin}
       />
       {/* 页脚：连接状态 + 主题（原 TopBar 的状态 / 主题职责收编于此；设置走「全部面板」菜单）。 */}
       <SidebarFooter connected={panel.connected ?? true} streamState={panel.streamState} onOpenSettings={panel.onOpenSettings} />
@@ -525,6 +533,10 @@ interface ListCtxArgs {
   readonly draggingId: string | null;
   readonly setDraggingId: (id: string | null) => void;
   readonly openMenu: (id: string, x: number, y: number) => void;
+  /** 置顶 id 集合（见 SessionPins）。 */
+  readonly pinnedIds: ReadonlySet<string>;
+  /** 切换置顶。 */
+  readonly onTogglePin: (id: string) => void;
 }
 
 /**
@@ -571,6 +583,8 @@ function makeListCtx(a: ListCtxArgs): ListCtx {
       if (from === null || from === id || onReorder === undefined) return;
       void onReorder(SessionOrder.move(sessions, from, id));
     },
+    pinnedIds: a.pinnedIds,
+    onTogglePin: a.onTogglePin,
   };
 }
 
@@ -584,6 +598,10 @@ interface SessionRowMenuSlotProps {
   readonly onStartRename: (s: SessionEntry) => void;
   readonly onAssign: (id: string) => void | Promise<void>;
   readonly onAskDelete: (id: string) => void;
+  /** 该会话是否已置顶（菜单项文案：置顶 / 取消置顶）。 */
+  readonly pinned: boolean;
+  /** 切换置顶。 */
+  readonly onTogglePin: (id: string) => void;
 }
 
 /**
@@ -611,6 +629,8 @@ function SessionRowMenuSlot(props: SessionRowMenuSlotProps): ReactElement | null
       moveToEdge={makeEdgeMover(props.sessions, props.onReorder)}
       onAssign={props.onAssign}
       onAskDelete={props.onAskDelete}
+      pinned={props.pinned}
+      onTogglePin={props.onTogglePin}
     />
   );
 }
@@ -630,6 +650,10 @@ interface SessionRowMenuProps {
   readonly moveToEdge: (id: string, edge: 'top' | 'bottom') => void;
   readonly onAssign: (id: string) => void | Promise<void>;
   readonly onAskDelete: (id: string) => void;
+  /** 该会话是否已置顶（菜单项文案：置顶 / 取消置顶）。 */
+  readonly pinned: boolean;
+  /** 切换置顶。 */
+  readonly onTogglePin: (id: string) => void;
 }
 
 /**
@@ -679,6 +703,8 @@ function SessionRowMenu(props: SessionRowMenuProps): ReactElement {
           moveToEdge={props.moveToEdge}
           onAssign={props.onAssign}
           onAskDelete={props.onAskDelete}
+          pinned={props.pinned}
+          onTogglePin={props.onTogglePin}
         />
       ) : null}
     </div>
@@ -694,6 +720,10 @@ interface RowMenuConfigProps {
   readonly moveToEdge: (id: string, edge: 'top' | 'bottom') => void;
   readonly onAssign: (id: string) => void | Promise<void>;
   readonly onAskDelete: (id: string) => void;
+  /** 该会话是否已置顶（决定菜单项文案：置顶 / 取消置顶）。 */
+  readonly pinned: boolean;
+  /** 切换置顶。 */
+  readonly onTogglePin: (id: string) => void;
 }
 
 /**
@@ -710,6 +740,15 @@ function RowMenuConfig(props: RowMenuConfigProps): ReactElement {
   const { session } = props;
   return (
     <div className="row-menu-sub" role="group" aria-label={t('会话配置')}>
+      <button
+        role="menuitem"
+        onClick={() => {
+          props.onClose();
+          props.onTogglePin(session.id);
+        }}
+      >
+        {props.pinned ? t('取消置顶') : t('置顶')}
+      </button>
       <button
         role="menuitem"
         onClick={() => {

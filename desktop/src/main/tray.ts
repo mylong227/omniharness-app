@@ -14,6 +14,8 @@ export interface TrayActions {
   recentWorkspaces(): readonly string[];
   /** 打开最近工作区。 */
   openRecent(path: string): void;
+  /** 重启本地 Harness 侧车（主进程统一入口；失败有对话框）。 */
+  restartHarness(): void;
   openLogs(): void;
   checkUpdates(): void;
   diagnostics(): void;
@@ -101,6 +103,7 @@ export class TrayService {
               }))
             : [{ label: this.i18n.t('tray.noRecent'), enabled: false }],
       },
+      { label: this.i18n.t('tray.restartHarness'), click: () => this.actions.restartHarness() },
       { label: this.i18n.t('tray.openLogs'), click: () => this.actions.openLogs() },
       { label: this.i18n.t('tray.checkUpdates'), click: () => this.actions.checkUpdates() },
       { label: this.i18n.t('tray.diagnostics'), click: () => this.actions.diagnostics() },

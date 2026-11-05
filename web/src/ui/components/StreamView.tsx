@@ -349,6 +349,10 @@ interface StreamScroll {
   readonly setMeasureTick: React.Dispatch<React.SetStateAction<number>>;
   /** 滚动处理器（虚拟化的唯一驱动源）。 */
   readonly onScroll: (e: React.SyntheticEvent) => void;
+  /** 距底部距离（px；驱动「回到底部」浮动按钮显隐）。 */
+  readonly scrollDistance: number;
+  /** 回到底部（恢复贴底意图 + 程序化滚到底）。 */
+  readonly jumpToBottom: () => void;
 }
 
 /**
@@ -383,6 +387,8 @@ function useStreamScroll(
   const stickyRef = React.useRef<boolean>(true);
   const programmaticTopRef = React.useRef<number | null>(null);
   const [scrollTop, setScrollTop] = React.useState<number>(0);
+  // 距底部距离（2026-11-06 实用性打磨）：驱动「回到底部」浮动按钮的显隐。
+  const [scrollDistance, setScrollDistance] = React.useState<number>(0);
   const [viewportHeight, setViewportHeight] = React.useState<number>(0);
   const indexRef = React.useRef<BlockHeightIndex | null>(null);
   if (indexRef.current === null) indexRef.current = new BlockHeightIndex({ estimate: DEFAULT_ITEM_HEIGHT });
@@ -399,6 +405,7 @@ function useStreamScroll(
     stickyRef.current = true;
     programmaticTopRef.current = 0;
     setScrollTop(0);
+    setScrollDistance(0);
     setHoleBoost(0);
   }, [threadId]);
 
@@ -434,6 +441,20 @@ function useStreamScroll(
     }
     if (el.scrollTop !== scrollTop) setScrollTop(el.scrollTop);
     if (el.clientHeight !== viewportHeight) setViewportHeight(el.clientHeight);
+    setScrollDistance(Math.max(0, el.scrollHeight - el.scrollTop - el.clientHeight));
+  };
+
+  /**
+   * 回到底部（浮动按钮）：恢复贴底意图并程序化滚到底——与自动贴底同一落点计算，
+   * 保证「点按钮」和「一直贴底」最终停在同一像素上。
+   */
+  const jumpToBottom = (): void => {
+    const el = streamRef.current;
+    if (!el) return;
+    stickyRef.current = true;
+    el.scrollTop = StreamWindow.stickyScrollTop(true, el);
+    programmaticTopRef.current = el.scrollTop;
+    setScrollDistance(0);
   };
 
   return {
@@ -450,6 +471,8 @@ function useStreamScroll(
     setHoleBoost,
     setMeasureTick,
     onScroll,
+    scrollDistance,
+    jumpToBottom,
   };
 }
 
@@ -654,6 +677,7 @@ export function StreamView(props: StreamViewProps): React.ReactElement {
         streaming={streaming}
         tailCount={tailCount}
         onScroll={scroll.onScroll}
+        jump={{ distance: scroll.scrollDistance, onJump: scroll.jumpToBottom }}
         streamRef={scroll.streamRef}
         blockElsRef={scroll.blockElsRef}
         renderBlock={(b) => renderBlockNode(b, ctx)}

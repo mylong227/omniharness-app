@@ -38,7 +38,9 @@ export class SessionRowMeta {
    * @returns 悬停文案（恒非空）
    */
   public static hoverTitle(s: SessionEntry, now: number = Date.now()): string {
+    // 运行态放最前（2026-11-06 实用性打磨）：悬停即知这条会话正在烧 token，不必再点进去看。
     const parts: string[] = [s.label !== '' ? s.label : s.id];
+    if (s.running === true) parts.push(t('● 运行中'));
     const when = timeAgo(s.updatedAt, now);
     if (when !== '') parts.push(when);
     if (typeof s.turns === 'number') parts.push(t('{n} 回合', { n: s.turns }));

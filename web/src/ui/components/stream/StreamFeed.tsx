@@ -14,6 +14,7 @@
 
 import * as React from 'react';
 import { t } from '../../i18n/i18n.ts';
+import { icon } from '../../models/Icon.ts';
 import { StreamEmpty } from './StreamEmpty.tsx';
 import { StreamingAssistantCard } from './StreamingAssistantCard.tsx';
 import { StreamLiveRow } from './StreamLiveRow.tsx';
@@ -38,6 +39,8 @@ export interface StreamFeedProps {
   readonly tailCount: number;
   /** 滚动事件处理器（虚拟化的唯一驱动源）。 */
   readonly onScroll: (e: React.SyntheticEvent) => void;
+  /** 「回到底部」浮动按钮（2026-11-06 实用性打磨）：distance 超阈值才显示；缺省不渲染。 */
+  readonly jump?: { readonly distance: number; readonly onJump: () => void };
   /** 滚动容器 ref（贴底 / 测量都读它）。 */
   readonly streamRef: React.RefObject<HTMLDivElement | null>;
   /** 已渲染块的 DOM 登记表（key → 元素），供测量 effect 实测高度。 */
@@ -97,6 +100,17 @@ export function StreamFeed(props: StreamFeedProps): React.ReactElement {
       onScroll={props.onScroll}
     >
       {empty ? <StreamEmpty onUseStarter={onUseStarter} /> : <StreamInner {...props} />}
+      {props.jump !== undefined && props.jump.distance > 140 && !empty && props.view !== 'trace' ? (
+        <button
+          type="button"
+          className="stream-jump-bottom"
+          onClick={props.jump.onJump}
+          aria-label={t('回到底部')}
+          title={t('回到底部')}
+        >
+          {icon('chevron-down', { size: 16 })}
+        </button>
+      ) : null}
     </div>
   );
 }

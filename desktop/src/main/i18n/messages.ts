@@ -26,6 +26,7 @@ export type DesktopMessageKey =
   | 'tray.openWorkspace'
   | 'tray.recent'
   | 'tray.noRecent'
+  | 'tray.restartHarness'
   | 'tray.openLogs'
   | 'tray.checkUpdates'
   | 'tray.closeToTray'
@@ -90,6 +91,7 @@ const ZH: Record<DesktopMessageKey, string> = {
   'tray.openWorkspace': '打开工作区…',
   'tray.recent': '最近工作区',
   'tray.noRecent': '暂无最近工作区',
+  'tray.restartHarness': '重启 Harness',
   'tray.openLogs': '打开日志目录',
   'tray.checkUpdates': '检查更新',
   'tray.closeToTray': '关闭时最小化到托盘',
@@ -156,6 +158,7 @@ const EN: Record<DesktopMessageKey, string> = {
   'tray.openWorkspace': 'Open Workspace…',
   'tray.recent': 'Recent Workspaces',
   'tray.noRecent': 'No recent workspaces',
+  'tray.restartHarness': 'Restart Harness',
   'tray.openLogs': 'Open Logs Folder',
   'tray.checkUpdates': 'Check for Updates',
   'tray.closeToTray': 'Minimize to Tray on Close',

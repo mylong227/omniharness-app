@@ -12,6 +12,7 @@ import type {
   ThreadEvent,
 } from '../../types/models.ts';
 import type { CommandItem } from '../components/CommandPalette.tsx';
+import { PANELS } from '../models/PanelRegistry.ts';
 import { KeyboardShortcuts } from '../models/KeyboardShortcuts.ts';
 import type { LiveInput, SessionEntry, ToolItem, ToolResultView } from '../shared.ts';
 import { t } from '../i18n/i18n.ts';
@@ -329,24 +330,14 @@ export class AppReducers {
    * @returns 命令项列表
    */
   public buildCommands(deps: CommandDeps): CommandItem[] {
-    const panes: { key: string; label: string }[] = [
-      { key: 'tools', label: '工具' },
-      { key: 'metrics', label: '指标' },
-      { key: 'plugins', label: '插件' },
-      { key: 'graph', label: '编排' },
-      { key: 'memory', label: '记忆' },
-      { key: 'profiles', label: '配置集' },
-      { key: 'detail', label: '钻取' },
-      { key: 'changes', label: '变更' },
-      { key: 'rollback', label: '回滚' },
-      { key: 'file', label: '文件' },
-    ];
-    // 设置不在这份面板清单里（2026-10-17）：它是模态，不是右栏面板。
-    // 命令面板里以独立一条「打开设置」呈现，见下方 list.push。
+    // 面板入口从 PanelRegistry **单源派生**（2026-11-06 打磨）：此前是一份手写 10 条清单，
+    // PanelRegistry 每加一个面板它就落后一截（skills/automations/activity/governance/audit/
+    // trace/vault/diagnostics 九个入口在命令面板里失踪）。现在新面板注册即自动出现在面板。
+    // 「设置」不在此清单（它是模态不是右栏面板），以独立一条「打开设置」呈现，见下方 list.push。
     //
-    // 面板名直接作 label（2026-10-19）：组标题已经写着「面板」，10 行再各带一次
-    // 「打开面板：」前缀，整列会读成同一句话，扫读成本高且视觉噪音大。
-    // 搜索仍可命中：分组名参与过滤，输入「面板」即可收窄到这 10 条。
+    // 面板名直接作 label（沿用 2026-10-19 口径）：组标题已写「面板」，逐条再加前缀只会
+    // 读成同一句话；搜索按分组命中，输入「面板」即可收窄到全部面板入口。
+    const panes = PANELS;
     const list: CommandItem[] = panes.map((p) => ({
       id: 'pane-' + p.key,
       label: p.label,

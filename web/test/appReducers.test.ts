@@ -243,7 +243,9 @@ test('buildCommands：16 条命令，run 闭包正确驱动依赖', () => {
     // 按真实签名 CommandDeps 补齐：openSettings 是本用例不触发的回调，空实现。
     openSettings: () => {},
   });
-  assert.strictEqual(cmds.length, 16, '11 面板 + 5 动作');
+  // 2026-11-06 实用性打磨：面板入口改由 PanelRegistry 单源派生（手写 10 条清单曾让 9 个
+  // 面板在命令面板里失踪）。数量随 PANELS 走，此处对齐当前全集 = 19 面板 + 6 动作。
+  assert.strictEqual(cmds.length, 25, '19 面板 + 6 动作');
   const paneTools = cmds.find((c) => c.id === 'pane-tools')!;
   paneTools.run();
   assert.strictEqual(calls.pane, 'tools');

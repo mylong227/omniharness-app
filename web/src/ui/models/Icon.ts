@@ -63,6 +63,7 @@ export type IconName =
   | 'sparkle'
   | 'inbox'
   | 'rewind'
+  | 'pin'
   | 'undo'
   | 'columns'
   | 'message'
@@ -207,6 +208,7 @@ const SHAPES: Readonly<Record<IconName, IconShape>> = {
   sparkle: { paths: ['M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z', 'M18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z'] },
   inbox: { paths: ['M4 13V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6', 'M4 13h4l1.5 3h5L16 13h4v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z'] },
   rewind: { paths: ['M3 12a9 9 0 1 0 3-6.7', 'M3 4v5h5'] },
+  pin: { paths: ['M9 4h6v5l2 3v1H7v-1l2-3z', 'M12 13v7'] },
   undo: { paths: ['M4 9h9a5 5 0 0 1 0 10H8', 'M8 5L4 9l4 4'] },
   columns: { paths: ['M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z', 'M10 4v16', 'M15 4v16'] },
   message: { paths: ['M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4V7a2 2 0 0 1 2-2z'] },

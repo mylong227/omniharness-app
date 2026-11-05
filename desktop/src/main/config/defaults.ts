@@ -14,7 +14,10 @@ export const DEFAULT_DESKTOP_CONFIG: DesktopConfig = {
     minWidth: 900,
     minHeight: 600,
     backgroundColor: '#16181d',
-    autoHideMenuBar: false,
+    // 2026-11-06 实用性打磨：true——win32 无边框窗口由 UI 自绘标题条（TitlebarStrip），
+    // Electron 菜单栏再横一条就是「双标题栏」；true = 平时隐藏（Alt 呼出），
+    // 菜单 roles 的快捷键（Ctrl+滚轮外的 Ctrl+=/-、Ctrl+Shift+N…）不受可见性影响。
+    autoHideMenuBar: true,
     backgroundThrottling: false,
     showShortcut: 'CommandOrControl+Shift+O',
   },

@@ -6,7 +6,7 @@
 
 import * as React from 'react';
 import { FileTree } from './FileTree.tsx';
-import { SessionGrouper } from '../models/SessionGrouper.ts';
+import { PINNED_KEY, SessionGrouper } from '../models/SessionGrouper.ts';
 import { PathJoiner } from '../models/PathJoiner.ts';
 import { WorkspacePath } from '../models/WorkspacePath.ts';
 import type { FsNode } from '../../types/models.ts';
@@ -71,6 +71,8 @@ export interface RowCtx {
   onContextMenu?: (id: string, x: number, y: number) => void;
   /** 归档 / 恢复（缺省则行不显示该按钮）。 */
   onArchive?: (id: string, archived: boolean) => void;
+  /** 置顶 id 集合（行内角标用；缺省视为无置顶）。 */
+  pinnedIds?: ReadonlySet<string>;
 }
 
 /** 列表视图（任务卡 / 分组）渲染所需上下文。 */
@@ -92,6 +94,10 @@ export interface ListCtx extends RowCtx {
   onDragEnd?: () => void;
   /** 拖到某行上放下（目标 id）。 */
   onDropOn?: (id: string) => void;
+  /** 置顶 id 集合（2026-11-06 实用性打磨；缺省空 = 无置顶组，行为与旧版一致）。 */
+  pinnedIds?: ReadonlySet<string>;
+  /** 切换置顶（行菜单用；缺省则菜单不显示置顶项）。 */
+  onTogglePin?: (id: string) => void;
 }
 
 /**
@@ -270,7 +276,15 @@ export function renderSessionBody(s: SessionEntry, ctx: RowCtx): ReactElement {
   if (ctx.confirmDeleteId === s.id) return <SessionConfirm s={s} ctx={ctx} />;
   return (
     <>
+      {s.running === true ? (
+        <span className="session-running-dot" title={t('运行中')} aria-hidden="true" />
+      ) : null}
       <span className="session-label">{s.label || s.id}</span>
+      {ctx.pinnedIds?.has(s.id) === true ? (
+        <span className="session-pin-badge" title={t('已置顶')} aria-hidden="true">
+          {icon('pin', { size: 11 })}
+        </span>
+      ) : null}
       <SessionActions s={s} ctx={ctx} />
     </>
   );
@@ -304,7 +318,14 @@ export function renderSessionTime(s: SessionEntry, now: number): ReactElement | 
  * @returns 任务卡列表节点
  */
 export function renderCardsView(ctx: ListCtx, now: number = Date.now()): ReactElement {
-  const all = filterSessions(ctx.sessions, ctx.query);
+  const pinned = ctx.pinnedIds;
+  // 卡片视图同样让置顶排最前（稳定排序：置顶集合内保持原顺序，其余不变）。
+  const all = pinned === undefined
+    ? filterSessions(ctx.sessions, ctx.query)
+    : [
+        ...filterSessions(ctx.sessions, ctx.query).filter((x) => pinned.has(x.id)),
+        ...filterSessions(ctx.sessions, ctx.query).filter((x) => !pinned.has(x.id)),
+      ];
   if (all.length === 0) {
     return emptyState(icon('inbox', { size: 20 }), t('暂无会话'), t('新建会话后，任务卡会显示在这里。'));
   }
@@ -386,10 +407,12 @@ export function renderGroupsView(ctx: ListCtx, now: number = Date.now()): ReactE
   }
   return (
     <>
-      {SessionGrouper.group(all, ctx.wsPath).map((g) => {
+      {SessionGrouper.group(all, ctx.wsPath, ctx.pinnedIds).map((g) => {
         const isCollapsed =
           ctx.collapsed[g.key] ??
-          (g.key !== WorkspacePath.normalize(ctx.wsPath) && g.key !== '__early__');
+          (g.key !== WorkspacePath.normalize(ctx.wsPath) &&
+            g.key !== '__early__' &&
+            g.key !== PINNED_KEY);
         const limit = ctx.limits[g.key] ?? PAGE;
         const shown = isCollapsed ? [] : g.items.slice(0, limit);
         const rest = g.items.length - shown.length;
@@ -401,7 +424,7 @@ export function renderGroupsView(ctx: ListCtx, now: number = Date.now()): ReactE
               onClick={() => ctx.onToggleGroup(g.key, isCollapsed)}
             >
               <span className="ws-caret">{isCollapsed ? '▸' : '▾'}</span>
-              <span>{icon(g.key === WorkspacePath.normalize(ctx.wsPath) ? 'check' : 'folder', { size: 12 })}</span>
+              <span>{icon(g.key === WorkspacePath.normalize(ctx.wsPath) ? 'check' : g.key === PINNED_KEY ? 'pin' : 'folder', { size: 12 })}</span>
               <span className="ws-name">{t(g.name)}</span>
               <span className="ws-count">{g.items.length}</span>
             </div>
@@ -472,7 +495,7 @@ export function renderTimeGroupsView(ctx: ListCtx, now: number = Date.now()): Re
   }
   return (
     <>
-      {SessionGrouper.groupByTime(all, now).map((g) => {
+      {SessionGrouper.groupByTime(all, now, ctx.pinnedIds).map((g) => {
         const key = 'time:' + g.key;
         const isCollapsed = ctx.collapsed[key] ?? false;
         const limit = ctx.limits[key] ?? PAGE;

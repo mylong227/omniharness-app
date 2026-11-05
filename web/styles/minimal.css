@@ -4286,3 +4286,63 @@ button,
   color: var(--dim);
   font-size: var(--fs-sm);
 }
+
+/* ── 会话行内运行态与置顶角标（2026-11-06 实用性打磨） ───────────────── */
+
+.session-running-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent);
+  animation: session-running-pulse 1.6s var(--ease) infinite;
+}
+
+@keyframes session-running-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .session-running-dot {
+    animation: none;
+  }
+}
+
+.session-pin-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  color: var(--dim);
+}
+
+/* ── 回到底部浮动按钮（2026-11-06 实用性打磨）：sticky 钉在滚动口下缘，上滚即现。 ── */
+
+.stream-jump-bottom {
+  position: sticky;
+  bottom: 16px;
+  margin: -34px 18px -6px auto;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--border-soft);
+  background: var(--frost-fill);
+  backdrop-filter: blur(var(--frost-blur-soft));
+  color: var(--text);
+  cursor: pointer;
+  z-index: 3;
+  transition: background var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
+}
+
+.stream-jump-bottom:hover {
+  background: var(--btn-fill-hover);
+  border-color: var(--border);
+}

@@ -8,6 +8,8 @@ export interface WindowBounds {
   readonly y?: number;
   readonly width: number;
   readonly height: number;
+  /** 关闭时是否处于最大化（2026-11-06 实用性打磨：最大化状态随窗口一起恢复）。 */
+  readonly isMaximized?: boolean;
 }
 
 /** 桌面偏好。 */
@@ -18,6 +20,8 @@ export interface DesktopState {
   recentWorkspaces: string[];
   /** 窗口位置/大小。 */
   window?: WindowBounds;
+  /** 页面缩放级别（Ctrl+滚轮 / 菜单缩放；Electron zoomLevel，缺省 0）。 */
+  zoom?: number;
   /** 关闭窗口时最小化到托盘（默认 true，长任务不中断）。 */
   closeToTray?: boolean;
   /** 开机启动（默认 false）。 */
@@ -109,6 +113,15 @@ export class DesktopStateStore {
   }
 
   /**
+   * 记录页面缩放级别（Ctrl+滚轮 / 菜单缩放后持久化，重启恢复）。
+   * @param zoom Electron zoomLevel。
+   */
+  public rememberZoom(zoom: number): void {
+    this.state = { ...this.state, zoom };
+    this.save();
+  }
+
+  /**
    * 设置“关闭到托盘”。
    * @param enabled 是否启用。
    * @returns 无返回值。
@@ -176,6 +189,7 @@ export class DesktopStateStore {
             height: Math.max(minHeight, Math.round(bounds['height'])),
             ...(typeof bounds['x'] === 'number' ? { x: Math.round(bounds['x']) } : {}),
             ...(typeof bounds['y'] === 'number' ? { y: Math.round(bounds['y']) } : {}),
+            ...(bounds['isMaximized'] === true ? { isMaximized: true } : {}),
           };
         }
       }
@@ -185,6 +199,9 @@ export class DesktopStateStore {
           typeof raw['closeToTray'] === 'boolean' ? raw['closeToTray'] : defaults.closeToTray,
         openAtLogin:
           typeof raw['openAtLogin'] === 'boolean' ? raw['openAtLogin'] : defaults.openAtLogin,
+        ...(typeof raw['zoom'] === 'number' && Number.isFinite(raw['zoom'])
+          ? { zoom: Math.min(3, Math.max(-3, raw['zoom'])) }
+          : {}),
         ...(workspace !== undefined ? { workspace } : {}),
         ...(window !== undefined ? { window } : {}),
       };

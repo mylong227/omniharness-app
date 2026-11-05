@@ -113,6 +113,23 @@ export function createMainWindow(options: MainWindowOptions): BrowserWindow {
     },
   });
 
+  // 最大化恢复（2026-11-06 实用性打磨）：getNormalBounds 只存普通 bounds，最大化状态
+  // 单独记 —— 不恢复的话，最大化关掉的窗口每次都以普通尺寸重开，用户每天都要重新最大化。
+  if (options.state.get().window?.isMaximized === true) {
+    window.maximize();
+  }
+  // 页面缩放（Ctrl+滚轮 / 菜单 ±）：恢复上次级别并随改随存（clamp ±3 档，约 50%–200%）。
+  const savedZoom = options.state.get().zoom;
+  if (typeof savedZoom === 'number' && Number.isFinite(savedZoom)) {
+    window.webContents.setZoomLevel(savedZoom);
+  }
+  window.webContents.on('zoom-changed', (_event, direction) => {
+    const wc = window.webContents;
+    if (window.isDestroyed()) return;
+    const next = Math.min(3, Math.max(-3, wc.getZoomLevel() + (direction === 'in' ? 0.5 : -0.5)));
+    wc.setZoomLevel(next);
+    options.state.rememberZoom(next);
+  });
   window.once('ready-to-show', () => {
     if (options.autoShow !== false) window.show();
   });
@@ -124,6 +141,7 @@ export function createMainWindow(options: MainWindowOptions): BrowserWindow {
         y: current.y,
         width: current.width,
         height: current.height,
+        isMaximized: window.isMaximized(),
       });
     }
   });

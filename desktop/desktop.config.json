@@ -11,7 +11,7 @@
     "minWidth": 900,
     "minHeight": 600,
     "backgroundColor": "#16181d",
-    "autoHideMenuBar": false,
+    "autoHideMenuBar": true,
     "backgroundThrottling": false,
     "showShortcut": "CommandOrControl+Shift+O"
   },

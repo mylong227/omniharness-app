@@ -287,6 +287,9 @@ async function bootstrap(): Promise<void> {
       openRecent: (path) => {
         void switchWorkspace(path);
       },
+      restartHarness: () => {
+        void restartHarness();
+      },
       openLogs: () => {
         void openLogs();
       },
@@ -559,7 +562,14 @@ async function onUiGone(kind: 'load-failed' | 'renderer-gone', detail: string): 
   const ctx = context;
   if (ctx === null) return 0;
   ctx.logger.write('main', `ui recovery exhausted: ${kind} ${detail}`);
-  return ctx.dialogs.uiGone(kind, detail, ctx.logger.directory());
+  const response = await ctx.dialogs.uiGone(kind, detail, ctx.logger.directory());
+  // 「退出」按钮（2026-11-06 审计发现的真实缺陷）：此前 response 0 什么都不做——
+  // 对话框关掉后留在无 UI 态。退出走 before-quit → shutdownAndExit 优雅收尾（停侧车再退）。
+  if (response === 0) {
+    ctx.logger.write('main', 'ui gone: quit requested by user');
+    app.quit();
+  }
+  return response;
 }
 
 /** 托盘「诊断信息」：把版本/工作区/侧车/日志/配置来源汇总到可复制对话框。 */
