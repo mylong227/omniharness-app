@@ -1,16 +1,16 @@
 import { accessSync, existsSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
-import { OmniHome } from '@omniharness/kernel/kernel/util/omniHome.js';
-import { NetworkEgressGuard } from '@omniharness/kernel/kernel/adapters/sandbox/networkEgressGuard.js';
-import { SandboxCapabilityTable } from '@omniharness/kernel/kernel/adapters/sandbox/sandboxCapabilityTable.js';
-import { SandboxManager } from '@omniharness/kernel/kernel/adapters/sandbox/sandboxManager.js';
-import { ToolOutputTrust } from '@omniharness/kernel/kernel/security/toolOutputTrust.js';
+import { OmniHome } from '../../host/kernel/util.ts';
+import { NetworkEgressGuard } from '../../host/kernel/adapters-sandbox.ts';
+import { SandboxCapabilityTable } from '../../host/kernel/adapters-sandbox.ts';
+import { SandboxManager } from '../../host/kernel/adapters-sandbox.ts';
+import { ToolOutputTrust } from '../../host/kernel/security.ts';
 import {
   InjectionSelfCheck,
   type InjectionSelfCheckSummary,
 } from '../../host/kernel-compat/kernel/security/injectionSelfCheck.ts';
-import type { SandboxCapabilityEntry } from '@omniharness/kernel/kernel/adapters/sandbox/sandboxCapabilityTable.js';
+import type { SandboxCapabilityEntry } from '../../host/kernel/adapters-sandbox.ts';
 import { PluginWorkerMetrics } from '../../host/kernel-compat/kernel/plugin/worker/pluginWorkerMetrics.ts';
 
 /** 由**内核**强制隔离的 profile（其余为纯 TS 策略类：passthrough / policy / restricted）。 */

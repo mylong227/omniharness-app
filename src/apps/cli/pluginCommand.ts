@@ -9,7 +9,7 @@
 
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { Container } from '@omniharness/kernel/kernel/core/container.js';
+import { Container } from '../../host/kernel/core.ts';
 import { PluginManager } from '../../host/kernel-compat/kernel/plugin/pluginManager.ts';
 import { Manifest } from '../../host/kernel-compat/kernel/plugin/manifest.ts';
 import { PermissionGate, PermissionDeniedError } from '../../host/kernel-compat/kernel/plugin/permissionGate.ts';

@@ -1,5 +1,5 @@
 import { dirname } from 'node:path';
-import type { SandboxPort } from '@omniharness/kernel/contracts/ports/runtime/sandbox.js';
+import type { SandboxPort } from '../../../../kernel/contracts.ts';
 import { PluginWorkerLimits } from './pluginWorkerLimits.ts';
 
 /** Worker 进程启动参数。 */

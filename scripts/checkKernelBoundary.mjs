@@ -2,13 +2,16 @@
 /**
  * 内核边界门禁：证明本应用**真的**在消费 `@omniharness/kernel`，而不是又长回一份内嵌副本。
  *
- * 六条判据（任一失败退出码 1）：
+ * 七条判据（任一失败退出码 1）：
  * 1. `package.json` 的 `@omniharness/kernel` 必须是 `file:vendor/*.tgz`（单一真源 + 可复现）；
  * 2. 仓库根不得再存在 `src/{kernel,contracts,protocols}`；
  * 3. `src/**` 不得出现解析到这三个目录的相对导入（宿主的相对路径必须落在 `src/host` 内）；
- * 4. `src/**` 必须存在指向包路径的导入（证明不是只改配置、代码没用上）；
+ * 4. `src/host/kernel/` 必须存在指向包路径的导入（证明不是只改配置、代码没用上）；
  * 5. `vendor/*.tgz` 的 SHA-512 必须与 `package-lock.json` 里记录的 integrity 逐字节一致；
- * 6. 包内原生内核必须可加载（`NativeKernel.available() === true` 且 ping 成功）。
+ * 6. 包内原生内核必须可加载（`NativeKernel.available() === true` 且 ping 成功）；
+ * 7. **对接面单点**：`src/**` 里只有 `src/host/kernel/<area>.ts` 允许导入 `@omniharness/kernel`——
+ *    业务代码一律经 `src/host/kernel/` 分域对接面消费内核，内核升级只适配这一个目录
+ *    （分域而非单文件桶的原因见该目录文件头注释：整包加载 ~780ms vs 单域 ~60ms）。
  *
  * 为什么需要它：迁移最容易出现的假绿是「删了目录、代码还靠 tsconfig paths / 缓存里的旧副本」。
  * 本门禁以文件系统 + 锁文件 + 真实 require 三个角度钉住。
@@ -35,7 +38,7 @@ for (const dir of ['kernel', 'contracts', 'protocols']) {
   if (existsSync(join(ROOT, 'src', dir))) fail(`src/${dir} 仍存在：内嵌副本未删干净`);
 }
 
-// 3/4. 全源码扫描
+// 3/4/7. 全源码扫描
 const importRe = /(?:\bfrom\s+|\bimport\s*\(\s*|\bimport\s+)['"]([^'"]+)['"]/g;
 const walk = (dir, out = []) => {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -46,8 +49,10 @@ const walk = (dir, out = []) => {
   return out;
 };
 const srcFiles = walk(join(ROOT, 'src'));
+const surfaceDir = join(ROOT, 'src', 'host', 'kernel');
 let packageImports = 0;
 const leaks = [];
+const offSurfaceImports = [];
 for (const file of srcFiles) {
   const text = readFileSync(file, 'utf8');
   let match;
@@ -55,6 +60,11 @@ for (const file of srcFiles) {
     const spec = match[1];
     if (spec.startsWith('@omniharness/kernel/') || spec === '@omniharness/kernel') {
       packageImports += 1;
+      // 判据 7：包导入只允许出现在对接面目录
+      const dir = resolve(dirname(file));
+      if (dir !== surfaceDir && !dir.startsWith(surfaceDir + sep)) {
+        offSurfaceImports.push(`${relative(ROOT, file)}`);
+      }
       continue;
     }
     if (!spec.startsWith('.')) continue;
@@ -68,7 +78,14 @@ for (const file of srcFiles) {
 if (leaks.length > 0) {
   fail(`仍有相对导入穿透内嵌目录（${String(leaks.length)} 处）：\n    ${leaks.slice(0, 10).join('\n    ')}`);
 }
-if (packageImports === 0) fail('src/** 没有任何 @omniharness/kernel 导入：代码没有真正切到包');
+if (packageImports === 0) fail('src/host/kernel/ 没有任何 @omniharness/kernel 导入：代码没有真正切到包');
+if (offSurfaceImports.length > 0) {
+  fail(
+    `对接面单点被绕过：${String(offSurfaceImports.length)} 个文件直接导入 @omniharness/kernel ` +
+      `（只允许 src/host/kernel/<area>.ts）：\n    ` +
+      [...new Set(offSurfaceImports)].slice(0, 10).join('\n    '),
+  );
+}
 
 // 5. tarball 与锁文件 integrity 一致
 if (typeof dep === 'string' && dep.startsWith('file:')) {
@@ -107,6 +124,6 @@ if (failures.length > 0) {
   process.exit(1);
 }
 process.stdout.write(
-  `kernel:check OK —— ${String(srcFiles.length)} 个源文件 / ${String(packageImports)} 处包导入 / ` +
+  `kernel:check OK —— ${String(srcFiles.length)} 个源文件 / ${String(packageImports)} 处包导入（全部收敛于 src/host/kernel/ 对接面）/ ` +
     `内嵌副本 0 / vendored tarball integrity 一致 / 原生内核实载\n`,
 );

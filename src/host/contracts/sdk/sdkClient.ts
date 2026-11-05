@@ -1,6 +1,6 @@
 import { jsonRpc, type RpcMessage, type RpcResponse } from '../../../apps/server/core/jsonRpc.ts';
-import type { SdkSocket } from '@omniharness/kernel/contracts/sdk/webSocketSdkSocket.js';
-import { PendingRequests } from '@omniharness/kernel/kernel/util/concurrency/pendingRequests.js';
+import type { SdkSocket } from '../../kernel/contracts.ts';
+import { PendingRequests } from '../../kernel/util.ts';
 
 /** SDK 客户端选项。 */
 export interface SdkClientOptions {

@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import type { PluginPermission } from '@omniharness/kernel/contracts/ports/plugin/pluginPermission.js';
+import type { PluginPermission } from '../../../../kernel/contracts.ts';
 import { SafeFs } from '../../util/safeFs.ts';
-import { WorkspaceGuard } from '@omniharness/kernel/kernel/util/workspaceGuard.js';
+import { WorkspaceGuard } from '../../../../kernel/util.ts';
 import { PluginWorkerLimits } from './pluginWorkerLimits.ts';
 
 /** 能力 broker 的调用请求。 */

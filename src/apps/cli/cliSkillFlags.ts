@@ -19,10 +19,10 @@
 import { readFileSync } from 'node:fs';
 import { basename } from 'node:path';
 
-import type { SkillEntry } from '@omniharness/kernel/kernel/skill/skill.js';
-import { SkillMdCodec } from '@omniharness/kernel/kernel/skill/skillMdCodec.js';
+import type { SkillEntry } from '../../host/kernel/platform.ts';
+import { SkillMdCodec } from '../../host/kernel/platform.ts';
 import { SkillManifestSigner } from '../../host/kernel-compat/kernel/skill/skillManifestSigner.ts';
-import { ConfigError } from '@omniharness/kernel/kernel/config/configError.js';
+import { ConfigError } from '../../host/kernel/config.ts';
 import type { CliArgs } from './argParser.ts';
 
 /** `--skills` 技能包解析器（纯静态工具类）。 */

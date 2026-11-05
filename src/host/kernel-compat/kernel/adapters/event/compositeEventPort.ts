@@ -1,6 +1,6 @@
-import type { SessionEvent } from '@omniharness/kernel/contracts/ports/runtime/event.js';
-import type { EventPort } from '@omniharness/kernel/contracts/ports/runtime/eventPort.js';
-import { log } from '@omniharness/kernel/kernel/util/logger.js';
+import type { SessionEvent } from '../../../../kernel/contracts.ts';
+import type { EventPort } from '../../../../kernel/contracts.ts';
+import { log } from '../../../../kernel/util.ts';
 
 /**
  * 事件端口**扇出**：同一条会话事件按序送给多个出口。

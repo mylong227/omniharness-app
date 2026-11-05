@@ -1,4 +1,4 @@
-import type { AskAnswer, AskQuestion } from '@omniharness/kernel/contracts/ports/runtime/userResponder.js';
+import type { AskAnswer, AskQuestion } from '../../../host/kernel/contracts.ts';
 
 /** 单题自由输入上限（字符）：上行通道是外部输入，超长文本不进模型上下文。 */
 const MAX_CUSTOM_CHARS = 4000;

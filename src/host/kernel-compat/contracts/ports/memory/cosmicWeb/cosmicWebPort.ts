@@ -1,6 +1,6 @@
 import type { WebConsolidationReport } from './webConsolidationReport.ts';
-import type { MemoryFact } from '@omniharness/kernel/contracts/ports/memory/longTermMemory.js';
-import type { Spectrum } from '@omniharness/kernel/contracts/ports/util/spectrum.js';
+import type { MemoryFact } from '../../../../../kernel/contracts.ts';
+import type { Spectrum } from '../../../../../kernel/contracts.ts';
 
 /**
  * 宇宙网记忆端口（Cosmic-Web Memory，I-P1-2）。S+ 发明层。

@@ -12,12 +12,12 @@ import {
   writeSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { log } from '@omniharness/kernel/kernel/util/logger.js';
-import { HashChain } from '@omniharness/kernel/kernel/util/hashChain.js';
+import { log } from '../../../host/kernel/util.ts';
+import { HashChain } from '../../../host/kernel/util.ts';
 
-import type { AuditEvent } from '@omniharness/kernel/contracts/ports/server/auditEvent.js';
+import type { AuditEvent } from '../../../host/kernel/contracts.ts';
 
-export type { AuditEvent } from '@omniharness/kernel/contracts/ports/server/auditEvent.js';
+export type { AuditEvent } from '../../../host/kernel/contracts.ts';
 
 /**
  * @beta

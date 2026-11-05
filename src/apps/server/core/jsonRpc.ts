@@ -1,13 +1,13 @@
-import type { RpcRequest } from '@omniharness/kernel/contracts/ports/server/rpcRequest.js';
-import type { RpcResponse } from '@omniharness/kernel/contracts/ports/server/rpcResponse.js';
-import type { RpcNotification } from '@omniharness/kernel/contracts/ports/server/rpcNotification.js';
-import type { RpcMessage } from '@omniharness/kernel/contracts/ports/server/rpcMessage.js';
+import type { RpcRequest } from '../../../host/kernel/contracts.ts';
+import type { RpcResponse } from '../../../host/kernel/contracts.ts';
+import type { RpcNotification } from '../../../host/kernel/contracts.ts';
+import type { RpcMessage } from '../../../host/kernel/contracts.ts';
 
-export type { RpcRequest } from '@omniharness/kernel/contracts/ports/server/rpcRequest.js';
-export type { RpcResponse } from '@omniharness/kernel/contracts/ports/server/rpcResponse.js';
-export type { RpcNotification } from '@omniharness/kernel/contracts/ports/server/rpcNotification.js';
-export type { RpcError } from '@omniharness/kernel/contracts/ports/server/rpcError.js';
-export type { RpcMessage } from '@omniharness/kernel/contracts/ports/server/rpcMessage.js';
+export type { RpcRequest } from '../../../host/kernel/contracts.ts';
+export type { RpcResponse } from '../../../host/kernel/contracts.ts';
+export type { RpcNotification } from '../../../host/kernel/contracts.ts';
+export type { RpcError } from '../../../host/kernel/contracts.ts';
+export type { RpcMessage } from '../../../host/kernel/contracts.ts';
 
 /**
  * JSON-RPC 协议工具。

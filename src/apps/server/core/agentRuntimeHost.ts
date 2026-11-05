@@ -1,20 +1,20 @@
-import type { ApprovalPort } from '@omniharness/kernel/contracts/ports/runtime/approval.js';
-import type { EventPort } from '@omniharness/kernel/contracts/ports/runtime/eventPort.js';
-import type { ModelPort } from '@omniharness/kernel/contracts/ports/model/model.js';
+import type { ApprovalPort } from '../../../host/kernel/contracts.ts';
+import type { EventPort } from '../../../host/kernel/contracts.ts';
+import type { ModelPort } from '../../../host/kernel/contracts.ts';
 
-import type { SkillRegistry } from '@omniharness/kernel/kernel/skill/skillRegistry.js';
-import type { SupervisorPort } from '@omniharness/kernel/contracts/ports/runtime/supervisor.js';
+import type { SkillRegistry } from '../../../host/kernel/platform.ts';
+import type { SupervisorPort } from '../../../host/kernel/contracts.ts';
 import { Runtime } from '../../composition/runtime.ts';
-import { Agent } from '@omniharness/kernel/kernel/core/agent.js';
+import { Agent } from '../../../host/kernel/core.ts';
 import { GraphStore } from '../../../host/kernel-compat/kernel/autonomy/graphStore.ts';
 import { SubagentPorts } from '../../../host/kernel-compat/kernel/subagent/subagentPorts.ts';
 
 import { AUTO_ALLOW, DENY_ALL, RULES_DEFAULT } from './appServerState.ts';
-import { PlanApproval } from '@omniharness/kernel/kernel/adapters/approval/planApproval.js';
-import { AskApproval } from '@omniharness/kernel/kernel/adapters/approval/askApproval.js';
+import { PlanApproval } from '../../../host/kernel/adapters-approval.ts';
+import { AskApproval } from '../../../host/kernel/adapters-approval.ts';
 import { ServerNoopSupervisor } from './serverNoopSupervisor.ts';
-import type { ResolvedConfig } from '@omniharness/kernel/contracts/ports/config/resolvedConfig.js';
-import type { SubagentPortsShape } from '@omniharness/kernel/contracts/ports/subagent/subagentPortsShape.js';
+import type { ResolvedConfig } from '../../../host/kernel/contracts.ts';
+import type { SubagentPortsShape } from '../../../host/kernel/contracts.ts';
 
 /** Agent/图运行时宿主依赖。 */
 export interface AgentRuntimeDeps {

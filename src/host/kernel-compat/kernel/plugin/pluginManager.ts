@@ -1,8 +1,8 @@
-import type { Container } from '@omniharness/kernel/kernel/core/container.js';
+import type { Container } from '../../../kernel/core.ts';
 import type { Plugin, PluginApplyContext } from './plugin.ts';
 import type { PermissionGate } from './permissionGate.ts';
-import type { ToolPort } from '@omniharness/kernel/contracts/ports/tool/tool.js';
-import { log } from '@omniharness/kernel/kernel/util/logger.js';
+import type { ToolPort } from '../../../kernel/contracts.ts';
+import { log } from '../../../kernel/util.ts';
 import { PluginServiceContainer } from './pluginServiceContainer.ts';
 
 /**

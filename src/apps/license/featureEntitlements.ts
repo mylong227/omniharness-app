@@ -20,7 +20,7 @@
  * @maturityEvidence tests/unit/featureEntitlements.test.ts
  */
 import { LicenseEngine } from './licenseEngine.ts';
-import { log } from '@omniharness/kernel/kernel/util/logger.js';
+import { log } from '../../host/kernel/util.ts';
 import type { LicenseVerdict } from './licenseEngine.ts';
 import type {
   EntitlementDecision,

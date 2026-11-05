@@ -1,8 +1,8 @@
 import type { CliArgs } from './argParser.ts';
-import type { OmniHarnessConfig } from '@omniharness/kernel/contracts/ports/config/omniHarnessConfig.js';
+import type { OmniHarnessConfig } from '../../host/kernel/contracts.ts';
 import { CliDecisionEngineFlags } from './cliDecisionEngineFlags.ts';
-import { EnforcementModeResolver } from '@omniharness/kernel/kernel/security/enforcementModeResolver.js';
-import type { DecisionEngine } from '@omniharness/kernel/contracts/ports/decision/decisionEngine.js';
+import { EnforcementModeResolver } from '../../host/kernel/security.ts';
+import type { DecisionEngine } from '../../host/kernel/contracts.ts';
 import { DecisionEngineResolver } from '../../host/kernel/config/decisionEngineResolver.ts';
 
 /**

@@ -8,15 +8,15 @@
 
 import { resolve } from 'node:path';
 import { readFile } from 'node:fs/promises';
-import { configFile } from '@omniharness/kernel/kernel/config/configFile.js';
-import { WorkspaceTrust } from '@omniharness/kernel/kernel/config/workspaceTrust.js';
-import { Agent } from '@omniharness/kernel/kernel/core/agent.js';
-import type { AgentResult } from '@omniharness/kernel/kernel/core/agent.js';
+import { configFile } from '../../host/kernel/config.ts';
+import { WorkspaceTrust } from '../../host/kernel/config.ts';
+import { Agent } from '../../host/kernel/core.ts';
+import type { AgentResult } from '../../host/kernel/core.ts';
 import { Runtime } from '../composition/runtime.ts';
-import { GoalRunner } from '@omniharness/kernel/kernel/autonomy/goalRunner.js';
-import { GoalChecker } from '@omniharness/kernel/kernel/autonomy/goalChecker.js';
-import { WorkflowRunner } from '@omniharness/kernel/kernel/autonomy/workflowRunner.js';
-import type { WorkflowDef } from '@omniharness/kernel/kernel/autonomy/workflowTypes.js';
+import { GoalRunner } from '../../host/kernel/autonomy.ts';
+import { GoalChecker } from '../../host/kernel/autonomy.ts';
+import { WorkflowRunner } from '../../host/kernel/autonomy.ts';
+import type { WorkflowDef } from '../../host/kernel/autonomy.ts';
 import { SubagentPorts } from '../../host/kernel-compat/kernel/subagent/subagentPorts.ts';
 import { RoutineScheduler } from '../daemon/routineScheduler.ts';
 import type { Routine, RoutineSchedule, RoutineModelAdapter } from '../daemon/routineScheduler.ts';
@@ -36,7 +36,7 @@ import {
   type AcpPermissionMode,
   type AcpSessionOptions,
   type AcpSessionRuntime,
-} from '@omniharness/kernel/protocols/acp/index.js';
+} from '../../host/kernel/protocols.ts';
 
 /** 自主 / 编排 / 交互类子命令。 */
 export class CliAgentCmds extends CliNativeCmds {
@@ -50,7 +50,7 @@ export class CliAgentCmds extends CliNativeCmds {
     agent: Agent,
     args: CliArgs,
   ): Promise<{
-    events: readonly import('@omniharness/kernel/contracts/ports/runtime/event.js').SessionEvent[];
+    events: readonly import('../../host/kernel/contracts.ts').SessionEvent[];
     summary: unknown;
   }> {
     if (args.replayId !== undefined) {
@@ -76,7 +76,7 @@ export class CliAgentCmds extends CliNativeCmds {
     agent: Agent,
     args: CliArgs,
   ): Promise<{
-    events: readonly import('@omniharness/kernel/contracts/ports/runtime/event.js').SessionEvent[];
+    events: readonly import('../../host/kernel/contracts.ts').SessionEvent[];
     summary: unknown;
   }> {
     const result = await agent.runTask(args.prompt);
@@ -93,7 +93,7 @@ export class CliAgentCmds extends CliNativeCmds {
     agent: Agent,
     args: CliArgs,
   ): Promise<{
-    events: readonly import('@omniharness/kernel/contracts/ports/runtime/event.js').SessionEvent[];
+    events: readonly import('../../host/kernel/contracts.ts').SessionEvent[];
     summary: unknown;
   }> {
     const result = await agent.resume(args.resumeId!, args.prompt);
@@ -110,7 +110,7 @@ export class CliAgentCmds extends CliNativeCmds {
     agent: Agent,
     args: CliArgs,
   ): Promise<{
-    events: readonly import('@omniharness/kernel/contracts/ports/runtime/event.js').SessionEvent[];
+    events: readonly import('../../host/kernel/contracts.ts').SessionEvent[];
     summary: unknown;
   }> {
     const result = await agent.fork(args.forkId!, args.prompt);

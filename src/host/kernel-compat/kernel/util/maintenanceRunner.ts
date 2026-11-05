@@ -28,14 +28,14 @@
  */
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { OmniHome } from '@omniharness/kernel/kernel/util/omniHome.js';
+import { OmniHome } from '../../../kernel/util.ts';
 import { SessionGc, type SessionGcOptions, type SessionGcReport } from './sessionGc.ts';
 import { TmpSweep, type TmpSweepReport } from './tmpSweep.ts';
-import { SessionArchiveLayout } from '@omniharness/kernel/kernel/util/sessionArchiveLayout.js';
+import { SessionArchiveLayout } from '../../../kernel/util.ts';
 import { ServeInstance, type ServeInstanceRecord } from './serveInstance.ts';
 import { SessionStorageLocation } from './sessionStorageLocation.ts';
-import { runtimeLimits } from '@omniharness/kernel/kernel/util/runtimeLimits.js';
-import type { MaintenanceLimits } from '@omniharness/kernel/contracts/ports/config/runtimeLimits.js';
+import { runtimeLimits } from '../../../kernel/util.ts';
+import type { MaintenanceLimits } from '../../../kernel/contracts.ts';
 
 /** 一天的毫秒数（数据里按"天"表达保留年龄，运行时按毫秒计算）。 */
 const DAY_MS = 24 * 60 * 60 * 1000;

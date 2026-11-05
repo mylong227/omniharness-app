@@ -1,7 +1,7 @@
-import { BuiltinDefaults } from '@omniharness/kernel/kernel/util/builtinDefaults.js';
+import { BuiltinDefaults } from '../../host/kernel/util.ts';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ACP_PERMISSION_MODES } from '@omniharness/kernel/protocols/acp/acpProtocol.js';
+import { ACP_PERMISSION_MODES } from '../../host/kernel/protocols.ts';
 import {
   A2A_TRANSPORTS,
   APPROVAL_ASKS,

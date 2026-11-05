@@ -26,8 +26,8 @@
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import type { AssetPackPort, RegistryMetadata } from '@omniharness/kernel/contracts/ports/asset.js';
-import type { CapabilityStack } from '@omniharness/kernel/contracts/ports/config/capabilityStack.js';
+import type { AssetPackPort, RegistryMetadata } from '../../host/kernel/contracts.ts';
+import type { CapabilityStack } from '../../host/kernel/contracts.ts';
 import { CliArgReader } from './cliArgReader.ts';
 
 /** 用法提示。 */

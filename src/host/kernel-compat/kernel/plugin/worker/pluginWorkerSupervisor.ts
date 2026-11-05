@@ -3,12 +3,12 @@ import { randomBytes } from 'node:crypto';
 import { dirname } from 'node:path';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
-import { ProcessTreeKiller } from '@omniharness/kernel/kernel/adapters/tool/shell/processTreeKiller.js';
-import { log } from '@omniharness/kernel/kernel/util/logger.js';
-import type { SandboxPort } from '@omniharness/kernel/contracts/ports/runtime/sandbox.js';
-import type { ToolCall } from '@omniharness/kernel/contracts/ports/tool/tool.js';
-import type { ToolContext } from '@omniharness/kernel/contracts/ports/tool/tool/toolContext.js';
-import type { ToolResult } from '@omniharness/kernel/contracts/ports/tool/tool/toolResult.js';
+import { ProcessTreeKiller } from '../../../../kernel/adapters-tool.ts';
+import { log } from '../../../../kernel/util.ts';
+import type { SandboxPort } from '../../../../kernel/contracts.ts';
+import type { ToolCall } from '../../../../kernel/contracts.ts';
+import type { ToolContext } from '../../../../kernel/contracts.ts';
+import type { ToolResult } from '../../../../kernel/contracts.ts';
 import type {
   PluginWorkerError,
   PluginWorkerInbound,

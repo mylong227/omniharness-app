@@ -10,7 +10,7 @@
  */
 
 import { join } from 'node:path';
-import { OmniHome } from '@omniharness/kernel/kernel/util/omniHome.js';
+import { OmniHome } from '../../host/kernel/util.ts';
 import { PluginProfileStore } from '../../host/kernel-compat/kernel/plugin/pluginProfileStore.ts';
 import { FeatureEntitlements } from '../license/featureEntitlements.ts';
 import type { EntitlementPort } from './../../host/contracts/ports/license/entitlement.ts';

@@ -21,7 +21,7 @@
  * 5. 词面重合 ⇒ 相关（与最近对话共享非停用词，说明在同一话题上）；
  * 6. 其余 ⇒ 无关（真正的新话题，交给调用方中断当前回合）。
  */
-import type { SessionEvent } from '@omniharness/kernel/contracts/ports/runtime/event/sessionEvent.js';
+import type { SessionEvent } from '../../../../kernel/contracts.ts';
 
 /** 判定依据（透传给 UI / 日志，便于解释"为什么被打断"）。 */
 export type InterjectionReason =

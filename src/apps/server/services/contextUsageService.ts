@@ -1,13 +1,13 @@
-import type { SessionEvent } from '@omniharness/kernel/contracts/ports/runtime/event.js';
-import type { ModelContextSnapshot } from '@omniharness/kernel/contracts/ports/model/model.js';
-import type { ToolDefinition } from '@omniharness/kernel/contracts/ports/tool/tool.js';
-import { ContextAssembler } from '@omniharness/kernel/kernel/context/contextAssembler.js';
+import type { SessionEvent } from '../../../host/kernel/contracts.ts';
+import type { ModelContextSnapshot } from '../../../host/kernel/contracts.ts';
+import type { ToolDefinition } from '../../../host/kernel/contracts.ts';
+import { ContextAssembler } from '../../../host/kernel/context.ts';
 import {
   ContextBreakdownEstimator,
   type ContextBreakdown,
   type ContextBreakdownRow,
-} from '@omniharness/kernel/kernel/context/contextBreakdownEstimator.js';
-import { ContextWindowCatalog } from '@omniharness/kernel/kernel/context/contextWindowCatalog.js';
+} from '../../../host/kernel/context.ts';
+import { ContextWindowCatalog } from '../../../host/kernel/context.ts';
 import { CacheHitRateWatch } from '../../../host/kernel-compat/kernel/observability/cacheHitRateWatch.ts';
 import {
   CacheMissAttributionAnalyst,

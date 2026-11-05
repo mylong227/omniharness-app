@@ -22,10 +22,10 @@
  * @maturityEvidence tests/unit/appServerGovernance.test.ts
  */
 import { join } from 'node:path';
-import { HashChainPromotionLedger } from '@omniharness/kernel/kernel/evolution/hashChainPromotionLedger.js';
+import { HashChainPromotionLedger } from '../../../host/kernel/evolution.ts';
 import { FeatureEntitlements } from '../../license/featureEntitlements.ts';
-import { PromotionHistoryService } from '@omniharness/kernel/kernel/governance/promotionHistoryService.js';
-import type { PromotionHistoryView } from '@omniharness/kernel/kernel/governance/promotionHistoryService.js';
+import { PromotionHistoryService } from '../../../host/kernel/platform.ts';
+import type { PromotionHistoryView } from '../../../host/kernel/platform.ts';
 import { AppServerSurfaceHandlers } from './appServerSurfaceHandlers.ts';
 
 /** 默认台账目录（与 CLI / 组合根同一口径：`<workspace>/.omniharness/evolution`）。 */

@@ -11,13 +11,13 @@
  * 继承链：`CliCredentialBuild` ← `CliBuildConfig` ← **本层** ← `CliServerCmds` ← …；调用点零改动。
  */
 import { DaemonController } from '../daemon/daemonController.ts';
-import { Ed25519AgentIdentity } from '@omniharness/kernel/kernel/adapters/identity/ed25519AgentIdentity.js';
+import { Ed25519AgentIdentity } from '../../host/kernel/adapters-misc.ts';
 import { CliBuildConfig } from './cliBuildConfig.ts';
 import { ServeDefaults } from './serveDefaults.ts';
 import { ArgParser, CliDefaults } from './argParser.ts';
 import { ServerAuthGuard } from '../server/transport/serverAuthGuard.ts';
-import { configFile } from '@omniharness/kernel/kernel/config/configFile.js';
-import type { FileConfig, WorkspaceTrustOptions } from '@omniharness/kernel/kernel/config/configFile.js';
+import { configFile } from '../../host/kernel/config.ts';
+import type { FileConfig, WorkspaceTrustOptions } from '../../host/kernel/config.ts';
 
 /** 身份 / 后台服务命令层。 */
 export class CliIdentityDaemonCmds extends CliBuildConfig {

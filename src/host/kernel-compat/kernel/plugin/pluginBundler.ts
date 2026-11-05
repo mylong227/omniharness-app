@@ -11,7 +11,7 @@ import {
 } from 'node:fs';
 import { isAbsolute, join, resolve, sep } from 'node:path';
 import { Zip, type ZipEntry } from './zip.ts';
-import { Ed25519PublicKey } from '@omniharness/kernel/kernel/util/ed25519PublicKey.js';
+import { Ed25519PublicKey } from '../../../kernel/util.ts';
 import { CanonicalManifest } from './canonicalManifest.ts';
 import type { PluginProfile } from './pluginProfileStore.ts';
 import type { PluginRegistry } from './pluginRegistry.ts';

@@ -8,8 +8,8 @@ import {
   rmSync,
 } from 'node:fs';
 import { join } from 'node:path';
-import type { WorkflowDef } from '@omniharness/kernel/kernel/autonomy/workflowTypes.js';
-import { WorkflowRunner } from '@omniharness/kernel/kernel/autonomy/workflowRunner.js';
+import type { WorkflowDef } from '../../../kernel/autonomy.ts';
+import { WorkflowRunner } from '../../../kernel/autonomy.ts';
 
 /** 图存储目录名（位于工作区 .omniharness 下）。 */
 const GRAPH_DIR = '.omniharness/graphs';

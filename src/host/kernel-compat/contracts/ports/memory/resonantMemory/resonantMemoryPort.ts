@@ -1,4 +1,4 @@
-import type { Spectrum } from '@omniharness/kernel/contracts/ports/util/spectrum.js';
+import type { Spectrum } from '../../../../../kernel/contracts.ts';
 import type { ResonantHit } from './resonantHit.ts';
 
 /**

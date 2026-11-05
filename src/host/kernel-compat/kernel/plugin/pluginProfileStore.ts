@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { FileConfig } from '@omniharness/kernel/kernel/config/configFile.js';
+import type { FileConfig } from '../../../kernel/config.ts';
 import type { PluginManager } from './pluginManager.ts';
 import type { PluginRegistry } from './pluginRegistry.ts';
 import { PluginLoader } from './pluginLoader.ts';

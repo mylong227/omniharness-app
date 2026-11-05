@@ -18,7 +18,7 @@
  *
  * 聚合细节见 `InjectionSnapshotAggregator`；本模块只做「逐例扫描 + 编排」。
  */
-import { PromptInjectionGuard } from '@omniharness/kernel/kernel/security/promptInjectionGuard.js';
+import { PromptInjectionGuard } from '../../../kernel/security.ts';
 import {
   InjectionSnapshotAggregator,
   type CaseOutcome,

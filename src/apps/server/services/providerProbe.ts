@@ -3,12 +3,12 @@
  * probe：拿配置好的 Key 真实请求厂商 /models 端点（不可用时回退 1-token chat 探测），
  * 返回实测连通状态与真实模型清单——「有 Key 支持接多少显示多少」的数据来源。
  */
-import type { ModelPort } from '@omniharness/kernel/contracts/ports/model/model.js';
-import { modelAdapterRegistry } from '@omniharness/kernel/kernel/adapters/model/modelAdapterRegistry.js';
-import { ConfigError } from '@omniharness/kernel/kernel/config/configError.js';
+import type { ModelPort } from '../../../host/kernel/contracts.ts';
+import { modelAdapterRegistry } from '../../../host/kernel/adapters-model.ts';
+import { ConfigError } from '../../../host/kernel/config.ts';
 import type { ProviderPreset } from './providerPresets.ts';
-import { SsrfGuard } from '@omniharness/kernel/kernel/security/ssrfGuard.js';
-import type { SsrfPolicy } from '@omniharness/kernel/kernel/security/ssrfPolicy.js';
+import { SsrfGuard } from '../../../host/kernel/security.ts';
+import type { SsrfPolicy } from '../../../host/kernel/security.ts';
 import { Retry } from '../../../host/kernel-compat/kernel/util/concurrency/retry.ts';
 
 /**

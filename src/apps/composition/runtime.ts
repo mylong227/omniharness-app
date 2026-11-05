@@ -10,10 +10,11 @@
  * a2a 互操作随内核 M4 决策退役（v0.3 线格式，待 v1.0 重基后按新契约另行接入）；
  * app 侧残件（host/protocols/a2a）一并移除。
  */
-import { Runtime as KernelRuntime } from '@omniharness/kernel';
+import { Runtime as KernelRuntime } from '../../host/kernel/runtime.ts';
 
 export class Runtime extends KernelRuntime {}
 
-// 保持既有公共 API：`ServiceKeys` 定义在 app 侧（./serviceKeys.ts），既有调用点零改动。
-export { ServiceKeys } from './serviceKeys.ts';
-export type { OmniHarnessRuntime } from '@omniharness/kernel/contracts/ports/composition/omniHarnessRuntime.js';
+// 保持既有公共 API：`ServiceKeys` 单源自内核（kernel/composition/serviceKeys.js，与
+// 原 app 侧拷贝逐字节相同），经对接面再导出，既有调用点零改动。
+export { ServiceKeys } from '../../host/kernel/runtime.ts';
+export type { OmniHarnessRuntime } from '../../host/kernel/contracts.ts';

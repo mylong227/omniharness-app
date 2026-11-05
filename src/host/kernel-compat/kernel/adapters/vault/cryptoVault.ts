@@ -1,7 +1,7 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import type { KvPort } from '@omniharness/kernel/contracts/ports/memory/kv.js';
+import type { KvPort } from '../../../../kernel/contracts.ts';
 import type { VaultPort } from '../../../contracts/ports/memory/vault.ts';
 
 /** 单条密文载荷结构（base64，冒号分隔）：iv : ciphertext : authTag。 */

@@ -1,5 +1,5 @@
-import type { ToolInputDelta } from '@omniharness/kernel/contracts/ports/model/model.js';
-import type { ToolInputSink } from '@omniharness/kernel/contracts/ports/tool/toolInputSink.js';
+import type { ToolInputDelta } from '../../../../kernel/contracts.ts';
+import type { ToolInputSink } from '../../../../kernel/contracts.ts';
 
 /**
  * @beta

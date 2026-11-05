@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { createRequire } from 'node:module';
-import type { KvPort } from '@omniharness/kernel/contracts/ports/memory/kv.js';
+import type { KvPort } from '../../../../kernel/contracts.ts';
 
 /** SQLite KV 适配器（node:sqlite）：kv 表持久化，可替换 JSON 文件。 */
 export class SqliteKv implements KvPort {

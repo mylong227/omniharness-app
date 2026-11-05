@@ -11,8 +11,8 @@
 import { existsSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { configFile } from '@omniharness/kernel/kernel/config/configFile.js';
-import { OmniHome } from '@omniharness/kernel/kernel/util/omniHome.js';
+import { configFile } from '../../host/kernel/config.ts';
+import { OmniHome } from '../../host/kernel/util.ts';
 import { ArgParser } from './argParser.ts';
 import { CliArgReader } from './cliArgReader.ts';
 import { PortablePath } from '../../host/kernel-compat/kernel/util/portablePath.ts';

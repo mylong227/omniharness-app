@@ -1,11 +1,11 @@
-import type { ToolDefinition } from '@omniharness/kernel/contracts/ports/tool/tool.js';
+import type { ToolDefinition } from '../../../host/kernel/contracts.ts';
 import { AppServerHandlers } from './appServerHandlers.ts';
 import type { AppServerOptions } from './appServerState.ts';
 import { ApprovalTierCatalog } from '../services/approvalTierCatalog.ts';
 import { AgentCatalogService } from '../services/agentCatalogService.ts';
 import { ContextUsageService } from '../services/contextUsageService.ts';
 import { SessionWorkspaceAssigner } from '../services/session/sessionWorkspaceAssigner.ts';
-import { ContextWindowCatalog } from '@omniharness/kernel/kernel/context/contextWindowCatalog.js';
+import { ContextWindowCatalog } from '../../../host/kernel/context.ts';
 import { QuotaService } from '../services/quotaService.ts';
 import { QuotaStore } from '../services/quotaStore.ts';
 import { SessionModeStore } from '../services/session/sessionModeStore.ts';

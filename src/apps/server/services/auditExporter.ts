@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import type { AuditChainReport, AuditEvent } from './auditSink.ts';
 import type { AuditQuery } from './../../../host/contracts/ports/server/auditQuery.ts';
 import type { AuditFormat } from './../../../host/contracts/ports/server/auditFormat.ts';
-import { ArrayAt } from '@omniharness/kernel/kernel/util/arrayAt.js';
+import { ArrayAt } from '../../../host/kernel/util.ts';
 
 /**
  * @beta

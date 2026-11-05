@@ -35,8 +35,8 @@
 import { existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { SessionStorageLocation } from './sessionStorageLocation.ts';
-import { SessionArchiveLayout } from '@omniharness/kernel/kernel/util/sessionArchiveLayout.js';
-import { runtimeLimits } from '@omniharness/kernel/kernel/util/runtimeLimits.js';
+import { SessionArchiveLayout } from '../../../kernel/util.ts';
+import { runtimeLimits } from '../../../kernel/util.ts';
 
 /** GC 选项。 */
 export interface SessionGcOptions {

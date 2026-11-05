@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { Id } from '@omniharness/kernel/kernel/util/id.js';
+import { Id } from '../../../host/kernel/util.ts';
 import type { RepoPathGuard } from './repoPathGuard.ts';
 
 /** diff 行内评论记录（锚定 文件 + 行号 + 侧别），持久化在工作区 .omni/diff-comments.json。 */

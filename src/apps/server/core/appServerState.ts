@@ -1,9 +1,9 @@
-import type { ApprovalPort } from '@omniharness/kernel/contracts/ports/runtime/approval.js';
+import type { ApprovalPort } from '../../../host/kernel/contracts.ts';
 import type { EntitlementPort } from './../../../host/contracts/ports/license/entitlement.ts';
-import { RuleApproval } from '@omniharness/kernel/kernel/adapters/approval/ruleApproval.js';
-import { BUILTIN_APPROVAL_RULES } from '@omniharness/kernel/kernel/adapters/approval/builtinApprovalRules.js';
+import { RuleApproval } from '../../../host/kernel/adapters-approval.ts';
+import { BUILTIN_APPROVAL_RULES } from '../../../host/kernel/adapters-approval.ts';
 
-import type { SkillRegistry } from '@omniharness/kernel/kernel/skill/skillRegistry.js';
+import type { SkillRegistry } from '../../../host/kernel/platform.ts';
 import type { AutomationStore } from '../services/automationStore.ts';
 import type { PluginRegistry } from '../../../host/kernel-compat/kernel/plugin/pluginRegistry.ts';
 import type { Transport } from '../transport/lineTransport.ts';
@@ -11,8 +11,8 @@ import type { Metrics } from '../services/metrics.ts';
 import type { AuditSink } from '../services/auditSink.ts';
 import type { DoctorOptions, DoctorReport } from '../../../host/kernel-compat/contracts/ports/observability/doctorReport.ts';
 import type { VaultPort } from '../../../host/kernel-compat/contracts/ports/memory/vault.ts';
-import type { GraphNodeStatus } from '@omniharness/kernel/kernel/autonomy/workflowRunner.js';
-import type { ResolvedConfig } from '@omniharness/kernel/contracts/ports/config/resolvedConfig.js';
+import type { GraphNodeStatus } from '../../../host/kernel/autonomy.ts';
+import type { ResolvedConfig } from '../../../host/kernel/contracts.ts';
 import type { ServerEventBridge } from './serverEventBridge.ts';
 
 /** AppServer 选项。 */

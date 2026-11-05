@@ -2,13 +2,13 @@ import type {
   LongTermMemoryPort,
   MemoryFact,
   MemoryFactPatch,
-} from '@omniharness/kernel/contracts/ports/memory/longTermMemory.js';
-import { WorkflowRunner } from '@omniharness/kernel/kernel/autonomy/workflowRunner.js';
-import { WorkflowRunLog } from '@omniharness/kernel/kernel/autonomy/workflowRunLog.js';
-import type { WorkflowDef } from '@omniharness/kernel/kernel/autonomy/workflowTypes.js';
+} from '../../../host/kernel/contracts.ts';
+import { WorkflowRunner } from '../../../host/kernel/autonomy.ts';
+import { WorkflowRunLog } from '../../../host/kernel/autonomy.ts';
+import type { WorkflowDef } from '../../../host/kernel/autonomy.ts';
 import { jsonRpc } from './jsonRpc.ts';
-import type { ImageContent, FileAttachment } from '@omniharness/kernel/contracts/ports/model/model.js';
-import { Id } from '@omniharness/kernel/kernel/util/id.js';
+import type { ImageContent, FileAttachment } from '../../../host/kernel/contracts.ts';
+import { Id } from '../../../host/kernel/util.ts';
 import { AppServerVaultHandlers } from './appServerVaultHandlers.ts';
 import type { AppServerOptions } from './appServerState.ts';
 import { providerPresets } from '../services/providerPresets.ts';

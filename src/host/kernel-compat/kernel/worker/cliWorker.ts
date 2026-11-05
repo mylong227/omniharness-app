@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
-import { ProcessTreeKiller } from '@omniharness/kernel/kernel/adapters/tool/shell/processTreeKiller.js';
-import type { Worker, WorkerRequest, WorkerResult } from '@omniharness/kernel/kernel/worker/worker.js';
+import { ProcessTreeKiller } from '../../../kernel/adapters-tool.ts';
+import type { Worker, WorkerRequest, WorkerResult } from '../../../kernel/platform.ts';
 import { WindowsShim } from './windowsShim.ts';
 
 /**

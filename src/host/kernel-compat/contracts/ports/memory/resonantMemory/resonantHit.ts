@@ -1,4 +1,4 @@
-import type { MemoryFact } from '@omniharness/kernel/contracts/ports/memory/longTermMemory.js';
+import type { MemoryFact } from '../../../../../kernel/contracts.ts';
 
 /** 单条共振命中：事实 + 共振度。 */
 export interface ResonantHit {

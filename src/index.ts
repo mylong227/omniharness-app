@@ -42,44 +42,44 @@ export type {
 } from './host/kernel-compat/contracts/ports/index.ts';
 
 // @public 核心
-export { Agent } from '@omniharness/kernel/kernel/core/agent.js';
-export type { AgentResult } from '@omniharness/kernel/kernel/core/agent.js';
-export { AppendOnlyEventLog } from '@omniharness/kernel/kernel/core/appendOnlyEventLog.js';
-export { Container } from '@omniharness/kernel/kernel/core/container.js';
+export { Agent } from './host/kernel/core.ts';
+export type { AgentResult } from './host/kernel/core.ts';
+export { AppendOnlyEventLog } from './host/kernel/core.ts';
+export { Container } from './host/kernel/core.ts';
 export { Runtime, ServiceKeys } from './apps/composition/runtime.ts';
 export type { OmniHarnessRuntime } from './apps/composition/runtime.ts';
-export { SessionRecorder } from '@omniharness/kernel/kernel/core/sessionRecorder.js';
-export { StepRunner } from '@omniharness/kernel/kernel/core/stepRunner.js';
-export { TurnRunner } from '@omniharness/kernel/kernel/core/turnRunner.js';
+export { SessionRecorder } from './host/kernel/core.ts';
+export { StepRunner } from './host/kernel/core.ts';
+export { TurnRunner } from './host/kernel/core.ts';
 
 // @public 配置
-export { ConfigFactory } from '@omniharness/kernel/kernel/config/configFactory.js';
-export type { ExtraTool, OmniHarnessConfig } from '@omniharness/kernel/kernel/config/configFactory.js';
+export { ConfigFactory } from './host/kernel/config.ts';
+export type { ExtraTool, OmniHarnessConfig } from './host/kernel/config.ts';
 // 配置分层（#G6：多层合并 + profile 覆盖 + key 别名归一化 + 严格校验）
-export { ConfigFile } from '@omniharness/kernel/kernel/config/configFile.js';
-export type { FileConfig, FileMcpServer, LayeredOptions } from '@omniharness/kernel/kernel/config/configFile.js';
-export { ProfileLoader } from '@omniharness/kernel/kernel/config/profileLoader.js';
-export { ConfigError } from '@omniharness/kernel/kernel/config/configError.js';
+export { ConfigFile } from './host/kernel/config.ts';
+export type { FileConfig, FileMcpServer, LayeredOptions } from './host/kernel/config.ts';
+export { ProfileLoader } from './host/kernel/config.ts';
+export { ConfigError } from './host/kernel/config.ts';
 
-export type { OpenAiCompatibleConfig } from '@omniharness/kernel/kernel/adapters/model/openAiCompatibleModel.js';
-export { LlamaCppModel } from '@omniharness/kernel/kernel/adapters/model/llamaCppModel.js';
-export type { LlamaCppConfig } from '@omniharness/kernel/kernel/adapters/model/llamaCppModel.js';
-export { NetworkEgressGuard, EgressBlockedError } from '@omniharness/kernel/kernel/adapters/sandbox/networkEgressGuard.js';
+export type { OpenAiCompatibleConfig } from './host/kernel/adapters-model.ts';
+export { LlamaCppModel } from './host/kernel/adapters-model.ts';
+export type { LlamaCppConfig } from './host/kernel/adapters-model.ts';
+export { NetworkEgressGuard, EgressBlockedError } from './host/kernel/adapters-sandbox.ts';
 export { DaemonController } from './apps/daemon/daemonController.ts';
 export { RoutineScheduler } from './apps/daemon/routineScheduler.ts';
 export type { Routine, RoutineSchedule, RoutineModelAdapter } from './apps/daemon/routineScheduler.ts';
-export { ResponsesModel } from '@omniharness/kernel/kernel/adapters/model/responsesModel.js';
-export type { ResponsesConfig } from '@omniharness/kernel/kernel/adapters/model/responsesModel.js';
-export { RetryingModel, DEFAULT_RETRY_POLICY } from '@omniharness/kernel/kernel/adapters/model/retryingModel.js';
-export type { RetryPolicy, DelayFn } from '@omniharness/kernel/kernel/adapters/model/retryingModel.js';
-export { BudgetedModel } from '@omniharness/kernel/kernel/adapters/model/budgetedModel.js';
-export { CostBudget } from '@omniharness/kernel/kernel/adapters/model/costBudget.js';
-export type { BudgetSnapshot } from '@omniharness/kernel/kernel/adapters/model/costBudget.js';
+export { ResponsesModel } from './host/kernel/adapters-model.ts';
+export type { ResponsesConfig } from './host/kernel/adapters-model.ts';
+export { RetryingModel, DEFAULT_RETRY_POLICY } from './host/kernel/adapters-model.ts';
+export type { RetryPolicy, DelayFn } from './host/kernel/adapters-model.ts';
+export { BudgetedModel } from './host/kernel/adapters-model.ts';
+export { CostBudget } from './host/kernel/adapters-model.ts';
+export type { BudgetSnapshot } from './host/kernel/adapters-model.ts';
 export {
   RoutePricing,
   DEFAULT_ROUTE_PRICING,
   DEFAULT_FALLBACK_PRICE,
-} from '@omniharness/kernel/kernel/adapters/model/routePricing.js';
+} from './host/kernel/adapters-model.ts';
 export type { ToolHandler } from './host/kernel/adapters/tool/toolHandler.ts';
 
 // @public hooks 兼容层（通用 / claude-code 事件格式映射）
@@ -89,25 +89,25 @@ export { HooksCompatAdapter } from './apps/hooksCompat/hooksCompatAdapter.ts';
 export type { HookEventEnvelope, HookConsumer } from './apps/hooksCompat/formats.ts';
 
 // @public 上下文 / 工具
-export { ContextAssembler } from '@omniharness/kernel/kernel/context/contextAssembler.js';
-export { TokenEstimator } from '@omniharness/kernel/kernel/context/tokenEstimator.js';
-export { ContextCompactor } from '@omniharness/kernel/kernel/context/contextCompactor.js';
-export type { CompactionOptions, CompactionResult } from '@omniharness/kernel/kernel/context/contextCompactor.js';
+export { ContextAssembler } from './host/kernel/context.ts';
+export { TokenEstimator } from './host/kernel/context.ts';
+export { ContextCompactor } from './host/kernel/context.ts';
+export type { CompactionOptions, CompactionResult } from './host/kernel/context.ts';
 // Spill：超大工具输出外溢（#74）
-export { SpillPolicy } from '@omniharness/kernel/kernel/context/spillPolicy.js';
-export type { SpillPolicyOptions } from '@omniharness/kernel/kernel/context/spillPolicy.js';
-export { ToolResultSpiller } from '@omniharness/kernel/kernel/context/toolResultSpiller.js';
-export type { SpillerOptions } from '@omniharness/kernel/kernel/context/toolResultSpiller.js';
-export { FileSpill } from '@omniharness/kernel/kernel/adapters/spill/fileSpill.js';
-export { MemorySpill } from '@omniharness/kernel/kernel/adapters/spill/memorySpill.js';
-export { SpillReadTool } from '@omniharness/kernel/kernel/adapters/tool/meta/spillReadTool.js';
-export { WorkspaceGuard, PathTraversalError } from '@omniharness/kernel/kernel/util/workspaceGuard.js';
-export { OutputDecoder } from '@omniharness/kernel/kernel/util/outputDecoder.js';
+export { SpillPolicy } from './host/kernel/context.ts';
+export type { SpillPolicyOptions } from './host/kernel/context.ts';
+export { ToolResultSpiller } from './host/kernel/context.ts';
+export type { SpillerOptions } from './host/kernel/context.ts';
+export { FileSpill } from './host/kernel/adapters-misc.ts';
+export { MemorySpill } from './host/kernel/adapters-misc.ts';
+export { SpillReadTool } from './host/kernel/adapters-tool.ts';
+export { WorkspaceGuard, PathTraversalError } from './host/kernel/util.ts';
+export { OutputDecoder } from './host/kernel/util.ts';
 
 
 // @public 门禁 / PTC 代码执行
-export { ToolGate } from '@omniharness/kernel/kernel/core/toolGate.js';
-export { SupervisorKernel } from '@omniharness/kernel/kernel/supervisor/supervisorKernel.js';
+export { ToolGate } from './host/kernel/core.ts';
+export { SupervisorKernel } from './host/kernel/platform.ts';
 export type {
   SupervisorPort,
   SupervisorOptions,
@@ -115,27 +115,27 @@ export type {
   HealthSnapshot,
   HealthEntry,
   AuditSinkLike,
-} from '@omniharness/kernel/contracts/ports/runtime/supervisor.js';
+} from './host/kernel/contracts.ts';
 
-export { EigenSpectrum } from '@omniharness/kernel/kernel/util/eigenspectrum.js';
-export type { Spectrum } from '@omniharness/kernel/contracts/ports/util/spectrum.js';
+export { EigenSpectrum } from './host/kernel/util.ts';
+export type { Spectrum } from './host/kernel/contracts.ts';
 
 
 
 // @public 进化闭环（P1：发现 → 评估 → 晋升，fail-closed）
-export { FailClosedEvolutionGate } from '@omniharness/kernel/kernel/evolution/failClosedEvolutionGate.js';
+export { FailClosedEvolutionGate } from './host/kernel/evolution.ts';
 export type {
   BenchmarkFn,
   SafetyCheck,
   FailClosedEvolutionGateOptions,
-} from '@omniharness/kernel/kernel/evolution/failClosedEvolutionGate.js';
-export { TwistDiscoveryEngine } from '@omniharness/kernel/kernel/evolution/twistDiscoveryEngine.js';
-export type { TwistDiscoveryOptions } from '@omniharness/kernel/kernel/evolution/twistDiscoveryEngine.js';
-export { EvolutionControllerImpl } from '@omniharness/kernel/kernel/evolution/evolutionControllerImpl.js';
-export { RlvrController } from '@omniharness/kernel/kernel/evolution/rlvrController.js';
-export type { RlvrEvolutionOptions, RlvrEvolutionBundle } from '@omniharness/kernel/kernel/evolution/rlvrController.js';
-export type { VerifiableRewardFn } from '@omniharness/kernel/kernel/evolution/verifiableReward.js';
-export { Benchmark } from '@omniharness/kernel/kernel/evolution/benchmark.js';
+} from './host/kernel/evolution.ts';
+export { TwistDiscoveryEngine } from './host/kernel/evolution.ts';
+export type { TwistDiscoveryOptions } from './host/kernel/evolution.ts';
+export { EvolutionControllerImpl } from './host/kernel/evolution.ts';
+export { RlvrController } from './host/kernel/evolution.ts';
+export type { RlvrEvolutionOptions, RlvrEvolutionBundle } from './host/kernel/evolution.ts';
+export type { VerifiableRewardFn } from './host/kernel/evolution.ts';
+export { Benchmark } from './host/kernel/evolution.ts';
 export type {
   Candidate,
   PromotionVerdict,
@@ -143,28 +143,28 @@ export type {
   DiscoveryEngine,
   EvolutionController,
   EvolutionControllerOptions,
-} from '@omniharness/kernel/contracts/ports/runtime/evolution.js';
-export { CodeInterpreter } from '@omniharness/kernel/kernel/adapters/tool/code/codeInterpreter.js';
-export type { CodeInterpreterDeps, CodeRunResult } from '@omniharness/kernel/kernel/adapters/tool/code/codeInterpreter.js';
-export { CodeExecutorTool } from '@omniharness/kernel/kernel/adapters/tool/code/codeExecutorTool.js';
-export type { CodeExecutorOptions } from '@omniharness/kernel/kernel/adapters/tool/code/codeExecutorTool.js';
+} from './host/kernel/contracts.ts';
+export { CodeInterpreter } from './host/kernel/adapters-tool.ts';
+export type { CodeInterpreterDeps, CodeRunResult } from './host/kernel/adapters-tool.ts';
+export { CodeExecutorTool } from './host/kernel/adapters-tool.ts';
+export type { CodeExecutorOptions } from './host/kernel/adapters-tool.ts';
 
 // @public Skills 系统
-export type { Skill } from '@omniharness/kernel/kernel/skill/skill.js';
-export { SkillRegistry } from '@omniharness/kernel/kernel/skill/skillRegistry.js';
+export type { Skill } from './host/kernel/platform.ts';
+export { SkillRegistry } from './host/kernel/platform.ts';
 
 export { CodeGenerator } from './host/contracts/schema/codeGenerator.ts';
 
 // @public 跨 harness worker 编排
-export type { Worker, WorkerRequest, WorkerResult } from '@omniharness/kernel/kernel/worker/worker.js';
-export { SimpleWorker } from '@omniharness/kernel/kernel/worker/simpleWorker.js';
-export { WorkerRegistry } from '@omniharness/kernel/kernel/worker/workerRegistry.js';
-export { WorkerOrchestrator } from '@omniharness/kernel/kernel/worker/workerOrchestrator.js';
-export type { DelegateTask } from '@omniharness/kernel/kernel/worker/workerOrchestrator.js';
-export { DelegateTool } from '@omniharness/kernel/kernel/adapters/tool/workflow/delegateTool.js';
+export type { Worker, WorkerRequest, WorkerResult } from './host/kernel/platform.ts';
+export { SimpleWorker } from './host/kernel/platform.ts';
+export { WorkerRegistry } from './host/kernel/platform.ts';
+export { WorkerOrchestrator } from './host/kernel/platform.ts';
+export type { DelegateTask } from './host/kernel/platform.ts';
+export { DelegateTool } from './host/kernel/adapters-tool.ts';
 
 // @public MCP 网关（对外暴露工具 / 桥接外部 MCP 服务器）
-export { McpProtocol } from '@omniharness/kernel/protocols/mcp/mcpProtocol.js';
+export { McpProtocol } from './host/kernel/protocols.ts';
 export type {
   McpCallToolResult,
   McpCacheableResult,
@@ -181,35 +181,35 @@ export type {
   McpSubscriptionFilter,
   McpTextContent,
   McpToolDescriptor,
-} from '@omniharness/kernel/protocols/mcp/mcpProtocol.js';
-export { McpToolMapper } from '@omniharness/kernel/protocols/mcp/mcpToolMapper.js';
-export { McpServer } from '@omniharness/kernel/protocols/mcp/mcpServer.js';
-export type { McpServerOptions } from '@omniharness/kernel/protocols/mcp/mcpServer.js';
-export { McpClient } from '@omniharness/kernel/protocols/mcp/mcpClient.js';
-export type { McpClientOptions } from '@omniharness/kernel/protocols/mcp/mcpClient.js';
-export { McpStatelessClient } from '@omniharness/kernel/protocols/mcp/mcpStatelessClient.js';
+} from './host/kernel/protocols.ts';
+export { McpToolMapper } from './host/kernel/protocols.ts';
+export { McpServer } from './host/kernel/protocols.ts';
+export type { McpServerOptions } from './host/kernel/protocols.ts';
+export { McpClient } from './host/kernel/protocols.ts';
+export type { McpClientOptions } from './host/kernel/protocols.ts';
+export { McpStatelessClient } from './host/kernel/protocols.ts';
 export type {
   McpStatelessClientOptions,
   McpSubscription,
   McpSubscriptionHandlers,
-} from '@omniharness/kernel/protocols/mcp/mcpStatelessClient.js';
+} from './host/kernel/protocols.ts';
 export type {
   McpInputRequiredContext,
   McpInputRequiredDecision,
   McpInputRequiredPort,
-} from '@omniharness/kernel/contracts/ports/mcp/mcpInputRequiredPort.js';
-export { McpAskUserInputHandler } from '@omniharness/kernel/protocols/mcp/mcpAskUserInputHandler.js';
-export { McpApprovalInputHandler } from '@omniharness/kernel/protocols/mcp/mcpApprovalInputHandler.js';
-export { McpCompositeInputHandler } from '@omniharness/kernel/protocols/mcp/mcpCompositeInputHandler.js';
-export { McpSseResponseTransport } from '@omniharness/kernel/protocols/mcp/mcpSseResponseTransport.js';
-export type { McpSseFrame, McpSseWriter } from '@omniharness/kernel/protocols/mcp/mcpSseResponseTransport.js';
-export { McpStdioTransport } from '@omniharness/kernel/protocols/mcp/mcpStdioTransport.js';
-export type { McpStdioHandle, McpStdioServerOptions } from '@omniharness/kernel/protocols/mcp/mcpStdioTransport.js';
-export { McpConnector } from '@omniharness/kernel/protocols/mcp/mcpConnector.js';
-export type { McpConnection, McpConnectorOptions } from '@omniharness/kernel/protocols/mcp/mcpConnector.js';
-export { McpGateway } from '@omniharness/kernel/protocols/mcp/mcpGateway.js';
-export type { McpBridgeResult, McpGatewayOptions, McpServerConfig } from '@omniharness/kernel/protocols/mcp/mcpGateway.js';
-export { McpServerCommand } from '@omniharness/kernel/protocols/mcp/mcpServerCommand.js';
+} from './host/kernel/contracts.ts';
+export { McpAskUserInputHandler } from './host/kernel/protocols.ts';
+export { McpApprovalInputHandler } from './host/kernel/protocols.ts';
+export { McpCompositeInputHandler } from './host/kernel/protocols.ts';
+export { McpSseResponseTransport } from './host/kernel/protocols.ts';
+export type { McpSseFrame, McpSseWriter } from './host/kernel/protocols.ts';
+export { McpStdioTransport } from './host/kernel/protocols.ts';
+export type { McpStdioHandle, McpStdioServerOptions } from './host/kernel/protocols.ts';
+export { McpConnector } from './host/kernel/protocols.ts';
+export type { McpConnection, McpConnectorOptions } from './host/kernel/protocols.ts';
+export { McpGateway } from './host/kernel/protocols.ts';
+export type { McpBridgeResult, McpGatewayOptions, McpServerConfig } from './host/kernel/protocols.ts';
+export { McpServerCommand } from './host/kernel/protocols.ts';
 
 
 // @public 企业管控（D2：SSO / 合规导出）
@@ -231,14 +231,14 @@ export { API_VERSION } from './version.ts';
 export type { ApiVersion } from './version.ts';
 
 // @public 长期运行遥测（P4, I-P4-3：回填基座 + 闭环参数收紧）
-export { JsonlRuntimeTelemetry } from '@omniharness/kernel/kernel/adapters/telemetry/jsonlRuntimeTelemetry.js';
-export type { JsonlRuntimeTelemetryOptions } from '@omniharness/kernel/kernel/adapters/telemetry/jsonlRuntimeTelemetry.js';
+export { JsonlRuntimeTelemetry } from './host/kernel/adapters-misc.ts';
+export type { JsonlRuntimeTelemetryOptions } from './host/kernel/adapters-misc.ts';
 export type {
   RuntimeObservation,
   RuntimeTelemetryPort,
   TelemetryChainReport,
   TelemetryKind,
   TelemetryProvenance,
-} from '@omniharness/kernel/contracts/ports/runtime/runtimeTelemetry.js';
+} from './host/kernel/contracts.ts';
 
 

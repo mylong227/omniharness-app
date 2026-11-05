@@ -30,17 +30,17 @@ import type {
   InstallReport,
   PackAssetEntry,
   RegistryMetadata,
-} from '@omniharness/kernel/contracts/ports/asset.js';
-import { ISOLATION_LEVEL_ORDER, TRUST_TIER_ORDER } from '@omniharness/kernel/contracts/ports/capability.js';
+} from '../../../kernel/contracts.ts';
+import { ISOLATION_LEVEL_ORDER, TRUST_TIER_ORDER } from '../../../kernel/contracts.ts';
 import type {
   CapabilityRecord,
   CapabilityRegistryPort,
   CapabilitySchemaRegistryPort,
   IsolationLevel,
   TrustTier,
-} from '@omniharness/kernel/contracts/ports/capability.js';
-import type { PromotionLedgerPort } from '@omniharness/kernel/contracts/ports/runtime/evolution.js';
-import type { IsolationPayload, IsolationPort } from '@omniharness/kernel/contracts/ports/runtime/isolation.js';
+} from '../../../kernel/contracts.ts';
+import type { PromotionLedgerPort } from '../../../kernel/contracts.ts';
+import type { IsolationPayload, IsolationPort } from '../../../kernel/contracts.ts';
 
 /** 装配项。 */
 export interface AssetPackInstallerOptions {

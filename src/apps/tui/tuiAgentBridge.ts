@@ -18,8 +18,8 @@
  * 桥只做「事件 → 渲染事件」的映射与多轮衔接，不新增任何模型语义；`question`（审批提问）
  * 只是渲染，答复仍走既有的 userResponder 装配（与 exec 同口径）。
  */
-import type { EventPort } from '@omniharness/kernel/contracts/ports/runtime/eventPort.js';
-import type { SessionEvent } from '@omniharness/kernel/contracts/ports/runtime/event.js';
+import type { EventPort } from '../../host/kernel/contracts.ts';
+import type { SessionEvent } from '../../host/kernel/contracts.ts';
 import type { TuiEvent } from './../../host/contracts/ports/tui/tuiEvent.ts';
 import type { TuiTaskRunner } from './../../host/contracts/ports/tui/tuiTaskRunner.ts';
 

@@ -12,8 +12,8 @@
  */
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { SessionArchiveLayout } from '@omniharness/kernel/kernel/util/sessionArchiveLayout.js';
-import type { SessionEvent } from '@omniharness/kernel/contracts/ports/runtime/event.js';
+import { SessionArchiveLayout } from '../../../../kernel/util.ts';
+import type { SessionEvent } from '../../../../kernel/contracts.ts';
 
 /** 合法的会话 id 形态（与 `SessionArchive.resolveSessionFile` 同一口径）。 */
 const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;

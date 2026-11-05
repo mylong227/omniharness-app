@@ -2,8 +2,8 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { get } from 'node:https';
 import type { IncomingMessage } from 'node:http';
 import { type PluginDescriptor, type PluginManifest } from './manifest.ts';
-import { endpointDefaults } from '@omniharness/kernel/kernel/util/endpointDefaults.js';
-import { LimitEnv } from '@omniharness/kernel/kernel/util/limitEnv.js';
+import { endpointDefaults } from '../../../kernel/util.ts';
+import { LimitEnv } from '../../../kernel/util.ts';
 
 /**
  * RegistrySourcesShared —— 由本文件原顶层函数归并而来（每个方法对应一个原函数，语义与签名逐字保留）。

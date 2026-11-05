@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { chmodSync, readFileSync, writeFileSync } from 'node:fs';
-import { ArrayAt } from '@omniharness/kernel/kernel/util/arrayAt.js';
+import { ArrayAt } from '../../host/kernel/util.ts';
 import type { OidcProviderConfig } from './../../host/contracts/ports/enterprise/oidcProviderConfig.ts';
 import type { OidcDiscovery } from './../../host/contracts/ports/enterprise/oidcDiscovery.ts';
 import type { AuthState } from './../../host/contracts/ports/enterprise/authState.ts';

@@ -1,4 +1,4 @@
-import type { FileConfig } from '@omniharness/kernel/contracts/ports/config/fileConfig.js';
+import type { FileConfig } from '../../host/kernel/contracts.ts';
 import type { CliArgs } from './cliArgs.ts';
 
 /**

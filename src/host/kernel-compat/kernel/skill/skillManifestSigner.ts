@@ -6,7 +6,7 @@
  * `OMNI_SKILL_TRUSTED_KEY` 指向的可信公钥验签，未配置可信公钥的签名包一律拒绝。
  */
 import { createPrivateKey, createPublicKey, sign, verify } from 'node:crypto';
-import type { SkillEntry } from '@omniharness/kernel/kernel/skill/skill.js';
+import type { SkillEntry } from '../../../kernel/platform.ts';
 
 /** 已签名技能包。 */
 export interface SignedSkillManifest {

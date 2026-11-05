@@ -31,8 +31,8 @@
  */
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { Ed25519PublicKey } from '@omniharness/kernel/kernel/util/ed25519PublicKey.js';
-import { log } from '@omniharness/kernel/kernel/util/logger.js';
+import { Ed25519PublicKey } from '../../../kernel/util.ts';
+import { log } from '../../../kernel/util.ts';
 import { PluginBundler } from './pluginBundler.ts';
 import { BundleCodec } from './bundleCodec.ts';
 import type { BundleManifest } from './pluginBundler.ts';

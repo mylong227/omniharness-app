@@ -9,7 +9,7 @@
 import { ALL_PERMISSIONS, DANGEROUS_PERMISSIONS, Permission } from '../../../host/kernel-compat/kernel/plugin/permission.ts';
 import type { PluginPermission } from '../../../host/kernel-compat/kernel/plugin/permission.ts';
 import { PermissionGate } from '../../../host/kernel-compat/kernel/plugin/permissionGate.ts';
-import { log } from '@omniharness/kernel/kernel/util/logger.js';
+import { log } from '../../../host/kernel/util.ts';
 
 /** 宿主权限白名单的环境变量名（逗号分隔的额外授权，或 `all`）。 */
 export const PLUGIN_PERMISSIONS_ENV = 'OMNI_PLUGIN_PERMISSIONS';

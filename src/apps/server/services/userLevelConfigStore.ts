@@ -1,8 +1,8 @@
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { configFile, type FileConfig } from '@omniharness/kernel/kernel/config/configFile.js';
+import { configFile, type FileConfig } from '../../../host/kernel/config.ts';
 import { PortablePath } from '../../../host/kernel-compat/kernel/util/portablePath.ts';
-import { OmniHome } from '@omniharness/kernel/kernel/util/omniHome.js';
+import { OmniHome } from '../../../host/kernel/util.ts';
 
 /**
  * 用户级配置（`~/.omniharness/omniharness.json`）的专属读写通道：本机运行态 + 私密凭据。

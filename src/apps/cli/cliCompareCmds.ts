@@ -9,7 +9,7 @@
 import { CliDefaults, MODEL_ADAPTERS, CliFlagTable } from './argParser.ts';
 import type { CliArgs } from './argParser.ts';
 import { CliDataCmds } from './cliDataCmds.ts';
-import type { ResolvedConfig } from '@omniharness/kernel/contracts/ports/config/resolvedConfig.js';
+import type { ResolvedConfig } from '../../host/kernel/contracts.ts';
 
 /** A/B 模型对比类子命令。 */
 export class CliCompareCmds extends CliDataCmds {
@@ -55,7 +55,7 @@ export class CliCompareCmds extends CliDataCmds {
     // 合计净 ~1.2s，而 compare 是**冷门命令族**；顶层值导入让**每个**子命令（含 `kv list`）都付这份
     // ESM 解析成本 ⇒ 改成走到这里才加载。调用方零改动。
     const [{ Agent }, { Runtime }] = await Promise.all([
-      import('@omniharness/kernel/kernel/core/agent.js'),
+      import('../../host/kernel/core.ts'),
       import('../composition/runtime.ts'),
     ]);
     const agent = new Agent(Runtime.createRuntime(config));
@@ -96,11 +96,11 @@ export class CliCompareCmds extends CliDataCmds {
       { AutoApproval },
       { PassthroughSandbox },
     ] = await Promise.all([
-      import('@omniharness/kernel/kernel/config/configFactory.js'),
-      import('@omniharness/kernel/kernel/adapters/storage/memoryStorage.js'),
-      import('@omniharness/kernel/kernel/adapters/event/silentEventPort.js'),
-      import('@omniharness/kernel/kernel/adapters/approval/autoApproval.js'),
-      import('@omniharness/kernel/kernel/adapters/sandbox/passthroughSandbox.js'),
+      import('../../host/kernel/config.ts'),
+      import('../../host/kernel/adapters-misc.ts'),
+      import('../../host/kernel/adapters-misc.ts'),
+      import('../../host/kernel/adapters-approval.ts'),
+      import('../../host/kernel/adapters-sandbox.ts'),
     ]);
     return ConfigFactory.build({
       workspaceRoot: process.cwd(),

@@ -25,7 +25,7 @@ import { readFileSync, statSync } from 'node:fs';
 
 import { LicenseEngine } from './licenseEngine.ts';
 import { FeatureEntitlements } from './featureEntitlements.ts';
-import { log } from '@omniharness/kernel/kernel/util/logger.js';
+import { log } from '../../host/kernel/util.ts';
 import type { EntitlementObserver } from './featureEntitlements.ts';
 
 /** 内联 license 的环境变量名。 */

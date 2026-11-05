@@ -10,9 +10,9 @@ import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { CliArgReader } from './cliArgReader.ts';
 import { SessionStorageLocation } from '../../host/kernel-compat/kernel/util/sessionStorageLocation.ts';
 import { SessionTransfer } from './sessionTransfer.ts';
-import { JsonlStorage } from '@omniharness/kernel/kernel/adapters/storage/jsonlStorage.js';
+import { JsonlStorage } from '../../host/kernel/adapters-misc.ts';
 import { SessionArchive } from '../server/services/session/sessionArchive.ts';
-import { log } from '@omniharness/kernel/kernel/util/logger.js';
+import { log } from '../../host/kernel/util.ts';
 
 /** session 子命令：列出工作区会话日志文件（session list），输出 id / 事件数 / 修改时间摘要。 */
 export class SessionCommand {

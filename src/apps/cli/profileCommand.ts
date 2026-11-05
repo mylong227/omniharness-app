@@ -8,7 +8,7 @@
  */
 
 import { join } from 'node:path';
-import { configFile } from '@omniharness/kernel/kernel/config/configFile.js';
+import { configFile } from '../../host/kernel/config.ts';
 import { PluginProfileStore } from '../../host/kernel-compat/kernel/plugin/pluginProfileStore.ts';
 import { CliArgReader } from './cliArgReader.ts';
 

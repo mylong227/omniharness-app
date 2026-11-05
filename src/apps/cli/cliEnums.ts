@@ -1,5 +1,5 @@
 import type { CliArgs } from './argParser.ts';
-import { MODEL_ADAPTER_IDS } from '@omniharness/kernel/contracts/ports/model/modelAdapterId.js';
+import { MODEL_ADAPTER_IDS } from '../../host/kernel/contracts.ts';
 
 /**
  * CLI 枚举参数白名单（与 `CliArgs` 联合类型同源：`satisfies` 保证二者漂移即编译报错）。

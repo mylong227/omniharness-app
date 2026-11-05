@@ -1,5 +1,5 @@
 import type { RepoPathGuard } from './repoPathGuard.ts';
-import { AsyncChildProcess } from '@omniharness/kernel/kernel/util/asyncChildProcess.js';
+import { AsyncChildProcess } from '../../../host/kernel/util.ts';
 
 /** DiffReview 构造选项。 */
 export interface DiffReviewOptions {

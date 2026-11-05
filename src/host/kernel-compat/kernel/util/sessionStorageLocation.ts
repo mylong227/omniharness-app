@@ -21,7 +21,7 @@
  *   存储端口本身的 `location`），与本类的语义不同，故不强行合并——差异在本注释里写明。
  */
 import { resolve } from 'node:path';
-import { OmniHome } from '@omniharness/kernel/kernel/util/omniHome.js';
+import { OmniHome } from '../../../kernel/util.ts';
 
 /** 会话落盘位置解析（无状态）。 */
 export class SessionStorageLocation {

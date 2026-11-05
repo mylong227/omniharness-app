@@ -1,4 +1,4 @@
-import type { ContainerPort } from '@omniharness/kernel/contracts/ports/runtime/containerPort.js';
+import type { ContainerPort } from '../../../../kernel/contracts.ts';
 
 /**
  * @beta

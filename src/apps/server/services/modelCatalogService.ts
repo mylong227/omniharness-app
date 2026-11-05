@@ -1,8 +1,8 @@
-import type { FileConfig } from '@omniharness/kernel/kernel/config/configFile.js';
-import type { ModelPort } from '@omniharness/kernel/contracts/ports/model/model.js';
+import type { FileConfig } from '../../../host/kernel/config.ts';
+import type { ModelPort } from '../../../host/kernel/contracts.ts';
 import { providerPresets, type ProviderPreset } from './providerPresets.ts';
 import { ProviderProbe } from './providerProbe.ts';
-import { SsrfPolicy } from '@omniharness/kernel/kernel/security/ssrfPolicy.js';
+import { SsrfPolicy } from '../../../host/kernel/security.ts';
 
 /** 单厂商实测缓存项。 */
 export interface ProviderProbeCacheEntry {

@@ -14,7 +14,7 @@
  * - fail-soft：事件源抛错（存储瞬断等）时返回带 `error` 的空快照，绝不把异常抛给自省调用方。
  */
 import { ReadonlyTraceReader } from '../../../../host/kernel-compat/kernel/adapters/telemetry/readonlyTraceReader.ts';
-import type { SessionEvent } from '@omniharness/kernel/contracts/ports/runtime/event.js';
+import type { SessionEvent } from '../../../../host/kernel/contracts.ts';
 import type {
   TraceEntry,
   TraceFilter,

@@ -1,4 +1,4 @@
-import type { PluginPermission } from '@omniharness/kernel/contracts/ports/plugin/pluginPermission.js';
+import type { PluginPermission } from '../../../../kernel/contracts.ts';
 
 /**
  * @beta

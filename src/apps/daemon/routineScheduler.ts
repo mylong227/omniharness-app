@@ -19,9 +19,9 @@
  */
 import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { OmniHome } from '@omniharness/kernel/kernel/util/omniHome.js';
+import { OmniHome } from '../../host/kernel/util.ts';
 import type { Routine } from '../../host/kernel-compat/contracts/ports/daemon/routine.ts';
-import { log } from '@omniharness/kernel/kernel/util/logger.js';
+import { log } from '../../host/kernel/util.ts';
 import type { RoutineModelAdapter } from '../../host/kernel-compat/contracts/ports/daemon/routineModelAdapter.ts';
 import type { RoutineSchedule } from '../../host/kernel-compat/contracts/ports/daemon/routineSchedule.ts';
 import type { CronSchedulePort } from '../../host/kernel-compat/contracts/ports/daemon/cronSchedule.ts';

@@ -12,7 +12,7 @@
  */
 import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { OmniHome } from '@omniharness/kernel/kernel/util/omniHome.js';
+import { OmniHome } from '../../host/kernel/util.ts';
 import crypto from 'node:crypto';
 import { OidcClient, type AuthState, type OidcProviderConfig } from '../enterprise/oidcClient.ts';
 import { OpenIdClientFlow } from './../../host/kernel/adapters/enterprise/openIdClientFlow.ts';

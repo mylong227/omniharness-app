@@ -1,4 +1,4 @@
-import type { SessionEvent } from '@omniharness/kernel/contracts/ports/runtime/event.js';
+import type { SessionEvent } from '../../host/kernel/contracts.ts';
 import type { HookEventEnvelope } from './formats.ts';
 
 /**

@@ -19,10 +19,10 @@
  * 结构校验 fail-closed：快照缺失 / JSON 非法 / 用例缺字段 / id 重复一律抛错，
  * 由 doctor 转成问题项——绝不静默输出空报告冒充「检查通过」。
  */
-import { builtinDefaults } from '@omniharness/kernel/kernel/util/builtinDefaults.js';
+import { builtinDefaults } from '../../../kernel/util.ts';
 import { InjectionMetric } from './injectionMetric.ts';
 import type { InjectionCase, SnapshotReport } from './injectionSnapshotAggregator.ts';
-import type { TrustTier } from '@omniharness/kernel/kernel/security/toolOutputTrust.js';
+import type { TrustTier } from '../../../kernel/security.ts';
 
 /** 快照文件在 `defaults/` 下的数据名（`BuiltinDefaults.json` 口径，I6 门禁据此强制随包发布）。 */
 const SNAPSHOT_NAME = 'injection-snapshot';

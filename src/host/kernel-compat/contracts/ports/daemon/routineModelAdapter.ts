@@ -1,4 +1,4 @@
-import type { ModelAdapterId } from '@omniharness/kernel/contracts/ports/model/modelAdapterId.js';
+import type { ModelAdapterId } from '../../../../kernel/contracts.ts';
 
 /**
  * @beta

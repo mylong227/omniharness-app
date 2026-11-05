@@ -1,4 +1,4 @@
-import type { SpillHandle } from '@omniharness/kernel/contracts/ports/memory/spill.js';
+import type { SpillHandle } from '../../../../../kernel/contracts.ts';
 
 /**
  * 拓扑环包（燧-4 Vortex-Ring Packet）：把一段内容封成拓扑孤子而非 token 序列。

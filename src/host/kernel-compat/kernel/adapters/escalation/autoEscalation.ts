@@ -2,7 +2,7 @@ import type {
   EscalationDecision,
   EscalationPort,
   EscalationRequest,
-} from '@omniharness/kernel/contracts/ports/runtime/escalation.js';
+} from '../../../../kernel/contracts.ts';
 
 /** 自动升级审批选项。 */
 export interface AutoEscalationOptions {

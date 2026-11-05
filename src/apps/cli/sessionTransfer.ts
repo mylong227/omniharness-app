@@ -1,5 +1,5 @@
-import type { SessionEvent } from '@omniharness/kernel/contracts/ports/runtime/event.js';
-import type { StoragePort } from '@omniharness/kernel/contracts/ports/memory/storage.js';
+import type { SessionEvent } from '../../host/kernel/contracts.ts';
+import type { StoragePort } from '../../host/kernel/contracts.ts';
 
 /**
  * 会话**导出/导入**（U3 平台互操作第一片，2026-10-31）。

@@ -11,16 +11,16 @@ import {
 import { readdir, stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { sessionSummaryPath } from '@omniharness/kernel/kernel/util/sessionSummarySidecar.js';
+import { sessionSummaryPath } from '../../../../host/kernel/util.ts';
 import type { Metrics } from '../metrics.ts';
 import type { LocalDay } from '../../../../host/kernel-compat/kernel/util/localDay.ts';
 import { SessionSidecars } from './sessionSidecars.ts';
 import { SessionRanking } from './sessionRanking.ts';
-import { SessionArchiveLayout } from '@omniharness/kernel/kernel/util/sessionArchiveLayout.js';
-import { log } from '@omniharness/kernel/kernel/util/logger.js';
+import { SessionArchiveLayout } from '../../../../host/kernel/util.ts';
+import { log } from '../../../../host/kernel/util.ts';
 import { SessionFileScanner } from './sessionFileScanner.ts';
 import { SessionScanCache } from './sessionScanCache.ts';
-import { WorkspaceIdentity } from '@omniharness/kernel/kernel/util/workspaceIdentity.js';
+import { WorkspaceIdentity } from '../../../../host/kernel/util.ts';
 
 /** 会话存档默认子目录（相对工作区）。 */
 const DEFAULT_SESSIONS_DIR = '.omniharness/sessions';

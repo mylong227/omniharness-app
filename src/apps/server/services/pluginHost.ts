@@ -1,4 +1,4 @@
-import { Container } from '@omniharness/kernel/kernel/core/container.js';
+import { Container } from '../../../host/kernel/core.ts';
 import { ServiceKeys } from '../../composition/runtime.ts';
 import { PluginManager } from '../../../host/kernel-compat/kernel/plugin/pluginManager.ts';
 import { PluginLoader } from '../../../host/kernel-compat/kernel/plugin/pluginLoader.ts';
@@ -11,7 +11,7 @@ import {
 import type { PluginRegistry } from '../../../host/kernel-compat/kernel/plugin/pluginRegistry.ts';
 import { jsonRpc } from '../core/jsonRpc.ts';
 import type { Transport } from '../transport/lineTransport.ts';
-import type { ResolvedConfig } from '@omniharness/kernel/contracts/ports/config/resolvedConfig.js';
+import type { ResolvedConfig } from '../../../host/kernel/contracts.ts';
 
 /** 插件宿主依赖。 */
 export interface PluginHostDeps {

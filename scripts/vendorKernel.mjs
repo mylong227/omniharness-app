@@ -12,8 +12,8 @@
  * 路径/integrity。all-or-nothing 由各步非零退出保证。
  *
  * 用法：
- *   node scripts/vendorKernel.mjs
- *   OMNI_KERNEL_ROOT=D:\path\to\kernel OMNI_KERNEL_TAG=v0.1.0-alpha.4 node scripts/vendorKernel.mjs
+ *   node scripts/vendorKernel.mjs          # 缺省 vend 当前 package.json 钉的那个 tag
+ *   OMNI_KERNEL_ROOT=D:\path\to\kernel OMNI_KERNEL_TAG=v0.1.0-alpha.7 node scripts/vendorKernel.mjs
  */
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
@@ -32,7 +32,19 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const kernelRoot = resolve(process.env.OMNI_KERNEL_ROOT ?? join(ROOT, '..', 'omniharness-kernel'));
-const tag = (process.env.OMNI_KERNEL_TAG ?? 'v0.1.0-alpha.4').trim();
+// 缺省 tag 从根 package.json 当前钉的 vendored tgz 文件名解析（self-consistent：
+// 「再 vendor 一次当前版本」永远可复现，不存在脚本缺省 tag 与实际钉版本漂移的缺陷类）。
+const pkgDep = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).dependencies?.[
+  '@omniharness/kernel'
+];
+const pinnedTag = (() => {
+  if (typeof pkgDep !== 'string') throw new Error('package.json 缺 @omniharness/kernel 依赖');
+  const file = pkgDep.startsWith('file:') ? pkgDep.slice('file:'.length) : '';
+  const m = /^vendor\/omniharness-kernel-(.+)\.tgz$/.exec(file);
+  if (m === null) throw new Error(`依赖不是 file:vendor/*.tgz 形态：${String(pkgDep)}`);
+  return `v${m[1]}`;
+})();
+const tag = (process.env.OMNI_KERNEL_TAG ?? pinnedTag).trim();
 const worktree = join(ROOT, '.tmp', 'kernel-vendor');
 const vendorDir = join(ROOT, 'vendor');
 

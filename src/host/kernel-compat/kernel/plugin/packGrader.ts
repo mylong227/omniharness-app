@@ -27,7 +27,7 @@
  * @maturity L1 — A/B/C 三档可达 / 未声明能力一票 C / 沙箱失败一票 C / 缺腿 fail-closed / 确定性 判据钉死
  * @maturityEvidence tests/unit/packGrader.test.ts
  */
-import { log } from '@omniharness/kernel/kernel/util/logger.js';
+import { log } from '../../../kernel/util.ts';
 import { PackStaticScanner } from './packStaticScanner.ts';
 import type { PackCapability, PackFinding, PackScanReport } from './packStaticScanner.ts';
 

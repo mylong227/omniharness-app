@@ -22,9 +22,9 @@
  * @maturityEvidence tests/unit/assetPackCodec.test.ts
  */
 import { verify as cryptoVerify, type KeyObject } from 'node:crypto';
-import { Ed25519PublicKey } from '@omniharness/kernel/kernel/util/ed25519PublicKey.js';
-import type { AgentIdentityPort } from '@omniharness/kernel/contracts/ports/runtime/agentIdentity.js';
-import type { AssetPackManifest, PackPublisher } from '@omniharness/kernel/contracts/ports/asset.js';
+import { Ed25519PublicKey } from '../../../kernel/util.ts';
+import type { AgentIdentityPort } from '../../../kernel/contracts.ts';
+import type { AssetPackManifest, PackPublisher } from '../../../kernel/contracts.ts';
 import { Zip } from '../plugin/zip.ts';
 
 /** 包内清单条目名（与插件包的 `bundle.json` 语义隔离）。 */

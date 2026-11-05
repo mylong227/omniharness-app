@@ -1,4 +1,4 @@
-export type { EventType, SessionEvent } from '@omniharness/kernel/contracts/ports/runtime/event.js';
+export type { EventType, SessionEvent } from '../../../kernel/contracts.ts';
 export type {
   ToolCall,
   ToolContext,
@@ -6,7 +6,7 @@ export type {
   ToolParametersSchema,
   ToolPort,
   ToolResult,
-} from '@omniharness/kernel/contracts/ports/tool/tool.js';
+} from '../../../kernel/contracts.ts';
 export type {
   ModelMessage,
   ModelOutput,
@@ -16,33 +16,33 @@ export type {
   ModelToolSpec,
   ModelUsage,
   RoutePrice,
-} from '@omniharness/kernel/contracts/ports/model/model.js';
-export { ModelCallError, BudgetExceededError } from '@omniharness/kernel/contracts/ports/model/model.js';
-export type { BudgetDegradeSignal } from '@omniharness/kernel/contracts/ports/model/budgetDegrade.js';
-export type { StoragePort } from '@omniharness/kernel/contracts/ports/memory/storage.js';
-export type { KvPort } from '@omniharness/kernel/contracts/ports/memory/kv.js';
+} from '../../../kernel/contracts.ts';
+export { ModelCallError, BudgetExceededError } from '../../../kernel/contracts.ts';
+export type { BudgetDegradeSignal } from '../../../kernel/contracts.ts';
+export type { StoragePort } from '../../../kernel/contracts.ts';
+export type { KvPort } from '../../../kernel/contracts.ts';
 export type { VaultPort } from './memory/vault.ts';
-export type { EventPort } from '@omniharness/kernel/contracts/ports/runtime/eventPort.js';
-export type { ToolInputSink } from '@omniharness/kernel/contracts/ports/tool/toolInputSink.js';
+export type { EventPort } from '../../../kernel/contracts.ts';
+export type { ToolInputSink } from '../../../kernel/contracts.ts';
 export type {
   SandboxAction,
   SandboxDecision,
   SandboxPort,
   SandboxDenialCategory,
-} from '@omniharness/kernel/contracts/ports/runtime/sandbox.js';
-export type { ApprovalDecision, ApprovalPort, ApprovalRequest } from '@omniharness/kernel/contracts/ports/runtime/approval.js';
+} from '../../../kernel/contracts.ts';
+export type { ApprovalDecision, ApprovalPort, ApprovalRequest } from '../../../kernel/contracts.ts';
 export type {
   EscalationDecision,
   EscalationDeniedBy,
   EscalationPort,
   EscalationRequest,
-} from '@omniharness/kernel/contracts/ports/runtime/escalation.js';
-export type { SpillHandle, SpillPort } from '@omniharness/kernel/contracts/ports/memory/spill.js';
+} from '../../../kernel/contracts.ts';
+export type { SpillHandle, SpillPort } from '../../../kernel/contracts.ts';
 export type { VortexRing, VortexRingPort } from './intelligence/vortexRing.ts';
 export type { ResonantHit, ResonantMemoryPort } from './memory/resonantMemory.ts';
 export type { ResonantFieldPort, ResonantFieldOptions } from './memory/resonantField.ts';
-export type { LongTermMemoryPort, MemoryFact } from '@omniharness/kernel/contracts/ports/memory/longTermMemory.js';
-export type { SkillPort, MoireOptions } from '@omniharness/kernel/contracts/ports/runtime/skill.js';
+export type { LongTermMemoryPort, MemoryFact } from '../../../kernel/contracts.ts';
+export type { SkillPort, MoireOptions } from '../../../kernel/contracts.ts';
 export type {
   SupervisorPort,
   SupervisorOptions,
@@ -50,7 +50,7 @@ export type {
   HealthSnapshot,
   HealthEntry,
   AuditSinkLike,
-} from '@omniharness/kernel/contracts/ports/runtime/supervisor.js';
+} from '../../../kernel/contracts.ts';
 export type {
   Candidate,
   PromotionVerdict,
@@ -58,4 +58,4 @@ export type {
   DiscoveryEngine,
   EvolutionController,
   EvolutionControllerOptions,
-} from '@omniharness/kernel/contracts/ports/runtime/evolution.js';
+} from '../../../kernel/contracts.ts';

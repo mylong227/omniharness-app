@@ -1,4 +1,4 @@
-import type { HealthSnapshot, SafeMode, SupervisorPort } from '@omniharness/kernel/contracts/ports/runtime/supervisor.js';
+import type { HealthSnapshot, SafeMode, SupervisorPort } from '../../../host/kernel/contracts.ts';
 
 /**
  * 服务端 no-op 监督内核：仅当启动时 `--auto-approve` 或 UI 审批档位为 auto

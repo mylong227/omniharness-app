@@ -4,8 +4,8 @@
  * 从 `cliServerCmds` 抽出：god-class 代码行数门禁不允许把信任回调再塞进类体；
  * 该对象只持有回调与可变结果，不发起 IO。
  */
-import type { WorkspaceTrustOptions } from '@omniharness/kernel/kernel/config/configFile.js';
-import { WorkspaceTrust } from '@omniharness/kernel/kernel/config/workspaceTrust.js';
+import type { WorkspaceTrustOptions } from '../../host/kernel/config.ts';
+import { WorkspaceTrust } from '../../host/kernel/config.ts';
 
 /** 信任选项 + 回调后的可读结果。 */
 export interface ServeTrustBinding {

@@ -1,6 +1,6 @@
-import type { ModelPort } from '@omniharness/kernel/contracts/ports/model/model.js';
-import type { ModelToolSpec } from '@omniharness/kernel/contracts/ports/model/modelToolSpec.js';
-import { log } from '@omniharness/kernel/kernel/util/logger.js';
+import type { ModelPort } from '../../../../kernel/contracts.ts';
+import type { ModelToolSpec } from '../../../../kernel/contracts.ts';
+import { log } from '../../../../kernel/util.ts';
 
 /**
  * 模型**能力探针**（U2-4，2026-10-30）：对当前配置的 ModelPort 跑一组受控小请求，

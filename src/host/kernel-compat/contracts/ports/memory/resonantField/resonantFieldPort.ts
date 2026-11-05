@@ -1,7 +1,7 @@
-import type { MemoryFact } from '@omniharness/kernel/contracts/ports/memory/longTermMemory.js';
+import type { MemoryFact } from '../../../../../kernel/contracts.ts';
 import type { ResonantHit } from '../resonantMemory.ts';
 import type { WebConsolidationReport } from '../cosmicWeb.ts';
-import type { Spectrum } from '@omniharness/kernel/contracts/ports/util/spectrum.js';
+import type { Spectrum } from '../../../../../kernel/contracts.ts';
 
 /**
  * 共振场端口：场查询 + 坍缩 + 调谐 的统一接口。

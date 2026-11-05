@@ -11,7 +11,7 @@
 import { lstatSync, readdirSync, rmSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { runtimeLimits } from '@omniharness/kernel/kernel/util/runtimeLimits.js';
+import { runtimeLimits } from '../../../kernel/util.ts';
 
 /** 一条候选条目。 */
 export interface TmpEntry {

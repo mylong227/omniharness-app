@@ -10,7 +10,7 @@
  * 防两侧漂移（本文件首版就是手抄错了 `SandboxStatus` 的字段名，被 tsc 当场抓到）。
  */
 import type { InjectionSelfCheckSummary } from './injectionSelfCheckSummary.ts';
-import type { SandboxCapabilityEntry } from '@omniharness/kernel/contracts/ports/runtime/sandbox/sandboxCapabilityEntry.js';
+import type { SandboxCapabilityEntry } from '../../../../kernel/contracts.ts';
 
 /** doctor 选项：工作区根与显式配置文件路径。 */
 export interface DoctorOptions {

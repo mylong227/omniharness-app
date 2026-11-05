@@ -19,9 +19,9 @@
  * @maturityEvidence tests/unit/dormantExecutorActivation.test.ts
  */
 import type { CapabilityCrystallizerPort } from '../../contracts/ports/intelligence/capability.ts';
-import type { CRISPRSkillEditorPort, CrisprEditSpec } from '../../contracts/ports/runtime/skillEdit.ts';
-import type { Skill } from '@omniharness/kernel/kernel/skill/skill.js';
-import type { ImprovementProposal } from '@omniharness/kernel/kernel/evolution/failurePatternMiner.js';
+import type { CRISPRSkillEditorPort, CrisprEditSpec } from '../../../kernel/contracts.ts';
+import type { Skill } from '../../../kernel/platform.ts';
+import type { ImprovementProposal } from '../../../kernel/evolution.ts';
 
 /** 防再犯条款标记（幂等锚点：已带此标记的 instructions 不再重复追加）。 */
 const GUARD_MARKER = '【防再犯】';

@@ -21,11 +21,11 @@
  */
 import { AssetPackCodec } from './assetPackCodec.ts';
 import type { PackSigningIdentity } from './assetPackCodec.ts';
-import { WasmSkillSchema } from '@omniharness/kernel/kernel/capability/schemas/wasmSkillSchema.js';
-import type { WasmSkillAsset } from '@omniharness/kernel/kernel/capability/schemas/wasmSkillSchema.js';
-import type { AssetPackManifest, PackAssetEntry } from '@omniharness/kernel/contracts/ports/asset/assetPack.js';
-import type { CapabilityRecord } from '@omniharness/kernel/contracts/ports/capability.js';
-import type { IsolationPayload } from '@omniharness/kernel/contracts/ports/runtime/isolation.js';
+import { WasmSkillSchema } from '../../../kernel/platform.ts';
+import type { WasmSkillAsset } from '../../../kernel/platform.ts';
+import type { AssetPackManifest, PackAssetEntry } from '../../../kernel/contracts.ts';
+import type { CapabilityRecord } from '../../../kernel/contracts.ts';
+import type { IsolationPayload } from '../../../kernel/contracts.ts';
 
 /** 冒烟/运行共用的默认入参（`ping` 是最小闭环：证明宿主写内存 → 调用 → 读回 → 释放可用）。 */
 const DEFAULT_INPUT = '{"jsonrpc":"2.0","id":1,"method":"ping"}';

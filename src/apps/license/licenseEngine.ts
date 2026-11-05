@@ -27,9 +27,9 @@
  */
 import { createHash } from 'node:crypto';
 import type { LicenseTier } from './../../host/contracts/ports/license/licenseTier.ts';
-import { log } from '@omniharness/kernel/kernel/util/logger.js';
+import { log } from '../../host/kernel/util.ts';
 import { arch, cpus, hostname, platform } from 'node:os';
-import { Ed25519PublicKey } from '@omniharness/kernel/kernel/util/ed25519PublicKey.js';
+import { Ed25519PublicKey } from '../../host/kernel/util.ts';
 
 /** 档位（由低到高；`core` 永远可用）。 */
 export type { LicenseTier } from './../../host/contracts/ports/license/licenseTier.ts';

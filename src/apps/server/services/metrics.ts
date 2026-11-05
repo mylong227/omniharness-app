@@ -1,4 +1,4 @@
-import type { SessionEvent } from '@omniharness/kernel/contracts/ports/runtime/event.js';
+import type { SessionEvent } from '../../../host/kernel/contracts.ts';
 import { QuantileSketch } from '../../../host/kernel-compat/kernel/util/quantileSketch.ts';
 
 /** 单指标对象（Prometheus 文本用）。 */

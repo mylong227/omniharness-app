@@ -10,10 +10,10 @@ import { execFileSync } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
-import { NativeKernel } from '@omniharness/kernel/kernel/native/nativeKernel.js';
-import { BuiltinDefaults } from '@omniharness/kernel/kernel/util/builtinDefaults.js';
-import { RuleApproval } from '@omniharness/kernel/kernel/adapters/approval/ruleApproval.js';
-import type { LspPort } from '@omniharness/kernel/contracts/ports/tool/lsp.js';
+import { NativeKernel } from '../../host/kernel/platform.ts';
+import { BuiltinDefaults } from '../../host/kernel/util.ts';
+import { RuleApproval } from '../../host/kernel/adapters-approval.ts';
+import type { LspPort } from '../../host/kernel/contracts.ts';
 import { ArgParser, CliDefaults } from './argParser.ts';
 import { CliCompareCmds } from './cliCompareCmds.ts';
 

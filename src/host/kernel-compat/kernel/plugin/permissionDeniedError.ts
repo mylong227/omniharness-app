@@ -1,5 +1,5 @@
 import type { PluginPermission } from './permission.ts';
-import { OmniError, ErrorCode } from '@omniharness/kernel/omniError.js';
+import { OmniError, ErrorCode } from '../../../kernel/platform.ts';
 
 export class PermissionDeniedError extends OmniError {
   public constructor(

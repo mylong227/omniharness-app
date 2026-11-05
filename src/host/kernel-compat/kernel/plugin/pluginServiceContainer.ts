@@ -1,7 +1,7 @@
-import type { ContainerPort } from '@omniharness/kernel/contracts/ports/runtime/containerPort.js';
-import type { ServiceKeyLike } from '@omniharness/kernel/contracts/ports/runtime/serviceKeyLike.js';
-import type { ToolDefinition, ToolPort } from '@omniharness/kernel/contracts/ports/tool/tool.js';
-import type { ToolHandler } from '@omniharness/kernel/contracts/ports/tool/toolHandler.js';
+import type { ContainerPort } from '../../../kernel/contracts.ts';
+import type { ServiceKeyLike } from '../../../kernel/contracts.ts';
+import type { ToolDefinition, ToolPort } from '../../../kernel/contracts.ts';
+import type { ToolHandler } from '../../../kernel/contracts.ts';
 
 /** 带注册能力的工具端口（`RegistryToolPort` 的结构子集）。 */
 type RegistrarToolPort = ToolPort & {

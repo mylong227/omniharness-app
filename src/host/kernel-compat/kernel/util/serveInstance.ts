@@ -32,7 +32,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { OmniHome } from '@omniharness/kernel/kernel/util/omniHome.js';
+import { OmniHome } from '../../../kernel/util.ts';
 
 /** 一条 serve 实例记录（自描述：足以让人判断"这是谁、什么时候、在哪儿"）。 */
 export interface ServeInstanceRecord {

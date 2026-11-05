@@ -12,13 +12,13 @@ import { type RpcRequest } from '../core/jsonRpc.ts';
 import { WsServer } from './wsConnection.ts';
 import { ServerAuthGuard } from './serverAuthGuard.ts';
 import type { Metrics } from '../services/metrics.ts';
-import { log, Logger } from '@omniharness/kernel/kernel/util/logger.js';
+import { log, Logger } from '../../../host/kernel/util.ts';
 import { SafeFs } from '../services/safeFs.ts';
-import { runtimeLimits } from '@omniharness/kernel/kernel/util/runtimeLimits.js';
+import { runtimeLimits } from '../../../host/kernel/util.ts';
 import type {
   ResolvedRuntimeLimits,
   RuntimeLimitsConfig,
-} from '@omniharness/kernel/contracts/ports/config/runtimeLimits.js';
+} from '../../../host/kernel/contracts.ts';
 
 /** HTTP 桥接传输：POST/WS 请求关联响应，通知广播到 SSE/WS 客户端。 */
 

@@ -1,4 +1,4 @@
-import { Ed25519PublicKey } from '@omniharness/kernel/kernel/util/ed25519PublicKey.js';
+import { Ed25519PublicKey } from '../../../kernel/util.ts';
 import { CanonicalManifest } from './canonicalManifest.ts';
 import type { PluginManifest } from './manifest.ts';
 

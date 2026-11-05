@@ -1,0 +1,72 @@
+/**
+ * 内核对接面 · contracts 域 —— 本目录是 app 侧唯一的 `@omniharness/kernel` 导入点
+ * （`scripts/checkKernelBoundary.mjs` 第 7 条判据强制）。
+ *
+ * 内核升级后需要增删符号时**只改本目录**，业务代码不动。分域的原因：按域再导出保持
+ * 按需加载（实测根入口整包 ~780ms vs 单深路径 ~60ms，Node 22——见 vendor/README.md）。
+ * 每条 re-export 都指向内核原始深路径，便于升级时逐条对照。
+ */
+
+export type { AssetPackInstallRequest, AssetPackManifest, AssetPackPort, InstallReport, PackAssetEntry, PackPublisher, RegistryMetadata } from '@omniharness/kernel/contracts/ports/asset.js';
+export { ISOLATION_LEVEL_ORDER, TRUST_TIER_ORDER } from '@omniharness/kernel/contracts/ports/capability.js';
+export type { CapabilityRecord, CapabilityRegistryPort, CapabilitySchemaRegistryPort, IsolationLevel, TrustTier } from '@omniharness/kernel/contracts/ports/capability.js';
+export type { OmniHarnessRuntime } from '@omniharness/kernel/contracts/ports/composition/omniHarnessRuntime.js';
+export type { CapabilityConfig } from '@omniharness/kernel/contracts/ports/config/capabilityConfig.js';
+export type { CapabilityStack } from '@omniharness/kernel/contracts/ports/config/capabilityStack.js';
+export type { DecisionEngineConfig } from '@omniharness/kernel/contracts/ports/config/decisionEngineConfig.js';
+export type { FileConfig } from '@omniharness/kernel/contracts/ports/config/fileConfig.js';
+export type { OmniHarnessConfig } from '@omniharness/kernel/contracts/ports/config/omniHarnessConfig.js';
+export type { RbacConfig } from '@omniharness/kernel/contracts/ports/config/rbacConfig.js';
+export type { ResolvedConfig } from '@omniharness/kernel/contracts/ports/config/resolvedConfig.js';
+export type { MaintenanceLimits, PreviewLimits, ResolvedRuntimeLimits, RuntimeLimitsConfig } from '@omniharness/kernel/contracts/ports/config/runtimeLimits.js';
+export type { DecisionEngine } from '@omniharness/kernel/contracts/ports/decision/decisionEngine.js';
+export type { McpInputRequiredContext, McpInputRequiredDecision, McpInputRequiredPort } from '@omniharness/kernel/contracts/ports/mcp/mcpInputRequiredPort.js';
+export type { KvPort } from '@omniharness/kernel/contracts/ports/memory/kv.js';
+export type { LongTermMemoryPort, MemoryFact, MemoryFactPatch } from '@omniharness/kernel/contracts/ports/memory/longTermMemory.js';
+export type { SpillHandle, SpillPort } from '@omniharness/kernel/contracts/ports/memory/spill.js';
+export type { StoragePort } from '@omniharness/kernel/contracts/ports/memory/storage.js';
+export type { BudgetDegradeSignal } from '@omniharness/kernel/contracts/ports/model/budgetDegrade.js';
+export { BudgetExceededError, ModelCallError } from '@omniharness/kernel/contracts/ports/model/model.js';
+export type { FileAttachment, ImageContent, ModelContextSnapshot, ModelMessage, ModelOutput, ModelPort, ModelRequest, ModelToolCallRef, ModelToolSpec, ModelUsage, RoutePrice, ToolInputDelta } from '@omniharness/kernel/contracts/ports/model/model.js';
+export { MODEL_ADAPTER_IDS } from '@omniharness/kernel/contracts/ports/model/modelAdapterId.js';
+export type { ModelAdapterId } from '@omniharness/kernel/contracts/ports/model/modelAdapterId.js';
+export type { PluginPermission } from '@omniharness/kernel/contracts/ports/plugin/pluginPermission.js';
+export type { AgentIdentityClaims, AgentIdentityConfig, AgentIdentityPort } from '@omniharness/kernel/contracts/ports/runtime/agentIdentity.js';
+export type { ApprovalDecision, ApprovalPort, ApprovalRequest } from '@omniharness/kernel/contracts/ports/runtime/approval.js';
+export type { ContainerPort } from '@omniharness/kernel/contracts/ports/runtime/containerPort.js';
+export type { EscalationDecision, EscalationDeniedBy, EscalationPort, EscalationRequest } from '@omniharness/kernel/contracts/ports/runtime/escalation.js';
+export type { EventType, SessionEvent } from '@omniharness/kernel/contracts/ports/runtime/event.js';
+export type { EventPort } from '@omniharness/kernel/contracts/ports/runtime/eventPort.js';
+export type { Candidate, DiscoveryEngine, EvolutionController, EvolutionControllerOptions, EvolutionGate, PromotionLedgerEntry, PromotionLedgerPort, PromotionVerdict, SkillRestorePlan } from '@omniharness/kernel/contracts/ports/runtime/evolution.js';
+export type { IsolationPayload, IsolationPort } from '@omniharness/kernel/contracts/ports/runtime/isolation.js';
+export type { PlanDraft, PlanPort, PlanState, PlanStatus, PlanStep } from '@omniharness/kernel/contracts/ports/runtime/plan.js';
+export type { PolicyDecision, PolicyEffect, PolicyFacts, PolicyPort, PolicyRule } from '@omniharness/kernel/contracts/ports/runtime/policy.js';
+export type { RuntimeObservation, RuntimeTelemetryPort, TelemetryChainReport, TelemetryKind, TelemetryProvenance } from '@omniharness/kernel/contracts/ports/runtime/runtimeTelemetry.js';
+export type { SandboxAction, SandboxDecision, SandboxDenialCategory, SandboxPort } from '@omniharness/kernel/contracts/ports/runtime/sandbox.js';
+export type { SandboxCapabilityEntry } from '@omniharness/kernel/contracts/ports/runtime/sandbox/sandboxCapabilityEntry.js';
+export type { RuntimeFailure } from '@omniharness/kernel/contracts/ports/runtime/sandboxDenial.js';
+export type { ServiceKeyLike } from '@omniharness/kernel/contracts/ports/runtime/serviceKeyLike.js';
+export type { MoireOptions, SkillPort } from '@omniharness/kernel/contracts/ports/runtime/skill.js';
+export type { CrisprEditReport } from '@omniharness/kernel/contracts/ports/runtime/skillEdit/crisprEditReport.js';
+export type { CrisprEditSpec } from '@omniharness/kernel/contracts/ports/runtime/skillEdit/crisprEditSpec.js';
+export type { CRISPRSkillEditorPort } from '@omniharness/kernel/contracts/ports/runtime/skillEdit/crisprSkillEditorPort.js';
+export type { AuditSinkLike, HealthEntry, HealthSnapshot, SafeMode, SupervisorOptions, SupervisorPort } from '@omniharness/kernel/contracts/ports/runtime/supervisor.js';
+export type { TodoItem, TodoPort, TodoStatus } from '@omniharness/kernel/contracts/ports/runtime/todo.js';
+export type { ToolGatePort } from '@omniharness/kernel/contracts/ports/runtime/toolGatePort.js';
+export type { AskAnswer, AskContext, AskOption, AskQuestion, UserResponder } from '@omniharness/kernel/contracts/ports/runtime/userResponder.js';
+export type { AuditEvent } from '@omniharness/kernel/contracts/ports/server/auditEvent.js';
+export type { RpcError } from '@omniharness/kernel/contracts/ports/server/rpcError.js';
+export type { RpcMessage } from '@omniharness/kernel/contracts/ports/server/rpcMessage.js';
+export type { RpcNotification } from '@omniharness/kernel/contracts/ports/server/rpcNotification.js';
+export type { RpcRequest } from '@omniharness/kernel/contracts/ports/server/rpcRequest.js';
+export type { RpcResponse } from '@omniharness/kernel/contracts/ports/server/rpcResponse.js';
+export type { Transport } from '@omniharness/kernel/contracts/ports/server/transport.js';
+export type { SubagentPortsShape } from '@omniharness/kernel/contracts/ports/subagent/subagentPortsShape.js';
+export type { ExtraTool } from '@omniharness/kernel/contracts/ports/tool/extraTool.js';
+export type { LspLocation, LspPort, LspPosition, LspRange, LspServerConfig } from '@omniharness/kernel/contracts/ports/tool/lsp.js';
+export type { ToolCall, ToolContext, ToolDefinition, ToolParametersSchema, ToolPort, ToolResult } from '@omniharness/kernel/contracts/ports/tool/tool.js';
+export type { ToolHandler } from '@omniharness/kernel/contracts/ports/tool/toolHandler.js';
+export type { ToolInputSink } from '@omniharness/kernel/contracts/ports/tool/toolInputSink.js';
+export type { Spectrum } from '@omniharness/kernel/contracts/ports/util/spectrum.js';
+export { WebSocketSdkSocket } from '@omniharness/kernel/contracts/sdk/webSocketSdkSocket.js';
+export type { SdkSocket } from '@omniharness/kernel/contracts/sdk/webSocketSdkSocket.js';
