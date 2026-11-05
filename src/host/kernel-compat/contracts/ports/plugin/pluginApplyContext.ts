@@ -15,4 +15,15 @@ export interface PluginApplyContext {
   onService(name: string, handler: (service: unknown) => void): void;
   /** 注册一个插件提供的服务。 */
   registerService(name: string, service: unknown): void;
+  /**
+   * 向服务端注册一个 RPC 方法（2026-11 能力开放）。
+   *
+   * 前提：插件 `meta.permissions` 必须声明 `'rpc.register'`（危险权限，缺省拒绝）；
+   * 方法名与既有方法（内置 91 个 + 其他插件）冲突时 apply 失败（fail-closed）。
+   * 分发顺序：内置模块 → 插件贡献 → 404。
+   */
+  registerRpc?(
+    method: string,
+    handler: (params: Record<string, unknown>) => Promise<unknown>,
+  ): void;
 }

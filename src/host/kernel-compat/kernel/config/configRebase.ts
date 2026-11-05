@@ -4,7 +4,7 @@ import type { ResolvedConfig } from '../../../kernel/contracts.ts';
  * 配置重基（组合根资产）：把一份**已解析**配置里的「声明式字段」原样搬到新的工作区根上。
  *
  * 存在的理由（2026-09-19 能力盘点，与被修的数处「声明未接线」同源）：
- * 服务端「切换项目」时 `appServerBase.switchWorkspace` 手工写了 9 个键去调 `ConfigFactory.build`，
+ * 服务端「切换项目」（`ServerServices.switchWorkspace`）曾手工只写 9 个键去调 `ConfigFactory.build`，
  * 其余几十个字段（`fragments` / `selfVerify` / `lspServer` / `costBudgetUsd` / `deferredTools` …）
  * **全部被静默丢弃** —— 最直接的后果是：**切换工作区后系统提示整段消失**，
  * 模型从此在没有行为准则的情况下继续跑（`fragments` 恰恰是 CLI 唯一注入提示的通道）。

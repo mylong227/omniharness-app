@@ -7,7 +7,7 @@
  * `OMNI_PLUGIN_PERMISSIONS` 环境变量显式授予（逗号分隔权限名，或 `all` 全开）。
  */
 import { ALL_PERMISSIONS, DANGEROUS_PERMISSIONS, Permission } from '../../../host/kernel-compat/kernel/plugin/permission.ts';
-import type { PluginPermission } from '../../../host/kernel-compat/kernel/plugin/permission.ts';
+import type { AppPluginPermission } from '../../../host/kernel-compat/kernel/plugin/permission.ts';
 import { PermissionGate } from '../../../host/kernel-compat/kernel/plugin/permissionGate.ts';
 import { log } from '../../../host/kernel/util.ts';
 
@@ -29,7 +29,7 @@ export class PluginHostPermissions {
       log.warn('plugin.host.permissions.all', { reason: `${PLUGIN_PERMISSIONS_ENV}=all 显式全开` });
       return PermissionGate.allowAll();
     }
-    const granted: PluginPermission[] = [];
+    const granted: AppPluginPermission[] = [];
     for (const item of raw.split(',')) {
       const name = item.trim();
       if (name === '') continue;
@@ -49,7 +49,7 @@ export class PluginHostPermissions {
    * 非危险权限（默认白名单）。
    * @returns 权限名列表。
    */
-  private static safe(): readonly PluginPermission[] {
+  private static safe(): readonly AppPluginPermission[] {
     return ALL_PERMISSIONS.filter((name) => !DANGEROUS_PERMISSIONS.has(name));
   }
 }

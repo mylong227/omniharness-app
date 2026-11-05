@@ -335,7 +335,7 @@ export interface SseEnvelope {
 }
 
 // ---------------- 工作台界面能力（上下文容量 / 配额 / 模式 / 权限 / 检索） ----------------
-// 与后端 src/apps/server/appServerSurfaceHandlers.ts 的 RPC 返回体逐字段对齐。
+// 与后端 src/apps/server/modules/surface.ts 的 RPC 返回体逐字段对齐。
 
 /** 上下文占用分类键（后端 CONTEXT_CATEGORIES 的键，UI 不自造）。 */
 export type ContextCategoryKey =

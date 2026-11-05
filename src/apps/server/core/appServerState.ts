@@ -102,6 +102,11 @@ export interface AppServerOptions {
    * 未注入时三条 RPC 一律回 `{ok:false, reason:'vault 未接线…'}`，**不**装作"保险库是空的"。
    */
   readonly vault?: VaultPort | undefined;
+  /**
+   * 嵌入方自定义模块（2026-11 模块化重构）：与本表同权注册 RPC 方法，与本表同名冲突启动即抛错。
+   * 这是「自定义扩展最轻松」的入口——见 `serverModule.ts` 的 `defineModule`。
+   */
+  readonly modules?: readonly import('./serverModule.ts').ServerModule[] | undefined;
 }
 
 /** 始终放行的审批端口（autoApprove / approval=auto 时使用）。 */

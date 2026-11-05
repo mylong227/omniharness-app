@@ -1,7 +1,7 @@
-// 前端判据（web/test/**）的 Vitest 配置：**只有一套栈**。
+// 判据（web/test/** + tests/**）的 Vitest 配置：**只有一套栈**。
 //
-// 为什么不再有 workspace 双项目：本仓库只承载应用壳（web + desktop），
-// 后端判据留在后端仓库/kernel 仓库；这里只跑前端判据，因此单项目即可。
+// 为什么不再有 workspace 双项目：本仓库只承载应用壳（web + desktop）+ 后端宿主；
+// web 判据与少量后端判据（如 RPC parity 快照）都在本仓跑，单项目即可。
 //
 // 两条纪律沿用自上游（都踩过坑）：
 //   · 环境按**文件**声明：组件判据在文件头写 `// @vitest-environment jsdom`，
@@ -17,7 +17,7 @@ const ROOT = import.meta.dirname;
 
 export default defineConfig({
   test: {
-    include: ['web/test/**/*.test.{ts,tsx}'],
+    include: ['web/test/**/*.test.{ts,tsx}', 'tests/**/*.test.ts'],
     exclude: ['**/node_modules/**', '**/dist/**', '**/.{idea,git,cache,output,temp}/**'],
     environment: 'node',
     // jsdom 缺的布局全局（matchMedia / ResizeObserver / requestIdleCallback）在 setup 里「缺失才补」。

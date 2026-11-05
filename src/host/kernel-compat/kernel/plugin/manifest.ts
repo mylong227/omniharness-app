@@ -1,4 +1,4 @@
-import { DANGEROUS_PERMISSIONS, Permission, type PluginPermission } from './permission.ts';
+import { DANGEROUS_PERMISSIONS, Permission, type AppPluginPermission } from './permission.ts';
 import type { PluginManifest } from '../../contracts/ports/plugin/pluginManifest.ts';
 
 /**
@@ -8,10 +8,10 @@ export class Manifest {
   /**
    * @beta
    * 校验清单权限字符串是否全部合法；非法则抛错（fail-closed）。
-   * 返回归一化后的 PluginPermission 列表。
+   * 返回归一化后的 AppPluginPermission 列表。
    */
-  public static validateManifestPermissions(manifest: PluginManifest): PluginPermission[] {
-    const perms: PluginPermission[] = [];
+  public static validateManifestPermissions(manifest: PluginManifest): AppPluginPermission[] {
+    const perms: AppPluginPermission[] = [];
     for (const raw of manifest.permissions ?? []) {
       if (!Permission.isPluginPermission(raw)) {
         throw new Error(
@@ -29,7 +29,7 @@ export class Manifest {
    */
   public static manifestHasDangerous(manifest: PluginManifest): boolean {
     return (manifest.permissions ?? []).some((p) =>
-      DANGEROUS_PERMISSIONS.has(p as PluginPermission),
+      DANGEROUS_PERMISSIONS.has(p as AppPluginPermission),
     );
   }
 

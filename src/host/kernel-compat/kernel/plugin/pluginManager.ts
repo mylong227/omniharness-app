@@ -16,6 +16,10 @@ export class PluginManager {
   private readonly pending = new Map<string, ((service: unknown) => void)[]>();
   /** 记录每个插件 apply 期间注册的工具名（用于卸载时精准回收，避免孤儿工具残留）。 */
   private readonly pluginTools = new Map<string, Set<string>>();
+  /** 插件贡献的 RPC 方法表（method → 处理器；rpc.register 权限 + 冲突 fail-closed）。 */
+  private readonly pluginRpc = new Map<string, { readonly plugin: string; readonly handler: (params: Record<string, unknown>) => Promise<unknown> }>();
+  /** 宿主保留方法集提供器（内核 RPC 面，插件注册同名即失败）；宿主装配后注入。 */
+  private reservedRpcProvider: (() => ReadonlySet<string>) | undefined;
 
   /**
    * @param container 服务容器
@@ -25,6 +29,19 @@ export class PluginManager {
     private readonly container: Container,
     private readonly gate?: PermissionGate,
   ) {}
+
+  /**
+   * 注入「宿主保留 RPC 方法集」提供器（在插件 apply 前调用；用于内核方法名冲突检测）。
+   * @param provider 返回当前全部内置方法名的惰性提供器。
+   */
+  public setReservedRpcProvider(provider: () => ReadonlySet<string>): void {
+    this.reservedRpcProvider = provider;
+  }
+
+  /** 查询插件贡献的 RPC 处理器（分发兜底用；无则 undefined）。 */
+  public rpcHandlerOf(method: string): ((params: Record<string, unknown>) => Promise<unknown>) | undefined {
+    return this.pluginRpc.get(method)?.handler;
+  }
 
   /** 注册插件；先过权限门禁，依赖就绪则立即启动（await 等待启动完成）。
    * @returns 无返回值。
@@ -71,6 +88,10 @@ export class PluginManager {
         }
       }
       this.pluginTools.delete(name);
+    }
+    // 回收该插件贡献的 RPC 方法（rpc.register 面）。
+    for (const [method, owner] of [...this.pluginRpc]) {
+      if (owner.plugin === name) this.pluginRpc.delete(method);
     }
     this.started.delete(name);
     this.plugins.delete(name);
@@ -166,6 +187,26 @@ export class PluginManager {
             error: error instanceof Error ? error.message : String(error),
           });
         });
+      },
+      // RPC 面（2026-11 能力开放）：前提 = 插件 manifest 声明 'rpc.register'（危险权限，
+      // 白名单缺省拒绝）；方法名与内置面/其他插件冲突即抛错（插件加载失败，宿主不受影响）。
+      registerRpc: (method, handler) => {
+        if (!(plugin.meta.permissions ?? []).includes('rpc.register')) {
+          throw new Error(
+            `插件 "${plugin.meta.name}" 调用了 registerRpc("${method}") 但未声明 'rpc.register' 权限`,
+          );
+        }
+        const reserved = this.reservedRpcProvider?.();
+        if (reserved?.has(method) === true) {
+          throw new Error(`插件 "${plugin.meta.name}" 的 RPC 方法 "${method}" 与服务端内置方法冲突`);
+        }
+        const existing = this.pluginRpc.get(method);
+        if (existing !== undefined) {
+          throw new Error(
+            `插件 "${plugin.meta.name}" 的 RPC 方法 "${method}" 已被插件 "${existing.plugin}" 注册`,
+          );
+        }
+        this.pluginRpc.set(method, { plugin: plugin.meta.name, handler });
       },
     };
   }

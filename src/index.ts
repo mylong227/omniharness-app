@@ -242,3 +242,12 @@ export type {
 } from './host/kernel/contracts.ts';
 
 
+
+// @public 嵌入入口（2026-11 模块化重构）：3 行起一个完整 OmniHarness 服务端
+export { createOmniHarness } from './apps/embed/createOmniHarness.ts';
+export type {
+  OmniHarnessHandle,
+  OmniHarnessInput,
+} from './apps/embed/createOmniHarness.ts';
+export { defineModule } from './apps/embed/createOmniHarness.ts';
+export type { ServerModule } from './apps/embed/createOmniHarness.ts';

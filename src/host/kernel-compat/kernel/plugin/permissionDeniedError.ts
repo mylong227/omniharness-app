@@ -1,10 +1,10 @@
-import type { PluginPermission } from './permission.ts';
+import type { AppPluginPermission } from './permission.ts';
 import { OmniError, ErrorCode } from '../../../kernel/platform.ts';
 
 export class PermissionDeniedError extends OmniError {
   public constructor(
     public readonly pluginName: string,
-    public readonly missing: readonly PluginPermission[],
+    public readonly missing: readonly AppPluginPermission[],
   ) {
     super(
       ErrorCode.PERMISSION_DENIED,

@@ -1,5 +1,5 @@
 import { ALL_PERMISSIONS } from './permission.ts';
-import type { PluginPermission } from './permission.ts';
+import type { AppPluginPermission } from './permission.ts';
 import { PermissionDeniedError } from './permissionDeniedError.ts';
 
 /**
@@ -9,7 +9,7 @@ import { PermissionDeniedError } from './permissionDeniedError.ts';
 export interface PermissionDecision {
   readonly allowed: boolean;
   /** 未被白名单放行的权限（为空即完全允许）。 */
-  readonly missing: readonly PluginPermission[];
+  readonly missing: readonly AppPluginPermission[];
 }
 
 /**
@@ -20,9 +20,9 @@ export interface PermissionDecision {
  * - 含超白名单权限 → 拒绝并返回缺失清单
  */
 export class PermissionGate {
-  private readonly allowed: ReadonlySet<PluginPermission>;
+  private readonly allowed: ReadonlySet<AppPluginPermission>;
 
-  private constructor(allowed: ReadonlySet<PluginPermission>) {
+  private constructor(allowed: ReadonlySet<AppPluginPermission>) {
     this.allowed = allowed;
   }
 
@@ -37,13 +37,13 @@ export class PermissionGate {
   }
 
   /** 从权限列表构造白名单。 */
-  public static fromList(permissions: readonly PluginPermission[]): PermissionGate {
+  public static fromList(permissions: readonly AppPluginPermission[]): PermissionGate {
     return new PermissionGate(new Set(permissions));
   }
 
   /** 校验一组权限；返回是否放行及缺失清单。 */
-  public check(permissions: readonly PluginPermission[] | undefined): PermissionDecision {
-    const missing: PluginPermission[] = [];
+  public check(permissions: readonly AppPluginPermission[] | undefined): PermissionDecision {
+    const missing: AppPluginPermission[] = [];
     for (const permission of permissions ?? []) {
       if (!this.allowed.has(permission)) {
         missing.push(permission);
@@ -57,7 +57,7 @@ export class PermissionGate {
    */
   public assertAllowed(
     pluginName: string,
-    permissions: readonly PluginPermission[] | undefined,
+    permissions: readonly AppPluginPermission[] | undefined,
   ): void {
     const decision = this.check(permissions);
     if (!decision.allowed) {

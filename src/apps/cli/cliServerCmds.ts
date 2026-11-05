@@ -74,17 +74,43 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
     const app = new AppServer({
       config,
       transport,
-      registry: this.createRegistry(serverArgs, pluginsDir),
       pluginsDir,
-      audit: this.createAudit(serverArgs),
       workspaceRoot: process.cwd(),
-      entitlements: LicenseSource.resolve({ env: process.env }),
-      doctorReport: (options) => DoctorRunner.runDoctor(options ?? {}),
-      // 启动档位兜底：UI 切档落盘后重启，内存覆盖态为空时按它还原生效档位。
-      startupApproval: args.approval,
+      // 两条组合根共用的「必接线」内核（registry/audit/entitlements/doctorReport/startupApproval）
+      // ——历史 bug：serve 路径漏接 doctor，stdio 却正常。单一出处后该缺陷类被结构性消灭。
+      ...this.composedServerCore({ args: serverArgs, pluginsDir, startupApproval: args.approval }),
     });
     await app.loadPlugins();
     return new Promise(() => undefined);
+  }
+
+  /**
+   * 两条组合根（stdio `runServer` / HTTP `runServe`）**必须同时接线**的不变量字段。
+   *
+   * 单一出处的原因：`AppServerOptions` 的可选注入字段曾由两条路径各自手写，2026-10-11 真实缺陷
+   * ——「stdio 路径接了 doctor，serve 路径却漏了」（Web UI 连的正是 serve，诊断面板永远回
+   * "未接线"）。凡新增「两路径都必须有」的注入，只改本方法。
+   * @param deps 子命令参数（registry/audit 按旗标构建）、插件目录与启动审批档位。
+   * @returns 不变量字段的 partial（由两条路径展开进各自的 AppServerOptions）。
+   */
+  private composedServerCore(deps: {
+    readonly args: readonly string[];
+    readonly pluginsDir: string;
+    readonly startupApproval: string | undefined;
+  }): Pick<
+    import('../server/core/appServerState.ts').AppServerOptions,
+    'registry' | 'audit' | 'entitlements' | 'doctorReport' | 'startupApproval'
+  > {
+    return {
+      registry: this.createRegistry(deps.args, deps.pluginsDir),
+      audit: this.createAudit(deps.args),
+      // (F4) 治理台（Pro）与审计中台（Team）按档位可用；无授权 ⇒ core 档并给可读拒因。
+      entitlements: LicenseSource.resolve({ env: process.env }),
+      doctorReport: (options) => DoctorRunner.runDoctor(options ?? {}),
+      // 启动档位兜底：UI 切档落盘后重启，内存覆盖态为空时按它还原生效档位
+      // （历史 bug：approval='ask' 落盘重启后静默落回 AutoApproval 全放行）。
+      startupApproval: deps.startupApproval,
+    };
   }
   /**
    * 生成 TS/Python SDK（由单源 schema）。
@@ -501,27 +527,22 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
       eventBridge: deps.events,
       approvalUplink: false,
       metrics: deps.metrics,
-      audit: deps.audit,
-      registry: this.createRegistry(serveArgs, pluginsDir),
-      // (F4) 治理台（Pro）与审计中台（Team）按档位可用；无授权 ⇒ core 档并给可读拒因。
-      entitlements: LicenseSource.resolve({ env: process.env }),
       displayConfig: deps.displayConfig,
       autoApprove: serveArgs.includes('--auto-approve'),
       configPath,
       ...(serveProfile !== undefined ? { profile: serveProfile } : {}),
       pluginsDir,
       workspaceRoot: wsRoot,
-      // Web 交付（2026-10-11 修）：**stdio 路径接了 doctor，serve 路径却漏了** ——
-      // 而 Web UI 连的正是 serve，于是真机上诊断面板只会回"未接线"（本地跑 stdio 却一切正常）。
-      // 两条组合根必须注入同一个实现（判据 observabilityRpc.test.ts ⑥ 机械核对两处都在）。
-      doctorReport: (options) => DoctorRunner.runDoctor(options ?? {}),
+      // 两条组合根共用的「必接线」内核（registry/entitlements/doctorReport/startupApproval）——
+      // 2026-10-11 真实缺陷（serve 漏接 doctor）的结构性修复，见 composedServerCore。
+      // audit 在其后显式覆盖：serve 的 sink 必须与**桥共用同一实例**（createAudit 造第二份
+      // 会让「面板查询到的审计」与「桥落盘的审计」分叉），故不可走 composedServerCore 的那份。
+      ...this.composedServerCore({ args: serveArgs, pluginsDir, startupApproval: args.approval }),
+      audit: deps.audit,
       // 凭据保险库（vault.list/set/delete 的后端）：无主密钥来源时不注入，面板如实显示"未接线"。
       vault: await this.buildServeVault(args),
       // 自动化任务：用户级文件 + 30s 调度；任务触发即新建一个普通会话。
       automations: new AutomationStore(join(OmniHome.dir(), 'automations.json')),
-      // 启动档位兜底：UI 切档落盘后重启，内存覆盖态为空时按它还原生效档位
-      // （历史 bug：approval='ask' 落盘重启后静默落回 AutoApproval 全放行）。
-      startupApproval: args.approval,
     };
   }
 

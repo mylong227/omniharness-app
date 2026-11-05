@@ -38,6 +38,8 @@ export class PluginHost {
   private readonly deps: PluginHostDeps;
   /** 插件容器管理器（ensure 后就绪；未启用目录时保持 undefined）。 */
   private pluginManager: PluginManager | undefined;
+  /** 宿主保留 RPC 方法集提供器（setReservedRpcProvider 注入；惰性求值）。 */
+  private reservedRpcProvider: (() => ReadonlySet<string>) | undefined;
   /** 在飞加载 Promise（并发合流，见 `ensure` 注释）。 */
   private readyPromise: Promise<void> | undefined;
 
@@ -56,6 +58,26 @@ export class PluginHost {
   /** 插件安装目录。 */
   public get dir(): string | undefined {
     return this.deps.pluginsDir;
+  }
+
+  /**
+   * 注入「宿主保留 RPC 方法集」提供器（内核/内置模块面；插件 registerRpc 同名即失败）。
+   * 必须在 AppServer 注册完内置模块后调用（惰性提供器在插件 apply 期才求值，时序安全）。
+   * @param provider 返回当前全部内置方法名的惰性提供器。
+   */
+  public setReservedRpcProvider(provider: () => ReadonlySet<string>): void {
+    this.reservedRpcProvider = provider;
+    this.pluginManager?.setReservedRpcProvider(provider);
+  }
+
+  /**
+   * 查询插件贡献的 RPC 处理器（分发兜底用；管理器未就绪或方法不存在都回 undefined）。
+   * @param method RPC 方法名。
+   */
+  public rpcHandlerOf(
+    method: string,
+  ): ((params: Record<string, unknown>) => Promise<unknown>) | undefined {
+    return this.pluginManager?.rpcHandlerOf(method);
   }
 
   /**
@@ -100,6 +122,10 @@ export class PluginHost {
       // 权限白名单（2026-10-27 审计收口）：默认只授非危险权限；危险能力须
       // OMNI_PLUGIN_PERMISSIONS 显式授予。声明超白名单的插件在 register 阶段被拒。
       const manager = new PluginManager(container, PluginHostPermissions.resolve());
+      // RPC 保留面（2026-11）：内置方法名提供器可能在宿主构造后才登记，惰性注入。
+      if (this.reservedRpcProvider !== undefined) {
+        manager.setReservedRpcProvider(this.reservedRpcProvider);
+      }
       this.pluginManager = manager;
       const loaded = await PluginLoader.loadInstalledPlugins(
         manager,
