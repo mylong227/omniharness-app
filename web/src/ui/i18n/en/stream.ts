@@ -48,6 +48,9 @@ export const EN_STREAM: Record<string, string> = {
   '进入专注模式（Ctrl/Cmd+Shift+F）': 'Enter focus mode (Ctrl/Cmd+Shift+F)',
   '退出专注模式（Ctrl/Cmd+Shift+F）': 'Exit focus mode (Ctrl/Cmd+Shift+F)',
   '进入 / 退出专注模式': 'Enter / exit focus mode',
+  '从此处重开': 'Restart from here',
+  '从此处重开：回到这条消息，之后的事件会从会话中移除（文件不自动还原）':
+    'Restart from here: rewind to this message; later events are removed (files are not restored).',
   '展开思考过程': 'Expand thinking',
   '收起思考过程': 'Collapse thinking',
   '正在梳理思路': 'Gathering thoughts',

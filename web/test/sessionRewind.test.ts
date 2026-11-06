@@ -1,0 +1,82 @@
+// 会话回退（时间旅行）门禁：确认 → 服务端 threads.rewind → 重新加载 → 回填输入框。
+//
+// 这条能力是内核 append-only 事件流的用户面：必须走服务端真回退，不能只截视图；
+// 且确认文案要如实区分「事件回退」与「文件回滚」。
+import assert from 'node:assert/strict';
+import { test } from 'vitest';
+import type { AppHost, AppServices } from '../src/ui/controllers/AppController.ts';
+import type { ThreadEvent } from '../src/types/models.ts';
+
+const { SessionController } = await import('../src/ui/controllers/SessionController.ts');
+
+/** 造一条事件。 */
+function ev(id: string, type = 'user'): ThreadEvent {
+  return { id, type, payload: { content: id } } as ThreadEvent;
+}
+
+/**
+ * 最小环境：只覆盖 rewindTo 用到的 host / dialog / api / toast。
+ * @param confirm 确认框返回值
+ * @param rewind 服务端回退结果
+ * @returns 控制器、状态、调用记录与重新加载标记
+ */
+function makeEnv(confirm: boolean, rewind: { ok: boolean; kept?: number; dropped?: number; error?: string }) {
+  const state = {
+    currentThreadId: 't1',
+    busy: false,
+    events: [ev('u1'), ev('a1', 'assistant'), ev('u2')],
+  };
+  const calls: { rewind: Array<[string, string]>; toasts: string[] } = { rewind: [], toasts: [] };
+  let reloaded = false;
+  const host = {
+    patch(action: Partial<typeof state> | ((prev: typeof state) => Partial<typeof state>)) {
+      Object.assign(state, typeof action === 'function' ? action(state) : action);
+    },
+    getState: () => state,
+  };
+  const services = {
+    api: {
+      rewindThread: async (threadId: string, eventId: string) => {
+        calls.rewind.push([threadId, eventId]);
+        return rewind;
+      },
+    },
+    toast: (message: string) => calls.toasts.push(message),
+    dialogSvc: { confirm: async () => confirm },
+  };
+  const ctrl = new SessionController(host as unknown as AppHost, services as unknown as AppServices);
+  // 不跑真实 loadThread（它需要完整 api/路由）；只记录是否被调用。
+  (ctrl as unknown as { loadThread: (id: string) => Promise<void> }).loadThread = async () => {
+    reloaded = true;
+  };
+  return { ctrl, state, calls, reloaded: () => reloaded };
+}
+
+test('确认后调用服务端回退并重新加载；取消则不发请求', async () => {
+  const yes = makeEnv(true, { ok: true, kept: 1, dropped: 2 });
+  assert.equal(await yes.ctrl.rewindTo('u1'), true);
+  assert.deepStrictEqual(yes.calls.rewind, [['t1', 'u1']]);
+  assert.equal(yes.reloaded(), true);
+  assert.ok(yes.calls.toasts.some((m) => m.includes('已回到这条消息')), JSON.stringify(yes.calls.toasts));
+
+  const no = makeEnv(false, { ok: true });
+  assert.equal(await no.ctrl.rewindTo('u1'), false);
+  assert.deepStrictEqual(no.calls.rewind, [], '取消后不得发回退请求');
+});
+
+test('运行中 / 最后一条 / 服务端拒绝：都不发请求，并给出可执行提示', async () => {
+  const busy = makeEnv(true, { ok: true });
+  busy.state.busy = true;
+  assert.equal(await busy.ctrl.rewindTo('u1'), false);
+  assert.deepStrictEqual(busy.calls.rewind, []);
+  assert.ok(busy.calls.toasts.some((m) => m.includes('先中止')));
+
+  const last = makeEnv(true, { ok: true });
+  assert.equal(await last.ctrl.rewindTo('u2'), false, '最后一条无需回退');
+  assert.deepStrictEqual(last.calls.rewind, []);
+
+  const rejected = makeEnv(true, { ok: false, error: '该会话有回合正在运行：请先中止再回退' });
+  assert.equal(await rejected.ctrl.rewindTo('u1'), false);
+  assert.deepStrictEqual(rejected.calls.rewind, [['t1', 'u1']], '确认后仍应尝试服务端回退');
+  assert.ok(rejected.calls.toasts.some((m) => m.includes('回退失败')), JSON.stringify(rejected.calls.toasts));
+});

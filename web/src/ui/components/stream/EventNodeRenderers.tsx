@@ -27,6 +27,8 @@ export interface EventCtx {
   /** 最后一条助手消息 id（仅它可重新生成）。 */
   lastAssistantId: string;
   onEditUser?: () => void;
+  /** 历史用户消息「从此处重开」：服务端回退事件流到该消息（最后一条走编辑重发）。 */
+  onRewindUser?: (ev: ThreadEvent) => void;
   onRegenerate?: () => void;
   /** 已被 assistant 事件收口的流式文本。 */
   finalizedStreamText: string;

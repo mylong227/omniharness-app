@@ -102,6 +102,8 @@ export interface StreamViewProps {
   onRegenerate?: () => void;
   /** 编辑重发（最后一条用户消息挂载）：把该消息填回底部输入框。 */
   onEditUser?: () => void;
+  /** 历史用户消息「从此处重开」：服务端事件流回退到该消息（最后一条走编辑重发）。 */
+  onRewindUser?: (ev: ThreadEvent) => void;
   /** 当前模型（驱动 Composer 的切换器）。 */
   model: string;
   /** 当前厂商可用模型清单（缺省时 Composer 用内置兜底）。 */
@@ -227,6 +229,11 @@ function renderEventNode(ev: ThreadEvent, ctx: EventCtx): React.ReactElement | n
           canEdit={ev.id === ctx.lastUserId}
           turnDurationMs={ctx.turnDurations.get(ev.id)}
           onEdit={() => ctx.onEditUser?.()}
+          onRewind={
+            ev.id === ctx.lastUserId || ctx.onRewindUser === undefined
+              ? undefined
+              : () => ctx.onRewindUser?.(ev)
+          }
         />,
       );
     case 'assistant':
@@ -614,6 +621,7 @@ function buildEventCtx(props: StreamViewProps, model: StreamModel, clusterFresh:
     lastUserId: model.lastUserId,
     lastAssistantId: model.lastAssistantId,
     onEditUser: props.onEditUser,
+    onRewindUser: props.onRewindUser,
     onRegenerate: props.onRegenerate,
     finalizedStreamText: props.finalizedStreamText ?? '',
     toolCallIds: model.toolCallIds,

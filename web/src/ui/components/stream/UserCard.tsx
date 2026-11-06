@@ -22,6 +22,11 @@ export interface UserCardProps {
   turnDurationMs?: number;
   /** 编辑重发：把这条消息填回底部输入框。 */
   onEdit: () => void;
+  /**
+   * 从此处重开（仅历史用户消息；最后一条走「编辑重发」）。
+   * 服务端回退事件流到这条消息，再从已回填的输入框继续。
+   */
+  onRewind?: () => void;
 }
 
 /**
@@ -30,7 +35,7 @@ export interface UserCardProps {
  * @returns 用户消息节点
  */
 export function UserCard(props: UserCardProps): ReactElement {
-  const { ev, canEdit, busy, turnDurationMs, onEdit } = props;
+  const { ev, canEdit, busy, turnDurationMs, onEdit, onRewind } = props;
   const text = (ev.payload?.content as string) || '';
   const turnDuration =
     turnDurationMs !== undefined && turnDurationMs >= 1000
@@ -46,6 +51,19 @@ export function UserCard(props: UserCardProps): ReactElement {
             {t('本轮用时 {duration}', { duration: turnDuration })}
           </span>
         )}
+        {onRewind !== undefined && !canEdit && busy !== true ? (
+          <button
+            className="msg-act"
+            title={t('从此处重开：回到这条消息，之后的事件会从会话中移除（文件不自动还原）')}
+            aria-label={t('从此处重开')}
+            onClick={(e: React.MouseEvent) => {
+              e.stopPropagation();
+              onRewind();
+            }}
+          >
+            {icon('rewind', { size: 12 })}
+          </button>
+        ) : null}
         {canEdit && busy !== true ? (
           <button
             className="msg-act"

@@ -569,6 +569,59 @@ export class SessionController {
   };
 
   /**
+   * 事件流时间旅行：把会话**服务端存档**回退到指定用户消息（含），丢弃其后的事件。
+   *
+   * 为什么必须走服务端（`threads.rewind`）而不是只截前端数组：事件流是追加写的唯一事实源，
+   * 只删视图会让下一轮模型上下文仍带着旧回答，刷新后旧回答还会复活。
+   * 与「回滚」检查点的边界：本操作只回退**对话事件**，不动工作区文件；文件快照回滚走
+   * RollbackTab（`checkpoint.rollback`）。确认文案必须把这条边界说清楚。
+   * @param eventId 保留到哪条事件（含）
+   * @returns 是否真的完成回退（取消 / 失败为 false）
+   */
+  public readonly rewindTo = async (eventId: string): Promise<boolean> => {
+    const state = this.host.getState();
+    const threadId = state.currentThreadId;
+    if (threadId === null || threadId === '') {
+      this.services.toast(t('当前没有可回退的会话'), 'info');
+      return false;
+    }
+    if (state.busy) {
+      this.services.toast(t('回合运行中：请先中止再回到这里'), 'info');
+      return false;
+    }
+    const index = state.events.findIndex((e) => e.id === eventId);
+    if (index < 0) {
+      this.services.toast(t('这条事件不在当前会话里'), 'err');
+      return false;
+    }
+    const dropping = state.events.length - index - 1;
+    if (dropping === 0) {
+      this.services.toast(t('已经是最后一条事件，无需回退'), 'info');
+      return false;
+    }
+    const ok = await this.services.dialogSvc.confirm(
+      t('回到这条消息？之后的 {n} 条事件将从会话中移除。工作区文件不会自动还原；需要还原文件请使用「回滚」检查点。', {
+        n: dropping,
+      }),
+      { title: t('从此处重开'), confirmLabel: t('回到这里'), danger: true },
+    );
+    if (!ok) return false;
+    try {
+      const r = await this.services.api.rewindThread(threadId, eventId);
+      if (!r.ok) {
+        this.services.toast(t('回退失败：{msg}', { msg: r.error ?? t('未知原因') }), 'err');
+        return false;
+      }
+      await this.loadThread(threadId);
+      this.services.toast(t('已回到这条消息（移除 {n} 条事件）', { n: r.dropped ?? dropping }), 'ok');
+      return true;
+    } catch (e) {
+      this.services.toast(t('回退失败：{msg}', { msg: (e as Error).message }), 'err');
+      return false;
+    }
+  };
+
+  /**
    * 按工具调用 id 找到对应 tool_call 事件并钻取。
    * @param callId 工具调用 id
    * @returns 无

@@ -563,6 +563,13 @@ function streamViewElement(
     onLoadThread: (id: string) => openThread(ctrl, id),
     // 空态「快速开始」示例 → 填进输入框（不是直接发送：示例是给人改的模板，且会立刻耗额度）。
     onUseStarter: ctrl.composer.seedDraft,
+    // 历史消息「从此处重开」：服务端回退事件流后，把该条原文回填输入框，用户改完直接回车。
+    onRewindUser: (ev) => {
+      const text = typeof ev.payload?.content === 'string' ? ev.payload.content : '';
+      void ctrl.sessions.rewindTo(ev.id).then((ok) => {
+        if (ok && text !== '') ctrl.composer.seedDraft(text);
+      });
+    },
     onModelChange: ctrl.composer.changeModel,
     onReasoningChange: ctrl.composer.changeReasoning,
     onPermissionChange: ctrl.composer.changePermission,
