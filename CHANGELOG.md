@@ -17,6 +17,7 @@
 
 ### Tests（判据）
 - 新增 `tests/sessionPinned.test.ts`（侧车读写 / 列表回传 / 换实例仍可见 / 非法 id 拒绝）与 `web/test/sessionPins.test.ts`（置顶组浮出 / 刷新映射 / 乐观回滚 / 接线守卫）。
+- 新增 `tests/kernelSurface.test.ts`：把「对接面生成物一致 + 目录纯净」纳入常规 `web:test`，忘了跑 `kernel:surface` 时本地测试直接红。
 - 桌面端新增托盘 busy 判据（切图 / 去重 / 缺失回退 / destroy 复位 / 创建即 busy + 图标资产 + IPC 接线）。
 
 ## [0.6.0-alpha.2] - 2026-11-05

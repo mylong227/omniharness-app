@@ -33,11 +33,11 @@ jobs:
       - name: 安装依赖（含 vendored 内核 tarball）
         run: npm ci
 
+      - name: 内核边界门禁（8 条判据；先跑，生成物漂移时给出可执行修复）
+        run: npm run kernel:check
+
       - name: 类型检查（后端 / 前端 / 桌面）
         run: npm run typecheck
-
-      - name: 内核边界门禁（8 条判据）
-        run: npm run kernel:check
 
       - name: 判据（前端 + 后端 parity/守卫）
         run: npm run web:test

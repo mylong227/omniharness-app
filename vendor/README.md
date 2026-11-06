@@ -12,7 +12,9 @@
 # 缺省 tag = package.json 当前钉的版本（self-consistent，无手工漂移）
 npm run kernel:vendor
 npm ci
-npm run kernel:check
+npm run kernel:surface   # 按业务实际 import 重新生成 17 个域文件
+npm run typecheck        # 暴露真正不兼容的符号
+npm run kernel:check     # 8 条判据（含生成物不漂移）
 ```
 
 `kernel:vendor` 会同时更新根 `package.json` 的 `file:` 路径与 `package-lock.json` 的

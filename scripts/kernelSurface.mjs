@@ -26,7 +26,7 @@
  *   node scripts/kernelSurface.mjs           # 生成（写盘）
  *   node scripts/kernelSurface.mjs --check   # 只校验是否与源码一致（kernel:check 用）
  */
-import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -352,15 +352,19 @@ export function runSurface({ check }) {
   for (const [name, content] of files) {
     writeFileSync(join(SURFACE, name), content, 'utf8');
   }
-  process.stdout.write(
-    `kernel:surface 已生成 ${String(files.size)} 个域文件` +
-      `${changed.length > 0 ? `（更新 ${String(changed.length)} 个）` : '（无变化）'}\n`,
-  );
-  if (extras.length > 0) {
+  // 域文件已无任何业务使用：它是生成物，直接删掉才算真正同步（check 模式会先报漂移）。
+  for (const name of extras) rmSync(join(SURFACE, name), { force: true });
+  const leftovers = unexpected.filter((name) => !extras.includes(name));
+  if (leftovers.length > 0) {
     process.stderr.write(
-      `注意：以下文件已无业务使用但未删除（自动删除有风险，请人工确认）：${extras.join(', ')}\n`,
+      `注意：对接面目录出现非生成物（未删除，请人工迁到 kernel-compat/ 或 apps/）：${leftovers.join(', ')}\n`,
     );
   }
+  process.stdout.write(
+    `kernel:surface 已生成 ${String(files.size)} 个域文件` +
+      `${changed.length > 0 ? `（更新 ${String(changed.length)} 个）` : '（无变化）'}` +
+      `${extras.length > 0 ? `，删除 ${String(extras.length)} 个无使用域文件` : ''}\n`,
+  );
   return 0;
 }
 
