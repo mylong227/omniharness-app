@@ -1,10 +1,11 @@
 /**
- * 内核对接面 · contracts 域 —— 本目录是 app 侧唯一的 `@omniharness/kernel` 导入点
- * （`scripts/checkKernelBoundary.mjs` 第 7 条判据强制）。
+ * 内核对接面 · contracts 域 —— **自动生成，勿手改**。
  *
- * 内核升级后需要增删符号时**只改本目录**，业务代码不动。分域的原因：按域再导出保持
- * 按需加载（实测根入口整包 ~780ms vs 单深路径 ~60ms，Node 22——见 vendor/README.md）。
- * 每条 re-export 都指向内核原始深路径，便于升级时逐条对照。
+ * 生成器：`npm run kernel:surface`（读业务代码实际 import + 内核包 .d.ts）。
+ * 门禁：`npm run kernel:check` 第 8 条拒绝漂移。新增内核符号时，在业务代码里正常 import，
+ * 再跑生成器即可（无需手写 re-export）；生成物只保留实际使用的符号。
+ *
+ * 分域原因：按域加载——根入口整包实测 ~780ms，单域 ~60ms（Node 22，见 vendor/README.md）。
  */
 
 export type { AssetPackInstallRequest, AssetPackManifest, AssetPackPort, InstallReport, PackAssetEntry, PackPublisher, RegistryMetadata } from '@omniharness/kernel/contracts/ports/asset.js';
@@ -47,7 +48,6 @@ export type { SandboxCapabilityEntry } from '@omniharness/kernel/contracts/ports
 export type { RuntimeFailure } from '@omniharness/kernel/contracts/ports/runtime/sandboxDenial.js';
 export type { ServiceKeyLike } from '@omniharness/kernel/contracts/ports/runtime/serviceKeyLike.js';
 export type { MoireOptions, SkillPort } from '@omniharness/kernel/contracts/ports/runtime/skill.js';
-export type { CrisprEditReport } from '@omniharness/kernel/contracts/ports/runtime/skillEdit/crisprEditReport.js';
 export type { CrisprEditSpec } from '@omniharness/kernel/contracts/ports/runtime/skillEdit/crisprEditSpec.js';
 export type { CRISPRSkillEditorPort } from '@omniharness/kernel/contracts/ports/runtime/skillEdit/crisprSkillEditorPort.js';
 export type { AuditSinkLike, HealthEntry, HealthSnapshot, SafeMode, SupervisorOptions, SupervisorPort } from '@omniharness/kernel/contracts/ports/runtime/supervisor.js';

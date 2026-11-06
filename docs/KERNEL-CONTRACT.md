@@ -1,9 +1,10 @@
 # 本仓与内核（`@omniharness/kernel`）的契约
 
-> 实测日期 2026-11-05。**结论**：应用消费 vendored `@omniharness/kernel@0.1.0-alpha.6`，
-> 全部内核导入收敛于 **`src/host/kernel/` 分域对接面**（17 个域文件，`npm run kernel:check`
-> 第 7 条强制单点）；内核切片清理掉的应用能力收留于 **`src/host/kernel-compat/`**
-> （app 自有扩展层，122 个文件，归属契约见[其 README](../src/host/kernel-compat/README.md)）。
+> 实测日期 2026-11-06。**结论**：应用消费 vendored `@omniharness/kernel@0.1.0-alpha.6`，
+> 全部内核导入收敛于 **`src/host/kernel/` 分域对接面**（17 个**自动生成**的域文件，
+> `npm run kernel:check` 第 7 条强制单点、第 8 条拒绝生成物漂移）；内核切片清理掉的应用能力
+> 收留于 **`src/host/kernel-compat/`**（app 自有扩展层，122 个文件，归属契约见
+> [其 README](../src/host/kernel-compat/README.md)）。
 > 后端 RPC 面由 **16 个域模块声明式注册**（93 方法，parity 快照钉住）。
 
 ## 1. 现在的依赖方向
@@ -36,7 +37,7 @@ web/ + desktop/ ──HTTP/SSE──▶ src/apps（宿主：CLI / RPC 域模块 
    app `Runtime` 改为继承，A2A 互操作随内核 M4 决策退役（v0.3 线格式一并删除）。
 2. **能力收编**：内核切片删除的 plugin / 资产 / 媒体 / 审计演化等能力以
    `src/host/kernel-compat/` 自有（122 文件，closure-complete，导入已改写为对接面路径）。
-3. **对接面收敛**：637 处散布深路径导入 → 323 条再导出收敛于 17 个域文件；
+3. **对接面收敛**：637 处散布深路径导入 → 321 处包导入收敛于 17 个**自动生成**的域文件；
    `ServiceKeys` 单源自内核；纯再导出 shim 全部清除。
 4. **后端模块化**：7 层继承链 → `ServerServices`（装配）+ 16 个域模块（注册）+
    `AppServer`（组装/分发/生命周期）；93 个 RPC 方法有唯一注册出处。
@@ -54,9 +55,10 @@ alpha.4 时代的方案是**钉住旧版本等归位**；本仓已把等的那�
 - 随内核 M4 退役的能力（A2A v0.3 线格式）→ 删除，等 v1.0 重基后按新契约另行接入；
 - 编排 → 内核单源（继承 `Runtime`）。
 
-因此升级不再被「少功能」阻止，且**以后每次升级只适配 `src/host/kernel/` 一个目录**。
+因此升级不再被「少功能」阻止，且**以后每次升级只适配 `src/host/kernel/` 一个目录**：
+换 tgz → `npm run kernel:surface` 重新生成对接面 → `npm run typecheck` 指出真正不兼容的符号。
 
-## 4. 门禁：`npm run kernel:check`（7 条判据）
+## 4. 门禁：`npm run kernel:check`（8 条判据）
 
 1. `package.json` 的 `@omniharness/kernel` 必须是 `file:vendor/*.tgz`；
 2. 仓库根不得存在 `src/{kernel,contracts,protocols}`；
@@ -64,7 +66,13 @@ alpha.4 时代的方案是**钉住旧版本等归位**；本仓已把等的那�
 4. `src/host/kernel/` 必须存在包导入（防止「只改配置、代码没用上」）；
 5. `vendor/*.tgz` 的 SHA-512 必须等于 `package-lock.json` 的 integrity；
 6. `NativeKernel.available() === true` 且 `ping()` 成功；
-7. **对接面单点**：`src/**` 里只有 `src/host/kernel/<域>.ts` 允许导入内核包。
+7. **对接面单点**：`src/**` 里只有 `src/host/kernel/<域>.ts` 允许导入内核包；
+8. **对接面不漂移**：17 个域文件必须与「业务代码实际 import + 内核包 `.d.ts`」一致
+   （由 `scripts/kernelSurface.mjs` 生成；只改业务 import 不跑 `npm run kernel:surface` 即红）。
+
+生成器只保留业务实际使用的符号：新增内核符号的姿势是**在业务代码里正常 import**，再跑
+`npm run kernel:surface`（无需手写 re-export）；已无使用的符号会被裁掉。`kernel:check`
+第 8 条是这条工作流的唯一裁决点。
 
 重建发行物：`npm run kernel:vendor`（tag 缺省从 package.json 钉定版本解析——
 「再 vendor 一次当前版本」永远可复现，不存在脚本缺省 tag 与钉版本漂移）。
@@ -82,13 +90,13 @@ alpha.4 时代的方案是**钉住旧版本等归位**；本仓已把等的那�
 - **原生内核**：随 tarball 分发；内核升级必须用 `kernel:vendor` 重新注入与应用 ABI 匹配的
   `native/omni_napi.node`，否则门禁第 6 条会红。
 
-## 6. 证据（2026-11-05）
+## 6. 证据（2026-11-06）
 
 | 检查 | 结果 |
 | ---- | ---- |
 | `npm run typecheck`（后端 / 前端 / 桌面） | ✅ 0 error |
-| `npm run kernel:check` | ✅ 350 源文件 / 323 包导入（全部收敛对接面）/ 内嵌副本 0 / integrity 一致 / native ping |
+| `npm run kernel:check` | ✅ 350 源文件 / 321 处包导入（全部收敛对接面）/ 内嵌副本 0 / integrity 一致 / native ping / 生成物一致 |
 | `npm run build` + `npm run smoke` | ✅ 7/7（banner token、healthz、readyz、HTML、config.get、sessions.list、原生内核实载） |
-| `npm run web:test` | ✅ 148 文件 / 725 用例（含 parity/守卫/家具） |
-| `npm run desktop:build` + `desktop:test` | ✅ 25/25 |
+| `npm run web:test` | ✅ 151 文件 / 731 用例（含 parity/守卫/家具） |
+| `npm run desktop:build` + `desktop:test` | ✅ 30/30 |
 | 嵌入 API 实测 | ✅ `createOmniHarness` 1.8s 启动 / healthz 200 / RPC 往返 / 优雅关闭 |

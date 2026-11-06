@@ -12,6 +12,8 @@
  * 7. **对接面单点**：`src/**` 里只有 `src/host/kernel/<area>.ts` 允许导入 `@omniharness/kernel`——
  *    业务代码一律经 `src/host/kernel/` 分域对接面消费内核，内核升级只适配这一个目录
  *    （分域而非单文件桶的原因见该目录文件头注释：整包加载 ~780ms vs 单域 ~60ms）。
+ * 8. **对接面不漂移**：17 个域文件必须与「业务代码实际 import + 内核包 .d.ts」一致——
+ *    只改业务导入不跑 `npm run kernel:surface` 会在这里被判红（生成器见 `scripts/kernelSurface.mjs`）。
  *
  * 边界说明（2026-11-06 审计）：范围是 `src/**`（web/ 与 desktop/ 不消费内核包——它们的
  * 通道是 HTTP/SSE 与侧车 spawn；scripts/ 里的门禁自身是合法消费者）。导入正则连注释里
@@ -24,6 +26,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { runSurface } from './kernelSurface.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const failures = [];
@@ -124,6 +127,11 @@ try {
   fail(`原生内核加载抛错：${error instanceof Error ? error.message : String(error)}`);
 }
 
+// 8. 对接面生成物不漂移（生成器唯一真源：业务 import + 内核包 .d.ts）
+if (runSurface({ check: true }) !== 0) {
+  fail('对接面生成物漂移：运行 npm run kernel:surface 后重跑门禁');
+}
+
 if (failures.length > 0) {
   process.stderr.write(`kernel:check 失败 —— ${String(failures.length)} 项：\n`);
   for (const message of failures) process.stderr.write(`  - ${message}\n`);
@@ -131,5 +139,5 @@ if (failures.length > 0) {
 }
 process.stdout.write(
   `kernel:check OK —— ${String(srcFiles.length)} 个源文件 / ${String(packageImports)} 处包导入（全部收敛于 src/host/kernel/ 对接面）/ ` +
-    `内嵌副本 0 / vendored tarball integrity 一致 / 原生内核实载\n`,
+    `内嵌副本 0 / vendored tarball integrity 一致 / 原生内核实载 / 对接面生成物一致\n`,
 );

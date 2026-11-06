@@ -4,7 +4,7 @@
 
 1. **fail-closed**：没接线就如实报「未接线」，绝不返回空值冒充正常——「看着绿」是本仓历史缺陷的头号形态。
 2. **单点真源**：内核导入只走 `src/host/kernel/`、RPC 注册只走 `src/apps/server/modules/`、厂商目录只读 `providerPresets`。发现第二份拷贝，收敛它而不是绕过它。
-3. **改一处，验证全链**：`npm run verify` 是唯一裁决（typecheck×3 → kernel:check 7 判据 → 731 判据 → build → smoke → desktop）。
+3. **改一处，验证全链**：`npm run verify` 是唯一裁决（typecheck×3 → kernel:check 8 判据 → 731 判据 → build → smoke → desktop）。
 
 ## 常见任务的最短路径
 
@@ -29,7 +29,8 @@
 | `web/test/**` | 前端 145 文件（组件/逻辑/a11y，文件级串行） | `npm run web:test` |
 | `tests/**` | 后端判据（RPC parity、ApiClient 漂移守卫、家具守卫、嵌入 API 生命周期、旗标注册纪律） | 同上 |
 | `desktop/scripts/test.mjs`（内联 30 条） | 桌面纯逻辑判据 | `npm run desktop:test` |
-| `scripts/checkKernelBoundary.mjs` | 内核边界门禁 7 条 | `npm run kernel:check` |
+| `scripts/checkKernelBoundary.mjs` | 内核边界门禁 8 条（含对接面生成物不漂移） | `npm run kernel:check` |
+| `scripts/kernelSurface.mjs` | 从业务 import 生成 17 个内核对接面文件 | `npm run kernel:surface` |
 | `scripts/smoke.mjs` | 端到端 7 项（真起 serve） | `npm run smoke` |
 
 环境：Node ≥ 22.14（`engines` 钉定），Windows/macOS/Linux 均可开发；桌面打包当前仅 Windows。

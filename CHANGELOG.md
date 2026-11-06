@@ -11,6 +11,7 @@
 - **视觉探针基线**：`web/test/visualProbe.ts` 新增 `pinned`（置顶组 + 行内 pin 角标 + 行菜单「取消置顶」）与 `jump-bottom`（回到底部浮钮）交互态；会话夹具补齐 `workspace` / `pinned` 真实形状。
 
 ### Changed（变更）
+- **内核对接面自动生成**：新增 `npm run kernel:surface`（`scripts/kernelSurface.mjs`）——从「业务代码实际 import + 内核包 `.d.ts`」生成 17 个 `src/host/kernel/<域>.ts`，只保留实际使用的符号（本次裁掉 2 个零使用再导出）。新增内核符号只需在业务代码里正常 import 再跑一次生成命令，不再手写 re-export；`kernel:check` 新增第 8 条「生成物不漂移」，升级内核 = 换 tgz → `kernel:surface` → typecheck。
 - 会话置顶不再写 localStorage（删除 `web/src/ui/models/SessionPins.ts`）：服务端侧车为**唯一真源**，面板从 `sessions.list` 的 `pinned` 字段派生置顶集合。
 
 ### Tests（判据）

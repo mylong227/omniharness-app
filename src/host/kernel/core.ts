@@ -1,10 +1,11 @@
 /**
- * 内核对接面 · core 域 —— 本目录是 app 侧唯一的 `@omniharness/kernel` 导入点
- * （`scripts/checkKernelBoundary.mjs` 第 7 条判据强制）。
+ * 内核对接面 · core 域 —— **自动生成，勿手改**。
  *
- * 内核升级后需要增删符号时**只改本目录**，业务代码不动。分域的原因：按域再导出保持
- * 按需加载（实测根入口整包 ~780ms vs 单深路径 ~60ms，Node 22——见 vendor/README.md）。
- * 每条 re-export 都指向内核原始深路径，便于升级时逐条对照。
+ * 生成器：`npm run kernel:surface`（读业务代码实际 import + 内核包 .d.ts）。
+ * 门禁：`npm run kernel:check` 第 8 条拒绝漂移。新增内核符号时，在业务代码里正常 import，
+ * 再跑生成器即可（无需手写 re-export）；生成物只保留实际使用的符号。
+ *
+ * 分域原因：按域加载——根入口整包实测 ~780ms，单域 ~60ms（Node 22，见 vendor/README.md）。
  */
 
 export { Agent } from '@omniharness/kernel/kernel/core/agent.js';
@@ -12,7 +13,6 @@ export type { AgentResult } from '@omniharness/kernel/kernel/core/agent.js';
 export { AppendOnlyEventLog } from '@omniharness/kernel/kernel/core/appendOnlyEventLog.js';
 export { CheckpointManager } from '@omniharness/kernel/kernel/core/checkpointManager.js';
 export { Container } from '@omniharness/kernel/kernel/core/container.js';
-export { ServiceKey } from '@omniharness/kernel/kernel/core/serviceKey.js';
 export { SessionRecorder } from '@omniharness/kernel/kernel/core/sessionRecorder.js';
 export { StepRunner } from '@omniharness/kernel/kernel/core/stepRunner.js';
 export { MUTATING_TOOLS, ToolGate } from '@omniharness/kernel/kernel/core/toolGate.js';

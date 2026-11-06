@@ -29,8 +29,9 @@ Electron main（受信） ──spawn──▶ node dist/src/apps/cli/exec.js se
 ```
 
 后端的「内核」不再由本仓源码提供：全部内核符号经 `src/host/kernel/<域>.ts` 对接面导入
-（323 条再导出、门禁第 7 条强制单点）；桌面的「后端根目录」缺省就是本仓根；
-`OMNI_BACKEND_ROOT` / `OMNI_HARNESS_ENTRY` 仍可指向另一份后端工作树。
+（321 处包导入、17 个**自动生成**的域文件；门禁第 7 条强制单点、第 8 条拒绝生成物漂移）；
+桌面的「后端根目录」缺省就是本仓根；`OMNI_BACKEND_ROOT` / `OMNI_HARNESS_ENTRY` 仍可指向
+另一份后端工作树。
 
 ## 2. 快速开始
 
@@ -77,7 +78,8 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 | `npm run build:web` / `web:dev` | 前端 Vite 构建 / 开发服务器 |
 | `npm run web:test` | 判据（前端 145 文件 + 后端 6 文件 / 共 731 用例，文件级串行） |
 | `npm run typecheck` | 后端 + 前端 + 桌面三份 strict 类型检查 |
-| `npm run kernel:check` | **内核边界门禁（7 条）**：vendored 钉定 / 无内嵌副本 / 对接面单点 / tarball 与锁文件一致 / 原生内核实载 |
+| `npm run kernel:check` | **内核边界门禁（8 条）**：vendored 钉定 / 无内嵌副本 / 对接面单点 / tarball 与锁文件一致 / 原生内核实载 / **对接面生成物不漂移** |
+| `npm run kernel:surface` | 从「业务代码实际 import + 内核包 .d.ts」生成 17 个域文件（新增符号无需手写 re-export） |
 | `npm run kernel:vendor` | 从内核仓重新构建并固定 `vendor/*.tgz`（tag 自 package.json 钉定版本解析） |
 | `npm run smoke` | **端到端**：真起 serve，验启动令牌、`/healthz` `/readyz` `/`、`/rpc config.get` |
 | `npm run serve` | 只起 backend serve（需先 `npm run build` + `build:web`） |
@@ -113,10 +115,12 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 
 - **alpha.6**（内核 M4/M5/M6 闭环）：内核完成了「应用形状切片」并把运行时编排收敛为
   `Runtime.createRuntime` 单源——app 的 `Runtime` 现在只是内核 Runtime 的薄扩展。
-- **`src/host/kernel/` 对接面（17 个域文件）**：全仓**唯一**允许导入 `@omniharness/kernel`
-  的地方（`checkKernelBoundary.mjs` 第 7 条强制）。分域而非单文件桶的原因：实测根入口整包
-  加载 ~780ms vs 单域 ~60ms——单文件桶会给每个 CLI 冷启动平添 ~700ms。
-  **升级内核 = 换 tgz + 适配这一个目录**，业务代码零改动。
+- **`src/host/kernel/` 对接面（17 个域文件，自动生成）**：全仓**唯一**允许导入
+  `@omniharness/kernel` 的地方（`checkKernelBoundary.mjs` 第 7 条强制单点、第 8 条拒绝
+  生成物漂移）。文件由 `npm run kernel:surface` 从业务代码实际 import 生成——新增内核符号
+  只需在业务代码里正常 import 再跑一次生成命令，不必手写 re-export。分域而非单文件桶的原因：
+  实测根入口整包加载 ~780ms vs 单域 ~60ms——单文件桶会给每个 CLI 冷启动平添 ~700ms。
+  **升级内核 = 换 tgz + `npm run kernel:surface` + 适配 typecheck**，业务代码零改动。
 - **`src/host/kernel-compat/`（app 自有扩展层）**：插件宿主体系、图存储、资产、媒体、
   审计演化等内核切片清理掉的应用能力收留于此。归属契约见
   [其 README](src/host/kernel-compat/README.md)：app 自有、随 app 演进、不得反向要求内核兼容。
@@ -145,7 +149,7 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 | 检查 | 结果 |
 | ---- | ---- |
 | 三份 typecheck（后端 / 前端 / 桌面） | ✅ 0 error |
-| `npm run kernel:check` | ✅ 350 源文件 / 323 包导入（全部收敛对接面）/ 内嵌副本 0 / tarball integrity 一致 / 原生内核实载 |
+| `npm run kernel:check` | ✅ 350 源文件 / 321 处包导入（全部收敛对接面）/ 内嵌副本 0 / tarball integrity 一致 / 原生内核实载 / 生成物一致 |
 | 后端构建 `npm run build` | ✅ dist 原子换入；原生内核可加载 |
 | 前端构建 `npm run build:web` | ✅ 单入口 + vendor/panel-antd 分块 |
 | 判据 `npm run web:test` | ✅ 151 文件 / 731 用例（含 parity/守卫/家具/嵌入 API） |
@@ -161,7 +165,7 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 - 内核来自 `../omniharness-kernel` 的 `v0.1.0-alpha.6` tag；`vendor/*.tgz` 是它的发行物，
   **不是**第二份源码。重建用 `npm run kernel:vendor`（tag 缺省自 package.json 解析）。
 - 上游的 `tests/`、`crates/`、`third-party/`、看板与审计脚本没有切过来：本仓的判据是
-  731 用例（web 716 + 后端 15）+ 桌面 30 条 + 冒烟 7 条 + 内核边界 7 条。
+  731 用例（web 716 + 后端 15）+ 桌面 30 条 + 冒烟 7 条 + 内核边界 8 条。
 
 ## License
 

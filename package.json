@@ -44,6 +44,7 @@
     "typecheck:web": "tsc -p web/tsconfig.json --noEmit",
     "typecheck:desktop": "tsc -p desktop/tsconfig.json --noEmit",
     "kernel:check": "node scripts/checkKernelBoundary.mjs",
+    "kernel:surface": "node scripts/kernelSurface.mjs",
     "kernel:vendor": "node scripts/vendorKernel.mjs",
     "desktop:build": "npm --prefix desktop run build",
     "desktop:start": "npm --prefix desktop start",
