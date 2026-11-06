@@ -1,11 +1,18 @@
-/* 输入框上方的计划进度条（TodoDock）：长会话里不需要滚回顶部也能看到 Agent 当前步骤。 */
+/* 输入框上方的计划进度条（TodoDock）：长会话里不需要滚回顶部也能看到 Agent 当前步骤。
+   宽度与正文同源（800px；专注模式 920px）——专注时中栏变宽，计划条不应跟着铺满整屏。 */
 .todo-dock {
-  margin: 0 12px 6px;
+  width: calc(100% - 24px);
+  max-width: 800px;
+  margin: 0 auto 6px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--panel);
   font-size: 12px;
   overflow: hidden;
+}
+
+.body.focus .todo-dock {
+  max-width: 920px;
 }
 
 .todo-dock__summary {
