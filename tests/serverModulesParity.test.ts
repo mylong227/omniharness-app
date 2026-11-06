@@ -46,8 +46,8 @@ describe('RPC parity 快照（coreModules）', () => {
   const entries = collectMethods(coreModules());
   const methods = entries.map((e) => e.method).sort();
 
-  it('方法总数 == 92（重构基线 91 + rpc.list 内省；有意识地增减并同步 web ApiClient）', () => {
-    expect(methods.length).toBe(92);
+  it('方法总数 == 93（92 + sessions.setPinned 置顶同步；有意识地增减并同步 web ApiClient）', () => {
+    expect(methods.length).toBe(93);
   });
 
   it('全量方法清单（按域前缀分组快照）', () => {
@@ -126,6 +126,7 @@ describe('RPC parity 快照（coreModules）', () => {
         "sessions.list",
         "sessions.rename",
         "sessions.reorder",
+        "sessions.setPinned",
         "sessions.setWorkspace",
         "skills.list",
         "threads.continue",
@@ -158,6 +159,7 @@ describe('RPC parity 快照（coreModules）', () => {
     expect(byOwner.get('automations.run')).toBe('automations');
     expect(byOwner.get('workspace.switch')).toBe('workspace');
     expect(byOwner.get('sessions.reorder')).toBe('sessions');
+    expect(byOwner.get('sessions.setPinned')).toBe('sessions');
     expect(byOwner.get('context.usage')).toBe('surface');
     expect(byOwner.get('plugins.reload')).toBe('plugins');
     expect(byOwner.get('graph.resume')).toBe('graphs');

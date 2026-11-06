@@ -10,6 +10,8 @@ desktop/node_modules/
 desktop/dist/
 coverage/
 .coverage/
+# 视觉探针/真机截图（带时间戳的本地评审留档，不进仓；判据与交互态在 web/test/visualProbe.ts）
+web/archive/
 
 # 运行期/临时（serve 的租约、构建暂存、会话落盘、宿主工具目录）
 .tmp/

@@ -51,6 +51,8 @@ interface SessionInfo {
   readonly mtimeMs: number;
   /** 是否已归档（侧车 `sessions.archived.json`；归档会话在 UI 里折叠到「已归档」组）。 */
   readonly archived: boolean;
+  /** 是否已置顶（侧车 `sessions.pinned.json`；列表里浮到「置顶」组，跨设备共享）。 */
+  readonly pinned: boolean;
 }
 
 /** 会话存档读取依赖。 */
@@ -81,7 +83,7 @@ export class SessionArchive {
   private readonly configuredStorageDir: () => string | undefined;
   /** 进程内指标（磁盘无历史时回退）。 */
   private readonly metrics: Metrics | undefined;
-  /** 侧车存储（自定义标题 / 归档名单 / 用户指定顺序）：细节见 {@link SessionSidecars}。 */
+  /** 侧车存储（自定义标题 / 归档名单 / 置顶名单 / 用户指定顺序）：细节见 {@link SessionSidecars}。 */
   private readonly sidecars: SessionSidecars;
   /** 本进程是否已做过遗留临时文件清扫（只做一次）。 */
   private sweptTempFiles = false;
@@ -213,6 +215,7 @@ export class SessionArchive {
     const sessions: SessionInfo[] = [];
     const titles = this.sidecars.readTitles();
     const archivedSet = new Set(this.sidecars.readArchived());
+    const pinnedSet = new Set(this.sidecars.readPinned());
     // 工作区过滤：有明确归属且**不指向同一个项目** ⇒ 该会话属于别的项目，不进本项目的列表。
     // 比较走 `WorkspaceIdentity`（归一拼写）：本机实测同一项目曾以 `D:\x` / `D:/x` / 跑测子目录
     // 三种拼写存在，字面量相等会把它们判成不同项目（用户报「没有按所属项目归类」）。
@@ -224,7 +227,7 @@ export class SessionArchive {
     const mainRows = await Promise.all(
       mainNames.map((name) => {
         const id = name.replace(/\.jsonl$/, '');
-        return this.buildSession(join(dir, name), id, archivedSet.has(id), scope, titles);
+        return this.buildSession(join(dir, name), id, archivedSet.has(id), scope, titles, pinnedSet);
       }),
     );
     for (const row of mainRows) {
@@ -238,7 +241,7 @@ export class SessionArchive {
       const archRows = await Promise.all(
         archNames.map((name) => {
           const id = name.replace(/\.jsonl$/, '');
-          return this.buildSession(join(archDir, name), id, true, scope, titles);
+          return this.buildSession(join(archDir, name), id, true, scope, titles, pinnedSet);
         }),
       );
       for (const row of archRows) {
@@ -269,6 +272,7 @@ export class SessionArchive {
     archived: boolean,
     scope: string | undefined,
     titles: Readonly<Record<string, string>>,
+    pinned: ReadonlySet<string>,
   ): Promise<SessionInfo | undefined> {
     const scanned = await this.scanSessionFile(file);
     if (scanned === undefined) return undefined;
@@ -292,6 +296,7 @@ export class SessionArchive {
       // mtime 由缓存命中/解析时顺带返回：不再第二次 stat。
       mtimeMs: scanned.mtimeMs,
       archived,
+      pinned: pinned.has(id),
     };
   }
 
@@ -334,6 +339,26 @@ export class SessionArchive {
       ? [...new Set([...list, sessionId])]
       : list.filter((id) => id !== sessionId);
     this.sidecars.writeArchived(next);
+    return { ok: true };
+  }
+
+  /**
+   * 置顶 / 取消置顶（2026-11-06 实用性打磨）：登记进置顶侧车（`sessions.pinned.json`）。
+   *
+   * 为什么置顶值得进侧车而不留在浏览器 localStorage：置顶的语义是「跟会话走」——
+   * 存档目录随工作区/同步盘共享时，换设备打开同一项目应看到同一批置顶。与归档同
+   * fail-open 口径：侧车损坏最坏后果是置顶回到零，会话本体不受影响。
+   * @param sessionId 会话 id
+   * @param pinned true 置顶、false 取消
+   * @returns `{ ok }`；id 形态非法时 `{ ok:false, error }`（与 reorder 同一校验口径）
+   */
+  public setPinned(sessionId: string, pinned: boolean): { ok: boolean; error?: string } {
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(sessionId)) return { ok: false, error: 'bad_session_id' };
+    const list = this.sidecars.readPinned();
+    const next = pinned
+      ? [...new Set([...list, sessionId])]
+      : list.filter((id) => id !== sessionId);
+    this.sidecars.writePinned(next);
     return { ok: true };
   }
 
@@ -581,7 +606,7 @@ export class SessionArchive {
    */
   private async scanSessionFile(file: string): Promise<
     | {
-        parsed: Omit<SessionInfo, 'sessionId' | 'mtimeMs' | 'archived'>;
+        parsed: Omit<SessionInfo, 'sessionId' | 'mtimeMs' | 'archived' | 'pinned'>;
         mtimeMs: number;
       }
     | undefined

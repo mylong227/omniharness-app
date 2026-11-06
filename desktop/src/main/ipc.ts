@@ -24,6 +24,8 @@ export interface IpcDeps {
   isTrustedContents?(contents: WebContents): boolean;
   /** 当前工作区。 */
   workspace(): string;
+  /** 托盘 busy 态切换（回合开始/结束；缺省则托盘无 busy 面）。 */
+  setTrayBusy?(busy: boolean): void;
   /** 当前桌面语言（`zh-CN`/`en-US`）。 */
   language(): string;
   /** 打开诊断信息对话框。 */
@@ -86,6 +88,9 @@ export function registerIpc(deps: IpcDeps): void {
     }
     const progress = Math.min(2, Math.max(-1, value));
     BrowserWindow.fromWebContents(event.sender)?.setProgressBar(progress);
+    // 复用既有信号切托盘 busy 态（2026-11-06 实用性打磨）：value 2 = 回合开始（不确定进度）
+    // ⇒ 绿点变体；-1 = 回合收尾 ⇒ 常规图标。无需新增 IPC 面。
+    deps.setTrayBusy?.(progress === 2);
     return true;
   });
   ipcMain.handle('omni:setCloseToTray', (event, enabled: unknown) => {

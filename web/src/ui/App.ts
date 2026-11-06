@@ -465,6 +465,7 @@ function sessionPanelElement(
     onDelete: ctrl.sessions.deleteSession,
     onFork: ctrl.sessions.forkSession,
     onArchive: ctrl.sessions.archiveSession,
+    onTogglePin: (id, pinned) => void ctrl.sessions.setPinned(id, pinned),
     onReorder: ctrl.sessions.reorderSessions,
     onWorkspaceSwitched: h.onWorkspaceSwitched,
     onWorkspaceResolved,

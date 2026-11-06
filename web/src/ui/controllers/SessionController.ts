@@ -196,6 +196,7 @@ export class SessionController {
         ...(s.model !== undefined ? { model: s.model } : {}),
         running: s.running === true,
         archived: s.archived === true,
+        pinned: s.pinned === true,
       }));
       this.host.patch((s) => ({ sessions: this.services.reducers.mergeSessions(s.sessions, fromDisk) }));
     } catch {
@@ -472,6 +473,29 @@ export class SessionController {
       this.services.toast(r.ok ? t('会话已删除') : t('该会话未落盘，已从列表移除'), 'ok');
     } catch (e) {
       this.services.toast(t('删除失败：{msg}', { msg: (e as Error).message }), 'err');
+    }
+  }
+
+  /**
+   * 置顶 / 取消置顶（2026-11-06）：服务端侧车真源。乐观更新本地列表（置顶组即时浮起），
+   * RPC 失败回滚并如实 toast；成功后**不**全量刷新（避免列表跳动），下次刷新自然对齐。
+   * @param id 会话 id。
+   * @param pinned true 置顶、false 取消。
+   */
+  public async setPinned(id: string, pinned: boolean): Promise<void> {
+    const before = this.host.getState().sessions;
+    this.host.patch({
+      sessions: before.map((x) => (x.id === id ? { ...x, pinned } : x)),
+    });
+    try {
+      const r = await this.services.api.setSessionPinned(id, pinned);
+      if (!r.ok) {
+        this.host.patch({ sessions: before });
+        this.services.toast(t('置顶失败：{msg}', { msg: r.error ?? '' }), 'err');
+      }
+    } catch (e) {
+      this.host.patch({ sessions: before });
+      this.services.toast(t('置顶失败：{msg}', { msg: (e as Error).message }), 'err');
     }
   }
 

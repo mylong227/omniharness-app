@@ -1,4 +1,4 @@
-﻿// 视觉探针（无第三方依赖，真实 Chrome + CDP）：把 OmniHarness Web 工作台在**两套主题 × 两档视口**
+// 视觉探针（无第三方依赖，真实 Chrome + CDP）：把 OmniHarness Web 工作台在**两套主题 × 两档视口**
 // 下渲染成 PNG，存档到 web/archive/，供设计评审与"有没有变脏"的肉眼复核。
 //
 // 为什么必须有它（而不是只看单测）：
@@ -132,13 +132,15 @@ function probeResults() {
       workspaces: ['D:\\deepseek\\omniharness', 'D:\\deepseek\\other-project'],
     },
     // sessions.list → { dir, sessions: [{ sessionId, label, turns, updatedAt, … }] }。
+    // 2026-11-06：带 workspace 是真实形状（UI 按项目分组）；probe-s1 带 `pinned`，其分组与
+    // 「取消置顶」菜单由 `pinned` 交互态留档。
     'sessions.list': {
       dir: '~/.omniharness/sessions',
       sessions: [
-        { sessionId: 'probe-s1', label: '打磨工作台视觉层', turns: 12, updatedAt: iso(4) },
-        { sessionId: 'probe-s2', label: '接入新的权限档位校验', turns: 6, updatedAt: iso(90) },
-        { sessionId: 'probe-s3', label: '排查长会话滚动跳动', turns: 21, updatedAt: iso(60 * 26) },
-        { sessionId: 'probe-s4', label: '写审计链的端到端回归', turns: 4, updatedAt: iso(60 * 50) },
+        { sessionId: 'probe-s1', label: '打磨工作台视觉层', turns: 12, updatedAt: iso(4), workspace: 'D:\\deepseek\\omniharness', pinned: true },
+        { sessionId: 'probe-s2', label: '接入新的权限档位校验', turns: 6, updatedAt: iso(90), workspace: 'D:\\deepseek\\omniharness' },
+        { sessionId: 'probe-s3', label: '排查长会话滚动跳动', turns: 21, updatedAt: iso(60 * 26), workspace: 'D:\\deepseek\\omniharness' },
+        { sessionId: 'probe-s4', label: '写审计链的端到端回归', turns: 4, updatedAt: iso(60 * 50), workspace: 'D:\\deepseek\\other-project' },
       ],
     },
     // changes.list → { source, branch, files: [{ path, status, additions, deletions }] }。
@@ -593,6 +595,162 @@ const STATES = [
       return help;
     },
   },
+  {
+    key: 'pinned',
+    // 置顶分组 + 行菜单（2026-11-06 实用性打磨）：置顶从 localStorage 升级为服务端侧车后，用户面
+    // 只有两处变化——左栏最前面的「置顶」组（含行内 pin 角标）与行菜单里的「取消置顶」。
+    // 截图留档这一刻，并顺带断言两者真的在（否则图只能证明"页面没崩"，证明不了置顶可见）。
+    open: async (cdp: CdpSession) => {
+      const grouped = await cdp.waitFor(
+        `(function(){
+          var row = document.querySelector('[data-session-id="probe-s1"]');
+          var group = row === null ? null : row.closest('.ws-group');
+          var head = group === null ? null : group.querySelector('.ws-head');
+          var badge = row === null ? null : row.querySelector('.session-pin-badge');
+          return !!head && (head.textContent || '').indexOf('置顶') >= 0 && !!badge;
+        })()`,
+        800,
+      );
+      if (!grouped) {
+        emit({
+          kind: 'state-debug',
+          state: 'pinned',
+          why: await cdp.evaluate(`(function(){
+            var row = document.querySelector('[data-session-id="probe-s1"]');
+            var group = row === null ? null : row.closest('.ws-group');
+            return {
+              row: row !== null,
+              badge: row !== null && row.querySelector('.session-pin-badge') !== null,
+              groupHead: group === null ? null : (group.querySelector('.ws-head') || {}).textContent,
+              groups: [].slice.call(document.querySelectorAll('.ws-name')).map(function(x){ return x.textContent; }),
+            };
+          })()`),
+        });
+        return false;
+      }
+      /**
+       * 等流式容器的 scrollTop 连续两次不变。
+       *
+       * 为什么必须等：行菜单在**任意滚动**时自动关闭（`useRowMenu` 的 window scroll 捕获），
+       * 而事件流在挂载后还会因逐块高度回填（measureTick / holeBoost）继续微调 scrollTop——
+       * 右键刚打开、下一拍就被自己的自动贴底关掉（2026-11-06 实测：单跑偶发、双主题连跑必现）。
+       */
+      const settleScroll = async (): Promise<void> => {
+        let last = -1;
+        for (let i = 0; i < 20; i += 1) {
+          const top = await cdp.evaluate(
+            "(function(){var s=document.querySelector('.stream'); return s===null ? -1 : s.scrollTop;})()",
+          );
+          const value = typeof top === 'number' ? top : -1;
+          if (value === last) return;
+          last = value;
+          await new Promise((r) => setTimeout(r, 70));
+        }
+      };
+      /** 在置顶行上派发 contextmenu；返回菜单是否真的进了 DOM。 */
+      const openRowMenu = async (): Promise<boolean> => {
+        const fired = await cdp.evaluate(`(function(){
+          var row = document.querySelector('[data-session-id="probe-s1"]');
+          if (row === null) return false;
+          var r = row.getBoundingClientRect();
+          row.dispatchEvent(new MouseEvent('contextmenu', {
+            bubbles: true, cancelable: true,
+            clientX: Math.round(r.left + 80), clientY: Math.round(r.top + 12),
+          }));
+          return true;
+        })()`);
+        if (fired !== true) return false;
+        return (await cdp.waitFor("!!document.querySelector('.row-menu')", 400)) === true;
+      };
+      /** 展开「配置」分组并确认「取消置顶」在菜单里（置顶项就在这里）。 */
+      const openConfig = async (): Promise<boolean> => {
+        if (!(await cdp.waitFor("!!document.querySelector('.row-menu-config')", 300))) return false;
+        await cdp.click('.row-menu-config');
+        return (
+          (await cdp.waitFor(
+            `(function(){
+              var sub = document.querySelector('.row-menu-sub');
+              return !!sub && (sub.textContent || '').indexOf('取消置顶') >= 0;
+            })()`,
+            400,
+          )) === true
+        );
+      };
+      await settleScroll();
+      if (!(await openRowMenu())) {
+        // 一次性重试：滚动停稳的判定窗口偶尔仍被后一拍测量打断。
+        await new Promise((r) => setTimeout(r, 250));
+        await settleScroll();
+        if (!(await openRowMenu())) {
+          emit({
+            kind: 'state-debug',
+            state: 'pinned',
+            why: await cdp.evaluate(`(function(){
+              var s = document.querySelector('.stream');
+              return {
+                row: document.querySelector('[data-session-id="probe-s1"]') !== null,
+                menu: document.querySelectorAll('.row-menu').length,
+                top: s === null ? null : s.scrollTop,
+                crash: document.querySelector('.crash-panel') !== null,
+              };
+            })()`),
+          });
+          return false;
+        }
+      }
+      let ok = await openConfig();
+      if (!ok) {
+        // 菜单可能在「等滚动」与「点配置」之间被下一拍 scroll 关掉：停稳后整体重来一次。
+        await new Promise((r) => setTimeout(r, 250));
+        await settleScroll();
+        ok = (await openRowMenu()) && (await openConfig());
+      }
+      if (!ok) {
+        emit({
+          kind: 'state-debug',
+          state: 'pinned',
+          why: await cdp.evaluate(
+            "(function(){ var m=document.querySelector('.row-menu'); return m===null ? null : m.textContent; })()",
+          ),
+        });
+      }
+      return ok;
+    },
+  },
+  {
+    key: 'jump-bottom',
+    // 回到底部浮动按钮（2026-11-06 实用性打磨）：内容撑出视口后**上滚**，按钮浮现在
+    // 滚动口下缘；点它恢复贴底。放在 STATES 末尾——此时事件流最长、必定可滚。
+    // 注意：上滚 → onScroll setState → React 重渲染是**异步**的，必须 waitFor 等
+    // 按钮真正进 DOM（同步断言会在渲染前一拍读到 false，2026-11-06 实测）。
+    open: async (cdp: CdpSession) => {
+      await cdp.evaluate("location.hash = ''");
+      await cdp.waitFor("!!document.querySelector('.stream')", 600);
+      // stub 事件流不足一屏（实测 .stream sh==ch ⇒ 距离恒 0）：先推大段增量把内容撑出
+      // 视口（本态在 runner 里同样 keepTurnInFlight，增机会续进流式卡片），再上滚。
+      for (let i = 0; i < 3; i++) {
+        await cdp.push({ method: 'thread.text_delta', params: { text: '视觉基线填充段落。'.repeat(120) } });
+      }
+      await cdp.waitFor("!!document.querySelector('.streaming-assistant')", 800);
+      await cdp.evaluate(
+        "(function(){var s=document.querySelector('.stream'); if(s){ s.scrollTop=0; s.dispatchEvent(new Event('scroll')); } return true;})()",
+      );
+      const ok = await cdp.waitFor("!!document.querySelector('.stream-jump-bottom')", 800);
+      if (!ok) {
+        const why = await cdp.evaluate(`(function(){
+          function m(el){ return el === null ? null : { sh: el.scrollHeight, ch: el.clientHeight, st: el.scrollTop }; }
+          return {
+            stream: m(document.querySelector('.stream')),
+            inner: !!document.querySelector('.stream-inner'),
+            groups: Array.from(document.querySelectorAll('.ws-name')).map(function(x){ return x.textContent; }),
+            first: document.querySelector('[data-session-id="probe-s1"]') !== null,
+          };
+        })()`);
+        emit({ kind: 'state-debug', state: 'jump-bottom', why });
+      }
+      return ok;
+    },
+  },
 ];
 
 /** 面板清单：[面板标签, 文件名后缀]。 */
@@ -828,7 +986,7 @@ async function main() {
               continue;
             }
             await new Promise((r) => setTimeout(r, 300));
-            await seedSession(cdp, { keepTurnInFlight: st.key === 'streaming' });
+            await seedSession(cdp, { keepTurnInFlight: st.key === 'streaming' || st.key === 'jump-bottom' });
             await cdp.evaluate(`document.documentElement.setAttribute('data-theme','${theme}')`);
             // 单态失败**不得中止整轮**（W0 基线实测：dropdown 态 .dd 缺位时 click 抛错，
             // 把后面全部状态连带毁掉）——降级为 failure 记录后继续。

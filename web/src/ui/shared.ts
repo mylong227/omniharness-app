@@ -25,6 +25,8 @@ export interface SessionEntry {
   model?: string;
   /** 服务端真实运行态（runTurn 进行中）；缺省视为空闲。 */
   running?: boolean;
+  /** 是否已置顶（服务端侧车 sessions.pinned.json；跨设备共享，2026-11-06 起）。 */
+  pinned?: boolean;
   /** 是否已归档（侧车标记）：归档会话在左栏折叠到「已归档」组，可随时恢复。 */
   archived?: boolean;
 }

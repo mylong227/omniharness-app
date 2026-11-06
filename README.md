@@ -11,9 +11,9 @@
 
 | 目录 | 内容 | 规模 |
 | ---- | ---- | ---- |
-| `src/` | **后端宿主**：HTTP/SSE、JSON-RPC（92 方法，16 个域模块声明式注册）、会话存储、审批/沙箱、插件宿主、CLI、MCP/ACP/AG-UI | `src/apps` + `src/host/kernel/`（17 域对接面）+ `src/host/kernel-compat/`（app 自有扩展层） |
-| `web/` | **前端**：React 19 工作台（会话/工具/计划/变更/设置/审计/插件…） | 252 个源文件 + 144 个判据文件 / 717 用例（后端 5 文件 12 用例另计，合计 149 文件 / 729 用例） |
-| `desktop/` | **桌面端**：Electron 主进程 + preload（窗口/托盘/菜单/更新/侧车监督） | 30 个源文件，25 条纯逻辑判据 |
+| `src/` | **后端宿主**：HTTP/SSE、JSON-RPC（93 方法，16 个域模块声明式注册）、会话存储、审批/沙箱、插件宿主、CLI、MCP/ACP/AG-UI | `src/apps` + `src/host/kernel/`（17 域对接面）+ `src/host/kernel-compat/`（app 自有扩展层） |
+| `web/` | **前端**：React 19 工作台（会话/工具/计划/变更/设置/审计/插件…） | 252 个源文件 + 145 个判据文件 / 716 用例（后端 6 文件 15 用例另计，合计 151 文件 / 731 用例） |
+| `desktop/` | **桌面端**：Electron 主进程 + preload（窗口/托盘/菜单/更新/侧车监督） | 30 个源文件，30 条纯逻辑判据 |
 
 运行形态：
 
@@ -75,14 +75,14 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 | ---- | ---- |
 | `npm run build` | 后端：`tsc` → `dist`（原子换入）+ 伴生资源/原生库镜像 |
 | `npm run build:web` / `web:dev` | 前端 Vite 构建 / 开发服务器 |
-| `npm run web:test` | 判据（前端 144 文件 + 后端 5 文件 / 共 729 用例，文件级串行） |
+| `npm run web:test` | 判据（前端 145 文件 + 后端 6 文件 / 共 731 用例，文件级串行） |
 | `npm run typecheck` | 后端 + 前端 + 桌面三份 strict 类型检查 |
 | `npm run kernel:check` | **内核边界门禁（7 条）**：vendored 钉定 / 无内嵌副本 / 对接面单点 / tarball 与锁文件一致 / 原生内核实载 |
 | `npm run kernel:vendor` | 从内核仓重新构建并固定 `vendor/*.tgz`（tag 自 package.json 钉定版本解析） |
 | `npm run smoke` | **端到端**：真起 serve，验启动令牌、`/healthz` `/readyz` `/`、`/rpc config.get` |
 | `npm run serve` | 只起 backend serve（需先 `npm run build` + `build:web`） |
 | `npm run example:embed` | 跑可运行嵌入样例（需先 `npm run build`；见 examples/embed-demo.mjs） |
-| `npm run desktop:build` / `desktop:test` | 打包主进程 / 25 条纯逻辑判据 |
+| `npm run desktop:build` / `desktop:test` | 打包主进程 / 30 条纯逻辑判据 |
 | `npm run desktop:smoke` | **真实桌面 GUI 验收**：窗口 / 侧车 / UI origin / DOM 挂载，退出码即结论 |
 | `npm run desktop:stage` / `desktop:dist` | 打包资源（含 vendor）/ NSIS 安装包 |
 | `npm run verify` | typecheck → kernel:check → 判据 → 后端构建 → 前端构建 → 冒烟 → 桌面构建与判据 |
@@ -120,7 +120,7 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 - **`src/host/kernel-compat/`（app 自有扩展层）**：插件宿主体系、图存储、资产、媒体、
   审计演化等内核切片清理掉的应用能力收留于此。归属契约见
   [其 README](src/host/kernel-compat/README.md)：app 自有、随 app 演进、不得反向要求内核兼容。
-- **92 个 RPC 方法**由 `src/apps/server/modules/` 的 16 个域模块声明式注册
+- **93 个 RPC 方法**由 `src/apps/server/modules/` 的 16 个域模块声明式注册
   （parity 快照 `tests/serverModulesParity.test.ts` 钉住全表）；stdio 与 serve 两条组合根
   共用 `composedServerCore()` 不变量核心（历史「serve 漏接 doctor」缺陷类已结构性消灭）。
 - **原生内核随包**：内核 tarball 包含 `native/omni_napi.node`（`kernel:vendor` 注入），
@@ -148,11 +148,11 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 | `npm run kernel:check` | ✅ 350 源文件 / 323 包导入（全部收敛对接面）/ 内嵌副本 0 / tarball integrity 一致 / 原生内核实载 |
 | 后端构建 `npm run build` | ✅ dist 原子换入；原生内核可加载 |
 | 前端构建 `npm run build:web` | ✅ 单入口 + vendor/panel-antd 分块 |
-| 判据 `npm run web:test` | ✅ 149 文件 / 729 用例（含 parity/守卫/家具/嵌入 API） |
+| 判据 `npm run web:test` | ✅ 151 文件 / 731 用例（含 parity/守卫/家具/嵌入 API） |
 | 端到端 `npm run smoke` | ✅ 7/7（banner token、`/healthz`、`/readyz`、`/` HTML、`/rpc config.get`、`sessions.list`、原生内核实载） |
-| 桌面 `desktop:build` + `desktop:test` | ✅ 25/25 |
+| 桌面 `desktop:build` + `desktop:test` | ✅ 30/30 |
 | 嵌入 API 实测 | ✅ `createOmniHarness` 启动 / healthz 200 / RPC 往返 / 优雅关闭（另有自动判据 tests/embedApi.test.ts） |
-| `rpc.list` 自描述 | ✅ 一次调用返回 88~92 个方法 → 归属模块/插件（打包/嵌入形态少 5 个市场方法属正常） |
+| `rpc.list` 自描述 | ✅ 一次调用返回 89~93 个方法 → 归属模块/插件（打包/嵌入形态少 5 个市场方法属正常） |
 
 ## 8. 与上游 / 内核仓的关系
 
@@ -161,7 +161,7 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 - 内核来自 `../omniharness-kernel` 的 `v0.1.0-alpha.6` tag；`vendor/*.tgz` 是它的发行物，
   **不是**第二份源码。重建用 `npm run kernel:vendor`（tag 缺省自 package.json 解析）。
 - 上游的 `tests/`、`crates/`、`third-party/`、看板与审计脚本没有切过来：本仓的判据是
-  729 用例（web 717 + 后端 12）+ 桌面 25 条 + 冒烟 7 条 + 内核边界 7 条。
+  731 用例（web 716 + 后端 15）+ 桌面 30 条 + 冒烟 7 条 + 内核边界 7 条。
 
 ## License
 

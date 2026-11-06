@@ -1,5 +1,5 @@
 # OmniHarness App 验证流水线：与本地 `npm run verify` 同一裁决链
-# （桌面 GUI 打包除外；桌面 25 条纯逻辑判据包含在最后一步）。
+# （桌面 GUI 打包除外；桌面 30 条纯逻辑判据包含在最后一步）。
 # 判据布局见 CONTRIBUTING.md。
 name: verify
 
@@ -50,7 +50,7 @@ jobs:
       - name: 端到端冒烟（真起 serve）
         run: npm run smoke
 
-      - name: 桌面纯逻辑判据（25 条；需本地装 Electron 依赖，与本地 desktop:test 同源）
+      - name: 桌面纯逻辑判据（30 条；需本地装 Electron 依赖，与本地 desktop:test 同源）
         run: |
           npm --prefix desktop ci --no-audit --no-fund
           npm run desktop:build

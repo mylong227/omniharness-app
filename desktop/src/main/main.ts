@@ -354,6 +354,7 @@ async function bootstrap(): Promise<void> {
   });
   registerIpc({
     limits: config.ipc,
+    setTrayBusy: (busy) => context?.tray?.setBusy(busy),
     mainContents: () => context?.window?.webContents,
     isTrustedContents: (contents) => secondary.owns(contents),
     workspace: () => context?.workspace ?? initial,

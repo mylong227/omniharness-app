@@ -3,6 +3,20 @@
 本文件遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 惯例；
 版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)（0.x 阶段 minor 即可含破坏性变更，以 `!` 标注）。
 
+## [Unreleased]
+
+### Added（新增）
+- **会话置顶跨设备同步**：置顶从浏览器 localStorage 升级为服务端侧车 `sessions.pinned.json`——新 RPC `sessions.setPinned`（只写侧车）、`sessions.list` 回传 `pinned`。存档目录随工作区/同步盘走 ⇒ 换设备打开同一项目看到同一批置顶；左栏「置顶」组与行菜单「置顶 / 取消置顶」保持原样。
+- **托盘 busy 态**：复用既有 `omni:setProgress` 信号（回合开始 `2` / 收尾 `-1`，与任务栏进度同源）切换托盘图标为带绿点的 `icon-busy.png`；变体缺失时回退常规图标，重复设置去重，`destroy` 复位。
+- **视觉探针基线**：`web/test/visualProbe.ts` 新增 `pinned`（置顶组 + 行内 pin 角标 + 行菜单「取消置顶」）与 `jump-bottom`（回到底部浮钮）交互态；会话夹具补齐 `workspace` / `pinned` 真实形状。
+
+### Changed（变更）
+- 会话置顶不再写 localStorage（删除 `web/src/ui/models/SessionPins.ts`）：服务端侧车为**唯一真源**，面板从 `sessions.list` 的 `pinned` 字段派生置顶集合。
+
+### Tests（判据）
+- 新增 `tests/sessionPinned.test.ts`（侧车读写 / 列表回传 / 换实例仍可见 / 非法 id 拒绝）与 `web/test/sessionPins.test.ts`（置顶组浮出 / 刷新映射 / 乐观回滚 / 接线守卫）。
+- 桌面端新增托盘 busy 判据（切图 / 去重 / 缺失回退 / destroy 复位 / 创建即 busy + 图标资产 + IPC 接线）。
+
 ## [0.6.0-alpha.2] - 2026-11-05
 
 ### Added（新增）

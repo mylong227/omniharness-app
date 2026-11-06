@@ -36,6 +36,7 @@ export const EN_SESSIONS: Record<string, string> = {
   '打开': 'Open',
   '置顶': 'Pinned',
   '取消置顶': 'Unpin',
+  '置顶失败：{msg}': 'Pin failed: {msg}',
   '已置顶': 'Pinned',
   '运行中': 'Running',
   '● 运行中': '● Running',

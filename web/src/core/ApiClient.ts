@@ -383,6 +383,8 @@ export class ApiClient {
       model?: string;
       running?: boolean;
       archived?: boolean;
+      /** 是否已置顶（服务端侧车 `sessions.pinned.json`；跨设备共享）。 */
+      pinned?: boolean;
     }[];
   }> {
     return this.rpc('sessions.list', {
@@ -403,6 +405,19 @@ export class ApiClient {
     archived: boolean,
   ): Promise<{ ok: boolean; error?: string }> {
     return this.rpc('sessions.archive', { sessionId, archived });
+  }
+
+  /**
+   * 置顶 / 取消置顶（`sessions.setPinned`）：只写服务端侧车（随存档目录走 ⇒ 跨设备共享）。
+   * @param sessionId 会话 id
+   * @param pinned true 置顶、false 取消
+   * @returns `{ ok }`；id 形态非法时 `{ ok:false, error:'bad_session_id' }`
+   */
+  public setSessionPinned(
+    sessionId: string,
+    pinned: boolean,
+  ): Promise<{ ok: boolean; error?: string }> {
+    return this.rpc('sessions.setPinned', { sessionId, pinned });
   }
 
   /**

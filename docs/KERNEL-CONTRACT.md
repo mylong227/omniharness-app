@@ -4,7 +4,7 @@
 > 全部内核导入收敛于 **`src/host/kernel/` 分域对接面**（17 个域文件，`npm run kernel:check`
 > 第 7 条强制单点）；内核切片清理掉的应用能力收留于 **`src/host/kernel-compat/`**
 > （app 自有扩展层，122 个文件，归属契约见[其 README](../src/host/kernel-compat/README.md)）。
-> 后端 RPC 面由 **16 个域模块声明式注册**（92 方法，parity 快照钉住）。
+> 后端 RPC 面由 **16 个域模块声明式注册**（93 方法，parity 快照钉住）。
 
 ## 1. 现在的依赖方向
 
@@ -39,11 +39,11 @@ web/ + desktop/ ──HTTP/SSE──▶ src/apps（宿主：CLI / RPC 域模块 
 3. **对接面收敛**：637 处散布深路径导入 → 323 条再导出收敛于 17 个域文件；
    `ServiceKeys` 单源自内核；纯再导出 shim 全部清除。
 4. **后端模块化**：7 层继承链 → `ServerServices`（装配）+ 16 个域模块（注册）+
-   `AppServer`（组装/分发/生命周期）；92 个 RPC 方法有唯一注册出处。
+   `AppServer`（组装/分发/生命周期）；93 个 RPC 方法有唯一注册出处。
 5. **组合根统一**：stdio / serve 两条路径共用 `composedServerCore()` 不变量核心
    （历史「serve 漏接 doctor」缺陷类被结构性消灭）。
 6. **能力开放**：插件可 `registerRpc`（`rpc.register` 危险权限、缺省拒绝、冲突 fail-closed）；
-   嵌入方 `createOmniHarness()` 3 行起服务、`defineModule` 与内置 92 方法同权注册。
+   嵌入方 `createOmniHarness()` 3 行起服务、`defineModule` 与内置 93 方法同权注册。
 
 ## 3. 为什么可以升 alpha.6（对照旧版「为什么钉 alpha.4」）
 

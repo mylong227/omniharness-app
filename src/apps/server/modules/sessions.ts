@@ -50,6 +50,14 @@ export function sessionsModule(): ServerModule {
           params['archived'] !== false,
         ),
       );
+      // 置顶 / 取消置顶（2026-11-06 实用性打磨；只写侧车）：置顶会话浮到列表「置顶」组，
+      // 侧车随存档目录走 ⇒ 跨设备共享同一份置顶（UI 偏好里唯一需要跟会话走的字段）。
+      ctx.rpc('sessions.setPinned', async (params) =>
+        s.sessionArchive.setPinned(
+          String(params['sessionId'] ?? ''),
+          params['pinned'] === true,
+        ),
+      );
       // 保存左栏拖拽排序（用户指定顺序；未登记的会话仍按 mtime 倒序排在其后）。
       ctx.rpc('sessions.reorder', async (params) => {
         const raw = params['ids'];

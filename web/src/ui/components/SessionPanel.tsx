@@ -37,7 +37,6 @@ import type { SessionGrouping } from './session/useSessionGrouping.ts';
 import type { SessionRenameApi } from './session/useSessionRename.ts';
 import type { SessionSearchApi } from './session/useSessionSearch.ts';
 import type { SessionWorkspaceApi } from './session/useSessionWorkspace.ts';
-import { SessionPins } from '../models/SessionPins.ts';
 import { nextPanelView } from './session/viewCycle.ts';
 import type { PanelView } from './session/viewCycle.ts';
 import { PathJoiner } from '../models/PathJoiner.ts';
@@ -63,6 +62,8 @@ export interface SessionPanelProps {
   onFork: (id: string) => void | Promise<void>;
   /** 归档 / 恢复会话。 */
   onArchive?: (id: string, archived: boolean) => void | Promise<void>;
+  /** 置顶 / 取消置顶（服务端侧车真源；缺省则菜单不显示置顶项）。 */
+  onTogglePin?: (id: string, pinned: boolean) => void;
   /** 保存拖拽排序（新顺序的完整列表）。 */
   onReorder?: (ordered: SessionEntry[]) => void | Promise<void>;
   /** 切换项目成功后回调（App 刷新会话列表等）。 */
@@ -126,6 +127,7 @@ export const SessionPanel = React.memo(function SessionPanel(props: SessionPanel
       api={api}
       panel={props}
       onArchive={props.onArchive}
+      onTogglePin={props.onTogglePin}
       chrome={chrome}
       workspace={workspace}
       search={search}
@@ -143,6 +145,7 @@ interface SessionPanelBodyProps {
   readonly api: ApiClient;
   readonly panel: SessionPanelProps;
   readonly onArchive: SessionPanelProps['onArchive'];
+  readonly onTogglePin: SessionPanelProps['onTogglePin'];
   readonly chrome: SidebarChrome;
   readonly workspace: SessionWorkspaceApi;
   readonly search: SessionSearchApi;
@@ -161,9 +164,13 @@ interface SessionPanelBodyProps {
 function SessionPanelBody(props: SessionPanelBodyProps): ReactElement {
   const { api, panel, chrome, workspace, search, touch, menu, grouping, rename, remove } = props;
   const [view, setView] = React.useState<'time' | 'ws' | 'cards'>('ws');
-  // 置顶（2026-11-06 实用性打磨）：localStorage 单源，setState 只为让行内角标/分组即时刷新。
-  const [pinnedIds, setPinnedIds] = React.useState<ReadonlySet<string>>(() => SessionPins.all());
-  const onTogglePin = (id: string): void => setPinnedIds(new Set(SessionPins.toggle(id)));
+  // 置顶改为**服务端真源**（2026-11-06）：从会话条目派生（sessions.list 回传 pinned 字段），
+  // 本地不再持 localStorage 副本——切设备/换浏览器看到同一批置顶。
+  const pinnedIds = React.useMemo(
+    () => new Set(panel.sessions.filter((x) => x.pinned === true).map((x) => x.id)),
+    [panel.sessions],
+  );
+  const onTogglePin = (id: string): void => props.onTogglePin?.(id, !pinnedIds.has(id));
   const rowEdit = makeRowEdit(rename, remove);
   const listCtx = makeListCtx({
     sessions: panel.sessions,
@@ -228,7 +235,7 @@ function SessionPanelBody(props: SessionPanelBodyProps): ReactElement {
         onAssign={workspace.assignToCurrentProject}
         onAskDelete={rowEdit.askDelete}
         pinned={pinnedIds.has(menu.anchor?.id ?? '')}
-        onTogglePin={onTogglePin}
+        onTogglePin={(id) => props.onTogglePin?.(id, !pinnedIds.has(id))}
       />
       {/* 页脚：连接状态 + 主题（原 TopBar 的状态 / 主题职责收编于此；设置走「全部面板」菜单）。 */}
       <SidebarFooter connected={panel.connected ?? true} streamState={panel.streamState} onOpenSettings={panel.onOpenSettings} />
@@ -533,7 +540,7 @@ interface ListCtxArgs {
   readonly draggingId: string | null;
   readonly setDraggingId: (id: string | null) => void;
   readonly openMenu: (id: string, x: number, y: number) => void;
-  /** 置顶 id 集合（见 SessionPins）。 */
+  /** 置顶 id 集合（从会话条目的 pinned 字段派生；服务端侧车为真源）。 */
   readonly pinnedIds: ReadonlySet<string>;
   /** 切换置顶。 */
   readonly onTogglePin: (id: string) => void;

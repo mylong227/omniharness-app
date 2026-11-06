@@ -1,6 +1,7 @@
 /** 桌面端纯逻辑测试：args / ready 契约 / 环境清洗 / 配置合并（不启动 Electron GUI）。 */
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { test } from 'node:test';
@@ -36,8 +37,8 @@ if (esbuildBin === undefined) {
   throw new Error(`esbuild 二进制不存在（已查找：${esbuildCandidates.join(' / ')}）`);
 }
 
-/** 打包一个纯模块到 CJS 供 Node 测试。 */
-function bundle(entry, name, external = []) {
+/** 打包一个纯模块到 CJS 供 Node 测试（alias 用来把 Electron 替换成测试替身）。 */
+function bundle(entry, name, external = [], alias = {}) {
   const args = [
     entry,
     '--bundle',
@@ -46,6 +47,7 @@ function bundle(entry, name, external = []) {
     '--target=node22',
     `--outfile=${join(out, `${name}.cjs`)}`,
     ...external.map((item) => `--external:${item}`),
+    ...Object.entries(alias).map(([from, to]) => `--alias:${from}=${to}`),
     '--log-level=error',
   ];
   const result = spawnSync(esbuildBin, args, { cwd: process.cwd(), stdio: 'inherit' });
@@ -65,6 +67,8 @@ bundle('src/main/app/DeepLinkRouter.ts', 'deepLinks');
 bundle('src/main/app/HarnessRestartPolicy.ts', 'restartPolicy');
 bundle('src/main/app/WindowLifecycle.ts', 'windowLifecycle');
 bundle('src/main/app/SmokeHarness.ts', 'smokeHarness');
+// 托盘：用假 electron 打包，busy 态切换/去重/回退/复位都在 node 里可测（不启动 GUI）。
+bundle('src/main/tray.ts', 'tray', [], { electron: './scripts/fakeElectron.cjs' });
 
 const { parseLaunchArgs } = await import(pathToFileURL(join(out, 'args.cjs')).href);
 const { parseReadyInfo } = await import(pathToFileURL(join(out, 'ready.cjs')).href);
@@ -79,6 +83,7 @@ const { DeepLinkRouter } = await import(pathToFileURL(join(out, 'deepLinks.cjs')
 const { HarnessRestartPolicy } = await import(pathToFileURL(join(out, 'restartPolicy.cjs')).href);
 const { WindowLifecycle } = await import(pathToFileURL(join(out, 'windowLifecycle.cjs')).href);
 const { SmokeHarness } = await import(pathToFileURL(join(out, 'smokeHarness.cjs')).href);
+const { TrayService } = await import(pathToFileURL(join(out, 'tray.cjs')).href);
 
 test('DesktopI18n：system 解析 + 中英词条完整 + 占位符替换', () => {
   assert.equal(DesktopI18n.resolve('system', 'en-US'), 'en-US');
@@ -480,6 +485,123 @@ test('品牌图标：PNG 为 512×512，ICO 为多尺寸 Windows 图标', () => 
   assert.equal(ico.readUInt16LE(0), 0);
   assert.equal(ico.readUInt16LE(2), 1);
   assert.ok(ico.readUInt16LE(4) >= 7, 'ICO 必须包含多尺寸（16–256）');
+});
+
+test('托盘 busy 图标：256×256 PNG（与常规图标同目录，构建会随 static 一起拷贝）', () => {
+  const busy = readFileSync(join(process.cwd(), 'static', 'icon-busy.png'));
+  assert.equal(busy.subarray(1, 4).toString('ascii'), 'PNG');
+  assert.equal(busy.readUInt32BE(16), 256);
+  assert.equal(busy.readUInt32BE(20), 256);
+  const normal = readFileSync(join(process.cwd(), 'static', 'icon.png'));
+  assert.notDeepEqual(busy, normal, 'busy 变体必须是另一张图（带状态点），不能是常规图标副本');
+  const build = readFileSync(join(process.cwd(), 'scripts', 'build.mjs'), 'utf8');
+  assert.match(build, /cpSync\(join\(root, 'static'\), join\(root, 'dist'\)/u, '构建必须把 static 图标拷进 dist');
+});
+
+/** 托盘动作桩：菜单构建会读 recentWorkspaces / closeToTray / openAtLogin。 */
+function trayActions() {
+  const noop = () => undefined;
+  return {
+    show: noop,
+    newWindow: noop,
+    openWorkspace: noop,
+    recentWorkspaces: () => [],
+    openRecent: noop,
+    restartHarness: noop,
+    openLogs: noop,
+    checkUpdates: noop,
+    diagnostics: noop,
+    setCloseToTray: noop,
+    setOpenAtLogin: noop,
+    quit: noop,
+    closeToTray: () => true,
+    openAtLogin: () => false,
+  };
+}
+
+/** 重置假 electron 的调用记录（tray 包内与测试侧共享同一份 globalThis 状态）。 */
+function resetElectronMock() {
+  const state = globalThis.__electronMockState;
+  assert.ok(state !== undefined, 'tray.cjs 必须先被导入（替身状态才会初始化）');
+  Object.assign(state, { created: 0, destroyed: 0, images: [], tooltips: [], menus: 0, lastTray: null });
+  return state;
+}
+
+test('TrayService busy 态：切图 / 去重 / 回落 / destroy 复位', () => {
+  const state = resetElectronMock();
+  const iconPath = join(process.cwd(), 'static', 'icon.png');
+  const tray = new TrayService(
+    iconPath,
+    trayActions(),
+    { iconSize: 16, tooltip: 'OmniHarness' },
+    { t: (key) => key },
+  );
+  assert.equal(tray.create(), true);
+  assert.equal(state.created, 1);
+  assert.match(state.lastTray.image.path, /icon\.png$/u);
+  assert.deepEqual(state.lastTray.image.resized, { width: 16, height: 16 });
+
+  tray.setBusy(true);
+  assert.equal(state.images.length, 1, 'busy=true 必须换图');
+  assert.match(state.images[0].path, /icon-busy\.png$/u);
+  assert.deepEqual(state.images[0].resized, { width: 16, height: 16 });
+
+  tray.setBusy(true);
+  assert.equal(state.images.length, 1, '重复设置同一状态不得反复重绘');
+
+  tray.setBusy(false);
+  assert.equal(state.images.length, 2);
+  assert.match(state.images[1].path, /icon\.png$/u);
+
+  tray.destroy();
+  assert.equal(state.destroyed, 1);
+  tray.setBusy(true);
+  assert.equal(state.images.length, 2, '销毁后不得再碰托盘');
+});
+
+test('TrayService busy 态：创建时已在跑 ⇒ 直接以 busy 变体起盘', () => {
+  const state = resetElectronMock();
+  const tray = new TrayService(
+    join(process.cwd(), 'static', 'icon.png'),
+    trayActions(),
+    { iconSize: 16, tooltip: 'OmniHarness' },
+    { t: (key) => key },
+  );
+  tray.setBusy(true); // 托盘尚未创建：只记状态
+  assert.equal(tray.create(), true);
+  assert.match(state.lastTray.image.path, /icon-busy\.png$/u, '慢启动时创建必须直接显示 busy 态');
+});
+
+test('TrayService busy 态：变体缺失 ⇒ 回退常规图标，不抛错', () => {
+  const state = resetElectronMock();
+  const dir = mkdtempSync(join(tmpdir(), 'omni-tray-'));
+  try {
+    const iconPath = join(dir, 'icon.png');
+    copyFileSync(join(process.cwd(), 'static', 'icon.png'), iconPath);
+    const tray = new TrayService(
+      iconPath,
+      trayActions(),
+      { iconSize: 16, tooltip: 'OmniHarness' },
+      { t: (key) => key },
+    );
+    assert.equal(tray.create(), true);
+    tray.setBusy(true);
+    assert.equal(state.images.length, 1);
+    assert.match(state.images[0].path, /icon\.png$/u, 'busy 变体缺失必须回退常规图标');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('托盘 busy 接线：omni:setProgress 的 2 / -1 驱动 setBusy，主进程注入托盘服务', () => {
+  const ipc = readFileSync(join(process.cwd(), 'src', 'main', 'ipc.ts'), 'utf8');
+  assert.match(ipc, /deps\.setTrayBusy\?\.\(progress === 2\)/u, 'setProgress 必须复用为托盘 busy 信号');
+  const main = readFileSync(join(process.cwd(), 'src', 'main', 'main.ts'), 'utf8');
+  assert.match(
+    main,
+    /setTrayBusy: \(busy\) => context\?\.tray\?\.setBusy\(busy\)/u,
+    '主进程必须把 setBusy 注入 IPC 依赖',
+  );
 });
 
 test('parseLaunchArgs: 深链协议可配置（不再硬编码 omniharness）', () => {

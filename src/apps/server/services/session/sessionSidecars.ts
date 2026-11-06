@@ -1,15 +1,15 @@
-// 会话**侧车文件**（与 `.jsonl` 同目录的 UI 状态）：自定义标题 / 归档名单 / 用户指定顺序。
+// 会话**侧车文件**（与 `.jsonl` 同目录的 UI 状态）：自定义标题 / 归档名单 / 置顶名单 / 用户指定顺序。
 //
 // ## 为什么单独成类
 //
-// 三个侧车都是「低频、整体重写、损坏即回落默认」的小 JSON：与事件流的读写语义完全不同（事件流是
+// 四个侧车都是「低频、整体重写、损坏即回落默认」的小 JSON：与事件流的读写语义完全不同（事件流是
 // 追加、只读回放）。把它们从 `SessionArchive` 里分出来后，那个类只保留「读事件流 / 聚合用量 / 校验
 // 会话文件」这族职责，不再被侧车细节撑成上帝类（编码标准门禁的「上帝类」闸）。
 //
 // ## 故障口径（fail-open 到默认值，不隐藏也不丢会话）
 //
-// 侧车缺失 / 非法 JSON / 结构不符一律回落：标题表回落空表、归档名单与顺序回落空数组。
-// 也就是说「侧车坏了」的最坏后果是「自定义标题没了、归档状态没了、顺序回到时间倒序」，
+// 侧车缺失 / 非法 JSON / 结构不符一律回落：标题表回落空表、归档/置顶名单与顺序回落空数组。
+// 也就是说「侧车坏了」的最坏后果是「自定义标题没了、归档/置顶状态没了、顺序回到时间倒序」，
 // **不会**让任何会话从列表里消失（那是比丢一条元数据严重得多的失败模式）。
 
 import {
@@ -34,10 +34,12 @@ const UPDATE_RETRIES = 8;
 const TITLE_FILE = 'sessions.meta.json';
 /** 归档名单侧车文件名（`string[]`）。 */
 const ARCHIVED_FILE = 'sessions.archived.json';
+/** 置顶名单侧车文件名（2026-11-06；`{ rev, ids }`，与归档同形状）。 */
+const PINNED_FILE = 'sessions.pinned.json';
 /** 用户指定顺序侧车文件名（v2 文档；v1 为 `string[]`，读取时兼容）。 */
 const ORDER_FILE = 'sessions.order.json';
 
-/** 会话侧车存储：标题 / 归档 / 顺序。 */
+/** 会话侧车存储：标题 / 归档 / 置顶 / 顺序。 */
 export class SessionSidecars {
   /** 取存档目录（每次调用实时求值：切换工作区后跟随）。 */
   private readonly dirOf: () => string | undefined;
@@ -87,6 +89,27 @@ export class SessionSidecars {
    */
   public writeArchived(ids: readonly string[]): void {
     this.updateJson(ARCHIVED_FILE, (_current, rev) => ({
+      rev: rev + 1,
+      ids: [...ids],
+    }));
+  }
+
+  /**
+   * 读取置顶名单（2026-11-06 实用性打磨：置顶从 web-local localStorage 升级为**服务端侧车**
+   * ——存档目录随工作区/同步盘走，跨设备共享同一份置顶；UI 偏好里唯一需要跟会话走的字段）。
+   * @returns 已置顶 id 列表；缺失/损坏时为空数组（与归档同 fail-open 口径）。
+   */
+  public readPinned(): string[] {
+    return this.readIdList(PINNED_FILE);
+  }
+
+  /**
+   * 写入置顶名单。
+   * @param ids 已置顶 id 列表
+   * @returns 无返回值。
+   */
+  public writePinned(ids: readonly string[]): void {
+    this.updateJson(PINNED_FILE, (_current, rev) => ({
       rev: rev + 1,
       ids: [...ids],
     }));
