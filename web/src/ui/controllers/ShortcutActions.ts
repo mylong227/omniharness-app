@@ -15,6 +15,8 @@ export interface ShortcutHandlers {
   toggleLeft: () => void;
   /** 开合工具面板。 */
   toggleRight: () => void;
+  /** 进入 / 退出专注模式（同时隐藏左右栏）。 */
+  toggleFocus: () => void;
   /** 切换浅色 / 深色主题。 */
   toggleTheme: () => void;
 }
@@ -47,6 +49,9 @@ export class ShortcutActions {
         break;
       case 'toggleRight':
         this.handlers.toggleRight();
+        break;
+      case 'toggleFocus':
+        this.handlers.toggleFocus();
         break;
       case 'toggleTheme':
         this.handlers.toggleTheme();

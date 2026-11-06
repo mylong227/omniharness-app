@@ -718,6 +718,48 @@ const STATES = [
     },
   },
   {
+    key: 'focus',
+    // 专注模式（2026-11-06）：中栏头按钮 / Ctrl+Shift+F 隐藏左右栏，只留阅读面。
+    // 断言两栏真的 display:none（不是仅仅按钮变亮），再截图留档。
+    open: async (cdp: CdpSession) => {
+      if (!(await cdp.waitFor("!!document.querySelector('.chat-focus-toggle')", 800))) {
+        emit({ kind: 'state-debug', state: 'focus', why: '专注按钮不存在' });
+        return false;
+      }
+      await cdp.click('.chat-focus-toggle');
+      const ok = await cdp.waitFor(
+        `(function(){
+          var body = document.querySelector('.body.focus');
+          var left = document.querySelector('.col.left');
+          var right = document.querySelector('.col.right');
+          var btn = document.querySelector('.chat-focus-toggle');
+          return !!body && !!left && getComputedStyle(left).display === 'none' &&
+            (!right || getComputedStyle(right).display === 'none') &&
+            btn.getAttribute('aria-pressed') === 'true';
+        })()`,
+        700,
+      );
+      if (!ok) {
+        emit({
+          kind: 'state-debug',
+          state: 'focus',
+          why: await cdp.evaluate(`(function(){
+            var btn = document.querySelector('.chat-focus-toggle');
+            return {
+              focusClass: document.querySelector('.body.focus') !== null,
+              pressed: btn === null ? null : btn.getAttribute('aria-pressed'),
+              leftDisplay: getComputedStyle(document.querySelector('.col.left')).display,
+              right: document.querySelector('.col.right') === null
+                ? null
+                : getComputedStyle(document.querySelector('.col.right')).display,
+            };
+          })()`),
+        });
+      }
+      return ok;
+    },
+  },
+  {
     key: 'trail-filter',
     // 思考轨迹筛选（2026-11-06）：展开收尾后的「总思考」，筛选条按思考/说明/工具/失败计数；
     // 点「失败」只留失败工具行——长回合里最快定位问题的那条通路。截图留档筛选后的阅读态。

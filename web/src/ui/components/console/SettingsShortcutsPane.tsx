@@ -13,6 +13,7 @@ const GLOBAL_SHORTCUTS: readonly { action: ShortcutAction; label: string }[] = [
   { action: 'newSession', label: '新建会话' },
   { action: 'toggleLeft', label: '收起 / 展开会话栏' },
   { action: 'toggleRight', label: '收起 / 展开右侧面板' },
+  { action: 'toggleFocus', label: '进入 / 退出专注模式' },
   { action: 'toggleTheme', label: '切换明暗主题' },
 ];
 

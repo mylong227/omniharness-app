@@ -101,6 +101,6 @@ alpha.4 时代的方案是**钉住旧版本等归位**；本仓已把等的那�
 | `npm run typecheck`（后端 / 前端 / 桌面） | ✅ 0 error |
 | `npm run kernel:check` | ✅ 349 源文件 / 316 处包导入（全部收敛对接面）/ 内嵌副本 0 / integrity 一致 / native ping / 生成物一致 |
 | `npm run build` + `npm run smoke` | ✅ 7/7（banner token、healthz、readyz、HTML、config.get、sessions.list、原生内核实载） |
-| `npm run web:test` | ✅ 154 文件 / 740 用例（含 parity/守卫/家具） |
+| `npm run web:test` | ✅ 155 文件 / 743 用例（含 parity/守卫/家具） |
 | `npm run desktop:build` + `desktop:test` | ✅ 30/30 |
 | 嵌入 API 实测 | ✅ `createOmniHarness` 1.8s 启动 / healthz 200 / RPC 往返 / 优雅关闭 |

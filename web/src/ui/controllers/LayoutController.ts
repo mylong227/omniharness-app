@@ -23,6 +23,10 @@ export class LayoutController {
   /** 系统主题订阅的取消函数（偏好不是 `system` 时为 null）。 */
   private unwatchSystem: (() => void) | null = null;
 
+  /** 进入专注模式前的布局快照（退出时原样恢复；未进入为 null）。 */
+  private focusRestore: { leftOpen: boolean; rightOpen: boolean; rightCollapsed: boolean } | null =
+    null;
+
   /**
    * 构造。
    * @param host 状态宿主
@@ -142,7 +146,33 @@ export class LayoutController {
 
   /** 切换左侧会话面板（互斥关闭右侧）。 @returns 无 */
   public toggleLeft(): void {
-    this.host.patch((s) => ({ leftOpen: !s.leftOpen, rightOpen: false }));
+    // 手动开合面板即视为退出专注：否则「专注中又开了侧栏」会变成自相矛盾的布局态。
+    this.focusRestore = null;
+    this.host.patch((s) => ({ focusMode: false, leftOpen: !s.leftOpen, rightOpen: false }));
+  }
+
+  /**
+   * 切换专注模式：记住当前左右栏状态 → 隐藏两栏；再执行一次恢复。
+   *
+   * 为什么单独记状态而不是简单「都关掉」：用户可能在右栏本来收起、左栏打开的布局里按专注，
+   * 退出时应该回到那个真实布局，而不是把两栏都强行撑开。与 `toggleLeft` / `toggleRight`
+   * 共用状态机——手动开合任一面板即退出专注。
+   * @returns 无
+   */
+  public toggleFocus(): void {
+    const s = this.host.getState();
+    if (!s.focusMode) {
+      this.focusRestore = {
+        leftOpen: s.leftOpen,
+        rightOpen: s.rightOpen,
+        rightCollapsed: s.rightCollapsed,
+      };
+      this.host.patch({ focusMode: true, leftOpen: false, rightOpen: false, rightCollapsed: true });
+      return;
+    }
+    const restore = this.focusRestore ?? { leftOpen: false, rightOpen: false, rightCollapsed: false };
+    this.focusRestore = null;
+    this.host.patch({ focusMode: false, ...restore });
   }
 
   /** 关闭功能面板模态。 @returns 无 */
@@ -156,8 +186,10 @@ export class LayoutController {
    * @returns 无
    */
   public toggleRight(): void {
+    // 与 toggleLeft 同口径：手动开合任一面板即退出专注。
+    this.focusRestore = null;
     if (window.innerWidth <= 880) {
-      this.host.patch((s) => ({ rightOpen: !s.rightOpen, leftOpen: false }));
+      this.host.patch((s) => ({ focusMode: false, rightOpen: !s.rightOpen, leftOpen: false }));
       return;
     }
     const next = !this.host.getState().rightCollapsed;
@@ -166,7 +198,7 @@ export class LayoutController {
     } catch {
       /* 忽略 */
     }
-    this.host.patch({ rightCollapsed: next });
+    this.host.patch({ focusMode: false, rightCollapsed: next });
   }
 
   /**

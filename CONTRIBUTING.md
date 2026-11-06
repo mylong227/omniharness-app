@@ -4,7 +4,7 @@
 
 1. **fail-closed**：没接线就如实报「未接线」，绝不返回空值冒充正常——「看着绿」是本仓历史缺陷的头号形态。
 2. **单点真源**：内核导入只走 `src/host/kernel/`、RPC 注册只走 `src/apps/server/modules/`、厂商目录只读 `providerPresets`。发现第二份拷贝，收敛它而不是绕过它。
-3. **改一处，验证全链**：`npm run verify` 是唯一裁决（kernel:check 8 判据 → typecheck×3 → 740 判据 → build → smoke → desktop）。
+3. **改一处，验证全链**：`npm run verify` 是唯一裁决（kernel:check 8 判据 → typecheck×3 → 743 判据 → build → smoke → desktop）。
 
 ## 常见任务的最短路径
 
@@ -27,7 +27,7 @@
 
 | 目录 | 内容 | 运行 |
 | ---- | ---- | ---- |
-| `web/test/**` | 前端 147 文件（组件/逻辑/a11y，文件级串行） | `npm run web:test` |
+| `web/test/**` | 前端 148 文件（组件/逻辑/a11y，文件级串行） | `npm run web:test` |
 | `tests/**` | 后端判据（RPC parity、ApiClient 漂移守卫、家具守卫、嵌入 API 生命周期、旗标注册纪律、内核对接面生成物） | 同上 |
 | `desktop/scripts/test.mjs`（内联 30 条） | 桌面纯逻辑判据 | `npm run desktop:test` |
 | `scripts/checkKernelBoundary.mjs` | 内核边界门禁 8 条（含对接面生成物不漂移） | `npm run kernel:check` |

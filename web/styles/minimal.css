@@ -1041,6 +1041,16 @@
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+/* 专注模式：左右栏 + 拖拽条一起隐藏，只留中栏；正文宽度略放宽（阅读优先）。
+   退出时由 LayoutController 恢复进入前的真实布局，不是“全开”。 */
+.body.focus > .col.left,
+.body.focus > .resizer,
+.body.focus > .col.right {
+  display: none;
+}
+.body.focus .stream-inner {
+  max-width: 920px;
+}
 /* 时间线本体：高度封顶 + 自带滚动，思考再长也不会把对话顶出屏幕。 */
 .tt-body {
   display: flex;

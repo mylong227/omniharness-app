@@ -1,4 +1,4 @@
-﻿// 应用控制器纯归约器测试（D6 护栏 + C3 拆分安全网）。
+// 应用控制器纯归约器测试（D6 护栏 + C3 拆分安全网）。
 // 零 DOM 依赖：直接对拍 ./controllers/AppReducers.js 的各个纯方法输出，锁死「状态变换」语义，
 // 保证把 App 的 69 个 hook 抽到 AppController + 子控制器后行为不变。
 // 覆盖：事件累加、工具结果/增量合并、graph 进度/完成/轮询、会话合并、
@@ -227,7 +227,8 @@ test('buildCommands：16 条命令，run 闭包正确驱动依赖', () => {
     reload: number;
     theme: number;
     left: number;
-  } = { pane: null, right: 0, newSession: 0, reload: 0, theme: 0, left: 0 };
+    focus: number;
+  } = { pane: null, right: 0, newSession: 0, reload: 0, theme: 0, left: 0, focus: 0 };
   const cmds = r.buildCommands({
     setActivePane: (k) => (calls.pane = k),
     setRightOpen: () => (calls.right = true),
@@ -240,12 +241,13 @@ test('buildCommands：16 条命令，run 闭包正确驱动依赖', () => {
     toggleLeft: () => (calls.left += 1),
     // right 可能已被 setRightOpen 写成 boolean；本用例不会触发该回调，运行时语义不变。
     toggleRight: () => (calls.right = (calls.right as number) + 1),
+    toggleFocus: () => (calls.focus += 1),
     // 按真实签名 CommandDeps 补齐：openSettings 是本用例不触发的回调，空实现。
     openSettings: () => {},
   });
-  // 2026-11-06 实用性打磨：面板入口改由 PanelRegistry 单源派生（手写 10 条清单曾让 9 个
-  // 面板在命令面板里失踪）。数量随 PANELS 走，此处对齐当前全集 = 19 面板 + 6 动作。
-  assert.strictEqual(cmds.length, 25, '19 面板 + 6 动作');
+  // 面板入口改由 PanelRegistry 单源派生（手写 10 条清单曾让 9 个面板在命令面板里失踪）。
+  // 数量随 PANELS 走，此处对齐当前全集 = 19 面板 + 7 动作。
+  assert.strictEqual(cmds.length, 26, '19 面板 + 7 动作');
   const paneTools = cmds.find((c) => c.id === 'pane-tools')!;
   paneTools.run();
   assert.strictEqual(calls.pane, 'tools');
@@ -253,7 +255,9 @@ test('buildCommands：16 条命令，run 闭包正确驱动依赖', () => {
   cmds.find((c) => c.id === 'new-session')!.run();
   cmds.find((c) => c.id === 'reload-sessions')!.run();
   cmds.find((c) => c.id === 'toggle-theme')!.run();
+  cmds.find((c) => c.id === 'toggle-focus')!.run();
   assert.strictEqual(calls.newSession, 1);
   assert.strictEqual(calls.reload, 1);
   assert.strictEqual(calls.theme, 1);
+  assert.strictEqual(calls.focus, 1);
 });

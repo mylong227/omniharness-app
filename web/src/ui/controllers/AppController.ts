@@ -1,4 +1,4 @@
-﻿// 应用根组件的「容器」层（C3 拆分，标准 class 方式）：集中持有全部状态、副作用与回调，
+// 应用根组件的「容器」层（C3 拆分，标准 class 方式）：集中持有全部状态、副作用与回调，
 // 供纯视图 App（class 组件）消费。本类为门面 / 组合根——装配 OO 服务层
 // （ApiClient / EventStream / ToastService / AppReducers），按职责拆出子控制器
 // （SessionController / ComposerController / GraphController），自身只负责生命周期接线、
@@ -131,6 +131,11 @@ export interface AppState {
    * 本机偏好持久化在 localStorage `omni-right-collapsed`（见 LayoutController）。
    */
   rightCollapsed: boolean;
+  /**
+   * 专注模式：临时隐藏左右两栏，只留中栏（快捷键 Ctrl/Cmd+Shift+F）。
+   * 与 `leftOpen` / `rightCollapsed` 分开记：退出时恢复到进入前的真实布局，而不是“全开”。
+   */
+  focusMode: boolean;
   memoryReloadKey: number;
   profilesReloadKey: number;
   graphRuns: Record<string, GraphRunState>;
@@ -311,6 +316,7 @@ export class AppController {
         newSession: () => sessions.newSession(),
         toggleLeft: () => this.children.layout.toggleLeft(),
         toggleRight: () => this.children.layout.toggleRight(),
+        toggleFocus: () => this.children.layout.toggleFocus(),
         toggleTheme: () => this.children.layout.toggleTheme(),
       }),
     };
@@ -709,6 +715,7 @@ export class AppController {
       toggleTheme: () => this.children.layout.toggleTheme(),
       toggleLeft: () => this.children.layout.toggleLeft(),
       toggleRight: () => this.children.layout.toggleRight(),
+      toggleFocus: () => this.children.layout.toggleFocus(),
       openSettings: () => this.children.settings.open(),
     });
   }

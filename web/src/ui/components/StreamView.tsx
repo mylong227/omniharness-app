@@ -185,6 +185,10 @@ export interface StreamViewProps {
   onToggleRight?: () => void;
   /** 右栏当前是否收起（中栏头切换按钮的高亮态）。 */
   rightCollapsed?: boolean;
+  /** 是否处于专注模式（中栏头按钮的按压态）。 */
+  focusMode?: boolean;
+  /** 进入 / 退出专注模式（中栏头按钮与快捷键共用）。 */
+  onToggleFocus?: () => void;
 }
 
 /**
@@ -669,6 +673,8 @@ export function StreamView(props: StreamViewProps): React.ReactElement {
         onToggleLeft={props.onToggleLeft}
         onToggleRight={props.onToggleRight}
         rightCollapsed={props.rightCollapsed}
+        focusMode={props.focusMode}
+        onToggleFocus={props.onToggleFocus}
       />
       <StreamFeed
         stream={props}

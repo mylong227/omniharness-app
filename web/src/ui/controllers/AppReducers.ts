@@ -27,6 +27,8 @@ export interface CommandDeps {
   toggleTheme: () => void;
   toggleLeft: () => void;
   toggleRight: () => void;
+  /** 进入 / 退出专注模式（隐藏左右栏）。 */
+  toggleFocus: () => void;
   /** 打开设置模态（2026-10-17：设置不再是右栏面板，见 AppReducers.buildCommands 注释）。 */
   openSettings: () => void;
 }
@@ -388,6 +390,13 @@ export class AppReducers {
         group: '界面',
         hint: this.shortcuts.label('toggleRight'),
         run: () => deps.toggleRight(),
+      },
+      {
+        id: 'toggle-focus',
+        label: '专注模式',
+        group: '界面',
+        hint: this.shortcuts.label('toggleFocus'),
+        run: () => deps.toggleFocus(),
       },
     );
     return list;

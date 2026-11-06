@@ -28,6 +28,7 @@ export type IconName =
   | 'chart'
   | 'shield'
   | 'menu'
+  | 'focus'
   | 'gear'
   | 'command'
   | 'sun'
@@ -142,6 +143,15 @@ const SHAPES: Readonly<Record<IconName, IconShape>> = {
       [4, 7, 20, 7],
       [4, 12, 20, 12],
       [4, 17, 20, 17],
+    ],
+  },
+  /* 专注模式：四角取景框。语义是「只看中间」，不是放大镜/眼睛。 */
+  focus: {
+    paths: [
+      'M9 4H5a1 1 0 0 0-1 1v4',
+      'M15 4h4a1 1 0 0 1 1 1v4',
+      'M9 20H5a1 1 0 0 1-1-1v-4',
+      'M15 20h4a1 1 0 0 0 1-1v-4',
     ],
   },
   gear: {

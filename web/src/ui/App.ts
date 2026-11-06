@@ -188,6 +188,7 @@ function initialState(): AppState {
     rightOpen: false,
     // 桌面右栏收起态的本机偏好在 LayoutController.initTheme 里恢复；首屏先展开。
     rightCollapsed: false,
+    focusMode: false,
     memoryReloadKey: 0,
     profilesReloadKey: 0,
     graphRuns: {},
@@ -548,6 +549,8 @@ function streamViewElement(
     onToggleLeft: () => ctrl.layout.toggleLeft(),
     onToggleRight: () => ctrl.layout.toggleRight(),
     rightCollapsed: s.rightCollapsed,
+    focusMode: s.focusMode,
+    onToggleFocus: () => ctrl.layout.toggleFocus(),
   });
 }
 
@@ -618,6 +621,7 @@ function renderBody(
         className:
           'body' +
           (s.rightCollapsed ? ' rcollapsed' : '') +
+          (s.focusMode ? ' focus' : '') +
           (consoleOpen ? ' console-open' : ''),
       },
       sessionPanelElement(ctrl, s, h, leftStyle, onWorkspaceResolved),

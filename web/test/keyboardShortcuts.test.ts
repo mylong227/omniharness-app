@@ -1,4 +1,4 @@
-﻿// 全局快捷键解析器单测（零 DOM 依赖）：锁死「按键 → 动作」映射，并验证文案与绑定同源。
+// 全局快捷键解析器单测（零 DOM 依赖）：锁死「按键 → 动作」映射，并验证文案与绑定同源。
 // 运行方式：web:build 编译出 web/dist 后，node --test web/test/*.test.mjs 直跑。
 
 import assert from 'node:assert/strict';
@@ -39,6 +39,8 @@ test('KeyboardShortcuts：Shift 组合与无 Shift 组合互不串台', () => {
   );
   assert.strictEqual(ks.resolve(key('e', { ctrlKey: true })), null, '无 Shift 的 E 不命中 toggleRight');
   assert.strictEqual(ks.resolve(key('e', { ctrlKey: true, shiftKey: true })), 'toggleRight');
+  assert.strictEqual(ks.resolve(key('F', { ctrlKey: true, shiftKey: true })), 'toggleFocus');
+  assert.strictEqual(ks.resolve(key('f', { metaKey: true })), null, '无 Shift 的 F 不命中专注模式');
   assert.strictEqual(ks.resolve(key('L', { metaKey: true, shiftKey: true })), 'toggleTheme');
   assert.strictEqual(ks.resolve(key('l', { metaKey: true })), null, '无 Shift 的 L 不命中 toggleTheme');
 });
@@ -54,7 +56,7 @@ test('KeyboardShortcuts：未绑定按键返回 null', () => {
 });
 
 test('KeyboardShortcuts：每个动作都有非空文案（提示与绑定同源，不漂移）', () => {
-  for (const action of ['palette', 'newSession', 'toggleLeft', 'toggleRight', 'toggleTheme'] as const) {
+  for (const action of ['palette', 'newSession', 'toggleLeft', 'toggleRight', 'toggleFocus', 'toggleTheme'] as const) {
     assert.ok(ks.label(action).length > 0, `${action} 应有快捷键文案`);
   }
 });

@@ -6,6 +6,7 @@
 ## [Unreleased]
 
 ### Added（新增）
+- **专注模式**：`Ctrl/Cmd+Shift+F` 或中栏头四角按钮隐藏左右栏，只留中栏并放宽正文宽度；退出恢复**进入前的真实布局**（不是「两栏全开」）。命令面板、设置页快捷键表同步，手动开合任一面板即退出专注。
 - **思考轨迹筛选**：展开「总思考」后可按 `全部 / 思考 / 说明 / 工具 / 失败` 过滤长回合，片子上带实时计数、失败片只在真有失败时出现；「失败」一键只看失败工具行，长过程的定位从「翻整条时间线」变成「点一下」。
 - **会话置顶跨设备同步**：置顶从浏览器 localStorage 升级为服务端侧车 `sessions.pinned.json`——新 RPC `sessions.setPinned`（只写侧车）、`sessions.list` 回传 `pinned`。存档目录随工作区/同步盘走 ⇒ 换设备打开同一项目看到同一批置顶；左栏「置顶」组与行菜单「置顶 / 取消置顶」保持原样。
 - **托盘 busy 态**：复用既有 `omni:setProgress` 信号（回合开始 `2` / 收尾 `-1`，与任务栏进度同源）切换托盘图标为带绿点的 `icon-busy.png`，悬停提示同步显示「回合进行中」；变体缺失时回退常规图标，重复设置去重，`destroy` 复位。
@@ -18,7 +19,7 @@
 - 会话置顶不再写 localStorage（删除 `web/src/ui/models/SessionPins.ts`）：服务端侧车为**唯一真源**，面板从 `sessions.list` 的 `pinned` 字段派生置顶集合。
 
 ### Tests（判据）
-- 新增 `web/test/trailFilter.test.ts`（行折叠 / 计数 / 过滤顺序）与 `web/test/eventFields.test.ts`（callId 回落 / rawCallId / 正文 / 时间戳边界）；`thinkingTrail.test.tsx` 补「失败筛选只留失败工具行、全部恢复」。
+- 新增 `web/test/focusMode.test.ts`（进入/退出恢复真实布局、手动开合退出专注）与 `trailFilter.test.ts`（行折叠 / 计数 / 过滤顺序）、`eventFields.test.ts`（callId 回落 / rawCallId / 正文 / 时间戳边界）；`thinkingTrail.test.tsx` 补「失败筛选只留失败工具行、全部恢复」。
 - 新增 `tests/sessionPinned.test.ts`（侧车读写 / 列表回传 / 换实例仍可见 / 非法 id 拒绝）与 `web/test/sessionPins.test.ts`（置顶组浮出 / 刷新映射 / 乐观回滚 / 接线守卫）。
 - 新增 `tests/kernelSurface.test.ts`：把「对接面生成物一致 + 目录纯净」纳入常规 `web:test`，忘了跑 `kernel:surface` 时本地测试直接红。
 - 桌面端新增托盘 busy 判据（切图 / 去重 / 缺失回退 / destroy 复位 / 创建即 busy + 图标资产 + IPC 接线）。

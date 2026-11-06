@@ -33,6 +33,10 @@ export interface ChatHeaderProps {
   onToggleRight?: () => void;
   /** 右栏当前是否处于收起态（切换按钮的高亮/文案）。 */
   rightCollapsed?: boolean;
+  /** 是否处于专注模式（左右栏已隐藏）。 */
+  focusMode?: boolean;
+  /** 进入 / 退出专注模式（与快捷键共用同一控制器方法）。 */
+  onToggleFocus?: () => void;
 }
 
 /** 「对话 / 轨迹」两个视图的静态清单（渲染顺序即展示顺序）。 */
@@ -108,6 +112,7 @@ function ViewTabs(props: {
  */
 export function ChatHeader(props: ChatHeaderProps): ReactElement {
   const { title, projectPath, busy, view, onView, onToggleLeft, onToggleRight, rightCollapsed } = props;
+  const { focusMode, onToggleFocus } = props;
   const project =
     projectPath === undefined || projectPath === '' ? '' : PathJoiner.basename(projectPath);
   return (
@@ -156,6 +161,21 @@ export function ChatHeader(props: ChatHeaderProps): ReactElement {
       <span className="flex-spacer" aria-hidden="true"></span>
       <ViewTabs view={view} onView={onView} />
       <span className="flex-spacer" aria-hidden="true"></span>
+      {onToggleFocus === undefined ? null : (
+        <button
+          className="iconbtn chat-focus-toggle"
+          title={
+            focusMode === true
+              ? t('退出专注模式（Ctrl/Cmd+Shift+F）')
+              : t('进入专注模式（Ctrl/Cmd+Shift+F）')
+          }
+          aria-label={focusMode === true ? t('退出专注模式') : t('进入专注模式')}
+          aria-pressed={focusMode === true}
+          onClick={onToggleFocus}
+        >
+          {icon('focus', { size: 15 })}
+        </button>
+      )}
       {onToggleRight === undefined ? null : (
         <button
           // 2026-10-21（用户按截图「按钮去掉换成小箭头形式」）：原来是 `columns` 图标 + `.active`

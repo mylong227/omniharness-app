@@ -10,6 +10,7 @@ export type ShortcutAction =
   | 'newSession'
   | 'toggleLeft'
   | 'toggleRight'
+  | 'toggleFocus'
   | 'toggleTheme';
 
 /** 解析所需的最小按键信息（KeyboardEvent 的结构子集，便于单测构造）。 */
@@ -45,6 +46,7 @@ const BINDINGS: readonly ShortcutBinding[] = [
   { action: 'newSession', label: 'Ctrl/Cmd+N', keys: ['n'], shift: 'without' },
   { action: 'toggleLeft', label: 'Ctrl/Cmd+B', keys: ['b'], shift: 'without' },
   { action: 'toggleRight', label: 'Ctrl/Cmd+Shift+E', keys: ['e'], shift: 'with' },
+  { action: 'toggleFocus', label: 'Ctrl/Cmd+Shift+F', keys: ['f'], shift: 'with' },
   { action: 'toggleTheme', label: 'Ctrl/Cmd+Shift+L', keys: ['l'], shift: 'with' },
 ];
 
