@@ -152,7 +152,7 @@ try {
 }
 
 process.stdout.write(
-  `[vendor] OK ${packed[0]} (${String(Math.round(readFileSync(tarball).length / 1024))} KiB)\n` +
+  `[vendor] OK ${packedStaged[0]} (${String(Math.round(readFileSync(tarball).length / 1024))} KiB)\n` +
     `[vendor] integrity ${integrity}\n` +
     `[vendor] 下一步：npm ci（或删除 node_modules/@omniharness/kernel 后 npm ci）\n`,
 );
