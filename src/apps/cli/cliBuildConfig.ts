@@ -38,16 +38,16 @@ import { WorkerRegistry } from '../../host/kernel/platform.ts';
 import { ExternalCliWorker } from '../../host/kernel-compat/kernel/worker/externalCliWorker.ts';
 import { RegistryToolPort } from '../../host/kernel/adapters-tool.ts';
 import { McpGateway } from '../../host/kernel/protocols.ts';
-import { McpServerCommand } from '../../host/kernel/protocols.ts';
+import { McpServerCommand } from '../../host/kernel-compat/protocols/mcp/mcpServerCommand.ts';
 import { modelAdapterRegistry, MOCK_ADAPTER_ID } from '../../host/kernel/adapters-model.ts';
 import { storageFactory, type StorageHandle } from './storageFactory.ts';
 import { AutoApproval } from '../../host/kernel/adapters-approval.ts';
 import { DenyApproval } from '../../host/kernel/adapters-approval.ts';
 import { RuleApproval } from '../../host/kernel/adapters-approval.ts';
-import { GuardianApproval } from '../../host/kernel/adapters-approval.ts';
-import { PlanApproval } from '../../host/kernel/adapters-approval.ts';
-import { AskApproval } from '../../host/kernel/adapters-approval.ts';
-import { BUILTIN_APPROVAL_RULES } from '../../host/kernel/adapters-approval.ts';
+import { GuardianApproval } from '../../host/kernel-compat/kernel/adapters/approval/guardianApproval.ts';
+import { PlanApproval } from '../../host/kernel-compat/kernel/adapters/approval/planApproval.ts';
+import { AskApproval } from '../../host/kernel-compat/kernel/adapters/approval/askApproval.ts';
+import { BUILTIN_APPROVAL_RULES } from '../../host/kernel-compat/kernel/adapters/approval/builtinApprovalRules.ts';
 import type { ApprovalRule } from '../../host/kernel/adapters-approval.ts';
 import { dangerousCommands } from '../../host/kernel/adapters-sandbox.ts';
 import { SandboxManager } from '../../host/kernel/adapters-sandbox.ts';
@@ -362,7 +362,7 @@ export class CliBuildConfig extends CliCredentialBuild {
       return;
     }
     const { SdkPreferredMcpConnector } =
-      await import('../../host/kernel/adapters-misc.ts');
+      await import('../../host/kernel-compat/kernel/adapters/mcp/sdkPreferredMcpConnector.ts');
     const gateway = new McpGateway({
       registry: tools,
       context: { sessionId: 'mcp-bridge', workspaceRoot: args.workspace },

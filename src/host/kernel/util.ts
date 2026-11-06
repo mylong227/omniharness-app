@@ -33,3 +33,4 @@ export type { SessionSummary } from '@omniharness/kernel/kernel/util/sessionSumm
 export { readSessionSummary, sessionSummaryPath, writeSessionSummary } from '@omniharness/kernel/kernel/util/sessionSummarySidecar.js';
 export { PathTraversalError, WorkspaceGuard } from '@omniharness/kernel/kernel/util/workspaceGuard.js';
 export { WorkspaceIdentity } from '@omniharness/kernel/kernel/util/workspaceIdentity.js';
+export { ReasoningBudget } from '@omniharness/kernel/kernel/util/reasoningBudget.js';

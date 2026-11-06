@@ -1,5 +1,5 @@
 import type { CliArgs } from './argParser.ts';
-import { McpServerCommand } from '../../host/kernel/protocols.ts';
+import { McpServerCommand } from '../../host/kernel-compat/protocols/mcp/mcpServerCommand.ts';
 import { ExternalCliWorker } from '../../host/kernel-compat/kernel/worker/externalCliWorker.ts';
 import type { ModelRouterConfig } from '../../host/kernel/config.ts';
 import { KNOWN_EXTRA_FLAGS } from './knownFlags.ts';

@@ -1,5 +1,5 @@
 import { jsonRpc, type RpcMessage, type RpcResponse } from '../../../apps/server/core/jsonRpc.ts';
-import type { SdkSocket } from '../../kernel/contracts.ts';
+import type { SdkSocket } from '../../kernel-compat/contracts/ports/sdk/sdkSocket.ts';
 import { PendingRequests } from '../../kernel/util.ts';
 
 /** SDK 客户端选项。 */

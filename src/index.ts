@@ -209,7 +209,7 @@ export { McpConnector } from './host/kernel/protocols.ts';
 export type { McpConnection, McpConnectorOptions } from './host/kernel/protocols.ts';
 export { McpGateway } from './host/kernel/protocols.ts';
 export type { McpBridgeResult, McpGatewayOptions, McpServerConfig } from './host/kernel/protocols.ts';
-export { McpServerCommand } from './host/kernel/protocols.ts';
+export { McpServerCommand } from './host/kernel-compat/protocols/mcp/mcpServerCommand.ts';
 
 
 // @public 企业管控（D2：SSO / 合规导出）

@@ -31,7 +31,6 @@ export { BudgetExceededError, ModelCallError } from '@omniharness/kernel/contrac
 export type { FileAttachment, ImageContent, ModelContextSnapshot, ModelMessage, ModelOutput, ModelPort, ModelRequest, ModelToolCallRef, ModelToolSpec, ModelUsage, RoutePrice, ToolInputDelta } from '@omniharness/kernel/contracts/ports/model/model.js';
 export { MODEL_ADAPTER_IDS } from '@omniharness/kernel/contracts/ports/model/modelAdapterId.js';
 export type { ModelAdapterId } from '@omniharness/kernel/contracts/ports/model/modelAdapterId.js';
-export type { PluginPermission } from '@omniharness/kernel/contracts/ports/plugin/pluginPermission.js';
 export type { AgentIdentityClaims, AgentIdentityConfig, AgentIdentityPort } from '@omniharness/kernel/contracts/ports/runtime/agentIdentity.js';
 export type { ApprovalDecision, ApprovalPort, ApprovalRequest } from '@omniharness/kernel/contracts/ports/runtime/approval.js';
 export type { ContainerPort } from '@omniharness/kernel/contracts/ports/runtime/containerPort.js';
@@ -68,9 +67,10 @@ export type { ToolCall, ToolContext, ToolDefinition, ToolParametersSchema, ToolP
 export type { ToolHandler } from '@omniharness/kernel/contracts/ports/tool/toolHandler.js';
 export type { ToolInputSink } from '@omniharness/kernel/contracts/ports/tool/toolInputSink.js';
 export type { Spectrum } from '@omniharness/kernel/contracts/ports/util/spectrum.js';
-export { WebSocketSdkSocket } from '@omniharness/kernel/contracts/sdk/webSocketSdkSocket.js';
-export type { SdkSocket } from '@omniharness/kernel/contracts/sdk/webSocketSdkSocket.js';
 export type { DecisionAnswer } from '@omniharness/kernel/contracts/ports/decision/decisionEngine/decisionAnswer.js';
 export type { DecisionQuestion } from '@omniharness/kernel/contracts/ports/decision/decisionEngine/decisionQuestion.js';
 export type { DecisionRequest } from '@omniharness/kernel/contracts/ports/decision/decisionEngine/decisionRequest.js';
 export type { DecisionResponse } from '@omniharness/kernel/contracts/ports/decision/decisionEngine/decisionResponse.js';
+export type { McpConnectionHandle, McpConnectorPort } from '@omniharness/kernel/contracts/ports/mcp/mcpConnectorPort.js';
+export { TOOL_NAMES } from '@omniharness/kernel/contracts/ports/tool/toolNames.js';
+export type { McpServerConfig } from '@omniharness/kernel/protocols/mcp/mcpGateway.js';

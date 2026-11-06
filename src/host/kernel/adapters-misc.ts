@@ -39,4 +39,3 @@ export { ConsoleUserResponder } from '@omniharness/kernel/kernel/adapters/user/c
 export { DefaultUserResponder } from '@omniharness/kernel/kernel/adapters/user/defaultUserResponder.js';
 export { GitWorkspaceSnapshot } from '@omniharness/kernel/kernel/adapters/workspace/gitWorkspaceSnapshot.js';
 export { McpServeRunner } from '@omniharness/kernel/kernel/adapters/mcp/mcpServeRunner.js';
-export { SdkPreferredMcpConnector } from '@omniharness/kernel/kernel/adapters/mcp/sdkPreferredMcpConnector.js';

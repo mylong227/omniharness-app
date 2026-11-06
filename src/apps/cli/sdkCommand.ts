@@ -10,7 +10,7 @@
  * 是「SDK 能力在真实传输上可用」的可执行证据。
  */
 import { SdkClient } from './../../host/contracts/sdk/sdkClient.ts';
-import { WebSocketSdkSocket, type SdkSocket } from '../../host/kernel/contracts.ts';
+import { WebSocketSdkSocket, type SdkSocket } from '../../host/kernel-compat/contracts/sdk/webSocketSdkSocket.ts';
 import { CliArgReader } from './cliArgReader.ts';
 
 /** 用法提示。 */

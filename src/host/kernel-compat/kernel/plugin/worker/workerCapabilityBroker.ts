@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import type { PluginPermission } from '../../../../kernel/contracts.ts';
+import type { PluginPermission } from '../../../contracts/ports/plugin/pluginPermission.ts';
 import { SafeFs } from '../../util/safeFs.ts';
 import { WorkspaceGuard } from '../../../../kernel/util.ts';
 import { PluginWorkerLimits } from './pluginWorkerLimits.ts';

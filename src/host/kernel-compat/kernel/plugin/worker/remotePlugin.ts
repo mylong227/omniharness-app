@@ -1,6 +1,6 @@
 import type { Plugin } from '../../../contracts/ports/plugin/plugin.ts';
 import type { PluginMeta } from '../../../contracts/ports/plugin/pluginMeta.ts';
-import type { PluginPermission } from '../../../../kernel/contracts.ts';
+import type { PluginPermission } from '../../../contracts/ports/plugin/pluginPermission.ts';
 import type { PluginApplyContext } from '../../../contracts/ports/plugin/pluginApplyContext.ts';
 import type { ToolPort } from '../../../../kernel/contracts.ts';
 import type { ToolCall } from '../../../../kernel/contracts.ts';

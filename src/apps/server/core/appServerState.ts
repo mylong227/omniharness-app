@@ -1,7 +1,7 @@
 import type { ApprovalPort } from '../../../host/kernel/contracts.ts';
 import type { EntitlementPort } from './../../../host/contracts/ports/license/entitlement.ts';
 import { RuleApproval } from '../../../host/kernel/adapters-approval.ts';
-import { BUILTIN_APPROVAL_RULES } from '../../../host/kernel/adapters-approval.ts';
+import { BUILTIN_APPROVAL_RULES } from '../../../host/kernel-compat/kernel/adapters/approval/builtinApprovalRules.ts';
 
 import type { SkillRegistry } from '../../../host/kernel/platform.ts';
 import type { AutomationStore } from '../services/automationStore.ts';

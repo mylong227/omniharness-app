@@ -4,7 +4,7 @@
  * 插件通过 `meta.permissions` 声明其所需能力，`PermissionGate` 依白名单校验，
  * 未声明或超白名单的能力一律拒绝（fail-closed）。权限名采用 `域.动作` 两级命名。
  */
-import type { PluginPermission } from '../../../kernel/contracts.ts';
+import type { PluginPermission } from '../../contracts/ports/plugin/pluginPermission.ts';
 
 /**
  * Permission —— 由本文件原顶层函数归并而来（每个方法对应一个原函数，语义与签名逐字保留）。
@@ -23,7 +23,7 @@ export class Permission {
  * @beta
  * 插件可声明的权限范围（`域.动作`）——内核闭集。
  */
-export type { PluginPermission } from '../../../kernel/contracts.ts';
+export type { PluginPermission } from '../../contracts/ports/plugin/pluginPermission.ts';
 
 /**
  * app 宿主扩展权限（内核闭集之外、本仓宿主自有面，2026-11 registerRpc 引入）：
