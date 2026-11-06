@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import { AppReducers } from '../src/ui/controllers/AppReducers.ts';
 import type { ThreadEvent, GraphProgress, GraphStatusResult } from '../src/types/models.ts';
+import type { SessionEntry } from '../src/ui/shared.ts';
 
 const r = new AppReducers();
 
@@ -217,7 +218,23 @@ test('ingestEvent：无流式缓冲时 assistant 不收口（避免污染 finali
   assert.strictEqual(next.finalizedStreamText, 'old', '空缓冲时不得把 finalized 清成空串');
 });
 
-test('buildCommands：16 条命令，run 闭包正确驱动依赖', () => {
+test('buildSessionCommands：置顶优先、最多 10 条、空标题回落 id', () => {
+  const sessions: SessionEntry[] = Array.from({ length: 12 }, (_, index) => ({
+    id: 's' + String(index),
+    label: index === 11 ? '' : '会话 ' + String(index),
+    pinned: index === 11,
+  }));
+  const opened: string[] = [];
+  const commands = r.buildSessionCommands(sessions, (id) => opened.push(id));
+  assert.strictEqual(commands.length, 10, '最多 10 条，避免长存档撑爆面板');
+  assert.strictEqual(commands[0]?.id, 'session-s11', '置顶会话排最前');
+  assert.strictEqual(commands[0]?.label, 's11', '空标题回落到 id');
+  assert.strictEqual(commands[0]?.group, '会话');
+  commands[0]?.run();
+  assert.deepStrictEqual(opened, ['s11'], 'run 必须把会话 id 交给打开回调');
+});
+
+test('buildCommands：面板单源派生 + 26 条命令，run 闭包正确驱动依赖', () => {
   // 原字面量里 right 重复声明（JS 重复键后者生效 = 0，TS1117 不允许）——运行时初值本就是 0，
   // 故只保留一份；right 会被 setRightOpen 写 true / toggleRight 累加，类型取 boolean | number 联合。
   const calls: {

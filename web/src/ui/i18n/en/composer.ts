@@ -75,7 +75,7 @@ export const EN_COMPOSER: Record<string, string> = {
 
   // components/CommandPalette.tsx
   '命令面板': 'Command palette',
-  '搜索命令或面板…': 'Search commands or panels…',
+  '搜索命令、面板或会话…': 'Search commands, panels or sessions…',
   '命令搜索框': 'Command search',
   '命令列表': 'Command list',
   '清除搜索': 'Clear search',

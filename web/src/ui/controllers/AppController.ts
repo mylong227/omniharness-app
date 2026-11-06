@@ -705,6 +705,15 @@ export class AppController {
     };
   }
 
+  /**
+   * 命令面板里的「最近会话」命令（置顶优先、最多 10 条）。
+   * @param open 打开会话回调（由视图注入，复用既有 openThread 的队列续发语义）
+   * @returns 会话命令
+   */
+  public sessionCommands(open: (id: string) => void): CommandItem[] {
+    return this.services.reducers.buildSessionCommands(this.host.getState().sessions, open);
+  }
+
   /** 预计算命令面板命令集。 @returns 命令集 */
   private buildCommands(): CommandItem[] {
     return this.services.reducers.buildCommands({

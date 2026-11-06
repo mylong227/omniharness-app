@@ -157,7 +157,7 @@ function CommandSearch(props: {
         aria-autocomplete="list"
         autoComplete="off"
         spellCheck={false}
-        placeholder={t('搜索命令或面板…')}
+        placeholder={t('搜索命令、面板或会话…')}
         aria-label={t('命令搜索框')}
         value={props.query}
         onChange={props.onInput}

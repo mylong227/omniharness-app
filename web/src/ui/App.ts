@@ -15,6 +15,7 @@ import type { AppHost, AppState } from './controllers/AppController.ts';
 import { getLocale, initLocale, t, type Locale } from './i18n/i18n.ts';
 import { ChatModePreference, type ChatMode } from './models/ChatModePreference.ts';
 import type { ChatQueueView } from './models/ChatMessageQueue.ts';
+import type { CommandItem } from './models/CommandPaletteModel.ts';
 import type { ThemePreference } from './models/ThemePreference.ts';
 import type { ThemeScheme } from './theme/palette.ts';
 
@@ -314,6 +315,31 @@ function openThread(ctrl: AppController, id: string): void {
     .loadThread(id)
     .then(() => ctrl.composer.chatQueue.drain())
     .catch(() => {});
+}
+
+/**
+ * 命令面板的最终命令顺序：会话动作 → 最近会话 → 界面动作 → 其它 → 面板。
+ *
+ * 为什么不能简单 `[...commands, ...sessions]`：命令面板按**首次出现的分组**渲染，而键盘
+ * 选中用的是扁平下标；把「最近会话」追加到最后会出现「视觉上会话组在第一屏之外、按下键却
+ * 先跳到别组」的错位。这里按分组连续排列，保证视觉顺序与键盘顺序一致，同时让 Ctrl/Cmd+K
+ * 打开时第一屏就能看到最近会话。
+ * @param ctrl 根控制器
+ * @returns 排好序的命令集
+ */
+function paletteCommandsOf(ctrl: AppController): CommandItem[] {
+  const commands = ctrl.commands;
+  const byGroup = (group: string): CommandItem[] => commands.filter((c) => c.group === group);
+  const rest = commands.filter(
+    (c) => c.group !== '会话' && c.group !== '界面' && c.group !== '面板',
+  );
+  return [
+    ...byGroup('会话'),
+    ...ctrl.sessionCommands((id) => openThread(ctrl, id)),
+    ...byGroup('界面'),
+    ...rest,
+    ...byGroup('面板'),
+  ];
 }
 
 /**
@@ -672,7 +698,8 @@ function renderBody(
     }),
     React.createElement(CommandPalette, {
       open: s.paletteOpen,
-      commands: ctrl.commands,
+      // 最近会话并入命令结果（置顶优先）：Ctrl/Cmd+K 可以直接跳会话，不必回左栏找。
+      commands: s.paletteOpen ? paletteCommandsOf(ctrl) : ctrl.commands,
       onClose: ctrl.closePalette,
     }),
     React.createElement(Toast, { toast: s.toastState }),

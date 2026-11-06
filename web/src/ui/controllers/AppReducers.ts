@@ -331,6 +331,32 @@ export class AppReducers {
   }
 
   /**
+   * 构造命令面板的「最近会话」命令：置顶优先，最多 10 条，组名固定「会话」。
+   *
+   * 命令面板原先只有「新建 / 刷新」两条会话动作，切会话仍要回到左栏找；把最近会话并入
+   * 命令结果后，Ctrl/Cmd+K 可以直接跳到目标会话——这是键盘用户最常用的导航路径之一。
+   * @param sessions 会话列表
+   * @param open 打开会话的回调
+   * @param limit 最多条数（缺省 10；避免上千条存档把面板撑爆）
+   * @returns 会话命令列表
+   */
+  public buildSessionCommands(
+    sessions: readonly SessionEntry[],
+    open: (id: string) => void,
+    limit = 10,
+  ): CommandItem[] {
+    return [...sessions]
+      .sort((a, b) => Number(b.pinned === true) - Number(a.pinned === true))
+      .slice(0, Math.max(0, limit))
+      .map((session) => ({
+        id: 'session-' + session.id,
+        label: session.label !== '' ? session.label : session.id,
+        group: '会话',
+        run: () => open(session.id),
+      }));
+  }
+
+  /**
    * 构造命令面板的命令集（切换面板 / 会话 / 界面）。
    * @param deps 命令执行所需的回调集合
    * @returns 命令项列表
