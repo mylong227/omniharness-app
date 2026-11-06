@@ -19,8 +19,12 @@
 
 ```
 contracts/   app 形态的端口契约（内核已不再发布的形状：plugin/vault/media/…）
-kernel/      上述契约的实现（pluginHost 体系、图存储、资产、适配器、…）
+kernel/      上述契约的实现（pluginHost 体系、图存储、资产、适配器、Laya 决策引擎、…）
 ```
+
+2026-11-06 起 `src/host/kernel/` 只保留**自动生成**的 17 个分域 re-export（无实现）；
+原先混在 `kernel/adapters/{laya,enterprise,tool}`、`kernel/config/decisionEngineResolver` 的
+app 自有实现已分别迁到本目录（Laya + 决策解析器）与 `src/apps/enterprise/`（OIDC 适配器）。
 
 ## 消费方式
 

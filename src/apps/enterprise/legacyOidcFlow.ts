@@ -3,7 +3,7 @@
  *
  * ## 定位（与 `LegacyIdTokenVerifier` 同纪律）
  *
- * `openid-client` 准入后生产默认走第三方实现（`adapters/enterprise/openIdClientFlow.ts`）；
+ * `openid-client` 准入后生产默认走第三方实现（同目录 `openIdClientFlow.ts`）；
  * 本类把既有自研资产 `OidcClient`（discovery/PKCE/授权 URL/换码，行为逐字节不变）适配成
  * {@link OidcFlowPort}，与第三方实现做**同端口差分对照**，并作为回退路径——
  * 回退 = 换一个实现实例，调用点零改动。资产保留但不闲置：差分判据持续在 CI 里跑。

@@ -21,8 +21,8 @@
  */
 import { spawn, type ChildProcess } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { PendingRequests } from '@omniharness/kernel/kernel/util/concurrency/pendingRequests.js';
-import type { PendingTimeout } from '@omniharness/kernel/contracts/ports/util/pendingTimeout.js';
+import { PendingRequests } from '../../../../kernel/util.ts';
+import type { PendingTimeout } from '../../../../kernel/util.ts';
 import { LayaJsonlFramer } from './layaJsonlFramer.ts';
 import { LayaProcessLiveness } from './layaProcessLiveness.ts';
 import { LayaReadyWaiters } from './layaReadyWaiters.ts';

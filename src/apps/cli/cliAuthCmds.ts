@@ -15,7 +15,7 @@ import { join } from 'node:path';
 import { OmniHome } from '../../host/kernel/util.ts';
 import crypto from 'node:crypto';
 import { OidcClient, type AuthState, type OidcProviderConfig } from '../enterprise/oidcClient.ts';
-import { OpenIdClientFlow } from './../../host/kernel/adapters/enterprise/openIdClientFlow.ts';
+import { OpenIdClientFlow } from '../enterprise/openIdClientFlow.ts';
 import type { OidcFlowPort } from './../../host/contracts/ports/enterprise/oidcFlow.ts';
 
 /** 旗标读取器签名（与 CLI 链基的 `flagValue` 一致）。 */

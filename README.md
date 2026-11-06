@@ -29,7 +29,7 @@ Electron main（受信） ──spawn──▶ node dist/src/apps/cli/exec.js se
 ```
 
 后端的「内核」不再由本仓源码提供：全部内核符号经 `src/host/kernel/<域>.ts` 对接面导入
-（321 处包导入、17 个**自动生成**的域文件；门禁第 7 条强制单点、第 8 条拒绝生成物漂移）；
+（316 处包导入、17 个**自动生成**的域文件；门禁第 7 条强制单点、第 8 条拒绝生成物漂移）；
 桌面的「后端根目录」缺省就是本仓根；`OMNI_BACKEND_ROOT` / `OMNI_HARNESS_ENTRY` 仍可指向
 另一份后端工作树。
 
@@ -115,11 +115,13 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 
 - **alpha.6**（内核 M4/M5/M6 闭环）：内核完成了「应用形状切片」并把运行时编排收敛为
   `Runtime.createRuntime` 单源——app 的 `Runtime` 现在只是内核 Runtime 的薄扩展。
-- **`src/host/kernel/` 对接面（17 个域文件，自动生成）**：全仓**唯一**允许导入
+- **`src/host/kernel/` 对接面（17 个域文件，自动生成、无实现）**：全仓**唯一**允许导入
   `@omniharness/kernel` 的地方（`checkKernelBoundary.mjs` 第 7 条强制单点、第 8 条拒绝
   生成物漂移）。文件由 `npm run kernel:surface` 从业务代码实际 import 生成——新增内核符号
-  只需在业务代码里正常 import 再跑一次生成命令，不必手写 re-export。分域而非单文件桶的原因：
-  实测根入口整包加载 ~780ms vs 单域 ~60ms——单文件桶会给每个 CLI 冷启动平添 ~700ms。
+  只需在业务代码里正常 import 再跑一次生成命令，不必手写 re-export。目录内**只放 re-export**：
+  Laya 决策引擎 / 企业 OIDC 等 app 自有实现已分别收在 `kernel-compat/kernel/` 与
+  `src/apps/enterprise/`。分域而非单文件桶的原因：实测根入口整包加载 ~780ms vs 单域 ~60ms——
+  单文件桶会给每个 CLI 冷启动平添 ~700ms。
   **升级内核 = 换 tgz + `npm run kernel:surface` + 适配 typecheck**，业务代码零改动。
 - **`src/host/kernel-compat/`（app 自有扩展层）**：插件宿主体系、图存储、资产、媒体、
   审计演化等内核切片清理掉的应用能力收留于此。归属契约见
@@ -149,7 +151,7 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 | 检查 | 结果 |
 | ---- | ---- |
 | 三份 typecheck（后端 / 前端 / 桌面） | ✅ 0 error |
-| `npm run kernel:check` | ✅ 350 源文件 / 321 处包导入（全部收敛对接面）/ 内嵌副本 0 / tarball integrity 一致 / 原生内核实载 / 生成物一致 |
+| `npm run kernel:check` | ✅ 349 源文件 / 316 处包导入（全部收敛对接面）/ 内嵌副本 0 / tarball integrity 一致 / 原生内核实载 / 生成物一致 |
 | 后端构建 `npm run build` | ✅ dist 原子换入；原生内核可加载 |
 | 前端构建 `npm run build:web` | ✅ 单入口 + vendor/panel-antd 分块 |
 | 判据 `npm run web:test` | ✅ 151 文件 / 731 用例（含 parity/守卫/家具/嵌入 API） |

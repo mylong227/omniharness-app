@@ -3,7 +3,7 @@
  *
  * ## 为什么是端口
  *
- * 自研流程族（`enterprise/oidcClient.ts`）与第三方实现（`adapters/enterprise/openIdClientFlow.ts`，
+ * 自研流程族（`apps/enterprise/oidcClient.ts`）与第三方实现（`apps/enterprise/openIdClientFlow.ts`，
  * 基于 `openid-client`）以**同一端口**共存，可做逐条差分对照（与 A.5 第三项 `jose` 准入同型）：
  * 生产默认走第三方（依赖政策 D10：同等能力优先成熟依赖），自研降格为回退资产——
  * 回退 = 换一个实现实例，调用点零改动。

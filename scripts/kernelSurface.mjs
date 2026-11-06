@@ -326,19 +326,27 @@ export function runSurface({ check }) {
   const extras = readdirSync(SURFACE).filter(
     (name) => AREA_FILE.test(name) && !generated.has(name),
   );
+  // 纯化不变量：对接面目录只允许生成物（不允许子目录/实现文件——Laya、OIDC 等已迁出）。
+  const unexpected = readdirSync(SURFACE, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() || !generated.has(entry.name))
+    .map((entry) => entry.name + (entry.isDirectory() ? '/' : ''));
   if (check) {
-    if (changed.length === 0 && extras.length === 0) {
+    if (changed.length === 0 && extras.length === 0 && unexpected.length === 0) {
       process.stdout.write(
-        `kernel:surface OK —— ${String(files.size)} 个域文件与业务实际使用一致\n`,
+        `kernel:surface OK —— ${String(files.size)} 个域文件与业务实际使用一致（目录内无实现、无额外文件）\n`,
       );
       return 0;
     }
     process.stderr.write(
       `kernel:surface 漂移：${String(changed.length)} 个文件需重新生成` +
-        `${extras.length > 0 ? `，${String(extras.length)} 个文件已无使用` : ''}\n`,
+        `${extras.length > 0 ? `，${String(extras.length)} 个文件已无使用` : ''}` +
+        `${unexpected.length > 0 ? `，${String(unexpected.length)} 个非生成物` : ''}\n`,
     );
     for (const name of [...changed, ...extras]) process.stderr.write(`  - src/host/kernel/${name}\n`);
-    process.stderr.write('  修复：npm run kernel:surface\n');
+    for (const name of unexpected) {
+      process.stderr.write(`  - src/host/kernel/${name}（对接面目录只允许生成的域文件）\n`);
+    }
+    process.stderr.write('  修复：npm run kernel:surface（实现代码请放 kernel-compat/ 或 apps/）\n');
     return 1;
   }
   for (const [name, content] of files) {

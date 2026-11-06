@@ -8,7 +8,7 @@
    state/nonce 检查、client 认证方法族、令牌响应校验），自研版这些都要逐条手搓且只能靠单测兜底；
  - 预算：本包 221 KB + 传递依赖 `oauth4webapi` 326 KB（`jose ^6.2.12` 与既有准入**同版本共享**）
    ⇒ 合计新增 ≈550 KB，低于默认预算 2048 KB / 20 传递依赖（实际 2 个）；
- - 分层：仅落在 `src/kernel/adapters/enterprise`（依赖只允许出现在适配层）；生产默认切本实现，
+ - 分层：仅落在 `src/apps/enterprise`（依赖只允许出现在适配层）；生产默认切本实现，
    自研 `LegacyOidcFlow` 同端口保留为回退资产（差分判据持续在 CI）。
  *
  * ## 与自研实现的行为差分（判据记录于 上游判据 oidcFlowContract.test.ts（本仓未随迁））
@@ -24,8 +24,8 @@ import type {
   OidcFlowPort,
   PkcePair,
   TokenSet,
-} from './../../../contracts/ports/enterprise/oidcFlow.ts';
-import type { OidcProviderConfig } from './../../../contracts/ports/enterprise/oidcProviderConfig.ts';
+} from '../../host/contracts/ports/enterprise/oidcFlow.ts';
+import type { OidcProviderConfig } from '../../host/contracts/ports/enterprise/oidcProviderConfig.ts';
 import {
   allowInsecureRequests,
   authorizationCodeGrant,

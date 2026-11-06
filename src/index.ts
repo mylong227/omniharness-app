@@ -80,7 +80,7 @@ export {
   DEFAULT_ROUTE_PRICING,
   DEFAULT_FALLBACK_PRICE,
 } from './host/kernel/adapters-model.ts';
-export type { ToolHandler } from './host/kernel/adapters/tool/toolHandler.ts';
+export type { ToolHandler } from './host/kernel/contracts.ts';
 
 // @public hooks 兼容层（通用 / claude-code 事件格式映射）
 export { GenericHooksMapper } from './apps/hooksCompat/genericHooksMapper.ts';

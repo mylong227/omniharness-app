@@ -40,7 +40,7 @@ import { PluginProfileStore } from '../../host/kernel-compat/kernel/plugin/plugi
 import { ArgParser } from './argParser.ts';
 import type { CliArgs } from './argParser.ts';
 import type { ResolvedConfig } from '../../host/kernel/contracts.ts';
-import { JoseIdTokenVerifier } from './../../host/kernel/adapters/enterprise/joseIdTokenVerifier.ts';
+import { JoseIdTokenVerifier } from '../enterprise/joseIdTokenVerifier.ts';
 import { CliArgReader } from './cliArgReader.ts';
 import { ServeWorkspace } from './serveWorkspace.ts';
 import { ServePortConflict } from './servePortConflict.ts';

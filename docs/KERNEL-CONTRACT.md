@@ -27,6 +27,9 @@ web/ + desktop/ ──HTTP/SSE──▶ src/apps（宿主：CLI / RPC 域模块 
 
 - `src/**` 只有 `src/host/kernel/<域>.ts` 允许 `import '@omniharness/kernel…'`；
   业务代码一律经对接面消费（内核内部路径不承诺兼容，升级只适配这一个目录）。
+- `src/host/kernel/` 只放**自动生成**的 17 个分域 re-export，**不放实现**（2026-11-06 已把
+  Laya / 企业 OIDC / toolHandler / decisionEngineResolver 迁出：Laya 与解析器在
+  `kernel-compat/kernel/`，OIDC 适配器在 `src/apps/enterprise/`）。
 - `kernel-compat/` 只依赖 `../kernel/<域>.ts` 与目录内相对路径，同样不得绕过对接面。
 - 内核 `kernel/composition/{runtime,serviceKeys}.ts` 就是编排单源：app 的
   `src/apps/composition/runtime.ts` 只是 `Runtime` 的薄扩展 + `ServiceKeys` 再导出（app 侧拷贝已删除）。
@@ -37,7 +40,7 @@ web/ + desktop/ ──HTTP/SSE──▶ src/apps（宿主：CLI / RPC 域模块 
    app `Runtime` 改为继承，A2A 互操作随内核 M4 决策退役（v0.3 线格式一并删除）。
 2. **能力收编**：内核切片删除的 plugin / 资产 / 媒体 / 审计演化等能力以
    `src/host/kernel-compat/` 自有（122 文件，closure-complete，导入已改写为对接面路径）。
-3. **对接面收敛**：637 处散布深路径导入 → 321 处包导入收敛于 17 个**自动生成**的域文件；
+3. **对接面收敛**：637 处散布深路径导入 → 316 处包导入收敛于 17 个**自动生成**的域文件；
    `ServiceKeys` 单源自内核；纯再导出 shim 全部清除。
 4. **后端模块化**：7 层继承链 → `ServerServices`（装配）+ 16 个域模块（注册）+
    `AppServer`（组装/分发/生命周期）；93 个 RPC 方法有唯一注册出处。
@@ -67,8 +70,9 @@ alpha.4 时代的方案是**钉住旧版本等归位**；本仓已把等的那�
 5. `vendor/*.tgz` 的 SHA-512 必须等于 `package-lock.json` 的 integrity；
 6. `NativeKernel.available() === true` 且 `ping()` 成功；
 7. **对接面单点**：`src/**` 里只有 `src/host/kernel/<域>.ts` 允许导入内核包；
-8. **对接面不漂移**：17 个域文件必须与「业务代码实际 import + 内核包 `.d.ts`」一致
-   （由 `scripts/kernelSurface.mjs` 生成；只改业务 import 不跑 `npm run kernel:surface` 即红）。
+8. **对接面不漂移且纯净**：17 个域文件必须与「业务代码实际 import + 内核包 `.d.ts`」一致，
+   且 `src/host/kernel/` 内只允许这些生成物（实现/子目录一律不收）；只改业务 import 不跑
+   `npm run kernel:surface` 即红。
 
 生成器只保留业务实际使用的符号：新增内核符号的姿势是**在业务代码里正常 import**，再跑
 `npm run kernel:surface`（无需手写 re-export）；已无使用的符号会被裁掉。`kernel:check`
@@ -95,7 +99,7 @@ alpha.4 时代的方案是**钉住旧版本等归位**；本仓已把等的那�
 | 检查 | 结果 |
 | ---- | ---- |
 | `npm run typecheck`（后端 / 前端 / 桌面） | ✅ 0 error |
-| `npm run kernel:check` | ✅ 350 源文件 / 321 处包导入（全部收敛对接面）/ 内嵌副本 0 / integrity 一致 / native ping / 生成物一致 |
+| `npm run kernel:check` | ✅ 349 源文件 / 316 处包导入（全部收敛对接面）/ 内嵌副本 0 / integrity 一致 / native ping / 生成物一致 |
 | `npm run build` + `npm run smoke` | ✅ 7/7（banner token、healthz、readyz、HTML、config.get、sessions.list、原生内核实载） |
 | `npm run web:test` | ✅ 151 文件 / 731 用例（含 parity/守卫/家具） |
 | `npm run desktop:build` + `desktop:test` | ✅ 30/30 |

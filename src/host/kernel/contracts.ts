@@ -70,3 +70,7 @@ export type { ToolInputSink } from '@omniharness/kernel/contracts/ports/tool/too
 export type { Spectrum } from '@omniharness/kernel/contracts/ports/util/spectrum.js';
 export { WebSocketSdkSocket } from '@omniharness/kernel/contracts/sdk/webSocketSdkSocket.js';
 export type { SdkSocket } from '@omniharness/kernel/contracts/sdk/webSocketSdkSocket.js';
+export type { DecisionAnswer } from '@omniharness/kernel/contracts/ports/decision/decisionEngine/decisionAnswer.js';
+export type { DecisionQuestion } from '@omniharness/kernel/contracts/ports/decision/decisionEngine/decisionQuestion.js';
+export type { DecisionRequest } from '@omniharness/kernel/contracts/ports/decision/decisionEngine/decisionRequest.js';
+export type { DecisionResponse } from '@omniharness/kernel/contracts/ports/decision/decisionEngine/decisionResponse.js';

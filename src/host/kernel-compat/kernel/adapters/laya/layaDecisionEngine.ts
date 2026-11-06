@@ -25,12 +25,12 @@
  *   热路径单次约 0.4s（noul/choice/score 三原语均有真实数值，见看板「Laya 接线修复」一节）。
  * @maturityEvidence 上游判据 decisionEngine.test.ts（本仓未随迁）, 上游判据 layaWiring.test.ts（本仓未随迁）, 上游判据 layaWarmWorker.test.ts（本仓未随迁）, 上游判据 layaPaths.test.ts（本仓未随迁）, 上游判据 selfVerifyVerdictProbe.test.ts（本仓未随迁）, tests/integration/layaBackend.test.ts
  */
-import { log } from '@omniharness/kernel/kernel/util/logger.js';
+import { log } from '../../../../kernel/util.ts';
 import type {
   DecisionEngine,
   DecisionRequest,
   DecisionResponse,
-} from '@omniharness/kernel/contracts/ports/decision/decisionEngine.js';
+} from '../../../../kernel/contracts.ts';
 import {
   LayaEngineConfig,
   type LayaDecisionEngineOptions,

@@ -24,7 +24,7 @@ import type {
   IdTokenVerification,
   IdTokenVerificationRequest,
   IdTokenVerifierPort,
-} from './../../../contracts/ports/enterprise/idTokenVerifier.ts';
+} from '../../host/contracts/ports/enterprise/idTokenVerifier.ts';
 
 /**
  * 允许的 JWS 算法（**白名单**，不是黑名单）。

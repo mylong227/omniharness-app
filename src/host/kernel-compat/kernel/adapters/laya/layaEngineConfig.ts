@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Laya 决策引擎的**配置解析与预算快照**（从适配器主类抽出）。
  *
  * ## 为什么独立成文件
@@ -14,7 +14,7 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LayaPaths } from './layaPaths.ts';
-import { endpointDefaults } from '@omniharness/kernel/kernel/util/endpointDefaults.js';
+import { endpointDefaults } from '../../../../kernel/util.ts';
 
 /** Laya 适配器配置（全部可选；缺省即「零配置可用」）。 */
 export interface LayaDecisionEngineOptions {
