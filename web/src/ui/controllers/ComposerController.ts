@@ -1,4 +1,4 @@
-﻿// 输入框切换器 / 发送相关控制器（C3 拆分，标准 class 方式）。
+// 输入框切换器 / 发送相关控制器（C3 拆分，标准 class 方式）。
 // 承接原 useAppController 中 send / changeModel / changeReasoning / changePermission 回调，
 // 经 AppHost.patch 驱动 App 状态，行为逐字节等价。
 
@@ -12,6 +12,7 @@ import type {
 import type { ToolResultView } from '../shared.ts';
 import type { SessionController } from './SessionController.ts';
 import { MethodBinder } from './methodBinder.ts';
+import { EventFields } from '../models/EventFields.ts';
 import { t } from '../i18n/i18n.ts';
 import { desktopBridge, notifyDesktop } from '../../core/desktop/DesktopBridge.ts';
 import { ChatQueueController } from './ChatQueueController.ts';
@@ -446,7 +447,7 @@ export class ComposerController {
   private pruneToolResults(kept: ThreadEvent[]): Record<string, ToolResultView> {
     const ids = new Set<string>();
     for (const ev of kept) {
-      if (ev.type === 'tool_call') ids.add((ev.payload?.callId as string) || ev.id);
+      if (ev.type === 'tool_call') ids.add(EventFields.callId(ev));
     }
     const prev = this.host.getState().toolResults;
     const out: Record<string, ToolResultView> = {};

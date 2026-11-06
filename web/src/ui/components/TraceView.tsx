@@ -9,6 +9,7 @@ import { icon } from '../models/Icon.ts';
 import type { IconName } from '../models/Icon.ts';
 import { describeToolCall } from '../textUtils.ts';
 import { timeOf } from '../format.ts';
+import { EventFields } from '../models/EventFields.ts';
 import { t } from '../i18n/i18n.ts';
 import type { ThreadEvent } from '../../types/models.ts';
 import type { LiveInput, ToolResultView } from '../shared.ts';
@@ -70,9 +71,8 @@ function collectRows(events: readonly ThreadEvent[], toolResults: Record<string,
   const doneCallIds = new Set<string>(Object.keys(toolResults));
   for (const ev of events) {
     if (ev.type !== 'tool_result') continue;
-    const p = (ev.payload || {}) as Record<string, unknown>;
-    const callId = p.callId as string | undefined;
-    if (callId !== undefined && callId !== '') doneCallIds.add(callId);
+    const callId = EventFields.rawCallId(ev);
+    if (callId !== '') doneCallIds.add(callId);
   }
   const rows: TraceRow[] = [];
   for (const ev of events) {
@@ -80,7 +80,7 @@ function collectRows(events: readonly ThreadEvent[], toolResults: Record<string,
     const p = (ev.payload || {}) as Record<string, unknown>;
     const name = (p.name as string) || '';
     if (name === '') continue;
-    const callId = (p.callId as string) || ev.id;
+    const callId = EventFields.callId(ev);
     rows.push({
       key: ev.id,
       name,

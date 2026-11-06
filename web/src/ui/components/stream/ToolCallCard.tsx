@@ -10,6 +10,7 @@
 
 import * as React from 'react';
 import { jsonView } from '../../format.ts';
+import { EventFields } from '../../models/EventFields.ts';
 import { truncate, toolMeta, toolSubject, toolVerb } from '../../textUtils.ts';
 import { icon } from '../../models/Icon.ts';
 import type { IconName } from '../../models/Icon.ts';
@@ -99,7 +100,7 @@ export function ToolCallCard(props: ToolCallCardProps): ReactElement {
   const p = ev.payload || {};
   const status = res ? (res.ok ? 'ok' : 'err') : 'pending';
   const statusText = res ? (res.ok ? t('成功') : t('失败')) : t('运行中…');
-  const toolName = (p.name as string) || 'tool';
+  const toolName = EventFields.toolName(ev) || 'tool';
   const verb = t(toolVerb(toolName));
   const subject = toolSubject(toolName, p.args);
   const meta = toolMeta(toolName, p.args);

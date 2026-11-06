@@ -73,7 +73,7 @@ export class TrayService {
       const tray = new Tray(
         image.resize({ width: this.config.iconSize, height: this.config.iconSize }),
       );
-      tray.setToolTip(this.config.tooltip);
+      tray.setToolTip(this.tooltipText(this.busy));
       tray.setContextMenu(this.menu());
       tray.on('click', () => this.actions.show());
       tray.on('double-click', () => this.actions.show());
@@ -97,9 +97,20 @@ export class TrayService {
     if (this.busy === busy) return;
     this.busy = busy;
     if (this.tray === null || this.tray.isDestroyed()) return;
+    // 悬停提示同步反映状态：图标只给颜色，提示补一句「回合进行中」，托盘里也能确认在跑。
+    this.tray.setToolTip(this.tooltipText(busy));
     const image = this.imageFor(busy);
     if (image === null) return;
     this.tray.setImage(image.resize({ width: this.config.iconSize, height: this.config.iconSize }));
+  }
+
+  /**
+   * 托盘悬停提示：常态 = 配置文案；busy = 文案 + 「回合进行中」。
+   * @param busy 是否 busy
+   * @returns 提示文案
+   */
+  private tooltipText(busy: boolean): string {
+    return busy ? `${this.config.tooltip} · ${this.i18n.t('tray.busy')}` : this.config.tooltip;
   }
 
   /**

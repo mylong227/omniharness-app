@@ -13,6 +13,7 @@
 //   · artifact-only 行按工具语义兜底：apply_patch → 修改，write_file / sketch_write → 生成。
 
 import { ArtifactResolver, type ArtifactKind } from './ArtifactResolver.ts';
+import { EventFields } from './EventFields.ts';
 import { parseTurnDiffFiles } from './TurnDiffFiles.ts';
 import type { ThreadEvent } from '../../types/models.ts';
 
@@ -53,21 +54,6 @@ export interface TurnSummary {
   readonly durationMs: number;
 }
 
-/**
- * 取事件的毫秒时间戳（兼容 number 与 ISO 字符串；无效值返回 0）。
- * @param ev 事件
- * @returns 毫秒时间戳；不可用时为 0
- */
-function timestampOf(ev: ThreadEvent): number {
-  const raw: unknown = ev.timestamp;
-  if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) return raw;
-  if (typeof raw === 'string') {
-    const parsed = Date.parse(raw);
-    if (Number.isFinite(parsed) && parsed > 0) return parsed;
-  }
-  return 0;
-}
-
 /** 会产出文件、需要进结果汇总的工具（read_file / lsp_* 只是引用，不算产物）。 */
 const SUMMARY_TOOLS: ReadonlySet<string> = new Set(['write_file', 'apply_patch', 'sketch_write']);
 
@@ -87,7 +73,7 @@ function collectResults(events: readonly ThreadEvent[]): ReadonlyMap<string, Too
   for (const ev of events) {
     if (ev.type !== 'tool_result') continue;
     const p = ev.payload || {};
-    const callId = typeof p.callId === 'string' ? p.callId : '';
+    const callId = EventFields.rawCallId(ev);
     if (callId === '') continue;
     // 兼容两种历史形状：当前协议用 output/error，旧夹具/旧存档可能只给 text。
     const text =
@@ -149,9 +135,9 @@ export function buildTurnSummary(events: readonly ThreadEvent[]): TurnSummary {
   for (const ev of events) {
     if (ev.type !== 'tool_call') continue;
     const p = ev.payload || {};
-    const name = typeof p.name === 'string' ? p.name : '';
+    const name = EventFields.toolName(ev);
     if (!SUMMARY_TOOLS.has(name)) continue;
-    const callId = typeof p.callId === 'string' ? p.callId : ev.id;
+    const callId = EventFields.callId(ev);
     const res = results.get(callId);
     if (res === undefined || !res.ok) continue;
     const info = ArtifactResolver.fromTool(name, p.args, res.text);
@@ -187,7 +173,7 @@ export function buildTurnSummary(events: readonly ThreadEvent[]): TurnSummary {
   let firstAt = 0;
   let lastAt = 0;
   for (const ev of events) {
-    const at = timestampOf(ev);
+    const at = EventFields.timestamp(ev);
     if (at === 0) continue;
     if (firstAt === 0 || at < firstAt) firstAt = at;
     if (at > lastAt) lastAt = at;

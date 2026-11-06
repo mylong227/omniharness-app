@@ -718,6 +718,51 @@ const STATES = [
     },
   },
   {
+    key: 'trail-filter',
+    // 思考轨迹筛选（2026-11-06）：展开收尾后的「总思考」，筛选条按思考/说明/工具/失败计数；
+    // 点「失败」只留失败工具行——长回合里最快定位问题的那条通路。截图留档筛选后的阅读态。
+    open: async (cdp: CdpSession) => {
+      if (!(await cdp.waitFor("!!document.querySelector('.tt-head')", 800))) {
+        emit({ kind: 'state-debug', state: 'trail-filter', why: 'tt-head 不存在' });
+        return false;
+      }
+      await cdp.click('.tt-head');
+      if (!(await cdp.waitFor("!!document.querySelector('.tt-filterbar')", 700))) {
+        emit({ kind: 'state-debug', state: 'trail-filter', why: '筛选条未出现' });
+        return false;
+      }
+      const clicked = await cdp.evaluate(`(function(){
+        var chip = [].slice.call(document.querySelectorAll('.tt-filter')).filter(function(b){
+          return (b.textContent || '').indexOf('失败') === 0;
+        })[0];
+        if (chip === undefined) return false;
+        chip.click();
+        return true;
+      })()`);
+      if (clicked !== true) {
+        emit({ kind: 'state-debug', state: 'trail-filter', why: '失败筛选片不存在' });
+        return false;
+      }
+      const ok = await cdp.waitFor(
+        `(function(){
+          var active = document.querySelector('.tt-filter[aria-pressed="true"]');
+          return !!active && (active.textContent || '').indexOf('失败') === 0;
+        })()`,
+        500,
+      );
+      if (!ok) {
+        emit({
+          kind: 'state-debug',
+          state: 'trail-filter',
+          why: await cdp.evaluate(
+            "[].slice.call(document.querySelectorAll('.tt-filter')).map(function(b){return b.textContent;})",
+          ),
+        });
+      }
+      return ok;
+    },
+  },
+  {
     key: 'jump-bottom',
     // 回到底部浮动按钮（2026-11-06 实用性打磨）：内容撑出视口后**上滚**，按钮浮现在
     // 滚动口下缘；点它恢复贴底。放在 STATES 末尾——此时事件流最长、必定可滚。

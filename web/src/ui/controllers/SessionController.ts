@@ -13,6 +13,7 @@ import { SessionProjectBinding } from '../models/SessionProjectBinding.ts';
 import type { SessionModePatch } from '../models/PendingModes.ts';
 import { MethodBinder } from './methodBinder.ts';
 import { SessionTicker } from './sessionTicker.ts';
+import { EventFields } from '../models/EventFields.ts';
 import { t } from '../i18n/i18n.ts';
 
 /** 历史分页页大小（首屏只取尾部；更早内容按需补拉）。 */
@@ -100,7 +101,7 @@ export class SessionController {
     }
     const p = ev.payload || {};
     if (ev.type === 'tool_call') {
-      const callId = (p.callId as string) || ev.id;
+      const callId = EventFields.callId(ev);
       this.host.patch((s) => ({
         liveInputs: s.liveInputs.filter((l) => l.id !== callId),
         activeTool: (p.name as string) ?? null,
@@ -115,7 +116,7 @@ export class SessionController {
       this.ticker.schedule();
     }
     if (ev.type === 'tool_result') {
-      const callId = p.callId as string;
+      const callId = EventFields.rawCallId(ev);
       if (callId) {
         this.host.patch((s) => ({ toolResults: this.services.reducers.mergeToolResult(s.toolResults, callId, p) }));
       }
@@ -266,8 +267,8 @@ export class SessionController {
       // 那些通知早就过去了 ⇒ 否则旧工具卡永远停在「进行中…」（2026-10-07 用户截图「结果卡住了」）。
       const results: Record<string, { text: string; ok: boolean }> = {};
       for (const ev of items) {
-        const callId = ev.type === 'tool_result' ? (ev.payload?.callId as string | undefined) : undefined;
-        if (callId !== undefined && callId !== '') {
+        const callId = ev.type === 'tool_result' ? EventFields.rawCallId(ev) : '';
+        if (callId !== '') {
           results[callId] = this.services.reducers.mergeToolResult({}, callId, ev.payload || {})[callId]!;
         }
       }
@@ -352,9 +353,8 @@ export class SessionController {
       const older = (r.items || []).filter((event) => !seen.has(event.id));
       const results = { ...current.toolResults };
       for (const event of older) {
-        const callId =
-          event.type === 'tool_result' ? (event.payload?.callId as string | undefined) : undefined;
-        if (callId !== undefined && callId !== '') {
+        const callId = event.type === 'tool_result' ? EventFields.rawCallId(event) : '';
+        if (callId !== '') {
           results[callId] = this.services.reducers.mergeToolResult(
             {},
             callId,
@@ -577,8 +577,7 @@ export class SessionController {
     const s = this.host.getState();
     const ev = s.events.find((e) => {
       if (e.type !== 'tool_call') return false;
-      const p = e.payload || {};
-      return ((p.callId as string) || e.id) === callId;
+      return EventFields.callId(e) === callId;
     });
     if (ev) this.showDetail(ev);
   }

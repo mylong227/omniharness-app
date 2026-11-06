@@ -112,6 +112,7 @@ test('DesktopI18n：中英语言包键集合完全一致', () => {
     'menu.help',
     'tray.show',
     'tray.quit',
+    'tray.busy',
     'dialog.startFailedTitle',
     'dialog.crashTitle',
     'dialog.updateLatestMessage',
@@ -540,23 +541,28 @@ test('TrayService busy 态：切图 / 去重 / 回落 / destroy 复位', () => {
   assert.equal(state.created, 1);
   assert.match(state.lastTray.image.path, /icon\.png$/u);
   assert.deepEqual(state.lastTray.image.resized, { width: 16, height: 16 });
+  assert.deepEqual(state.tooltips, ['OmniHarness'], '常态悬停提示 = 配置文案');
 
   tray.setBusy(true);
   assert.equal(state.images.length, 1, 'busy=true 必须换图');
   assert.match(state.images[0].path, /icon-busy\.png$/u);
   assert.deepEqual(state.images[0].resized, { width: 16, height: 16 });
+  assert.equal(state.tooltips[1], 'OmniHarness · tray.busy', 'busy 悬停提示补一句「回合进行中」');
 
   tray.setBusy(true);
   assert.equal(state.images.length, 1, '重复设置同一状态不得反复重绘');
+  assert.equal(state.tooltips.length, 2, '重复设置不得反复改提示');
 
   tray.setBusy(false);
   assert.equal(state.images.length, 2);
   assert.match(state.images[1].path, /icon\.png$/u);
+  assert.equal(state.tooltips[2], 'OmniHarness', '收尾恢复常态提示');
 
   tray.destroy();
   assert.equal(state.destroyed, 1);
   tray.setBusy(true);
   assert.equal(state.images.length, 2, '销毁后不得再碰托盘');
+  assert.equal(state.tooltips.length, 3, '销毁后不得再改提示');
 });
 
 test('TrayService busy 态：创建时已在跑 ⇒ 直接以 busy 变体起盘', () => {
@@ -570,6 +576,7 @@ test('TrayService busy 态：创建时已在跑 ⇒ 直接以 busy 变体起盘'
   tray.setBusy(true); // 托盘尚未创建：只记状态
   assert.equal(tray.create(), true);
   assert.match(state.lastTray.image.path, /icon-busy\.png$/u, '慢启动时创建必须直接显示 busy 态');
+  assert.deepEqual(state.tooltips, ['OmniHarness · tray.busy'], '创建即 busy 时提示也要带状态');
 });
 
 test('TrayService busy 态：变体缺失 ⇒ 回退常规图标，不抛错', () => {
@@ -588,6 +595,7 @@ test('TrayService busy 态：变体缺失 ⇒ 回退常规图标，不抛错', (
     tray.setBusy(true);
     assert.equal(state.images.length, 1);
     assert.match(state.images[0].path, /icon\.png$/u, 'busy 变体缺失必须回退常规图标');
+    assert.equal(state.tooltips[1], 'OmniHarness · tray.busy', '图标回退不影响提示里的状态');
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

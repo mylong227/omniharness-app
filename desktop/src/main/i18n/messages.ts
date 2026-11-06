@@ -33,6 +33,7 @@ export type DesktopMessageKey =
   | 'tray.openAtLogin'
   | 'tray.quit'
   | 'tray.diagnostics'
+  | 'tray.busy'
   | 'dialog.startFailedTitle'
   | 'dialog.startFailedMessage'
   | 'dialog.openLogs'
@@ -98,6 +99,7 @@ const ZH: Record<DesktopMessageKey, string> = {
   'tray.openAtLogin': '开机启动',
   'tray.quit': '退出',
   'tray.diagnostics': '诊断信息…',
+  'tray.busy': '回合进行中',
   'dialog.startFailedTitle': 'Harness 启动失败',
   'dialog.startFailedMessage': '本地 Harness 未能启动',
   'dialog.openLogs': '打开日志',
@@ -165,6 +167,7 @@ const EN: Record<DesktopMessageKey, string> = {
   'tray.openAtLogin': 'Launch at Login',
   'tray.quit': 'Quit',
   'tray.diagnostics': 'Diagnostics…',
+  'tray.busy': 'Turn in progress',
   'dialog.startFailedTitle': 'Harness failed to start',
   'dialog.startFailedMessage': 'The local Harness could not start.',
   'dialog.openLogs': 'Open Logs',

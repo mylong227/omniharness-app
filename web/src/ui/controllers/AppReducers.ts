@@ -14,6 +14,7 @@ import type {
 import type { CommandItem } from '../components/CommandPalette.tsx';
 import { PANELS } from '../models/PanelRegistry.ts';
 import { KeyboardShortcuts } from '../models/KeyboardShortcuts.ts';
+import { EventFields } from '../models/EventFields.ts';
 import type { LiveInput, SessionEntry, ToolItem, ToolResultView } from '../shared.ts';
 import { t } from '../i18n/i18n.ts';
 
@@ -276,10 +277,13 @@ export class AppReducers {
     const items: ToolItem[] = [];
     for (const e of events) {
       if (e.type !== 'tool_call') continue;
-      const p = e.payload || {};
-      const callId = (p.callId as string) || e.id;
+      const callId = EventFields.callId(e);
       const res = toolResults[callId];
-      items.push({ callId, name: (p.name as string) || 'tool', status: res ? (res.ok ? 'ok' : 'err') : 'pending' });
+      items.push({
+        callId,
+        name: EventFields.toolName(e) || 'tool',
+        status: res ? (res.ok ? 'ok' : 'err') : 'pending',
+      });
     }
     return items;
   }

@@ -95,3 +95,35 @@ test('没有过程事件时不渲染轨迹', () => {
   const ui = renderUi(ThinkingTrail, { props: { events: [], busy: false, renderEvent } });
   assert.strictEqual(ui.root, null);
 });
+
+test('筛选条：失败只留失败工具行，计数可读，点「全部」恢复', () => {
+  const failEvents: ThreadEvent[] = [
+    ...EVENTS.slice(0, 2),
+    ev('c2', 'tool_call', 2_100, { callId: 'k2', name: 'shell', args: { cmd: 'false' } }),
+    ev('x2', 'tool_result', 2_150, { callId: 'k2', ok: false, output: '✗ failed' }),
+    ...EVENTS.slice(2),
+  ];
+  const ui = renderUi(ThinkingTrail, { props: { events: failEvents, busy: false, renderEvent } });
+  fireEvent.click(ui.container.querySelector('.tt-head')!);
+
+  const chips = Array.from(ui.container.querySelectorAll('.tt-filter'));
+  assert.deepStrictEqual(
+    chips.map((chip) => chip.textContent?.replace(/\s+/g, '')),
+    ['全部4', '思考2', '工具2', '失败1'],
+    '筛选条只列有内容的类别（固定顺序：全部/思考/说明/工具/失败）',
+  );
+
+  const fail = chips.find((chip) => (chip.textContent ?? '').startsWith('失败'));
+  assert.ok(fail !== undefined);
+  assert.strictEqual(fail.getAttribute('aria-pressed'), 'false');
+  fireEvent.click(fail);
+  assert.strictEqual(fail.getAttribute('aria-pressed'), 'true');
+  assert.strictEqual(ui.container.querySelectorAll('.fake-tool').length, 1, '只留失败的工具行');
+  assert.strictEqual(ui.container.querySelectorAll('.tt-step').length, 0, '思考行被筛掉');
+
+  const all = chips.find((chip) => (chip.textContent ?? '').startsWith('全部'));
+  assert.ok(all !== undefined);
+  fireEvent.click(all);
+  assert.strictEqual(ui.container.querySelectorAll('.fake-tool').length, 2, '全部恢复两条工具行');
+  assert.strictEqual(ui.container.querySelectorAll('.tt-step').length, 2, '全部恢复两条思考行');
+});

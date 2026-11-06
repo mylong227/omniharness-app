@@ -5,6 +5,7 @@
 import type { ThreadEvent } from '../types/models.ts';
 import { FileSizeFormatter } from './models/FileSizeFormatter.ts';
 import { buildTurnSummary } from './models/TurnSummary.ts';
+import { EventFields } from './models/EventFields.ts';
 import { t } from './i18n/i18n.ts';
 
 /**
@@ -404,8 +405,7 @@ export function collectToolCallIds(events: readonly ThreadEvent[]): ReadonlySet<
   const ids = new Set<string>();
   for (const e of events) {
     if (e.type !== 'tool_call') continue;
-    const p = e.payload || {};
-    ids.add((p.callId as string) || e.id);
+    ids.add(EventFields.callId(e));
   }
   return ids;
 }
@@ -427,8 +427,7 @@ export function collectToolCallIds(events: readonly ThreadEvent[]): ReadonlySet<
 export function isRenderedEvent(ev: ThreadEvent, toolCallIds: ReadonlySet<string>): boolean {
   if (ev.type === 'session_meta' || ev.type === 'model') return false;
   if (ev.type === 'tool_result') {
-    const p = ev.payload || {};
-    return !toolCallIds.has((p.callId as string) || '');
+    return !toolCallIds.has(EventFields.rawCallId(ev));
   }
   return true;
 }

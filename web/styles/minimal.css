@@ -967,6 +967,80 @@
   border-radius: 50%;
   animation: tt-spin 0.8s linear infinite;
 }
+/* 轨迹筛选：长回合里把「思考 / 说明 / 工具 / 失败」分开看。
+   只在步骤足够多时出现；失败片是红色信号，不是装饰。 */
+.tt-filterbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0 2px;
+  padding: 0 2px;
+}
+.tt-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dim);
+  font: inherit;
+  font-size: var(--fs-micro);
+  cursor: pointer;
+  transition:
+    background var(--dur-1) var(--ease),
+    border-color var(--dur-1) var(--ease),
+    color var(--dur-1) var(--ease);
+}
+.tt-filter:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--text);
+}
+.tt-filter[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--accent-2) 35%, transparent);
+  background: color-mix(in srgb, var(--accent-2) 12%, transparent);
+  color: var(--text);
+}
+.tt-filter-count {
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  font-variant-numeric: tabular-nums;
+}
+.tt-filter[aria-pressed='true'] .tt-filter-count {
+  color: var(--accent-2);
+}
+.tt-filter-err {
+  color: color-mix(in srgb, var(--err) 78%, var(--dim));
+}
+.tt-filter-err[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--err) 40%, transparent);
+  background: color-mix(in srgb, var(--err) 12%, transparent);
+}
+.tt-filter-err[aria-pressed='true'] .tt-filter-count {
+  color: var(--err);
+}
+.tt-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 8px;
+  color: var(--faint);
+  font-size: var(--fs-sm);
+}
+.tt-empty button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-2);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 /* 时间线本体：高度封顶 + 自带滚动，思考再长也不会把对话顶出屏幕。 */
 .tt-body {
   display: flex;

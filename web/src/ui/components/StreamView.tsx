@@ -34,6 +34,7 @@ import type { DisplayBlock } from '../textUtils.ts';
 import { DEFAULT_ITEM_HEIGHT, StreamWindow } from '../models/StreamWindow.ts';
 import type { StreamWindowMetrics } from '../models/StreamWindow.ts';
 import { BlockHeightIndex } from '../models/BlockHeightIndex.ts';
+import { EventFields } from '../models/EventFields.ts';
 import type { StreamModel } from '../models/StreamModelCache.ts';
 import { ToolCallCard } from './stream/ToolCallCard.tsx';
 import { ReasoningStep, ThinkingTrail } from './stream/ThinkingTrail.tsx';
@@ -240,7 +241,7 @@ function renderEventNode(ev: ThreadEvent, ctx: EventCtx): React.ReactElement | n
       // 这里是裸 reasoning 块的兜底（历史/异常切片），保证内容不以 JSON 露出来。
       return <ReasoningStep key={ev.id} ev={ev} />;
     case 'tool_call': {
-      const callId = (p.callId as string) || ev.id;
+      const callId = EventFields.callId(ev);
       return (
         <ToolCallCard
           key={ev.id}
@@ -253,7 +254,7 @@ function renderEventNode(ev: ThreadEvent, ctx: EventCtx): React.ReactElement | n
     }
     case 'tool_result':
       // 已被调用卡内联的结果不再单独渲染；孤儿结果（调用被历史截断）折叠成一行。
-      if (ctx.toolCallIds.has((p.callId as string) || '')) return null;
+      if (ctx.toolCallIds.has(EventFields.rawCallId(ev))) return null;
       return renderStandaloneToolResult(ev, p);
     case 'system':
       return renderSystemNode(p, node);

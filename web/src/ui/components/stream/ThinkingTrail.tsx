@@ -18,6 +18,9 @@ import { icon } from '../../models/Icon.ts';
 import { formatDuration } from '../../models/DurationFormat.ts';
 import { describeToolCall, processSummary } from '../../textUtils.ts';
 import { t } from '../../i18n/i18n.ts';
+import { EventFields } from '../../models/EventFields.ts';
+import { TrailFilter } from '../../models/TrailFilter.ts';
+import type { TrailCounts, TrailFilterMode, TrailRow } from '../../models/TrailFilter.ts';
 import type { ThreadEvent } from '../../../types/models.ts';
 
 /** 思考轨迹组件的入参。 */
@@ -56,12 +59,6 @@ export interface ReasoningStepProps {
 /** 折叠态预览最多取末几行（运行中读的是「现在」，不是开头）。 */
 const PREVIEW_LINES = 3;
 
-/** 取思考正文。 */
-function contentOf(ev: ThreadEvent): string {
-  const raw: unknown = (ev.payload || {}).content;
-  return typeof raw === 'string' ? raw : '';
-}
-
 /**
  * 取正文末 N 个非空行（运行中的流式预览）。
  * @param text 正文
@@ -84,21 +81,6 @@ function firstLine(text: string): string {
 }
 
 /**
- * 事件毫秒时间戳（兼容 number / ISO 字符串；无效为 0）。
- * @param ev 事件
- * @returns 毫秒时间戳
- */
-function timeOf(ev: ThreadEvent): number {
-  const raw: unknown = ev.timestamp;
-  if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) return raw;
-  if (typeof raw === 'string') {
-    const parsed = Date.parse(raw);
-    if (Number.isFinite(parsed) && parsed > 0) return parsed;
-  }
-  return 0;
-}
-
-/**
  * 本步耗时：事件时间戳减去上一条事件（第一条减去本轮起点）。
  *
  * 口径说明：reasoning 事件是**步末**落盘的，Δt 覆盖的是「上一步结束 → 本步思考完」的
@@ -109,9 +91,9 @@ function timeOf(ev: ThreadEvent): number {
  * @returns 毫秒；未知时 0
  */
 function durationAt(events: readonly ThreadEvent[], index: number, startedAt: number): number {
-  const end = timeOf(events[index]!);
+  const end = EventFields.timestamp(events[index]!);
   if (end === 0) return 0;
-  const prev = index > 0 ? timeOf(events[index - 1]!) : startedAt;
+  const prev = index > 0 ? EventFields.timestamp(events[index - 1]!) : startedAt;
   return prev > 0 && end > prev ? end - prev : 0;
 }
 
@@ -179,7 +161,7 @@ function useClock(running: boolean): number {
 export function ReasoningStep(props: ReasoningStepProps): React.ReactElement {
   const { ev, running, durationMs, label } = props;
   const [open, setOpen] = React.useState<boolean>(false);
-  const content = contentOf(ev);
+  const content = EventFields.content(ev);
   const preview = running === true ? tailLines(content, PREVIEW_LINES) : firstLine(content);
   const seconds = durationMs !== undefined && durationMs >= 1000 ? Math.round(durationMs / 1000) : 0;
   const meta = [seconds > 0 ? formatDuration(seconds) : '', t('{n} 字', { n: content.length })]
@@ -263,41 +245,118 @@ function TrailHead(props: {
 }
 
 /**
- * 轨迹正文：按顺序渲染思考与工具行（高度封顶、内部滚动）。
- * @param props 事件、运行中的思考 id、本轮起点、渲染回调与滚动句柄
+ * 筛选条：全部 / 思考 / 说明 / 工具 / 失败。
+ *
+ * 只在步骤足够多时出现（<3 行时筛选没有意义，反而增加视觉噪音）；失败片只在真有失败时出现，
+ * 红色是「现在有东西要看」的信号，不是装饰。
+ * @param props 计数、当前模式与切换回调
+ * @returns 筛选条；步骤太少时返回 null
+ */
+function TrailFilters(props: {
+  counts: TrailCounts;
+  active: TrailFilterMode;
+  onSelect: (mode: TrailFilterMode) => void;
+}): React.ReactElement | null {
+  const { counts, active, onSelect } = props;
+  if (counts.all < 3) return null;
+  const chips: { mode: TrailFilterMode; label: string; count: number; tone?: string }[] = [
+    { mode: 'all', label: t('全部'), count: counts.all },
+  ];
+  if (counts.thinking > 0) {
+    chips.push({ mode: 'thinking', label: t('思考'), count: counts.thinking });
+  }
+  if (counts.narration > 0) {
+    chips.push({ mode: 'narration', label: t('说明'), count: counts.narration });
+  }
+  if (counts.tools > 0) {
+    chips.push({ mode: 'tools', label: t('工具'), count: counts.tools });
+  }
+  if (counts.failures > 0) {
+    chips.push({ mode: 'failures', label: t('失败'), count: counts.failures, tone: 'err' });
+  }
+  return (
+    <div className="tt-filterbar" role="toolbar" aria-label={t('筛选过程')}>
+      {chips.map((chip) => (
+        <button
+          key={chip.mode}
+          type="button"
+          className={'tt-filter' + (chip.tone === 'err' ? ' tt-filter-err' : '')}
+          aria-pressed={active === chip.mode}
+          onClick={() => onSelect(chip.mode)}
+        >
+          <span>{chip.label}</span>
+          <span className="tt-filter-count">{chip.count}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * 轨迹正文：筛选条 + 按顺序渲染思考与工具行（高度封顶、内部滚动）。
+ * @param props 行、计数、筛选态、本轮起点、渲染回调与滚动句柄
  * @returns 时间线节点
  */
 function TrailBody(props: {
   events: readonly ThreadEvent[];
+  rows: readonly TrailRow[];
+  counts: TrailCounts;
+  filter: TrailFilterMode;
+  onFilter: (mode: TrailFilterMode) => void;
   runningId: string;
   startedAt: number;
   renderEvent: (ev: ThreadEvent) => React.ReactElement | null;
   bodyRef: React.RefObject<HTMLDivElement | null>;
   onScroll: (e: React.UIEvent<HTMLDivElement>) => void;
 }): React.ReactElement {
-  const { events, runningId, startedAt, renderEvent, bodyRef, onScroll } = props;
+  const {
+    events,
+    rows,
+    counts,
+    filter,
+    onFilter,
+    runningId,
+    startedAt,
+    renderEvent,
+    bodyRef,
+    onScroll,
+  } = props;
+  const visible = TrailFilter.apply(rows, filter);
   return (
-    <div className="tt-body" ref={bodyRef} onScroll={onScroll}>
-      {events.map((ev, index) => {
-        if (ev.type === 'reasoning' || ev.type === 'assistant') {
-          return (
-            <ReasoningStep
-              key={ev.id}
-              ev={ev}
-              running={ev.id === runningId}
-              durationMs={durationAt(events, index, startedAt)}
-              {...(ev.type === 'assistant' ? { label: t('说明') } : {})}
-            />
-          );
-        }
-        const node = renderEvent(ev);
-        return node === null ? null : (
-          <div className="tt-event" key={ev.id}>
-            {node}
+    <>
+      <TrailFilters counts={counts} active={filter} onSelect={onFilter} />
+      <div className="tt-body" ref={bodyRef} onScroll={onScroll}>
+        {visible.length === 0 ? (
+          <div className="tt-empty">
+            <span>{t('该筛选下没有步骤')}</span>
+            <button type="button" onClick={() => onFilter('all')}>
+              {t('查看全部')}
+            </button>
           </div>
-        );
-      })}
-    </div>
+        ) : (
+          visible.map((row) => {
+            const ev = row.ev;
+            if (ev.type === 'reasoning' || ev.type === 'assistant') {
+              return (
+                <ReasoningStep
+                  key={ev.id}
+                  ev={ev}
+                  running={ev.id === runningId}
+                  durationMs={durationAt(events, row.index, startedAt)}
+                  {...(ev.type === 'assistant' ? { label: t('说明') } : {})}
+                />
+              );
+            }
+            const node = renderEvent(ev);
+            return node === null ? null : (
+              <div className="tt-event" key={ev.id}>
+                {node}
+              </div>
+            );
+          })
+        )}
+      </div>
+    </>
   );
 }
 
@@ -310,19 +369,33 @@ export function ThinkingTrail(props: ThinkingTrailProps): React.ReactElement | n
   const { events, busy, fresh, startedAt, endedAt, renderEvent } = props;
   const running = busy === true;
   const [open, setOpen] = React.useState<boolean>(running);
+  const [filter, setFilter] = React.useState<TrailFilterMode>('all');
   const prevRunningRef = React.useRef<boolean>(running);
+  const runIdRef = React.useRef<string>(events[0]?.id ?? '');
   const bodyRef = React.useRef<HTMLDivElement | null>(null);
   const stickRef = React.useRef<boolean>(true);
   const now = useClock(running);
+  const view = React.useMemo(() => TrailFilter.view(events), [events]);
 
-  // busy 变化即复位形态：开跑自动展开（看得到实时思考），收尾自动折成一行总思考。
+  // busy 变化即复位形态：开跑自动展开（看得到实时思考），收尾自动折成一行总思考；
+  // 筛选也一并回到「全部」——上一轮选了「失败」，新一轮不该继承这个视角。
   React.useEffect(() => {
     if (prevRunningRef.current !== running) {
       prevRunningRef.current = running;
       setOpen(running);
+      setFilter('all');
       stickRef.current = true;
     }
   }, [running]);
+
+  // 切会话 / 换一轮（首条事件 id 变了）也把筛选归零：失败视角不该跟到另一轮。
+  React.useEffect(() => {
+    const key = events[0]?.id ?? '';
+    if (key !== runIdRef.current) {
+      runIdRef.current = key;
+      setFilter('all');
+    }
+  }, [events]);
 
   // 运行中新步骤到达时贴底（用户主动上翻后不再抢滚动位置）。
   // 收尾后首次展开**不**贴底：回看整轮过程应该从第一步读起，而不是直接落到末尾。
@@ -337,11 +410,13 @@ export function ThinkingTrail(props: ThinkingTrailProps): React.ReactElement | n
   const failures = failureCount(events);
   const action = latestAction(events);
   const summary = processSummary(events);
-  const firstAt = startedAt !== undefined && startedAt > 0 ? startedAt : timeOf(events[0]!);
+  const firstAt = startedAt !== undefined && startedAt > 0 ? startedAt : EventFields.timestamp(events[0]!);
   // 收尾后优先用「本轮末条事件」（含助手正文 / turn_diff），与结果卡耗时一致；
   // 老数据没有该字段时退回最后一条过程事件。
   const lastAt =
-    endedAt !== undefined && endedAt > 0 ? endedAt : timeOf(events[events.length - 1]!);
+    endedAt !== undefined && endedAt > 0
+      ? endedAt
+      : EventFields.timestamp(events[events.length - 1]!);
   const spanMs = running
     ? firstAt > 0
       ? Math.max(0, now - firstAt)
@@ -372,6 +447,10 @@ export function ThinkingTrail(props: ThinkingTrailProps): React.ReactElement | n
       {open ? (
         <TrailBody
           events={events}
+          rows={view.rows}
+          counts={view.counts}
+          filter={filter}
+          onFilter={setFilter}
           runningId={runningId}
           startedAt={firstAt}
           renderEvent={renderEvent}
