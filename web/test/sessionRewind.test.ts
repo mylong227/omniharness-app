@@ -19,19 +19,25 @@ function ev(id: string, type = 'user'): ThreadEvent {
  * 最小环境：只覆盖 rewindTo 用到的 host / dialog / api / toast。
  * @param confirm 确认框返回值
  * @param rewind 服务端回退结果
+ * @param checkpoint 回退前检查点：ok 成功 / fail 抛错
  * @returns 控制器、状态、调用记录与重新加载标记
  */
-function makeEnv(confirm: boolean, rewind: { ok: boolean; kept?: number; dropped?: number; error?: string }) {
+function makeEnv(
+  confirm: boolean,
+  rewind: { ok: boolean; kept?: number; dropped?: number; error?: string },
+  checkpoint: 'ok' | 'fail' = 'ok',
+) {
   const state = {
     currentThreadId: 't1',
     busy: false,
     events: [ev('u1'), ev('a1', 'assistant'), ev('u2')],
   };
-  const calls: { rewind: Array<[string, string]>; toasts: string[]; confirm: string[] } = {
-    rewind: [],
-    toasts: [],
-    confirm: [],
-  };
+  const calls: {
+    rewind: Array<[string, string]>;
+    checkpoints: Array<[string, string]>;
+    toasts: string[];
+    confirm: string[];
+  } = { rewind: [], checkpoints: [], toasts: [], confirm: [] };
   let reloaded = false;
   const host = {
     patch(action: Partial<typeof state> | ((prev: typeof state) => Partial<typeof state>)) {
@@ -41,6 +47,14 @@ function makeEnv(confirm: boolean, rewind: { ok: boolean; kept?: number; dropped
   };
   const services = {
     api: {
+      createCheckpoint: async (threadId: string, label: string) => {
+        calls.checkpoints.push([threadId, label]);
+        if (checkpoint === 'fail') throw new Error('snapshot failed');
+        return {
+          ok: true,
+          checkpoint: { label, ts: '', eventCount: 3, hasFileSnapshot: true },
+        };
+      },
       rewindThread: async (threadId: string, eventId: string) => {
         calls.rewind.push([threadId, eventId]);
         return rewind;
@@ -66,8 +80,14 @@ test('确认后调用服务端回退并重新加载；取消则不发请求', as
   const yes = makeEnv(true, { ok: true, kept: 1, dropped: 2 });
   assert.equal(await yes.ctrl.rewindTo('u1'), true);
   assert.deepStrictEqual(yes.calls.rewind, [['t1', 'u1']]);
+  assert.equal(yes.calls.checkpoints.length, 1, '回退前必须尝试落检查点');
+  assert.match(yes.calls.checkpoints[0]![1], /^rewind-/u, '检查点名应可辨识来源');
   assert.equal(yes.reloaded(), true);
   assert.ok(yes.calls.toasts.some((m) => m.includes('已回到这条消息')), JSON.stringify(yes.calls.toasts));
+  assert.ok(
+    yes.calls.toasts.some((m) => m.includes('回退前检查点')),
+    `成功 toast 应带上检查点名，实测 ${JSON.stringify(yes.calls.toasts)}`,
+  );
   assert.ok(
     yes.calls.confirm.some((m) => m.includes('助手回复') && m.includes('用户消息')),
     `确认文案必须拆出被丢弃的事件构成，实测 ${JSON.stringify(yes.calls.confirm)}`,
@@ -76,6 +96,15 @@ test('确认后调用服务端回退并重新加载；取消则不发请求', as
   const no = makeEnv(false, { ok: true });
   assert.equal(await no.ctrl.rewindTo('u1'), false);
   assert.deepStrictEqual(no.calls.rewind, [], '取消后不得发回退请求');
+  assert.deepStrictEqual(no.calls.checkpoints, [], '取消后不得落检查点');
+
+  const checkpointFailed = makeEnv(true, { ok: true, kept: 1, dropped: 2 }, 'fail');
+  assert.equal(await checkpointFailed.ctrl.rewindTo('u1'), true, '检查点失败不应阻断回退');
+  assert.deepStrictEqual(checkpointFailed.calls.rewind, [['t1', 'u1']]);
+  assert.ok(
+    checkpointFailed.calls.toasts.some((m) => m.includes('自动检查点未创建')),
+    `检查点失败必须在 toast 里如实说明，实测 ${JSON.stringify(checkpointFailed.calls.toasts)}`,
+  );
 });
 
 test('RewindImpact：按事件类型拆出被丢弃的构成', () => {

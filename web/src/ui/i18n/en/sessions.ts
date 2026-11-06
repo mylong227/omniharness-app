@@ -41,8 +41,8 @@ export const EN_SESSIONS: Record<string, string> = {
   '回合运行中：请先中止再回到这里': 'A turn is running; stop it before rewinding',
   '这条事件不在当前会话里': 'That event is not in the current session',
   '已经是最后一条事件，无需回退': 'Already at the last event; nothing to rewind',
-  '回到这条消息？之后的 {n} 条事件将移除{detail}。工作区文件不会自动还原；需要还原文件请使用「回滚」检查点。':
-    'Rewind to this message? The {n} later events will be removed{detail}. Workspace files are not restored automatically; use the Rollback checkpoint for files.',
+  '回到这条消息？之后的 {n} 条事件将移除{detail}。回退前会尝试创建检查点（可在回滚面板恢复）；本操作不会还原工作区文件，需要还原文件请使用「回滚」检查点。':
+    'Rewind to this message? The {n} later events will be removed{detail}. A checkpoint will be attempted first (restorable from Rollback); workspace files are not restored by this action—use the Rollback checkpoint for files.',
   '（{detail}）': ' ({detail})',
   '{n} 次工具调用': '{n} tool calls',
   '{n} 条工具结果': '{n} tool results',
@@ -52,7 +52,10 @@ export const EN_SESSIONS: Record<string, string> = {
   '{n} 条其它事件': '{n} other events',
   '回到这里': 'Rewind here',
   '回退失败：{msg}': 'Rewind failed: {msg}',
-  '已回到这条消息（移除 {n} 条事件）': 'Rewound to this message ({n} events removed)',
+  '正在创建回退前检查点…': 'Creating a pre-rewind checkpoint…',
+  '已回到这条消息（移除 {n} 条事件{detail}）': 'Rewound to this message ({n} events removed{detail})',
+  '；回退前检查点：{label}': '; pre-rewind checkpoint: {label}',
+  '；自动检查点未创建': '; automatic checkpoint was not created',
   '已置顶': 'Pinned',
   '运行中': 'Running',
   '● 运行中': '● Running',

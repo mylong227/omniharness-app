@@ -6,7 +6,7 @@
 ## [Unreleased]
 
 ### Added（新增）
-- **事件流时间旅行**：历史用户消息新增「从此处重开」——确认后走服务端 `threads.rewind` 截断 append-only 事件流，重新加载并把该条原文回填输入框。确认框不再只说「N 条事件」，而是拆出被丢弃的构成（工具调用 / 工具结果 / 助手回复 / 思考说明），并明确区分「事件回退」与「文件回滚」：本操作不动工作区文件，文件还原仍走检查点/Rollback。
+- **事件流时间旅行**：历史用户消息新增「从此处重开」——确认后走服务端 `threads.rewind` 截断 append-only 事件流，重新加载并把该条原文回填输入框。确认框不再只说「N 条事件」，而是拆出被丢弃的构成（工具调用 / 工具结果 / 助手回复 / 思考说明）；回退前自动尝试落一个检查点（失败不阻断回退，但 toast 如实说明），可在回滚面板恢复「回退前」的对话与文件。本操作本身不还原工作区文件，文件还原仍走检查点/Rollback。
 - **命令面板直达最近会话**：Ctrl/Cmd+K 的结果里并入最近 10 条会话（置顶优先），输入标题即可跳转；打开后仍复用原有 `openThread` 的加载 + 队列续发语义，占位文案同步为「搜索命令、面板或会话…」。
 - **专注模式**：`Ctrl/Cmd+Shift+F` 或中栏头四角按钮隐藏左右栏，只留中栏并放宽正文宽度；退出恢复**进入前的真实布局**（不是「两栏全开」）。命令面板、设置页快捷键表同步，手动开合任一面板即退出专注。
 - **思考轨迹筛选**：展开「总思考」后可按 `全部 / 思考 / 说明 / 工具 / 失败` 过滤长回合，片子上带实时计数、失败片只在真有失败时出现；「失败」一键只看失败工具行，长过程的定位从「翻整条时间线」变成「点一下」。
@@ -22,7 +22,7 @@
 - 会话置顶不再写 localStorage（删除 `web/src/ui/models/SessionPins.ts`）：服务端侧车为**唯一真源**，面板从 `sessions.list` 的 `pinned` 字段派生置顶集合。
 
 ### Tests（判据）
-- 新增 `web/test/sessionRewind.test.ts`（确认/取消、运行中/末条/服务端拒绝的分支、回退影响面分类）与 `userCardDuration.test.ts` 的「历史消息重开 / 末条编辑重发」互斥判据；新增 `focusMode.test.ts`、`trailFilter.test.ts`、`eventFields.test.ts` 等随对应能力落地。
+- 新增 `web/test/sessionRewind.test.ts`（确认/取消、运行中/末条/服务端拒绝的分支、回退影响面分类、检查点成功/失败）与 `userCardDuration.test.ts` 的「历史消息重开 / 末条编辑重发」互斥判据；新增 `focusMode.test.ts`、`trailFilter.test.ts`、`eventFields.test.ts` 等随对应能力落地。
 - 新增 `tests/sessionPinned.test.ts`（侧车读写 / 列表回传 / 换实例仍可见 / 非法 id 拒绝）与 `web/test/sessionPins.test.ts`（置顶组浮出 / 刷新映射 / 乐观回滚 / 接线守卫）。
 - 新增 `tests/kernelSurface.test.ts`：把「对接面生成物一致 + 目录纯净」纳入常规 `web:test`，忘了跑 `kernel:surface` 时本地测试直接红。
 - 桌面端新增托盘 busy 判据（切图 / 去重 / 缺失回退 / destroy 复位 / 创建即 busy + 图标资产 + IPC 接线）。

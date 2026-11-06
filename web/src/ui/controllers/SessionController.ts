@@ -15,6 +15,7 @@ import { MethodBinder } from './methodBinder.ts';
 import { SessionTicker } from './sessionTicker.ts';
 import { EventFields } from '../models/EventFields.ts';
 import { RewindImpact } from '../models/RewindImpact.ts';
+import { CheckpointNamer } from '../models/checkpoint.ts';
 import { t } from '../i18n/i18n.ts';
 
 /** 历史分页页大小（首屏只取尾部；更早内容按需补拉）。 */
@@ -610,13 +611,24 @@ export class SessionController {
     if (impact.other > 0) parts.push(t('{n} 条其它事件', { n: impact.other }));
     const detail = parts.length > 0 ? t('（{detail}）', { detail: parts.join(' · ') }) : '';
     const ok = await this.services.dialogSvc.confirm(
-      t('回到这条消息？之后的 {n} 条事件将移除{detail}。工作区文件不会自动还原；需要还原文件请使用「回滚」检查点。', {
+      t('回到这条消息？之后的 {n} 条事件将移除{detail}。回退前会尝试创建检查点（可在回滚面板恢复）；本操作不会还原工作区文件，需要还原文件请使用「回滚」检查点。', {
         n: dropping,
         detail,
       }),
       { title: t('从此处重开'), confirmLabel: t('回到这里'), danger: true },
     );
     if (!ok) return false;
+    // 回退前自动落一个检查点：事件流截断后，用户仍可在回滚面板恢复「回退前」的对话 + 文件。
+    // 尽力而为：创建失败不阻断回退，但最终 toast 必须如实说明「没有自动快照」。
+    this.services.toast(t('正在创建回退前检查点…'), 'info');
+    let checkpointLabel: string | null = null;
+    try {
+      const stamp = CheckpointNamer.auto().replace(/^checkpoint-/u, '');
+      const checkpoint = await this.services.api.createCheckpoint(threadId, 'rewind-' + stamp);
+      if (checkpoint.ok) checkpointLabel = checkpoint.checkpoint.label;
+    } catch {
+      checkpointLabel = null;
+    }
     try {
       const r = await this.services.api.rewindThread(threadId, eventId);
       if (!r.ok) {
@@ -624,7 +636,11 @@ export class SessionController {
         return false;
       }
       await this.loadThread(threadId);
-      this.services.toast(t('已回到这条消息（移除 {n} 条事件）', { n: r.dropped ?? dropping }), 'ok');
+      const suffix =
+        checkpointLabel !== null
+          ? t('；回退前检查点：{label}', { label: checkpointLabel })
+          : t('；自动检查点未创建');
+      this.services.toast(t('已回到这条消息（移除 {n} 条事件{detail}）', { n: r.dropped ?? dropping, detail: suffix }), 'ok');
       return true;
     } catch (e) {
       this.services.toast(t('回退失败：{msg}', { msg: (e as Error).message }), 'err');
