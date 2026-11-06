@@ -13,7 +13,7 @@
 - **视觉探针基线**：`web/test/visualProbe.ts` 新增 `pinned`（置顶组 + 行内 pin 角标 + 行菜单「取消置顶」）与 `jump-bottom`（回到底部浮钮）交互态；会话夹具补齐 `workspace` / `pinned` 真实形状。
 
 ### Changed（变更）
-- **计划坞宽度对齐正文、底色淡出**：输入框上方的计划条改为 `max-width: 800px`（专注模式 920px）并居中；底色从实心 `panel` 收到 30% 透明、边框收到 soft 的 70%，贴近页面底色只留一层淡淡浮起。专注时中栏变宽，计划条不再跟着铺满整屏。
+- **对话底部宽度统一**：计划条 / 输入框 / 排队坞统一 `max-width: 800px`（专注模式 920px）并居中；专注时中栏变宽，它们不再跟着铺满整屏。计划条底色同时从实心 `panel` 收到 30% 透明、边框收到 soft 的 70%，贴近页面底色只留一层淡淡浮起。
 - **事件字段口径收敛**：新增 `web/src/ui/models/EventFields.ts`，把原先散在 StreamView / ThinkingTrail / TurnSummary / TraceView / 三个控制器里的 `callId 回落 / rawCallId / content / toolName / timestamp` 收成一份；轨迹筛选的行折叠与结果卡、钻取、工具清单共用同一口径。
 - **对接面目录纯化**：`src/host/kernel/` 现在**只放** 17 个自动生成的 re-export，不含任何实现。原混在其中的 app 自有代码已迁出——Laya 决策引擎（10 个 TS + `laya_infer.py`）与 `decisionEngineResolver` 收进 `src/host/kernel-compat/kernel/`，企业 OIDC / jose 适配器收进 `src/apps/enterprise/`，`toolHandler` 纯 shim 删除、消费点直连 `contracts` 对接面。迁出文件改为经对接面消费内核（不再直接 import 包）。
 - **内核对接面自动生成**：新增 `npm run kernel:surface`（`scripts/kernelSurface.mjs`）——从「业务代码实际 import + 内核包 `.d.ts`」生成 17 个 `src/host/kernel/<域>.ts`，只保留实际使用的符号（本次裁掉 2 个零使用再导出）。新增内核符号只需在业务代码里正常 import 再跑一次生成命令，不再手写 re-export；`kernel:check` 新增第 8 条「生成物不漂移」，升级内核 = 换 tgz → `kernel:surface` → typecheck。

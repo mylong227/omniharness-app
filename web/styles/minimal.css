@@ -1651,6 +1651,11 @@
    焦点 = 内层容器描边转墨 + 一圈极淡外晕。
    ========================================================================= */
 .composer {
+  /* 与计划条/正文同一阅读宽度：800px（专注 920px），居中；垂直外边距仍按断点走。 */
+  width: calc(100% - 24px);
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
   background: transparent;
   border: 1px solid var(--border-soft);
   border-radius: 26px;
@@ -1659,6 +1664,9 @@
   /* 弹层挂载/卸载时不做滚动锚定补偿：容量面板插在输入区子树里，某些浏览器会把
      消息区/输入区整体推一下（用户报「弹出文字直接下移」）。 */
   overflow-anchor: none;
+}
+.body.focus .composer {
+  max-width: 920px;
 }
 .composer-box {
   background: var(--panel);
@@ -1755,13 +1763,18 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  /* 与 `.composer` 的左右外边距对齐（base.css：0 16px；窄屏 components.css：0 8px）。 */
-  margin: 6px 16px 8px;
+  /* 与 `.composer` / 计划条同一阅读宽度：800px（专注 920px），居中。 */
+  width: calc(100% - 24px);
+  max-width: 800px;
+  margin: 6px auto 8px;
   padding: 0;
+}
+.body.focus .chat-queue {
+  max-width: 920px;
 }
 @media (max-width: 880px) {
   .chat-queue {
-    margin: 6px 8px;
+    margin: 6px auto;
   }
 }
 .cq-head-row {
