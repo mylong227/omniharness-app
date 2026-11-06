@@ -14,6 +14,7 @@ import type { SessionModePatch } from '../models/PendingModes.ts';
 import { MethodBinder } from './methodBinder.ts';
 import { SessionTicker } from './sessionTicker.ts';
 import { EventFields } from '../models/EventFields.ts';
+import { RewindImpact } from '../models/RewindImpact.ts';
 import { t } from '../i18n/i18n.ts';
 
 /** 历史分页页大小（首屏只取尾部；更早内容按需补拉）。 */
@@ -599,9 +600,19 @@ export class SessionController {
       this.services.toast(t('已经是最后一条事件，无需回退'), 'info');
       return false;
     }
+    const impact = RewindImpact.of(state.events, index);
+    const parts: string[] = [];
+    if (impact.toolCalls > 0) parts.push(t('{n} 次工具调用', { n: impact.toolCalls }));
+    if (impact.toolResults > 0) parts.push(t('{n} 条工具结果', { n: impact.toolResults }));
+    if (impact.assistant > 0) parts.push(t('{n} 条助手回复', { n: impact.assistant }));
+    if (impact.reasoning > 0) parts.push(t('{n} 条思考/说明', { n: impact.reasoning }));
+    if (impact.user > 0) parts.push(t('{n} 条用户消息', { n: impact.user }));
+    if (impact.other > 0) parts.push(t('{n} 条其它事件', { n: impact.other }));
+    const detail = parts.length > 0 ? t('（{detail}）', { detail: parts.join(' · ') }) : '';
     const ok = await this.services.dialogSvc.confirm(
-      t('回到这条消息？之后的 {n} 条事件将从会话中移除。工作区文件不会自动还原；需要还原文件请使用「回滚」检查点。', {
+      t('回到这条消息？之后的 {n} 条事件将移除{detail}。工作区文件不会自动还原；需要还原文件请使用「回滚」检查点。', {
         n: dropping,
+        detail,
       }),
       { title: t('从此处重开'), confirmLabel: t('回到这里'), danger: true },
     );

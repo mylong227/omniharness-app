@@ -8,6 +8,7 @@ import type { AppHost, AppServices } from '../src/ui/controllers/AppController.t
 import type { ThreadEvent } from '../src/types/models.ts';
 
 const { SessionController } = await import('../src/ui/controllers/SessionController.ts');
+const { RewindImpact } = await import('../src/ui/models/RewindImpact.ts');
 
 /** 造一条事件。 */
 function ev(id: string, type = 'user'): ThreadEvent {
@@ -26,7 +27,11 @@ function makeEnv(confirm: boolean, rewind: { ok: boolean; kept?: number; dropped
     busy: false,
     events: [ev('u1'), ev('a1', 'assistant'), ev('u2')],
   };
-  const calls: { rewind: Array<[string, string]>; toasts: string[] } = { rewind: [], toasts: [] };
+  const calls: { rewind: Array<[string, string]>; toasts: string[]; confirm: string[] } = {
+    rewind: [],
+    toasts: [],
+    confirm: [],
+  };
   let reloaded = false;
   const host = {
     patch(action: Partial<typeof state> | ((prev: typeof state) => Partial<typeof state>)) {
@@ -42,7 +47,12 @@ function makeEnv(confirm: boolean, rewind: { ok: boolean; kept?: number; dropped
       },
     },
     toast: (message: string) => calls.toasts.push(message),
-    dialogSvc: { confirm: async () => confirm },
+    dialogSvc: {
+      confirm: async (message: string) => {
+        calls.confirm.push(message);
+        return confirm;
+      },
+    },
   };
   const ctrl = new SessionController(host as unknown as AppHost, services as unknown as AppServices);
   // 不跑真实 loadThread（它需要完整 api/路由）；只记录是否被调用。
@@ -58,10 +68,36 @@ test('确认后调用服务端回退并重新加载；取消则不发请求', as
   assert.deepStrictEqual(yes.calls.rewind, [['t1', 'u1']]);
   assert.equal(yes.reloaded(), true);
   assert.ok(yes.calls.toasts.some((m) => m.includes('已回到这条消息')), JSON.stringify(yes.calls.toasts));
+  assert.ok(
+    yes.calls.confirm.some((m) => m.includes('助手回复') && m.includes('用户消息')),
+    `确认文案必须拆出被丢弃的事件构成，实测 ${JSON.stringify(yes.calls.confirm)}`,
+  );
 
   const no = makeEnv(false, { ok: true });
   assert.equal(await no.ctrl.rewindTo('u1'), false);
   assert.deepStrictEqual(no.calls.rewind, [], '取消后不得发回退请求');
+});
+
+test('RewindImpact：按事件类型拆出被丢弃的构成', () => {
+  const events = [
+    ev('u1'),
+    ev('a1', 'assistant'),
+    ev('r1', 'reasoning'),
+    ev('c1', 'tool_call'),
+    ev('x1', 'tool_result'),
+    ev('s1', 'system'),
+  ];
+  const impact = RewindImpact.of(events, 0);
+  assert.deepStrictEqual(impact, {
+    total: 5,
+    toolCalls: 1,
+    toolResults: 1,
+    assistant: 1,
+    reasoning: 1,
+    user: 0,
+    other: 1,
+  });
+  assert.strictEqual(RewindImpact.of(events, events.length - 1).total, 0, '末条之后无可丢弃事件');
 });
 
 test('运行中 / 最后一条 / 服务端拒绝：都不发请求，并给出可执行提示', async () => {
