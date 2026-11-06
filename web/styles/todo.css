@@ -4,9 +4,11 @@
   width: calc(100% - 24px);
   max-width: 800px;
   margin: 0 auto 6px;
-  border: 1px solid var(--border);
+  /* 只留一层很淡的浮起：30% panel 混到页面底色上，边框收到 soft 的 70%——
+     计划条是「常驻但次要」的状态条，不该比正文卡片更重。 */
+  border: 1px solid color-mix(in srgb, var(--border-soft) 70%, transparent);
   border-radius: 10px;
-  background: var(--panel);
+  background: color-mix(in srgb, var(--panel) 30%, transparent);
   font-size: 12px;
   overflow: hidden;
 }
