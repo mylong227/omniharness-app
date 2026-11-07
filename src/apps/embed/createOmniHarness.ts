@@ -22,7 +22,7 @@ import { defineModule, type ServerModule } from '../server/core/serverModule.ts'
 import { HttpBridgeTransport } from '../server/transport/httpBridgeTransport.ts';
 import { ServerEventBridge } from '../server/core/serverEventBridge.ts';
 import { HttpServer } from '../server/transport/httpServer.ts';
-import { LineTransport, type Transport } from '../server/transport/lineTransport.ts';
+import { LineTransport, type Transport } from '../../host/kernel/runtime.ts';
 
 export { defineModule };
 export type { ServerModule };

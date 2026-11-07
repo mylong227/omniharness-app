@@ -1,4 +1,4 @@
-import type { VaultPort } from '../../../contracts/ports/memory/vault.ts';
+import type { VaultPort } from '../../../../kernel/contracts.ts';
 
 /**
  * 环境变量凭据适配器：直接读进程环境变量，写操作记录到内存（不落盘）。

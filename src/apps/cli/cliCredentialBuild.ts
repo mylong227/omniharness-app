@@ -11,10 +11,10 @@
  * 两个方法都不依赖 `this` 的其它成员，故可干净外移。
  */
 import { CryptoVault } from '../../host/kernel-compat/kernel/adapters/vault/cryptoVault.ts';
-import { CredentialResolver } from '../../host/kernel-compat/kernel/config/credentialResolver.ts';
+import { CredentialResolver } from '../../host/kernel/config.ts';
 import { KvStoreFactory } from './kvStoreFactory.ts';
 import { VaultKeyDefaults } from './vaultKeyDefaults.ts';
-import type { VaultPort } from '../../host/kernel-compat/contracts/ports/memory/vault.ts';
+import type { VaultPort } from '../../host/kernel/contracts.ts';
 
 /** 凭据水合所需的最小参数集（原属 cliBuildConfig，随方法一并外移）。 */
 export interface CredentialHydrationArgs {

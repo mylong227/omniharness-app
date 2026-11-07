@@ -1,16 +1,16 @@
 import type { ApprovalPort } from '../../../host/kernel/contracts.ts';
 import type { EntitlementPort } from './../../../host/contracts/ports/license/entitlement.ts';
 import { RuleApproval } from '../../../host/kernel/adapters-approval.ts';
-import { BUILTIN_APPROVAL_RULES } from '../../../host/kernel-compat/kernel/adapters/approval/builtinApprovalRules.ts';
+import { BUILTIN_APPROVAL_RULES } from '../../../host/kernel/adapters-approval.ts';
 
 import type { SkillRegistry } from '../../../host/kernel/platform.ts';
 import type { AutomationStore } from '../services/automationStore.ts';
 import type { PluginRegistry } from '../../../host/kernel/plugin.js';
-import type { Transport } from '../transport/lineTransport.ts';
+import type { Transport } from '../../../host/kernel/runtime.ts';
 import type { Metrics } from '../services/metrics.ts';
 import type { AuditSink } from '../services/auditSink.ts';
 import type { DoctorOptions, DoctorReport } from '../../../host/kernel-compat/contracts/ports/observability/doctorReport.ts';
-import type { VaultPort } from '../../../host/kernel-compat/contracts/ports/memory/vault.ts';
+import type { VaultPort } from '../../../host/kernel/contracts.ts';
 import type { GraphNodeStatus } from '../../../host/kernel/autonomy.ts';
 import type { ResolvedConfig } from '../../../host/kernel/contracts.ts';
 import type { ServerEventBridge } from './serverEventBridge.ts';

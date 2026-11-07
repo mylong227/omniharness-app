@@ -19,8 +19,8 @@
  * @maturity L1 — 造包往返 / 冒烟载荷与资产体同源 / 缺入口不冒充 / 非 wasm 技能返回 undefined 判据钉死
  * @maturityEvidence 上游判据 wasmSkillPack.test.ts（本仓未随迁）
  */
-import { AssetPackCodec } from './assetPackCodec.ts';
-import type { PackSigningIdentity } from './assetPackCodec.ts';
+import { AssetPackCodec } from '../../../kernel/plugin.ts';
+import type { PackSigningIdentity } from '../../../kernel/plugin.ts';
 import { WasmSkillSchema } from '../../../kernel/platform.ts';
 import type { WasmSkillAsset } from '../../../kernel/platform.ts';
 import type { AssetPackManifest, PackAssetEntry } from '../../../kernel/contracts.ts';

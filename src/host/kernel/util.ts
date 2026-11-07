@@ -32,4 +32,10 @@ export type { SessionSummary } from '@omniharness/kernel/kernel/util/sessionSumm
 export { SessionSummarySidecar } from '@omniharness/kernel/kernel/util/sessionSummarySidecar.js';
 export { PathTraversalError, WorkspaceGuard } from '@omniharness/kernel/kernel/util/workspaceGuard.js';
 export { WorkspaceIdentity } from '@omniharness/kernel/kernel/util/workspaceIdentity.js';
-export { ReasoningBudget } from '@omniharness/kernel/kernel/util/reasoningBudget.js';
+export { Retry } from '@omniharness/kernel/kernel/util/concurrency/retry.js';
+export { JsonObjectFile } from '@omniharness/kernel/kernel/util/jsonObjectFile.js';
+export { LocalDay } from '@omniharness/kernel/kernel/util/localDay.js';
+export { MimeType } from '@omniharness/kernel/kernel/util/mimeType.js';
+export { PortablePath } from '@omniharness/kernel/kernel/util/portablePath.js';
+export { QuantileSketch } from '@omniharness/kernel/kernel/util/quantileSketch.js';
+export { SecretRedactor } from '@omniharness/kernel/kernel/util/secretRedactor.js';

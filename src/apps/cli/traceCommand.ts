@@ -10,14 +10,14 @@
  * 存储后端说明：读的是 jsonl 存档（与 `session list --storage-dir` 同一口径）；memory/sqlite
  * 后端不落该目录时如实报告「会话未找到或无 trace」，不伪造条目。
  */
-import { SessionEventReader } from '../../host/kernel-compat/kernel/adapters/telemetry/sessionEventReader.ts';
+import { SessionEventReader } from '../../host/kernel/adapters-misc.ts';
 import { SessionStorageLocation } from '../../host/kernel-compat/kernel/util/sessionStorageLocation.ts';
 import { SessionTraceService } from '../server/services/session/sessionTraceService.ts';
 import type {
   TraceEntry,
   TraceReadRequest,
   TraceReadResult,
-} from '../../host/kernel-compat/contracts/ports/intelligence/traceIntrospection.ts';
+} from '../../host/kernel/contracts.ts';
 import { CliArgReader } from './cliArgReader.ts';
 
 /** 用法提示。 */

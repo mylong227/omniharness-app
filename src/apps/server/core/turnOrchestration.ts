@@ -1,7 +1,7 @@
 import type { ImageContent, FileAttachment } from '../../../host/kernel/contracts.ts';
 import { Id } from '../../../host/kernel/util.ts';
 import { log } from '../../../host/kernel/util.ts';
-import { InterjectionClassifier } from '../../../host/kernel-compat/kernel/core/steering/interjectionClassifier.ts';
+import { InterjectionClassifier } from '../../../host/kernel/core.ts';
 import type { SessionRewindOutcome } from '../services/session/sessionRewindService.ts';
 import { ThreadPage } from '../services/session/threadPage.ts';
 import type { ServerServices } from './serverServices.ts';

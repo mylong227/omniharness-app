@@ -12,7 +12,7 @@
 import { CryptoVault } from '../../host/kernel-compat/kernel/adapters/vault/cryptoVault.ts';
 import { VaultKeyDefaults } from './vaultKeyDefaults.ts';
 import { EnvVault } from '../../host/kernel-compat/kernel/adapters/vault/envVault.ts';
-import type { VaultPort } from '../../host/kernel-compat/contracts/ports/memory/vault.ts';
+import type { VaultPort } from '../../host/kernel/contracts.ts';
 import { ArgParser } from './argParser.ts';
 import { CliArgReader } from './cliArgReader.ts';
 import { KvStoreFactory, type KvHandle } from './kvStoreFactory.ts';

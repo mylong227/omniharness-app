@@ -1,5 +1,5 @@
 import type { ServerResponse } from 'node:http';
-import type { RpcMessage } from '../core/jsonRpc.ts';
+import type { RpcMessage } from '../../../host/kernel/runtime.ts';
 import { SseBackpressureGuard } from './sseBackpressureGuard.ts';
 
 /** 重放历史帧上限（条数）：覆盖一次短暂断网即可。 */

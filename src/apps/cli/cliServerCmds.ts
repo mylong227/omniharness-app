@@ -61,7 +61,7 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
     }
     args.allowWorkspaceSkills = serverArgs.includes('--trust-workspace'); // 未显式信任不注入 cwd 技能
     const config = await this.buildConfig(args);
-    const { LineTransport } = await import('../server/transport/lineTransport.ts');
+    const { LineTransport } = await import('../../host/kernel/runtime.ts');
     const transport = new LineTransport(
       (onLine) => {
         const readline = createInterface({ input: process.stdin, crlfDelay: Infinity });

@@ -2,7 +2,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import type { KvPort } from '../../../../kernel/contracts.ts';
-import type { VaultPort } from '../../../contracts/ports/memory/vault.ts';
+import type { VaultPort } from '../../../../kernel/contracts.ts';
 
 /** 单条密文载荷结构（base64，冒号分隔）：iv : ciphertext : authTag。 */
 type CipherPayload = { iv: string; cipher: string; tag: string };

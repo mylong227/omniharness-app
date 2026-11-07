@@ -8,12 +8,12 @@ import {
   type ContextBreakdownRow,
 } from '../../../host/kernel/context.ts';
 import { ContextWindowCatalog } from '../../../host/kernel/context.ts';
-import { CacheHitRateWatch } from '../../../host/kernel-compat/kernel/observability/cacheHitRateWatch.ts';
+import { CacheHitRateWatch } from '../../../host/kernel/adapters-misc.ts';
 import {
   CacheMissAttributionAnalyst,
   type CacheMissAttribution,
   type CacheMissCause,
-} from '../../../host/kernel-compat/kernel/observability/cacheMissAttributionAnalyst.ts';
+} from '../../../host/kernel/adapters-misc.ts';
 
 /** 单条**上报了缓存字段**的调用样本（`cacheStat` 内部备料用；不进公共 API 面）。 */
 interface CacheCallSample {

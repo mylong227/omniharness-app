@@ -18,3 +18,5 @@ export { ProfileLoader } from '@omniharness/kernel/kernel/config/profileLoader.j
 export { PROVIDER_PRESETS, providerPresets } from '@omniharness/kernel/kernel/config/providerPresets.js';
 export type { ProviderPreset } from '@omniharness/kernel/kernel/config/providerPresets.js';
 export { WorkspaceTrust } from '@omniharness/kernel/kernel/config/workspaceTrust.js';
+export { ConfigRebase } from '@omniharness/kernel/kernel/config/configRebase.js';
+export { CredentialResolver } from '@omniharness/kernel/kernel/config/credentialResolver.js';

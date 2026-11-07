@@ -9,7 +9,7 @@ import { ConfigError } from '../../../host/kernel/config.ts';
 import type { ProviderPreset } from './providerPresets.ts';
 import { SsrfGuard } from '../../../host/kernel/security.ts';
 import type { SsrfPolicy } from '../../../host/kernel/security.ts';
-import { Retry } from '../../../host/kernel-compat/kernel/util/concurrency/retry.ts';
+import { Retry } from '../../../host/kernel/util.ts';
 
 /**
  * ProviderProbe 相关纯函数工具（C7 收口：原顶层内部函数迁入）。

@@ -1,6 +1,6 @@
-import { jsonRpc, type RpcMessage, type RpcRequest } from '../core/jsonRpc.ts';
-import type { Transport } from './lineTransport.ts';
-import { type WsConnection } from './wsConnection.ts';
+import { jsonRpc, type RpcMessage, type RpcRequest } from '../../../host/kernel/runtime.ts';
+import type { Transport } from '../../../host/kernel/runtime.ts';
+import { type WsConnection } from '../../../host/kernel/runtime.ts';
 import { SseFanout } from './sseFanout.ts';
 import { EnterpriseAuth } from '../../enterprise/index.ts';
 import { PendingRequests } from '../../../host/kernel/util.ts';

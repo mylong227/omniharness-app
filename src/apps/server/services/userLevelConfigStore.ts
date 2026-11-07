@@ -1,7 +1,7 @@
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { configFile, type FileConfig } from '../../../host/kernel/config.ts';
-import { PortablePath } from '../../../host/kernel-compat/kernel/util/portablePath.ts';
+import { PortablePath } from '../../../host/kernel/util.ts';
 import { OmniHome } from '../../../host/kernel/util.ts';
 
 /**

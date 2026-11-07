@@ -13,3 +13,9 @@ export { AutoApproval } from '@omniharness/kernel/kernel/adapters/approval/autoA
 export { DenyApproval } from '@omniharness/kernel/kernel/adapters/approval/denyApproval.js';
 export { RuleApproval } from '@omniharness/kernel/kernel/adapters/approval/ruleApproval.js';
 export type { RuleApprovalOptions } from '@omniharness/kernel/kernel/adapters/approval/ruleApproval.js';
+export { AskApproval } from '@omniharness/kernel/kernel/adapters/approval/askApproval.js';
+export { BUILTIN_APPROVAL_RULES } from '@omniharness/kernel/kernel/adapters/approval/builtinApprovalRules.js';
+export { GuardianApproval } from '@omniharness/kernel/kernel/adapters/approval/guardianApproval.js';
+export type { GuardianApprovalOptions } from '@omniharness/kernel/kernel/adapters/approval/guardianApproval.js';
+export { GuardianPrompt } from '@omniharness/kernel/kernel/adapters/approval/guardianPrompt.js';
+export { PlanApproval } from '@omniharness/kernel/kernel/adapters/approval/planApproval.js';

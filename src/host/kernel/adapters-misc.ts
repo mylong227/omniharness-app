@@ -39,3 +39,17 @@ export { ConsoleUserResponder } from '@omniharness/kernel/kernel/adapters/user/c
 export { DefaultUserResponder } from '@omniharness/kernel/kernel/adapters/user/defaultUserResponder.js';
 export { GitWorkspaceSnapshot } from '@omniharness/kernel/kernel/adapters/workspace/gitWorkspaceSnapshot.js';
 export { McpServeRunner } from '@omniharness/kernel/kernel/adapters/mcp/mcpServeRunner.js';
+export { SkillManifestSigner } from '@omniharness/kernel/kernel/skill/skillManifestSigner.js';
+export { AskEscalation } from '@omniharness/kernel/kernel/adapters/escalation/askEscalation.js';
+export type { AskEscalationOptions } from '@omniharness/kernel/kernel/adapters/escalation/askEscalation.js';
+export { AutoEscalation } from '@omniharness/kernel/kernel/adapters/escalation/autoEscalation.js';
+export type { AutoEscalationOptions } from '@omniharness/kernel/kernel/adapters/escalation/autoEscalation.js';
+export { CompositeEventPort } from '@omniharness/kernel/kernel/adapters/event/compositeEventPort.js';
+export { JsonFileKv } from '@omniharness/kernel/kernel/adapters/kv/jsonFileKv.js';
+export { MemoryKv } from '@omniharness/kernel/kernel/adapters/kv/memoryKv.js';
+export { SqliteKv } from '@omniharness/kernel/kernel/adapters/kv/sqliteKv.js';
+export { ReadonlyTraceReader } from '@omniharness/kernel/kernel/adapters/telemetry/readonlyTraceReader.js';
+export { SessionEventReader } from '@omniharness/kernel/kernel/adapters/telemetry/sessionEventReader.js';
+export { CacheHitRateWatch } from '@omniharness/kernel/kernel/observability/cacheHitRateWatch.js';
+export { CacheMissAttributionAnalyst } from '@omniharness/kernel/kernel/observability/cacheMissAttributionAnalyst.js';
+export type { CacheMissAttribution, CacheMissCause } from '@omniharness/kernel/kernel/observability/cacheMissAttributionAnalyst.js';

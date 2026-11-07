@@ -1,4 +1,4 @@
-import { jsonRpc, type RpcMessage } from './jsonRpc.ts';
+import { jsonRpc, type RpcMessage } from '../../../host/kernel/runtime.ts';
 import type { AppServerOptions } from './appServerState.ts';
 import { registerModules, type RpcHandler, type ServerModule } from './serverModule.ts';
 import { ServerServices } from './serverServices.ts';

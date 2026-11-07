@@ -10,3 +10,12 @@
 
 export { ServiceKeys } from '@omniharness/kernel/kernel/composition/serviceKeys.js';
 export { Runtime } from '@omniharness/kernel/kernel/composition/runtime.js';
+export type { RpcMessage } from '@omniharness/kernel/contracts/ports/server/rpcMessage.js';
+export type { RpcRequest } from '@omniharness/kernel/contracts/ports/server/rpcRequest.js';
+export type { SdkSocket } from '@omniharness/kernel/contracts/ports/server/sdkSocket.js';
+export type { Transport } from '@omniharness/kernel/contracts/ports/server/transport.js';
+export { jsonRpc } from '@omniharness/kernel/kernel/rpc/jsonRpc.js';
+export { SdkClient } from '@omniharness/kernel/kernel/rpc/sdkClient.js';
+export { LineTransport } from '@omniharness/kernel/kernel/transport/lineTransport.js';
+export { WebSocketSdkSocket } from '@omniharness/kernel/kernel/transport/webSocketSdkSocket.js';
+export { WsConnection, WsServer } from '@omniharness/kernel/kernel/transport/wsConnection.js';

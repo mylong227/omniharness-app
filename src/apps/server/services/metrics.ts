@@ -1,5 +1,5 @@
 import type { SessionEvent } from '../../../host/kernel/contracts.ts';
-import { QuantileSketch } from '../../../host/kernel-compat/kernel/util/quantileSketch.ts';
+import { QuantileSketch } from '../../../host/kernel/util.ts';
 
 /** 单指标对象（Prometheus 文本用）。 */
 export interface MetricLine {

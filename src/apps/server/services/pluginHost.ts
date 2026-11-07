@@ -7,8 +7,8 @@ import { PluginProfileStore,
   type PluginProfile,
   type ApplyProfileResult, } from '../../../host/kernel/plugin.js';
 import type { PluginRegistry } from '../../../host/kernel/plugin.js';
-import { jsonRpc } from '../core/jsonRpc.ts';
-import type { Transport } from '../transport/lineTransport.ts';
+import { jsonRpc } from '../../../host/kernel/runtime.ts';
+import type { Transport } from '../../../host/kernel/runtime.ts';
 import type { ResolvedConfig } from '../../../host/kernel/contracts.ts';
 
 /** 插件宿主依赖。 */

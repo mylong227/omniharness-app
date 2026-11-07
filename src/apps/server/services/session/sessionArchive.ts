@@ -13,7 +13,7 @@ import { join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { SessionSummarySidecar } from '../../../../host/kernel/util.ts';
 import type { Metrics } from '../metrics.ts';
-import type { LocalDay } from '../../../../host/kernel-compat/kernel/util/localDay.ts';
+import type { LocalDay } from '../../../../host/kernel/util.ts';
 import { SessionSidecars } from './sessionSidecars.ts';
 import { SessionRanking } from './sessionRanking.ts';
 import { SessionArchiveLayout } from '../../../../host/kernel/util.ts';

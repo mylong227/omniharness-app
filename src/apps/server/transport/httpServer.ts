@@ -8,8 +8,8 @@ import { brotliCompressSync, constants as zlibConstants, gzipSync } from 'node:z
 import { extname, isAbsolute, join, normalize, relative, resolve } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import type { AppServer } from '../core/appServer.ts';
-import { type RpcRequest } from '../core/jsonRpc.ts';
-import { WsServer } from './wsConnection.ts';
+import { type RpcRequest } from '../../../host/kernel/runtime.ts';
+import { WsServer } from '../../../host/kernel/runtime.ts';
 import { ServerAuthGuard } from './serverAuthGuard.ts';
 import type { Metrics } from '../services/metrics.ts';
 import { log, Logger } from '../../../host/kernel/util.ts';

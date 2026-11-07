@@ -7,6 +7,7 @@
  * 凭据打码工具，继续留在这里，避免为一个函数新开一个模块。
  */
 import { providerPresets, type ProviderPreset } from '../../../host/kernel/config.ts';
+import { SecretRedactor } from '../../../host/kernel/util.ts';
 
 /**
  * ProviderPresets —— 由本文件原顶层函数归并而来（每个方法对应一个原函数，语义与签名逐字保留）。
@@ -25,10 +26,13 @@ export class ProviderPresets {
     return providerPresets.byId(id, overrides);
   }
 
-  /** Key 打码：保留前 3 后 4，中间星号；短 Key 全打码。凭据永不回传 UI。 */
+  /** Key 打码：保留前 3 后 4，中间星号；短 Key 全打码。凭据永不回传 UI。
+   *
+   * M27 起委托内核 `SecretRedactor.maskKey`（凭据打码单一真源，与 CLI dump /
+   * 服务端回传同口径）；本方法保留为门面（既有调用点零改动）。
+   */
   public static maskKey(key: string): string {
-    if (key.length <= 8) return '****';
-    return `${key.slice(0, 3)}****${key.slice(-4)}`;
+    return SecretRedactor.maskKey(key);
   }
 }
 

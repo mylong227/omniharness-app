@@ -15,7 +15,7 @@ import { configFile } from '../../host/kernel/config.ts';
 import { OmniHome } from '../../host/kernel/util.ts';
 import { ArgParser } from './argParser.ts';
 import { CliArgReader } from './cliArgReader.ts';
-import { PortablePath } from '../../host/kernel-compat/kernel/util/portablePath.ts';
+import { PortablePath } from '../../host/kernel/util.ts';
 
 /**
  * serve 的工作区解析器（无状态，纯静态）：显式旗标 > 本机固定项目 > 启动目录。

@@ -10,8 +10,8 @@ import { GraphStore } from '../../../host/kernel-compat/kernel/autonomy/graphSto
 import { SubagentPorts } from '../../../host/kernel-compat/kernel/subagent/subagentPorts.ts';
 
 import { AUTO_ALLOW, DENY_ALL, RULES_DEFAULT } from './appServerState.ts';
-import { PlanApproval } from '../../../host/kernel-compat/kernel/adapters/approval/planApproval.ts';
-import { AskApproval } from '../../../host/kernel-compat/kernel/adapters/approval/askApproval.ts';
+import { PlanApproval } from '../../../host/kernel/adapters-approval.ts';
+import { AskApproval } from '../../../host/kernel/adapters-approval.ts';
 import { ServerNoopSupervisor } from './serverNoopSupervisor.ts';
 import type { ResolvedConfig } from '../../../host/kernel/contracts.ts';
 import type { SubagentPortsShape } from '../../../host/kernel/contracts.ts';

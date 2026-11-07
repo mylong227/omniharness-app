@@ -17,3 +17,4 @@ export { SessionRecorder } from '@omniharness/kernel/kernel/core/sessionRecorder
 export { StepRunner } from '@omniharness/kernel/kernel/core/stepRunner.js';
 export { MUTATING_TOOLS, ToolGate } from '@omniharness/kernel/kernel/core/toolGate.js';
 export { TurnRunner } from '@omniharness/kernel/kernel/core/turnRunner.js';
+export { InterjectionClassifier } from '@omniharness/kernel/kernel/core/steering/interjectionClassifier.js';

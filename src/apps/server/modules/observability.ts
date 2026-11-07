@@ -4,7 +4,7 @@ import type { AuditEvent } from '../services/auditSink.ts';
 import type {
   TraceReadRequest,
   TraceReadResult,
-} from '../../../host/kernel-compat/contracts/ports/intelligence/traceIntrospection.ts';
+} from '../../../host/kernel/contracts.ts';
 import type { ServerModule } from '../core/serverModule.ts';
 
 /**

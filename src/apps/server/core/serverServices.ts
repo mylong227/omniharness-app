@@ -2,7 +2,7 @@ import { ContextWindowCatalog } from '../../../host/kernel/context.ts';
 import type { ResolvedConfig } from '../../../host/kernel/contracts.ts';
 import { ConfigFactory } from '../../../host/kernel/config.ts';
 import { SandboxManager, type SandboxProfile } from '../../../host/kernel/adapters-sandbox.ts';
-import { ConfigRebase } from '../../../host/kernel-compat/kernel/config/configRebase.ts';
+import { ConfigRebase } from '../../../host/kernel/config.ts';
 import type { PluginManager } from '../../../host/kernel/plugin.js';
 import type { PluginProfile, ApplyProfileResult } from '../../../host/kernel/plugin.js';
 import type { AppServerOptions } from './appServerState.ts';

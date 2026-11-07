@@ -1,4 +1,4 @@
-import { jsonRpc } from './jsonRpc.ts';
+import { jsonRpc } from '../../../host/kernel/runtime.ts';
 import type { AppServerOptions } from './appServerState.ts';
 import type { ServerServices } from './serverServices.ts';
 

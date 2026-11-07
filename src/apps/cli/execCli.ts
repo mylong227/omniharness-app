@@ -24,12 +24,12 @@ import { JsonlWriter } from '../output/jsonlWriter.ts';
 import type { CliArgs } from './argParser.ts';
 import { ArgParser } from './argParser.ts';
 import { CliAgentCmds } from './cliAgentCmds.ts';
-import { DumpRedactor } from './dumpRedactor.ts';
+import { SecretRedactor } from '../../host/kernel/util.ts';
 import { ExecLocal } from './execLocal.ts';
 import { EvolutionCommand } from './evolutionCommand.ts';
 import { CapabilityCommand } from './capabilityCommand.ts';
 import { LicenseCommand } from './licenseCommand.ts';
-import { AssetPackInstaller } from '../../host/kernel-compat/kernel/asset/assetPackInstaller.ts';
+import { AssetPackInstaller } from '../../host/kernel/plugin.ts';
 import { IsolationLadderFactory } from '../../host/kernel-compat/kernel/adapters/isolation/isolationLadderFactory.ts';
 import { WasmSkillPack } from '../../host/kernel-compat/kernel/asset/wasmSkillPack.ts';
 import { HashChainPromotionLedger } from '../../host/kernel/evolution.ts';
@@ -118,7 +118,7 @@ export class ExecCli extends CliAgentCmds {
       this.applyExecWorkspace(args, argv);
       if (args.dumpConfig) {
         // 凭据打码（2026-10-27）：此前这里把 `CliArgs` 原样打到 stdout，`apiKey` 明文泄漏。
-        process.stdout.write(`${JSON.stringify(DumpRedactor.redact(args), null, 2)}\n`);
+        process.stdout.write(`${JSON.stringify(SecretRedactor.redact(args), null, 2)}\n`);
         return 0;
       }
       // 能力真实性校验排在装配**之前**：单跑路径上无实现的取值必须当场拒绝，

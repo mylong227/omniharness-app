@@ -21,7 +21,7 @@ import { basename } from 'node:path';
 
 import type { SkillEntry } from '../../host/kernel/platform.ts';
 import { SkillMdCodec } from '../../host/kernel/platform.ts';
-import { SkillManifestSigner } from '../../host/kernel-compat/kernel/skill/skillManifestSigner.ts';
+import { SkillManifestSigner } from '../../host/kernel/adapters-misc.ts';
 import { ConfigError } from '../../host/kernel/config.ts';
 import type { CliArgs } from './argParser.ts';
 

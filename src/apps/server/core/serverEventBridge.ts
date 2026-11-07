@@ -1,5 +1,5 @@
-import { jsonRpc } from './jsonRpc.ts';
-import type { Transport } from '../transport/lineTransport.ts';
+import { jsonRpc } from '../../../host/kernel/runtime.ts';
+import type { Transport } from '../../../host/kernel/runtime.ts';
 import type { Metrics } from '../services/metrics.ts';
 import type { AuditSink } from '../services/auditSink.ts';
 import { Id } from '../../../host/kernel/util.ts';

@@ -14,7 +14,6 @@ export type { ContextBreakdown, ContextBreakdownRow } from '@omniharness/kernel/
 export { ContextCompactor } from '@omniharness/kernel/kernel/context/contextCompactor.js';
 export type { CompactionOptions, CompactionResult } from '@omniharness/kernel/kernel/context/contextCompactor.js';
 export { ContextWindowCatalog } from '@omniharness/kernel/kernel/context/contextWindowCatalog.js';
-export { PrefixStability } from '@omniharness/kernel/kernel/context/prefixStability.js';
 export { SpillPolicy } from '@omniharness/kernel/kernel/context/spillPolicy.js';
 export type { SpillPolicyOptions } from '@omniharness/kernel/kernel/context/spillPolicy.js';
 export { TokenEstimator } from '@omniharness/kernel/kernel/context/tokenEstimator.js';

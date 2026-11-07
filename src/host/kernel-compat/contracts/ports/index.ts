@@ -21,7 +21,7 @@ export { ModelCallError, BudgetExceededError } from '../../../kernel/contracts.t
 export type { BudgetDegradeSignal } from '../../../kernel/contracts.ts';
 export type { StoragePort } from '../../../kernel/contracts.ts';
 export type { KvPort } from '../../../kernel/contracts.ts';
-export type { VaultPort } from './memory/vault.ts';
+export type { VaultPort } from '../../../kernel/contracts.ts';
 export type { EventPort } from '../../../kernel/contracts.ts';
 export type { ToolInputSink } from '../../../kernel/contracts.ts';
 export type {

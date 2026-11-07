@@ -29,5 +29,6 @@ export type { PluginManifest } from '@omniharness/kernel/contracts/ports/plugin/
 export { PluginWorkerMetrics } from '@omniharness/kernel/kernel/plugin/worker/pluginWorkerMetrics.js';
 export { ALL_PERMISSIONS, DANGEROUS_PERMISSIONS, Permission } from '@omniharness/kernel/kernel/plugin/permission.js';
 export type { MediaAnalysisConfig } from '@omniharness/kernel/contracts/ports/media/mediaAnalysisConfig.js';
-export { Zip } from '@omniharness/kernel/kernel/plugin/zip.js';
-export type { ZipEntry } from '@omniharness/kernel/kernel/plugin/zip.js';
+export { AssetPackCodec } from '@omniharness/kernel/kernel/asset/assetPackCodec.js';
+export type { PackSigningIdentity } from '@omniharness/kernel/kernel/asset/assetPackCodec.js';
+export { AssetPackInstaller } from '@omniharness/kernel/kernel/asset/assetPackInstaller.js';
