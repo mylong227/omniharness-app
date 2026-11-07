@@ -39,7 +39,7 @@ export type {
   ToolResult,
   LongTermMemoryPort,
   MemoryFact,
-} from './host/kernel-compat/contracts/ports/index.ts';
+} from './host/extensions/contracts/ports/index.ts';
 
 // @public 核心
 export { Agent } from './host/kernel/core.ts';
@@ -209,7 +209,7 @@ export { McpConnector } from './host/kernel/protocols.ts';
 export type { McpConnection, McpConnectorOptions } from './host/kernel/protocols.ts';
 export { McpGateway } from './host/kernel/protocols.ts';
 export type { McpBridgeResult, McpGatewayOptions, McpServerConfig } from './host/kernel/protocols.ts';
-export { McpServerCommand } from './host/kernel-compat/protocols/mcp/mcpServerCommand.ts';
+export { McpServerCommand } from './host/extensions/protocols/mcp/mcpServerCommand.ts';
 
 
 // @public 企业管控（D2：SSO / 合规导出）

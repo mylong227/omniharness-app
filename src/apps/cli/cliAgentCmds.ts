@@ -17,16 +17,16 @@ import { GoalRunner } from '../../host/kernel/autonomy.ts';
 import { GoalChecker } from '../../host/kernel/autonomy.ts';
 import { WorkflowRunner } from '../../host/kernel/autonomy.ts';
 import type { WorkflowDef } from '../../host/kernel/autonomy.ts';
-import { SubagentPorts } from '../../host/kernel-compat/kernel/subagent/subagentPorts.ts';
+import { SubagentPorts } from '../../host/extensions/kernel/subagent/subagentPorts.ts';
 import { RoutineScheduler } from '../daemon/routineScheduler.ts';
 import type { Routine, RoutineSchedule, RoutineModelAdapter } from '../daemon/routineScheduler.ts';
 import { Interactive } from '../tui/interactive.ts';
 import { TuiAgentBridge } from '../tui/tuiAgentBridge.ts';
 import type { TuiEvent } from '../tui/tuiRenderer.ts';
 import { ArgParser, CliDefaults } from './argParser.ts';
-import { CronerSchedule } from '../../host/kernel-compat/kernel/adapters/schedule/cronerSchedule.ts';
+import { CronerSchedule } from '../../host/extensions/kernel/adapters/schedule/cronerSchedule.ts';
 import type { CliArgs } from './argParser.ts';
-import { ModelCapabilityProbe } from '../../host/kernel-compat/kernel/adapters/model/modelCapabilityProbe.ts';
+import { ModelCapabilityProbe } from '../../host/extensions/kernel/adapters/model/modelCapabilityProbe.ts';
 import { CliNativeCmds } from './cliNativeCmds.ts';
 import {
   ACP_PERMISSION_MODES,

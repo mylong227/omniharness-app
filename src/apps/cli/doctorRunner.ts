@@ -15,7 +15,7 @@ import { ServeDefaults } from './serveDefaults.ts';
 import {
   InjectionSelfCheck,
   type InjectionSelfCheckSummary,
-} from '../../host/kernel-compat/kernel/security/injectionSelfCheck.ts';
+} from '../../host/extensions/kernel/security/injectionSelfCheck.ts';
 import type { SandboxCapabilityEntry } from '../../host/kernel/adapters-sandbox.ts';
 import { PluginWorkerMetrics } from '../../host/kernel/plugin.js';
 
@@ -47,7 +47,7 @@ import type {
   SandboxStatus,
   SecurityBoundary,
   ServePortStatus,
-} from '../../host/kernel-compat/contracts/ports/observability/doctorReport.ts';
+} from '../../host/extensions/contracts/ports/observability/doctorReport.ts';
 
 export type {
   BuildStatus,
@@ -58,7 +58,7 @@ export type {
   SandboxStatus,
   SecurityBoundary,
   ServePortStatus,
-} from '../../host/kernel-compat/contracts/ports/observability/doctorReport.ts';
+} from '../../host/extensions/contracts/ports/observability/doctorReport.ts';
 
 /**
  * 运行环境诊断器：原是模块级纯函数，后归拢为 `DoctorRunner` 静态方法族，

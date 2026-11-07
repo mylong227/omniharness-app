@@ -1,6 +1,6 @@
-import type { GraphSummary } from '../../../host/kernel-compat/kernel/autonomy/graphStore.ts';
+import type { GraphSummary } from '../../../host/extensions/kernel/autonomy/graphStore.ts';
 import type { PluginManifest } from '../../../host/kernel/plugin.js';
-import { BUILTIN_AGENT_PERSONAS } from '../../../host/kernel-compat/kernel/subagent/agentPersonas.ts';
+import { BUILTIN_AGENT_PERSONAS } from '../../../host/extensions/kernel/subagent/agentPersonas.ts';
 
 /** 智能体目录条目的来源类型。 */
 export type AgentKind = 'builtin' | 'graph' | 'plugin';

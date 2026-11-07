@@ -9,9 +9,9 @@
  *   vault get|set|del|list [--name N] [--value V] [--vault-backend crypto|env] [--kv-* ...] [--vault-key-file PATH]
  */
 
-import { CryptoVault } from '../../host/kernel-compat/kernel/adapters/vault/cryptoVault.ts';
+import { CryptoVault } from '../../host/extensions/kernel/adapters/vault/cryptoVault.ts';
 import { VaultKeyDefaults } from './vaultKeyDefaults.ts';
-import { EnvVault } from '../../host/kernel-compat/kernel/adapters/vault/envVault.ts';
+import { EnvVault } from '../../host/extensions/kernel/adapters/vault/envVault.ts';
 import type { VaultPort } from '../../host/kernel/contracts.ts';
 import { ArgParser } from './argParser.ts';
 import { CliArgReader } from './cliArgReader.ts';

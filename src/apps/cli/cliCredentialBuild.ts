@@ -10,7 +10,7 @@
  * 继承链：`CliCredentialBuild` ← `CliBuildConfig` ← `CliServerCmds` ← …；调用点零改动。
  * 两个方法都不依赖 `this` 的其它成员，故可干净外移。
  */
-import { CryptoVault } from '../../host/kernel-compat/kernel/adapters/vault/cryptoVault.ts';
+import { CryptoVault } from '../../host/extensions/kernel/adapters/vault/cryptoVault.ts';
 import { CredentialResolver } from '../../host/kernel/config.ts';
 import { KvStoreFactory } from './kvStoreFactory.ts';
 import { VaultKeyDefaults } from './vaultKeyDefaults.ts';

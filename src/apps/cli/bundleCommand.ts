@@ -18,7 +18,7 @@ import { PluginBundler } from '../../host/kernel/plugin.js';
 import { PrivateSkillSource } from '../../host/kernel/plugin.js';
 import { BundleCodec } from '../../host/kernel/plugin.js';
 import { PackGrader } from '../../host/kernel/plugin.js';
-import { IsolationLadderFactory } from '../../host/kernel-compat/kernel/adapters/isolation/isolationLadderFactory.ts';
+import { IsolationLadderFactory } from '../../host/extensions/kernel/adapters/isolation/isolationLadderFactory.ts';
 import { ArgParser } from './argParser.ts';
 import { CliArgReader } from './cliArgReader.ts';
 import type { PackCapability } from '../../host/kernel/plugin.js';

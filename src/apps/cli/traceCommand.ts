@@ -11,7 +11,7 @@
  * 后端不落该目录时如实报告「会话未找到或无 trace」，不伪造条目。
  */
 import { SessionEventReader } from '../../host/kernel/adapters-misc.ts';
-import { SessionStorageLocation } from '../../host/kernel-compat/kernel/util/sessionStorageLocation.ts';
+import { SessionStorageLocation } from '../../host/extensions/kernel/util/sessionStorageLocation.ts';
 import { SessionTraceService } from '../server/services/session/sessionTraceService.ts';
 import type {
   TraceEntry,

@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 /**
- * 一次性迁移工具（M27-D2）：把 `src/**` 对 kernel-compat 影子件与 server 侧 rpc/transport
+ * 一次性迁移工具（M27-D2）：把 `src/**` 对 extensions 影子件与 server 侧 rpc/transport
  * 副本的导入，改写到 `src/host/kernel/<area>.ts` 对接面（内核 alpha.12 已收编全部同名符号）。
  *
  * 处理范围（M26 终盘收编 + M27 SDK/打码终批对应的 40+ 件影子）：
- *  - kernel-compat/kernel/adapters/{approval,escalation,event,kv,telemetry}/*
- *  - kernel-compat/kernel/{config/{credentialResolver,configRebase},core/steering/interjectionClassifier,
+ *  - extensions/kernel/adapters/{approval,escalation,event,kv,telemetry}/*
+ *  - extensions/kernel/{config/{credentialResolver,configRebase},core/steering/interjectionClassifier,
  *    observability/*,skill/skillManifestSigner,asset/*,util/{concurrency/retry,jsonObjectFile,localDay,
  *    mimeType,portablePath,quantileSketch}}
- *  - kernel-compat/contracts/ports/{memory/vault,intelligence/traceIntrospection*}
- *  - kernel-compat/contracts/{ports/sdk/sdkSocket,sdk/webSocketSdkSocket}
+ *  - extensions/contracts/ports/{memory/vault,intelligence/traceIntrospection*}
+ *  - extensions/contracts/{ports/sdk/sdkSocket,sdk/webSocketSdkSocket}
  *  - apps/server/core/jsonRpc.ts、apps/server/transport/{lineTransport,wsFrameCodec,wsConnection}.ts
  *  - host/contracts/sdk/sdkClient.ts、apps/cli/dumpRedactor.ts
  *
@@ -32,41 +32,41 @@ const SRC = join(ROOT, 'src');
 /** 影子文件路径后缀（POSIX 化）→ 目标域（`src/host/kernel/<area>.ts`）。 */
 const SHADOW_TO_AREA = [
   // 审批族 → adapters-approval
-  ['kernel-compat/kernel/adapters/approval/', 'adapters-approval'],
+  ['extensions/kernel/adapters/approval/', 'adapters-approval'],
   // 升级 / 事件 / KV / 遥测读取 / 缓存观测 / skill 签名 → adapters-misc
-  ['kernel-compat/kernel/adapters/escalation/', 'adapters-misc'],
-  ['kernel-compat/kernel/adapters/event/', 'adapters-misc'],
-  ['kernel-compat/kernel/adapters/kv/', 'adapters-misc'],
-  ['kernel-compat/kernel/adapters/telemetry/', 'adapters-misc'],
-  ['kernel-compat/kernel/observability/', 'adapters-misc'],
-  ['kernel-compat/kernel/skill/skillManifestSigner', 'adapters-misc'],
+  ['extensions/kernel/adapters/escalation/', 'adapters-misc'],
+  ['extensions/kernel/adapters/event/', 'adapters-misc'],
+  ['extensions/kernel/adapters/kv/', 'adapters-misc'],
+  ['extensions/kernel/adapters/telemetry/', 'adapters-misc'],
+  ['extensions/kernel/observability/', 'adapters-misc'],
+  ['extensions/kernel/skill/skillManifestSigner', 'adapters-misc'],
   // 配置域补全 → config
-  ['kernel-compat/kernel/config/credentialResolver', 'config'],
-  ['kernel-compat/kernel/config/configRebase', 'config'],
+  ['extensions/kernel/config/credentialResolver', 'config'],
+  ['extensions/kernel/config/configRebase', 'config'],
   // 插话分流 → core
-  ['kernel-compat/kernel/core/steering/interjectionClassifier', 'core'],
+  ['extensions/kernel/core/steering/interjectionClassifier', 'core'],
   // asset 编解码/安装器 → plugin（与 kernel/plugin/zip 同域消费）
-  ['kernel-compat/kernel/asset/', 'plugin'],
+  ['extensions/kernel/asset/', 'plugin'],
   // util 补全族 → util
-  ['kernel-compat/kernel/util/concurrency/retry', 'util'],
-  ['kernel-compat/kernel/util/jsonObjectFile', 'util'],
-  ['kernel-compat/kernel/util/localDay', 'util'],
-  ['kernel-compat/kernel/util/mimeType', 'util'],
-  ['kernel-compat/kernel/util/portablePath', 'util'],
-  ['kernel-compat/kernel/util/quantileSketch', 'util'],
+  ['extensions/kernel/util/concurrency/retry', 'util'],
+  ['extensions/kernel/util/jsonObjectFile', 'util'],
+  ['extensions/kernel/util/localDay', 'util'],
+  ['extensions/kernel/util/mimeType', 'util'],
+  ['extensions/kernel/util/portablePath', 'util'],
+  ['extensions/kernel/util/quantileSketch', 'util'],
   // 打码单一真源 → util
   ['apps/cli/dumpRedactor', 'util'],
   // 契约归内核 → contracts
-  ['kernel-compat/contracts/ports/memory/vault', 'contracts'],
-  ['kernel-compat/contracts/ports/intelligence/traceIntrospection', 'contracts'],
-  ['kernel-compat/contracts/ports/sdk/sdkSocket', 'contracts'],
+  ['extensions/contracts/ports/memory/vault', 'contracts'],
+  ['extensions/contracts/ports/intelligence/traceIntrospection', 'contracts'],
+  ['extensions/contracts/ports/sdk/sdkSocket', 'contracts'],
   // rpc / transport / SDK 客户端族 → runtime
   ['apps/server/core/jsonRpc', 'runtime'],
   ['apps/server/transport/lineTransport', 'runtime'],
   ['apps/server/transport/wsFrameCodec', 'runtime'],
   ['apps/server/transport/wsConnection', 'runtime'],
   ['host/contracts/sdk/sdkClient', 'runtime'],
-  ['kernel-compat/contracts/sdk/webSocketSdkSocket', 'runtime'],
+  ['extensions/contracts/sdk/webSocketSdkSocket', 'runtime'],
 ];
 
 /** 把绝对路径 POSIX 化并取相对 src 的形态（用于后缀匹配）。 */

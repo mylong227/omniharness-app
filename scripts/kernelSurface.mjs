@@ -162,7 +162,7 @@ function collectUsed() {
   for (const file of files) {
     const text = readFileSync(file, 'utf8');
     // import { A, B as C } / export type { A } from '<任意相对路径>/kernel/<area>.ts'
-    // （kernel-compat 里写作 `../../../kernel/contracts.ts`，不能只按字面量 `host/kernel` 匹配）
+    // （extensions 里写作 `../../../kernel/contracts.ts`，不能只按字面量 `host/kernel` 匹配）
     for (const match of text.matchAll(/(?:import|export)\s+(type\s+)?\{([^}]+)\}\s+from\s+['"]([^'"]+)['"]/gu)) {
       const area = surfaceAreaOf(file, match[3]);
       if (area === undefined) continue;
@@ -409,7 +409,7 @@ export function runSurface({ check }) {
     for (const name of unexpected) {
       process.stderr.write(`  - src/host/kernel/${name}（对接面目录只允许生成的域文件）\n`);
     }
-    process.stderr.write('  修复：npm run kernel:surface（实现代码请放 kernel-compat/ 或 apps/）\n');
+    process.stderr.write('  修复：npm run kernel:surface（实现代码请放 extensions/ 或 apps/）\n');
     return 1;
   }
   for (const [name, content] of files) {
@@ -420,7 +420,7 @@ export function runSurface({ check }) {
   const leftovers = unexpected.filter((name) => !extras.includes(name));
   if (leftovers.length > 0) {
     process.stderr.write(
-      `注意：对接面目录出现非生成物（未删除，请人工迁到 kernel-compat/ 或 apps/）：${leftovers.join(', ')}\n`,
+      `注意：对接面目录出现非生成物（未删除，请人工迁到 extensions/ 或 apps/）：${leftovers.join(', ')}\n`,
     );
   }
   process.stdout.write(

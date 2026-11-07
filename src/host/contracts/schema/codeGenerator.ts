@@ -1,4 +1,4 @@
-import type { FieldSchema, MethodSchema, ProtocolSchema } from '../../kernel-compat/contracts/schema/protocolSchema.ts';
+import type { FieldSchema, MethodSchema, ProtocolSchema } from '../../extensions/contracts/schema/protocolSchema.ts';
 
 /**
  * @beta

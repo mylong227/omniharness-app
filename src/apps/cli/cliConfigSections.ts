@@ -3,7 +3,7 @@ import type { OmniHarnessConfig } from '../../host/kernel/contracts.ts';
 import { CliDecisionEngineFlags } from './cliDecisionEngineFlags.ts';
 import { EnforcementModeResolver } from '../../host/kernel/security.ts';
 import type { DecisionEngine } from '../../host/kernel/contracts.ts';
-import { DecisionEngineResolver } from '../../host/kernel-compat/kernel/config/decisionEngineResolver.ts';
+import { DecisionEngineResolver } from '../../host/extensions/kernel/config/decisionEngineResolver.ts';
 
 /**
  * `CliBuildConfig.buildConfig` 的**对象字面量分段**协作类（2026-10-31 抽出；原方法 129 行、

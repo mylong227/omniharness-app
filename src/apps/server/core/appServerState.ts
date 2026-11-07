@@ -9,7 +9,7 @@ import type { PluginRegistry } from '../../../host/kernel/plugin.js';
 import type { Transport } from '../../../host/kernel/runtime.ts';
 import type { Metrics } from '../services/metrics.ts';
 import type { AuditSink } from '../services/auditSink.ts';
-import type { DoctorOptions, DoctorReport } from '../../../host/kernel-compat/contracts/ports/observability/doctorReport.ts';
+import type { DoctorOptions, DoctorReport } from '../../../host/extensions/contracts/ports/observability/doctorReport.ts';
 import type { VaultPort } from '../../../host/kernel/contracts.ts';
 import type { GraphNodeStatus } from '../../../host/kernel/autonomy.ts';
 import type { ResolvedConfig } from '../../../host/kernel/contracts.ts';

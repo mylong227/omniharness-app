@@ -15,7 +15,7 @@ import {
   MaintenanceRunner,
   type MaintenanceOptions,
   type MaintenanceReport,
-} from '../../host/kernel-compat/kernel/util/maintenanceRunner.ts';
+} from '../../host/extensions/kernel/util/maintenanceRunner.ts';
 import { ServeInstance } from './serveInstance.ts';
 
 /** gc 子命令：手动维护巡检。 */

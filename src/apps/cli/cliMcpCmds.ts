@@ -135,7 +135,7 @@ export class CliMcpCmds extends CliServerCmds {
       if (arg !== undefined && !arg.startsWith('-')) queryParts.push(arg);
     }
     const query = queryParts.join(' ').trim();
-    const { McpRegistryClient } = await import('../../host/kernel-compat/protocols/mcp/mcpRegistryClient.ts');
+    const { McpRegistryClient } = await import('../../host/extensions/protocols/mcp/mcpRegistryClient.ts');
     const entries = await McpRegistryClient.search(query, { limit });
     if (entries.length === 0) {
       process.stdout.write('（没有匹配的 MCP server）\n');
@@ -286,8 +286,8 @@ export class CliMcpCmds extends CliServerCmds {
     }
     // 客户端方向走官方 SDK 优先（协议协商 + 远端 url 支持）；失败回落手写并打到 stderr。
     const [{ SdkPreferredMcpConnector }, { McpServerCommand }] = await Promise.all([
-      import('../../host/kernel-compat/kernel/adapters/mcp/sdkPreferredMcpConnector.ts'),
-      import('../../host/kernel-compat/protocols/mcp/mcpServerCommand.ts'),
+      import('../../host/extensions/kernel/adapters/mcp/sdkPreferredMcpConnector.ts'),
+      import('../../host/extensions/protocols/mcp/mcpServerCommand.ts'),
     ]);
     const connection = await new SdkPreferredMcpConnector().connect(
       McpServerCommand.parseMcpServerSpec(spec),
@@ -322,8 +322,8 @@ export class CliMcpCmds extends CliServerCmds {
       return 2;
     }
     const [{ SdkPreferredMcpConnector }, { McpServerCommand }] = await Promise.all([
-      import('../../host/kernel-compat/kernel/adapters/mcp/sdkPreferredMcpConnector.ts'),
-      import('../../host/kernel-compat/protocols/mcp/mcpServerCommand.ts'),
+      import('../../host/extensions/kernel/adapters/mcp/sdkPreferredMcpConnector.ts'),
+      import('../../host/extensions/protocols/mcp/mcpServerCommand.ts'),
     ]);
     const connection = await new SdkPreferredMcpConnector().connect(
       McpServerCommand.parseMcpServerSpec(spec),

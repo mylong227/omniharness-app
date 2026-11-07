@@ -1,7 +1,7 @@
 // 内核对接面生成物门禁（2026-11-06）：把 `kernel:check` 第 8 条搬进常规 `web:test`，
 // 让「只改业务 import、忘了跑 npm run kernel:surface」在本地测试就直接红，而不是等 CI。
 //
-// 同时钉住「目录纯净」：`src/host/kernel/` 只允许生成物；实现代码必须放 kernel-compat/ 或 apps/。
+// 同时钉住「目录纯净」：`src/host/kernel/` 只允许生成物；实现代码必须放 extensions/ 或 apps/。
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -26,6 +26,6 @@ test('内核对接面：生成物与业务实际使用一致，且目录内只�
   assert.deepEqual(
     entries,
     [...files.keys()].sort(),
-    '对接面目录只允许生成的域文件（实现请放 kernel-compat/ 或 apps/）',
+    '对接面目录只允许生成的域文件（实现请放 extensions/ 或 apps/）',
   );
 });

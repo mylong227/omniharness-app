@@ -57,7 +57,7 @@ describe('标品家具（首次上手面）', () => {
       'NOTICE',
       'docs/KERNEL-CONTRACT.md',
       'docs/DESKTOP-SMOKE.md',
-      'src/host/kernel-compat/README.md',
+      'src/host/extensions/README.md',
       'examples/embed-demo.mjs',
       'examples/catalog/registry.json',
       'omniharness.json.example',

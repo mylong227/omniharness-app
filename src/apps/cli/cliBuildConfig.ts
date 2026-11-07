@@ -35,10 +35,10 @@ import {
 import { SsrfPolicy } from '../../host/kernel/security.ts';
 import { endpointDefaults, type ResolvedAdapterDefaults } from '../../host/kernel/util.ts';
 import { WorkerRegistry } from '../../host/kernel/platform.ts';
-import { ExternalCliWorker } from '../../host/kernel-compat/kernel/worker/externalCliWorker.ts';
+import { ExternalCliWorker } from '../../host/extensions/kernel/worker/externalCliWorker.ts';
 import { RegistryToolPort } from '../../host/kernel/adapters-tool.ts';
 import { McpGateway } from '../../host/kernel/protocols.ts';
-import { McpServerCommand } from '../../host/kernel-compat/protocols/mcp/mcpServerCommand.ts';
+import { McpServerCommand } from '../../host/extensions/protocols/mcp/mcpServerCommand.ts';
 import { modelAdapterRegistry, MOCK_ADAPTER_ID } from '../../host/kernel/adapters-model.ts';
 import { storageFactory, type StorageHandle } from './storageFactory.ts';
 import { AutoApproval } from '../../host/kernel/adapters-approval.ts';
@@ -362,7 +362,7 @@ export class CliBuildConfig extends CliCredentialBuild {
       return;
     }
     const { SdkPreferredMcpConnector } =
-      await import('../../host/kernel-compat/kernel/adapters/mcp/sdkPreferredMcpConnector.ts');
+      await import('../../host/extensions/kernel/adapters/mcp/sdkPreferredMcpConnector.ts');
     const gateway = new McpGateway({
       registry: tools,
       context: { sessionId: 'mcp-bridge', workspaceRoot: args.workspace },

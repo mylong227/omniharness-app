@@ -20,11 +20,11 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { OmniHome } from '../../host/kernel/util.ts';
-import type { Routine } from '../../host/kernel-compat/contracts/ports/daemon/routine.ts';
+import type { Routine } from '../../host/extensions/contracts/ports/daemon/routine.ts';
 import { log } from '../../host/kernel/util.ts';
-import type { RoutineModelAdapter } from '../../host/kernel-compat/contracts/ports/daemon/routineModelAdapter.ts';
-import type { RoutineSchedule } from '../../host/kernel-compat/contracts/ports/daemon/routineSchedule.ts';
-import type { CronSchedulePort } from '../../host/kernel-compat/contracts/ports/daemon/cronSchedule.ts';
+import type { RoutineModelAdapter } from '../../host/extensions/contracts/ports/daemon/routineModelAdapter.ts';
+import type { RoutineSchedule } from '../../host/extensions/contracts/ports/daemon/routineSchedule.ts';
+import type { CronSchedulePort } from '../../host/extensions/contracts/ports/daemon/cronSchedule.ts';
 
 /**
  * 定时任务相关契约（唯一声明见 `src/contracts/ports/daemon/`：`routine.ts` / `routineModelAdapter.ts` /

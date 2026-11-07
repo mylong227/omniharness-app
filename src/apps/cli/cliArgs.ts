@@ -1,5 +1,5 @@
 import type { McpServerConfig } from '../../host/kernel/protocols.ts';
-import type { ExternalCliWorkerSpec } from '../../host/kernel-compat/kernel/worker/externalCliWorker.ts';
+import type { ExternalCliWorkerSpec } from '../../host/extensions/kernel/worker/externalCliWorker.ts';
 import type { SkillEntry } from '../../host/kernel/platform.ts';
 import type {
   ModelRouterConfig,
