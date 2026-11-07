@@ -3,14 +3,16 @@
   "skills": [
     {
       "name": "omniharness-coding-standard",
-      "description": "写这个仓库的 TypeScript 时必须遵守的类模板与硬性禁令：显式成员访问级别、禁 any、一文件一类、公开方法必须有 JSDoc 的 @param/@returns。",
-      "instructions": "每个类成员显式写 public/private/protected（ESLint 强制）。禁止 any，用 unknown 加收窄。禁止 var，优先 const。一个文件至多一个主类，主类名与文件名一致（foo.ts → class Foo）。公开类、公开方法与关键字段必须有 /** */，并给出 @param 与 @returns。单文件 800 行、单类 20 方法为红线，越线要按职责拆。新增代码禁止顶层函数（D9）——要复用就归到一个类里做静态方法或实例方法。依赖一律构造注入，禁止在方法体内 new 具体实现（组合根负责装配）。控制流优先早返回与查表，避免深层 if/else 嵌套。**形态只是门槛**：交付标准另见 CONTRIBUTING.md 的「交付纪律」——本节管「长得对不对」，§12 管「做完了没有」，两者都要满足。",
+      "description": "通用编程标准（任何项目适用）：类与函数职责单一明确（类一句话、函数名即契约）、显式成员访问级别、组合优于继承与构造注入、禁 any/var、一文件一类、公开方法必须有 JSDoc 的 @param/@returns。",
+      "instructions": "通用编程标准，设计取向是当代主流混合范式：用 OOP 组织结构、用纯函数与不可变数据处理逻辑，组合优于继承是默认。第一规则是职责单一明确：类职责必须能用一句话说清且不含「和/或」，类名体现这句话，说不清就拆；函数名即契约，只做名字承诺的事，禁止隐藏副作用与「顺便」干活，方法体保持单一抽象层次、一屏以内。形态硬规则：每个类成员显式写 public/private/protected/static/readonly，public 不许省略；readonly 能加尽加，值对象做成不可变；禁止 any，用 unknown 加收窄；禁止 var，优先 const。一个文件一个主类，文件名与类名对应（foo.ts → class Foo）；公开类、公开方法与关键字段必须有 /** */，并给出 @param 与 @returns。依赖一律构造注入，禁止在方法体内 new 具体实现；跨模块协作面向接口。方法参数不超过 3 个、禁布尔旗标参数（拆方法或收成选项对象）、命令与查询分离；控制流优先早返回、查表与多态，避免深层 if/else 嵌套；不写 a.getB().getC() 链式取值；命名类用名词、方法用动词、布尔返回用 is/has/can，禁用 Manager/Helper/Utils 兜底；同类逻辑出现第二份即抽共享类。上帝类、Feature Envy、switch 爆炸、Utils 堆积是重构信号。形态合格不等于交付完成：实现必须含失败路径与边界，禁止占位返回、TODO 残留与半成品。",
       "tags": [
         "coding-standard",
         "typescript",
         "jsdoc",
         "类模板",
-        "编码规范"
+        "编码规范",
+        "单一职责",
+        "组合优于继承"
       ]
     },
     {
