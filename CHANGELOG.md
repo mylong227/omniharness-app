@@ -6,6 +6,18 @@
 ## [Unreleased]
 
 ### Changed（变更）
+- **兼容层清零（M27）**：`src/host/kernel-compat` 目录**不复存在**——目录更名
+  `src/host/extensions/`（app 自有扩展层，只剩 Laya/CLI worker/doctor 等真应用形状件）。
+  内核 v0.1.0-alpha.12（M26 终盘收编 36 件 + M27 SDK 客户端族/凭据打码单一真源）收编后，
+  **41 件影子副本删除**（approval/escalation/event/kv/vault/trace 自省/util 补全/skill 签名/
+  asset 编解码安装器 + server 侧 rpc/transport 四件套 + sdkClient + dumpRedactor）、
+  47 个消费文件改经 `src/host/kernel/<域>.ts` 对接面、死代码 3 处清偿
+  （dormantExecutorActivation 零消费链 / capability spec 契约 / safeFs 漂移孤儿）。
+  应用对接内核自此只有一条路：`src/host/kernel/<域>.ts`（360 处包导入全部命中内核承诺闭包，
+  `kernel:check` 把守）——不再有第二份实现可逃逸。vendor 钉版升级至
+  `vendor/omniharness-kernel-0.1.0-alpha.12.tgz`（4569 KiB，tag v0.1.0-alpha.12 = 187fa15，
+  含 M26/M27/M28）。附赠修复：内核 `SdkClient` 的 S14「就绪前 close 兑现 opened」
+  在旧实现中被双 onClose 注册覆盖而静默失效，alpha.12 已修。
 - **plugin 域退役至内核包**：`src/host/kernel-compat` 的 plugin 影子子树（44 文件）删除——内核
   v0.1.0-alpha.11（M22–M25）已收编 plugin 全量能力（含 RPC 宿主 `registerRpc` + 权限
   `rpc.register`），应用 16 个消费文件改经 `src/host/kernel/plugin.ts` 对接桶；资产域的 zip 依赖
