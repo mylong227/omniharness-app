@@ -6,6 +6,7 @@
 ## [Unreleased]
 
 ### Changed（变更）
+- **双定时器统一（M30）**：server 自动化收敛到 RoutineScheduler 调度核心（与 CLI daemon 共享 routines.json，scope 隔离驱动方），AutomationStore / AutomationScheduler 退役；`automations.*` RPC 形状与执行语义逐字不变（web 面零改动），旧 automations.json 首次启动自动迁移（按 id 幂等、改名 .migrated 留证）；自动化自此支持 cron 调度（注入 CronSchedulePort 即用）。
 - **兼容层清零（M27）**：`src/host/kernel-compat` 目录**不复存在**——目录更名
   `src/host/extensions/`（app 自有扩展层，只剩 Laya/CLI worker/doctor 等真应用形状件）。
   内核 v0.1.0-alpha.12（M26 终盘收编 36 件 + M27 SDK 客户端族/凭据打码单一真源）收编后，
