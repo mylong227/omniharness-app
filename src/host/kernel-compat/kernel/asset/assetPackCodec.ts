@@ -25,7 +25,7 @@ import { verify as cryptoVerify, type KeyObject } from 'node:crypto';
 import { Ed25519PublicKey } from '../../../kernel/util.ts';
 import type { AgentIdentityPort } from '../../../kernel/contracts.ts';
 import type { AssetPackManifest, PackPublisher } from '../../../kernel/contracts.ts';
-import { Zip } from '../plugin/zip.ts';
+import { Zip, type ZipEntry } from '../../../kernel/plugin.js';
 
 /** 包内清单条目名（与插件包的 `bundle.json` 语义隔离）。 */
 export const ASSET_PACK_ENTRY = 'asset-pack.json';
@@ -149,9 +149,9 @@ export class AssetPackCodec {
    */
   public static decode(bytes: Uint8Array): AssetPackManifest {
     const entries = Zip.unzip(Buffer.from(bytes));
-    const entry = entries.find((e) => e.name === ASSET_PACK_ENTRY);
+    const entry = entries.find((e: ZipEntry) => e.name === ASSET_PACK_ENTRY);
     if (entry === undefined) {
-      const names = entries.map((e) => e.name).join(', ');
+      const names = entries.map((e: ZipEntry) => e.name).join(', ');
       throw new Error(
         `不是资产包：缺少 ${ASSET_PACK_ENTRY}（包内条目：${names === '' ? '（空）' : names}）`,
       );

@@ -22,7 +22,6 @@ export { endpointDefaults } from '@omniharness/kernel/kernel/util/endpointDefaul
 export type { ResolvedAdapterDefaults } from '@omniharness/kernel/kernel/util/endpointDefaults.js';
 export { HashChain } from '@omniharness/kernel/kernel/util/hashChain.js';
 export { Id } from '@omniharness/kernel/kernel/util/id.js';
-export { LimitEnv } from '@omniharness/kernel/kernel/util/limitEnv.js';
 export { Logger, log } from '@omniharness/kernel/kernel/util/logger.js';
 export { OmniHome } from '@omniharness/kernel/kernel/util/omniHome.js';
 export { OutputDecoder } from '@omniharness/kernel/kernel/util/outputDecoder.js';

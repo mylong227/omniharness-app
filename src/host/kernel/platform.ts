@@ -28,4 +28,3 @@ export type { Worker, WorkerRequest, WorkerResult } from '@omniharness/kernel/ke
 export { WorkerOrchestrator } from '@omniharness/kernel/kernel/worker/workerOrchestrator.js';
 export type { DelegateTask } from '@omniharness/kernel/kernel/worker/workerOrchestrator.js';
 export { WorkerRegistry } from '@omniharness/kernel/kernel/worker/workerRegistry.js';
-export { ErrorCode, OmniError } from '@omniharness/kernel/omniError.js';

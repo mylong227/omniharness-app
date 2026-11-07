@@ -5,7 +5,7 @@ import { BUILTIN_APPROVAL_RULES } from '../../../host/kernel-compat/kernel/adapt
 
 import type { SkillRegistry } from '../../../host/kernel/platform.ts';
 import type { AutomationStore } from '../services/automationStore.ts';
-import type { PluginRegistry } from '../../../host/kernel-compat/kernel/plugin/pluginRegistry.ts';
+import type { PluginRegistry } from '../../../host/kernel/plugin.js';
 import type { Transport } from '../transport/lineTransport.ts';
 import type { Metrics } from '../services/metrics.ts';
 import type { AuditSink } from '../services/auditSink.ts';

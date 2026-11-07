@@ -1,5 +1,5 @@
 import type { GraphSummary } from '../../../host/kernel-compat/kernel/autonomy/graphStore.ts';
-import type { PluginManifest } from '../../../host/kernel-compat/kernel/plugin/manifest.ts';
+import type { PluginManifest } from '../../../host/kernel/plugin.js';
 import { BUILTIN_AGENT_PERSONAS } from '../../../host/kernel-compat/kernel/subagent/agentPersonas.ts';
 
 /** 智能体目录条目的来源类型。 */

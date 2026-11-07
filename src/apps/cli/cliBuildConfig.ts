@@ -26,7 +26,7 @@ import { CliSubsystemSections } from './cliSubsystemSections.ts';
 import { DefaultPromptFragments } from '../../host/kernel/config.ts';
 
 import { ConsoleLiveView } from '../../host/kernel/adapters-misc.ts';
-import { PluginRegistry } from '../../host/kernel-compat/kernel/plugin/pluginRegistry.ts';
+import { PluginRegistry } from '../../host/kernel/plugin.js';
 import { AuditSink } from '../server/services/auditSink.ts';
 import {
   NetworkEgressGuard,

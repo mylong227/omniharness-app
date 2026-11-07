@@ -17,7 +17,7 @@ import {
   type InjectionSelfCheckSummary,
 } from '../../host/kernel-compat/kernel/security/injectionSelfCheck.ts';
 import type { SandboxCapabilityEntry } from '../../host/kernel/adapters-sandbox.ts';
-import { PluginWorkerMetrics } from '../../host/kernel-compat/kernel/plugin/worker/pluginWorkerMetrics.ts';
+import { PluginWorkerMetrics } from '../../host/kernel/plugin.js';
 
 /** 由**内核**强制隔离的 profile（其余为纯 TS 策略类：passthrough / policy / restricted）。 */
 const KERNEL_ENFORCED_PROFILES: ReadonlySet<string> = new Set([

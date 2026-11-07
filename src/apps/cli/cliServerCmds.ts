@@ -36,7 +36,7 @@ import { configFile } from '../../host/kernel/config.ts';
 import type { FileConfig } from '../../host/kernel/config.ts';
 import { ServeTrust } from './serveTrust.ts';
 import { CompositeLiveView, WebLiveView, ConsoleLiveView } from '../../host/kernel-compat/kernel/adapters/index.ts';
-import { PluginProfileStore } from '../../host/kernel-compat/kernel/plugin/pluginProfileStore.ts';
+import { PluginProfileStore } from '../../host/kernel/plugin.js';
 import { ArgParser } from './argParser.ts';
 import type { CliArgs } from './argParser.ts';
 import type { ResolvedConfig } from '../../host/kernel/contracts.ts';

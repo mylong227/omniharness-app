@@ -5,7 +5,7 @@ import { ServerServices } from './serverServices.ts';
 import { coreModules } from '../modules/index.ts';
 import { AutomationScheduler } from '../services/automationScheduler.ts';
 import { providerPresets } from '../services/providerPresets.ts';
-import type { PluginProfile, ApplyProfileResult } from '../../../host/kernel-compat/kernel/plugin/pluginProfileStore.ts';
+import type { PluginProfile, ApplyProfileResult } from '../../../host/kernel/plugin.js';
 
 export type { AppServerOptions } from './appServerState.ts';
 

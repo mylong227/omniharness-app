@@ -33,7 +33,6 @@ export { MODEL_ADAPTER_IDS } from '@omniharness/kernel/contracts/ports/model/mod
 export type { ModelAdapterId } from '@omniharness/kernel/contracts/ports/model/modelAdapterId.js';
 export type { AgentIdentityClaims, AgentIdentityConfig, AgentIdentityPort } from '@omniharness/kernel/contracts/ports/runtime/agentIdentity.js';
 export type { ApprovalDecision, ApprovalPort, ApprovalRequest } from '@omniharness/kernel/contracts/ports/runtime/approval.js';
-export type { ContainerPort } from '@omniharness/kernel/contracts/ports/runtime/containerPort.js';
 export type { EscalationDecision, EscalationDeniedBy, EscalationPort, EscalationRequest } from '@omniharness/kernel/contracts/ports/runtime/escalation.js';
 export type { EventType, SessionEvent } from '@omniharness/kernel/contracts/ports/runtime/event.js';
 export type { EventPort } from '@omniharness/kernel/contracts/ports/runtime/eventPort.js';
@@ -45,7 +44,6 @@ export type { RuntimeObservation, RuntimeTelemetryPort, TelemetryChainReport, Te
 export type { SandboxAction, SandboxDecision, SandboxDenialCategory, SandboxPort } from '@omniharness/kernel/contracts/ports/runtime/sandbox.js';
 export type { SandboxCapabilityEntry } from '@omniharness/kernel/contracts/ports/runtime/sandbox/sandboxCapabilityEntry.js';
 export type { RuntimeFailure } from '@omniharness/kernel/contracts/ports/runtime/sandboxDenial.js';
-export type { ServiceKeyLike } from '@omniharness/kernel/contracts/ports/runtime/serviceKeyLike.js';
 export type { MoireOptions, SkillPort } from '@omniharness/kernel/contracts/ports/runtime/skill.js';
 export type { CrisprEditSpec } from '@omniharness/kernel/contracts/ports/runtime/skillEdit/crisprEditSpec.js';
 export type { CRISPRSkillEditorPort } from '@omniharness/kernel/contracts/ports/runtime/skillEdit/crisprSkillEditorPort.js';
