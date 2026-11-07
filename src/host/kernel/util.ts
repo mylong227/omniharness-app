@@ -30,7 +30,7 @@ export { runtimeLimits } from '@omniharness/kernel/kernel/util/runtimeLimits.js'
 export { SessionArchiveLayout } from '@omniharness/kernel/kernel/util/sessionArchiveLayout.js';
 export { SessionSummaryBuilder } from '@omniharness/kernel/kernel/util/sessionSummaryBuilder.js';
 export type { SessionSummary } from '@omniharness/kernel/kernel/util/sessionSummaryBuilder.js';
-export { readSessionSummary, sessionSummaryPath, writeSessionSummary } from '@omniharness/kernel/kernel/util/sessionSummarySidecar.js';
+export { SessionSummarySidecar } from '@omniharness/kernel/kernel/util/sessionSummarySidecar.js';
 export { PathTraversalError, WorkspaceGuard } from '@omniharness/kernel/kernel/util/workspaceGuard.js';
 export { WorkspaceIdentity } from '@omniharness/kernel/kernel/util/workspaceIdentity.js';
 export { ReasoningBudget } from '@omniharness/kernel/kernel/util/reasoningBudget.js';

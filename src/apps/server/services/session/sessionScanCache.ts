@@ -26,7 +26,7 @@
 import { readFile, stat } from 'node:fs/promises';
 import { SessionFileScanner } from './sessionFileScanner.ts';
 import { SessionSummaryBuilder, type SessionSummary } from '../../../../host/kernel/util.ts';
-import { readSessionSummary, writeSessionSummary } from '../../../../host/kernel/util.ts';
+import { SessionSummarySidecar } from '../../../../host/kernel/util.ts';
 
 export type { SessionSummary } from '../../../../host/kernel/util.ts';
 
@@ -171,7 +171,7 @@ export class SessionScanCache {
     file: string,
     stamp: { readonly mtimeMs: number; readonly size: number },
   ): Promise<SessionSummary | undefined> {
-    const sidecar = await readSessionSummary(file);
+    const sidecar = await SessionSummarySidecar.readSessionSummary(file);
     if (sidecar !== undefined && sidecar.size === stamp.size) {
       return sidecar.summary;
     }
@@ -188,7 +188,7 @@ export class SessionScanCache {
     }
     const summary = builder.build();
     // 不 await：列表刷新不该为「优化旁路」多付 409 次写；失败下次解析会重试。
-    void writeSessionSummary(file, stamp.size, summary).catch(() => undefined);
+    void SessionSummarySidecar.writeSessionSummary(file, stamp.size, summary).catch(() => undefined);
     return summary;
   }
 

@@ -63,6 +63,7 @@ const surfaceDir = join(ROOT, 'src', 'host', 'kernel');
 let packageImports = 0;
 const leaks = [];
 const offSurfaceImports = [];
+const deepSpecs = new Set();
 for (const file of srcFiles) {
   const text = readFileSync(file, 'utf8');
   let match;
@@ -70,6 +71,8 @@ for (const file of srcFiles) {
     const spec = match[1];
     if (spec.startsWith('@omniharness/kernel/') || spec === '@omniharness/kernel') {
       packageImports += 1;
+      // M21：深路径 spec 收集（供「导入 ⊆ 内核承诺清单」机检）
+      if (spec.startsWith('@omniharness/kernel/')) deepSpecs.add(spec.slice('@omniharness/kernel/'.length));
       // 判据 7：包导入只允许出现在对接面目录
       const dir = resolve(dirname(file));
       if (dir !== surfaceDir && !dir.startsWith(surfaceDir + sep)) {
@@ -95,6 +98,21 @@ if (offSurfaceImports.length > 0) {
       `（只允许 src/host/kernel/<area>.ts）：\n    ` +
       [...new Set(offSurfaceImports)].slice(0, 10).join('\n    '),
   );
+}
+
+// 4.5 M21 Phase 2：实际导入 ⊆ 内核 exports 显式承诺清单。
+// 内核 alpha.9 起删除 `"./*"` 通配——未列条目在 install/运行期直接 404，这里提前到门禁红。
+const kernelPkgPath = join(ROOT, 'node_modules', '@omniharness', 'kernel', 'package.json');
+if (existsSync(kernelPkgPath)) {
+  const kernelExports = JSON.parse(readFileSync(kernelPkgPath, 'utf8')).exports ?? {};
+  const promised = new Set(Object.keys(kernelExports));
+  const unlisted = [...deepSpecs].filter((spec) => !promised.has(`./${spec}`)).sort();
+  if (unlisted.length > 0) {
+    fail(
+      `实际导入超出内核承诺清单（${String(unlisted.length)} 条——通配桥已删，这些导入 install 期会 404）：\n    ` +
+        unlisted.slice(0, 10).join('\n    '),
+    );
+  }
 }
 
 // 5. tarball 与锁文件 integrity 一致

@@ -11,7 +11,7 @@ import {
 import { readdir, stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { sessionSummaryPath } from '../../../../host/kernel/util.ts';
+import { SessionSummarySidecar } from '../../../../host/kernel/util.ts';
 import type { Metrics } from '../metrics.ts';
 import type { LocalDay } from '../../../../host/kernel-compat/kernel/util/localDay.ts';
 import { SessionSidecars } from './sessionSidecars.ts';
@@ -317,12 +317,12 @@ export class SessionArchive {
       : SessionArchiveLayout.restore(dir, sessionId);
     if (move === 'missing') return { ok: false, error: 'session_not_found' };
     // 旁路摘要跟着存档一起挪：否则归档会话在主目录留一份孤儿、归档目录又要重新解析。
-    const sideBefore = sessionSummaryPath(
+    const sideBefore = SessionSummarySidecar.sessionSummaryPath(
       archived
         ? SessionArchiveLayout.mainFileOf(dir, sessionId)
         : SessionArchiveLayout.archivedFileOf(dir, sessionId),
     );
-    const sideAfter = sessionSummaryPath(
+    const sideAfter = SessionSummarySidecar.sessionSummaryPath(
       archived
         ? SessionArchiveLayout.archivedFileOf(dir, sessionId)
         : SessionArchiveLayout.mainFileOf(dir, sessionId),
@@ -419,7 +419,7 @@ export class SessionArchive {
     if (this.isRunning(sessionId)) return { ok: false, error: 'session_running' };
     rmSync(file, { force: true });
     // 删除旁路摘要：它只是缓存，但留着会变成孤儿文件（小，但会随删除累积）。
-    rmSync(sessionSummaryPath(file), { force: true });
+    rmSync(SessionSummarySidecar.sessionSummaryPath(file), { force: true });
     const map = this.sidecars.readTitles();
     if (map[sessionId] !== undefined) {
       delete map[sessionId];
