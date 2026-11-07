@@ -12,7 +12,6 @@ export { Benchmark } from '@omniharness/kernel/kernel/evolution/benchmark.js';
 export { EvolutionControllerImpl } from '@omniharness/kernel/kernel/evolution/evolutionControllerImpl.js';
 export { FailClosedEvolutionGate } from '@omniharness/kernel/kernel/evolution/failClosedEvolutionGate.js';
 export type { BenchmarkFn, FailClosedEvolutionGateOptions, SafetyCheck } from '@omniharness/kernel/kernel/evolution/failClosedEvolutionGate.js';
-export type { ImprovementProposal } from '@omniharness/kernel/kernel/evolution/failurePatternMiner.js';
 export { HashChainPromotionLedger } from '@omniharness/kernel/kernel/evolution/hashChainPromotionLedger.js';
 export { RlvrController } from '@omniharness/kernel/kernel/evolution/rlvrController.js';
 export type { RlvrEvolutionBundle, RlvrEvolutionOptions } from '@omniharness/kernel/kernel/evolution/rlvrController.js';

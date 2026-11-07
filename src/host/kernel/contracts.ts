@@ -44,8 +44,6 @@ export type { SandboxAction, SandboxDecision, SandboxDenialCategory, SandboxPort
 export type { SandboxCapabilityEntry } from '@omniharness/kernel/contracts/ports/runtime/sandbox/sandboxCapabilityEntry.js';
 export type { RuntimeFailure } from '@omniharness/kernel/contracts/ports/runtime/sandboxDenial.js';
 export type { MoireOptions, SkillPort } from '@omniharness/kernel/contracts/ports/runtime/skill.js';
-export type { CrisprEditSpec } from '@omniharness/kernel/contracts/ports/runtime/skillEdit/crisprEditSpec.js';
-export type { CRISPRSkillEditorPort } from '@omniharness/kernel/contracts/ports/runtime/skillEdit/crisprSkillEditorPort.js';
 export type { AuditSinkLike, HealthEntry, HealthSnapshot, SafeMode, SupervisorOptions, SupervisorPort } from '@omniharness/kernel/contracts/ports/runtime/supervisor.js';
 export type { TodoItem, TodoPort, TodoStatus } from '@omniharness/kernel/contracts/ports/runtime/todo.js';
 export type { ToolGatePort } from '@omniharness/kernel/contracts/ports/runtime/toolGatePort.js';
