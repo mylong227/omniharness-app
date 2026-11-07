@@ -1,6 +1,6 @@
 # 本仓与内核（`@omniharness/kernel`）的契约
 
-> 实测日期 2026-11-07。**结论**：应用消费 vendored `@omniharness/kernel@0.1.0-alpha.13`，
+> 实测日期 2026-11-08。**结论**：应用消费 vendored `@omniharness/kernel@0.1.0-alpha.13`，
 > 全部内核导入收敛于 **`src/host/kernel/` 分域对接面**（17 个**自动生成**的域文件，
 > `npm run kernel:check` 第 7 条强制单点、第 8 条拒绝生成物漂移）；内核切片清掉、
 > app 仍需要的能力收留于 **`src/host/extensions/`**（app 自有扩展层，原 `kernel-compat/`，
@@ -112,6 +112,6 @@ M22–M30 的每一轮内核升级都走的这条回路，常态业务代码零�
 | `npm run typecheck`（后端 / 前端 / 桌面） | ✅ 0 error |
 | `npm run kernel:check` | ✅ 265 源文件 / 316 处包导入（17 域，全部收敛对接面）/ 内嵌副本 0 / integrity 一致 / native ping / 生成物一致 |
 | `npm run build` + `npm run smoke` | ✅ 7/7（banner token、healthz、readyz、HTML、config.get、sessions.list、原生内核实载） |
-| `npm run web:test` | ✅ 158 文件 / 755 用例（web 149 + 后端 9；含 parity/守卫/家具/golden） |
-| `npm run desktop:build` + `desktop:test` | ✅ 30/30 |
+| `npm run web:test` | ✅ 163 文件 / 772 用例（web 152 + 后端 11；含 parity/守卫/家具/golden） |
+| `npm run desktop:build` + `desktop:test` | ✅ 34/34 |
 | 嵌入 API 实测 | ✅ `createOmniHarness` 启动 / healthz 200 / RPC 往返 / 优雅关闭（tests/embedApi.test.ts 常规跑） |

@@ -196,6 +196,13 @@ export const EN_MISC: Record<string, string> = {
     'A tool call is awaiting approval; return to OmniHarness to handle it.',
   需要你的回答: 'Your answer is needed',
   'Agent 正在等待你的回答。': 'The agent is waiting for your answer.',
+  // 单槽排队与挂起恢复提示（2026-11-08 审计：审批/提问单槽占用不覆盖 + 恢复失败可见化）
+  '已有一条审批在等待：新请求已排队，处理完当前卡片后自动接续':
+    'An approval is already waiting: the new request is queued and will appear after the current card is handled.',
+  '已有一个提问在等待：新提问已排队，回答完当前后自动接续':
+    'A question is already waiting: the new one is queued and will appear after the current one is answered.',
+  '挂起审批恢复失败，可刷新页面重试': 'Failed to restore pending approvals; refresh the page to retry.',
+  '挂起提问恢复失败，可刷新页面重试': 'Failed to restore pending questions; refresh the page to retry.',
   回合完成: 'Turn complete',
   'Agent 已完成本轮任务。': 'The agent has finished this turn.',
   外部链接: 'External links',
