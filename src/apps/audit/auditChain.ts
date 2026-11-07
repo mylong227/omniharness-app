@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { AuditCanonical } from './auditCanonical.ts';
+import { Jcs } from '../../host/kernel/util.ts';
 import type { AuditChainedRecord, AuditChainVerification, AuditRecord } from './auditTypes.ts';
 
 /**
@@ -34,7 +34,7 @@ export class AuditChain {
     const chained: AuditChainedRecord[] = [];
     let prev = AuditChain.GENESIS;
     for (const record of records) {
-      const hash = this.hashOf(prev, AuditCanonical.stringify(record));
+      const hash = this.hashOf(prev, Jcs.serialize(record));
       chained.push({ prev, hash, record });
       prev = hash;
     }
@@ -60,7 +60,7 @@ export class AuditChain {
           reason: index === 0 ? 'genesis' : 'prev',
         };
       }
-      const expected = this.hashOf(prev, AuditCanonical.stringify(item.record));
+      const expected = this.hashOf(prev, Jcs.serialize(item.record));
       if (item.hash !== expected) {
         return { ok: false, brokenAt: index, reason: 'hash' };
       }
@@ -78,7 +78,7 @@ export class AuditChain {
    * 就能绕过 hits 对账——这正是方案要求的「防删了痕迹」。非脱敏报告（无 redaction 或
    * mode off）仍用裸链头，存量报告不受影响。浏览器内嵌复核器实现了同一公式。
    * @param head 链头（末条记录哈希；空链为创世哈希）。
-   * @param canonicalRedaction 脱敏摘要的规范 JSON（`AuditCanonical.stringify`）。
+   * @param canonicalRedaction 脱敏摘要的规范 JSON（`Jcs.serialize`，内核单一真源）。
    * @returns 64 位十六进制封印。
    */
   public seal(head: string, canonicalRedaction: string): string {

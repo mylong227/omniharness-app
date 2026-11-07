@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { AuditCanonical } from './auditCanonical.ts';
+import { Jcs } from '../../host/kernel/util.ts';
 import { AuditChain } from './auditChain.ts';
 import { AuditRedactor } from './auditRedactor.ts';
 import { AuditReportStore } from './auditReportStore.ts';
@@ -67,7 +67,7 @@ export class AuditReportVerifier {
     // `seal(链头, 规范JSON(redaction))`——删掉 redaction 字段、把 mode 改回 off、
     // 或改 rules，都会在这里对不上（`head` 红）。非脱敏报告仍是裸链头。
     const expectedHead = redacted
-      ? this.chain.seal(chainHead, AuditCanonical.stringify(redaction))
+      ? this.chain.seal(chainHead, Jcs.serialize(redaction))
       : chainHead;
     if (report.integrity.head !== expectedHead) {
       return {

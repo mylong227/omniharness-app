@@ -1,5 +1,5 @@
 import { basename } from 'node:path';
-import { AuditCanonical } from './auditCanonical.ts';
+import { Jcs } from '../../host/kernel/util.ts';
 import { AuditChain } from './auditChain.ts';
 import type {
   AuditChainedRecord,
@@ -46,7 +46,7 @@ export class AuditReportBuilder {
     // 删字段/改 mode 都会让复核器的 head 对账失败。off（或无摘要）保持裸链头，兼容存量。
     const sealed = options.redaction !== undefined && options.redaction.mode !== 'off';
     const head = sealed
-      ? this.chain.seal(chainHead, AuditCanonical.stringify(options.redaction))
+      ? this.chain.seal(chainHead, Jcs.serialize(options.redaction))
       : chainHead;
     return {
       schema: 'omniharness.audit.report/v1',
