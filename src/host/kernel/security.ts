@@ -14,4 +14,4 @@ export { SandboxDenial } from '@omniharness/kernel/kernel/security/sandboxDenial
 export { SsrfGuard } from '@omniharness/kernel/kernel/security/ssrfGuard.js';
 export { SsrfPolicy } from '@omniharness/kernel/kernel/security/ssrfPolicy.js';
 export { ToolOutputTrust } from '@omniharness/kernel/kernel/security/toolOutputTrust.js';
-export type { TrustTier } from '@omniharness/kernel/kernel/security/toolOutputTrust.js';
+export type { ContentTrustTier } from '@omniharness/kernel/contracts/ports/security/trustTier.js';

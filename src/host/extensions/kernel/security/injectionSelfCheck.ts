@@ -22,12 +22,12 @@
 import { builtinDefaults } from '../../../kernel/util.ts';
 import { InjectionMetric } from './injectionMetric.ts';
 import type { InjectionCase, SnapshotReport } from './injectionSnapshotAggregator.ts';
-import type { TrustTier } from '../../../kernel/security.ts';
+import type { ContentTrustTier } from '../../../kernel/security.ts';
 
 /** 快照文件在 `defaults/` 下的数据名（`BuiltinDefaults.json` 口径，I6 门禁据此强制随包发布）。 */
 const SNAPSHOT_NAME = 'injection-snapshot';
 
-/** 来源信任级全集（`ToolOutputTrust` 的 `TrustTier`；快照校验用，避免反向依赖实现类）。 */
+/** 来源信任级全集（`ToolOutputTrust` 的 `ContentTrustTier`；快照校验用，避免反向依赖实现类）。 */
 const TRUST_TIERS = ['external', 'file', 'local', 'memory', 'unknown'] as const;
 
 /**
@@ -124,8 +124,8 @@ export class InjectionSelfCheck {
       label,
       category,
       text,
-      // 已经过上面 TRUST_TIERS 成员校验，此处收窄为 TrustTier（非 any）。
-      ...(typeof source === 'string' ? { source: source as TrustTier } : {}),
+      // 已经过上面 TRUST_TIERS 成员校验，此处收窄为 ContentTrustTier（非 any）。
+      ...(typeof source === 'string' ? { source: source as ContentTrustTier } : {}),
     };
   }
 

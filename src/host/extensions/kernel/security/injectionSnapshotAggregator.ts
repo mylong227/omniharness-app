@@ -9,7 +9,7 @@
  * - TP = 恶意且被拦截；FN = 恶意且放行；FP = 良性且被拦截；TN = 良性且放行。
  * - recall = TP/(TP+FN)；falsePositiveRate = FP/(FP+TN)；precision = TP/(TP+FP)。
  */
-import { ToolOutputTrust, type TrustTier } from '../../../kernel/security.ts';
+import { ToolOutputTrust, type ContentTrustTier } from '../../../kernel/security.ts';
 
 /** 单条注入用例（来自离线快照）。 */
 export interface InjectionCase {
@@ -22,7 +22,7 @@ export interface InjectionCase {
   /** 待扫描文本。 */
   readonly text: string;
   /** 内容来源信任级（可选；缺省按 `unknown` 判定，即 P4 之前的统一敏感度）。 */
-  readonly source?: TrustTier;
+  readonly source?: ContentTrustTier;
 }
 
 /** 单条用例的判定结果。 */
@@ -34,7 +34,7 @@ export interface CaseOutcome {
   /** 类别。 */
   readonly category: string;
   /** 判定所用的来源信任级。 */
-  readonly tier: TrustTier;
+  readonly tier: ContentTrustTier;
   /** 护栏是否拦截。 */
   readonly blocked: boolean;
   /** 命中规则数。 */
@@ -144,7 +144,7 @@ export class InjectionSnapshotAggregator {
   /** 良性子集按类别累加。 */
   private readonly benByCat = new Map<string, CategoryAccumulator>();
   /** 按来源信任级累加。 */
-  private readonly bySourceAcc = new Map<TrustTier, SourceAccumulator>();
+  private readonly bySourceAcc = new Map<ContentTrustTier, SourceAccumulator>();
 
   /**
    * 记录一条用例的判定结果（累加计数与分组）。
@@ -155,7 +155,7 @@ export class InjectionSnapshotAggregator {
    * @param hits 命中规则数（扫描器异常时调用方传 0）。
    * @returns 该用例的逐例结果（调用方按原序收集为报告的 cases）。
    */
-  public record(c: InjectionCase, tier: TrustTier, blocked: boolean, hits: number): CaseOutcome {
+  public record(c: InjectionCase, tier: ContentTrustTier, blocked: boolean, hits: number): CaseOutcome {
     const srcAgg = this.bySourceAcc.get(tier) ?? { malicious: 0, detected: 0, benign: 0, fp: 0 };
     if (c.label === 'malicious') {
       if (blocked) {

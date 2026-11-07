@@ -118,10 +118,23 @@ test('SSE 徽标三态（重连中不闪红）+ .ev 不得再有入场动画', {
     assert.strictEqual(afterGrace!.text, '已连接', '重连成功后的宽限定时器必须被清掉（不得 4s 后刷成断开）');
 
     // ④ 真断线：抖动后再不恢复 → 宽限期到点后落成「断开」（证明三态不是「永远重连中」）
-    await cdp.evaluate("(function(){ var es=(window.__SOURCES__||[])[0]; es.readyState = 0; es.onerror({}); return true; })()");
+    // 2026-11-08 修：宽限期是 4_000ms，原断言只等 1_200ms——在宽限期内必然仍是「重连中」，
+    // 这条判据按定义不可能通过（历史假绿）。另外宽限到点会 `reconnect()`，测试桩的
+    // EventSource 会在 0ms 后 onopen，把「断开」瞬间刷回「已连接」→ 观测量本身不可稳定观测。
+    // 这里在触发断线后把 EventSource 换成**永不 onopen** 的同形桩，只保留「到点判定 closed」语义。
+    await cdp.evaluate(`(function(){
+      var NoOpen = function(url){ this.url = url; this.readyState = 0; this.onopen = null; this.onerror = null; this.onmessage = null; };
+      NoOpen.prototype.close = function(){ this.readyState = 2; };
+      var es = (window.__SOURCES__ || [])[0];
+      if (!es) return false;
+      es.readyState = 0;
+      es.onerror({});
+      window.EventSource = NoOpen;
+      return true;
+    })()`);
     assert.ok(
-      await cdp.waitFor("((document.querySelector('.side-foot .pill')||{}).textContent||'').trim() === '断开'", 1200),
-      '宽限期内未恢复应落成「断开」',
+      await cdp.waitFor("((document.querySelector('.side-foot .pill')||{}).textContent||'').trim() === '断开'", 5_500),
+      '宽限期到点后应落成「断开」',
     );
   } finally {
     if (cdp !== undefined) cdp.close();

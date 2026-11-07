@@ -6,6 +6,17 @@
 ## [Unreleased]
 
 ### Changed（变更）
+- **内核钉版升级 alpha.13 → alpha.14（2026-11-08 审计整改同步）**：vendor 升级至
+  `vendor/omniharness-kernel-0.1.0-alpha.14.tgz`（内核侧 25 个提交：P0 15 / P1 57 / P2/P3 分批闭环）。
+  应用侧同步：
+  - 对接面 `security.ContentTrustTier`（内核安全域 `TrustTier` 改名，与资产域 `TrustTier` 区分）；
+    `injectionSelfCheck` / `injectionSnapshotAggregator` 随迁，`kernel:surface` 重新生成；
+  - 内核恢复会话旁路摘要（`SessionSummaryBuilder` / `SessionSummarySidecar`）——应用
+    `sessionScanCache` / `sessionArchive` 是其生产消费者，升级后无需改动；
+  - `kernel:check` 通过（265 源文件 / 316 处包导入 / vendored integrity / 原生内核）。
+- **web SSE 三态判据修正（2026-11-08）**：`streamStability.test.ts` 第 ④ 步原只等 1.2s 断言
+  「断开」，而宽限期是 4s（判据按定义不可能通过，历史假绿）；改为在触发断线后替换为
+  「永不 onopen」的同形 EventSource 桩，等待越过 4s 宽限期再断言，消除重连竞态。
 - **双定时器统一（M30）**：server 自动化收敛到 RoutineScheduler 调度核心（与 CLI daemon 共享 routines.json，scope 隔离驱动方），AutomationStore / AutomationScheduler 退役；`automations.*` RPC 形状与执行语义逐字不变（web 面零改动），旧 automations.json 首次启动自动迁移（按 id 幂等、改名 .migrated 留证）；自动化自此支持 cron 调度（注入 CronSchedulePort 即用）。
 - **审计 canonical 收敛内核单一真源（M29）**：auditChain / auditReportBuilder / auditReportVerifier
   改用内核 `Jcs.serialize`（alpha.13 新承诺 `kernel/receipts/jcs.js` + 深度护栏 `MAX_DEPTH=64`），
