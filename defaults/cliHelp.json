@@ -246,10 +246,6 @@
       "description": "(U4) RLVR 进化闭环（默认关）：StarPO 采样→可验证奖励（CMD 中 %CODE_FILE% 换成候选代码临时文件，退出 0 即绿）→绿样本进回放缓冲，仅绿样本晋升；--evolution-kernel 切 GEE Kernel 七环编排（信号→档案→级联→门禁→台账→晋升→观测，默认关）"
     },
     {
-      "spec": "--a2a [--a2a-port N] [--a2a-peer URL] [--a2a-transport {{a2aTransports}}]",
-      "description": "(U6) A2A 互操作（默认关）：起对等 agent 服务端监听并对接委托客户端，本端可被对等委托、也可委托对端"
-    },
-    {
       "spec": "--acp-permission {{acpPermissionModes}}",
       "description": "ACP（`omniharness acp`）权限策略：client=写类工具向编辑器发 session/request_permission；auto=全部自动放行"
     },

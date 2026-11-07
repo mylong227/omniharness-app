@@ -3,7 +3,6 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ACP_PERMISSION_MODES } from '../../host/kernel/protocols.ts';
 import {
-  A2A_TRANSPORTS,
   APPROVAL_ASKS,
   APPROVALS,
   BUDGET_ON_EXCEED,
@@ -38,7 +37,6 @@ export const HELP_ENUM_SOURCES: Readonly<Record<string, readonly string[]>> = {
   spillAdapters: SPILL_ADAPTERS,
   outputFormats: OUTPUT_FORMATS,
   kvAdapters: KV_ADAPTERS,
-  a2aTransports: A2A_TRANSPORTS,
   budgetOnExceed: BUDGET_ON_EXCEED,
   enforcementModes: ENFORCEMENT_MODES,
   decisionEngineModes: DECISION_ENGINE_MODES,

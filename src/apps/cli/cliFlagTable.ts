@@ -16,7 +16,6 @@ import {
   SPILL_ADAPTERS,
   OUTPUT_FORMATS,
   KV_ADAPTERS,
-  A2A_TRANSPORTS,
   BUDGET_ON_EXCEED,
   ENFORCEMENT_MODES,
   DECISION_ENGINE_MODES,
@@ -42,7 +41,6 @@ export const FLAG_ENUM_VALUES: Readonly<Record<string, readonly string[]>> = {
   '--spill-adapter': SPILL_ADAPTERS,
   '--events': EVENT_PORTS,
   '--kv-adapter': KV_ADAPTERS,
-  '--a2a-transport': A2A_TRANSPORTS,
   '--output-format': OUTPUT_FORMATS,
   '--cost-budget-on-exceed': BUDGET_ON_EXCEED,
   '--acp-permission': ['client', 'auto'],
@@ -476,22 +474,6 @@ const FLAG_TABLE: Record<string, FlagApply> = {
   },
   // (U4) RLVR 进化闭环：默认关。开启后装配期构造「可验证门禁 + RLVR sample-filter-replay」控制器；
   // 验证命令含 %CODE_FILE% 时先把候选代码写入临时文件再跑（真实编译/测试绿度即奖励信号）。
-  '--a2a': (a) => {
-    a.a2a = true;
-    return 0;
-  },
-  '--a2a-port': (a, argv, i) => {
-    a.a2aPort = CliFlagTable.numberOf(argv, i, '--a2a-port');
-    return 1;
-  },
-  '--a2a-peer': (a, argv, i) => {
-    a.a2aPeer = CliFlagTable.valueOf(argv, i, '--a2a-peer');
-    return 1;
-  },
-  '--a2a-transport': (a, argv, i) => {
-    a.a2aTransport = CliFlagTable.enumOf(argv, i, '--a2a-transport', A2A_TRANSPORTS);
-    return 1;
-  },
   '--evolution-rlvr': (a) => {
     a.evolutionRlvr = true;
     return 0;

@@ -80,9 +80,6 @@ export const VALUE_FLAGS: ReadonlySet<string> = new Set([
   '--rlvr-min-gain',
   '--rlvr-ledger-dir',
   '--rlvr-archive-max',
-  '--a2a-port',
-  '--a2a-peer',
-  '--a2a-transport',
   // 以下 4 项由 `cliFlagValueRegistry.test.ts` 护栏抓出（同为历史漏登记，取值会被并入 prompt）。
   '--network-allow',
   '--events',

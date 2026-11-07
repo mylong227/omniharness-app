@@ -202,17 +202,6 @@ export interface CliArgs {
   rlvrLedgerDir?: string | undefined;
   /** （Kernel 路径）候选档案每工况桶精英上限（`--rlvr-archive-max`，默认 4）。 */
   rlvrArchiveMax?: number | undefined;
-  /**
-   * (U6) A2A 互操作开关（`--a2a`；**默认关**）：运行时起 A2aServer 监听并对接 A2aClient，
-   * 本端既可被对等委托、也可委托对端（server 侧跑真实子 agent）。缺省关 = 零行为变更。
-   */
-  a2a?: boolean | undefined;
-  /** A2A 服务端监听端口（`--a2a-port`，默认 8790）。 */
-  a2aPort?: number | undefined;
-  /** A2A 对端端点（`--a2a-peer`；缺省按 transport 派生本地端点）。 */
-  a2aPeer?: string | undefined;
-  /** A2A 传输形态（`--a2a-transport http|ws`，默认 http）。 */
-  a2aTransport?: 'http' | 'ws' | undefined;
   /** 文本流式输出（V2.1，--stream-text）：模型正文 token 级流式打到 stdout，末尾不再重复打印 finalText。 */
   streamText?: boolean | undefined;
   /** 回合 token 预算（V2.1，--turn-token-budget N）：累计 usage 超限停止步进，交由总结收尾。 */

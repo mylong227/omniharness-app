@@ -28,12 +28,12 @@ export class CliSubsystemSections {
   /**
    * 把 CLI 参数里的可选子系统映射成 `partial` 片段。
    *
-   * 当前覆盖三段：
+   * 当前覆盖两段：
    * - **(U4) RLVR 进化闭环**（`--evolution-rlvr` 及其子旗标）：未给 `--rlvr-verify` 时
    *   `verifyCommand` 缺省 ⇒ RLVR 奖励恒 0（无绿样本进回放，fail-closed 安全旁路）。
-   * - **(U6) A2A 互操作**（`--a2a` 及其子旗标）：缺省不起监听、不连对端。
    * - **媒体抽帧**（配置文件 `media` 段，`view_media` 工具）：整段透传，结构与编程注入
    *   同一份；不写时 `MediaConfigResolver` 仍给出全默认并收敛 ⇒ 与「显式写了默认值」等价。
+   *   （历史：第三段 A2A 互操作已随内核 M4 退役，CLI 旗标面于 2026-11-08 一并删除。）
    *
    * @param args 解析后的 CLI 参数。
    * @returns 需并入 `partial` 的可选段；**未配置的段不出现**（而不是出现为 `undefined`）。
@@ -56,16 +56,6 @@ export class CliSubsystemSections {
               ...(args.rlvrArchiveMax !== undefined
                 ? { archiveMaxPerBucket: args.rlvrArchiveMax }
                 : {}),
-            },
-          }
-        : {}),
-      ...(args.a2a === true
-        ? {
-            a2a: {
-              enabled: true,
-              ...(args.a2aPort !== undefined ? { port: args.a2aPort } : {}),
-              ...(args.a2aPeer !== undefined ? { peerEndpoint: args.a2aPeer } : {}),
-              ...(args.a2aTransport !== undefined ? { transport: args.a2aTransport } : {}),
             },
           }
         : {}),

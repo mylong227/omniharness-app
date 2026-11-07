@@ -66,10 +66,6 @@ export const KV_ADAPTERS = [
   'json-file',
   'sqlite',
 ] as const satisfies readonly NonNullable<CliArgs['kvAdapter']>[];
-/** (U6) A2A 传输形态白名单（枚举参数 fail-closed 校验，禁裸强转）。 */
-export const A2A_TRANSPORTS = ['http', 'ws'] as const satisfies readonly NonNullable<
-  CliArgs['a2aTransport']
->[];
 /** (P5) 成本预算耗尽行为白名单（枚举参数 fail-closed 校验，禁裸强转）。 */
 export const BUDGET_ON_EXCEED = ['fail', 'warn'] as const satisfies readonly NonNullable<
   CliArgs['costBudgetOnExceed']
