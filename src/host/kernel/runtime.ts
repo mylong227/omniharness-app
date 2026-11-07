@@ -8,5 +8,5 @@
  * 分域原因：按域加载——根入口整包实测 ~780ms，单域 ~60ms（Node 22，见 vendor/README.md）。
  */
 
-export { Runtime } from '@omniharness/kernel';
 export { ServiceKeys } from '@omniharness/kernel/kernel/composition/serviceKeys.js';
+export { Runtime } from '@omniharness/kernel/kernel/composition/runtime.js';

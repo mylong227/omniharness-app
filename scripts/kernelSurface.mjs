@@ -9,7 +9,9 @@
  * `export` / `export type`。本脚本把它变成**生成物**：
  *
  *   1. 扫 `src/**`（排除 17 个生成物），收集业务代码实际从 `host/kernel/<area>.ts` 导入的符号；
- *   2. 用现有对接面（若有）或内核包 `dist/**\/*.d.ts` 的导出索引，解析每个符号的**真实模块**；
+ *   2. 解析每个符号的**真实模块**——M21 Phase 3 起解析源 = 内核承诺面：现有对接面映射与
+ *      dist 索引候选都先过「内核 exports 显式清单」过滤，未承诺命中黄标（生成继续，
+ *      kernel:check 的「导入 ⊆ 承诺清单」红灯是硬门禁，倒逼内核先显式导出）；
  *   3. 按域生成只含**实际使用**符号的 re-export；`kernel:check` 第 8 条判据拒绝漂移。
  *
  * 于是新增符号的姿势变成：业务代码照常 `import { X } from '../../host/kernel/<area>.ts'`
@@ -33,6 +35,32 @@ import { fileURLToPath } from 'node:url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SURFACE = join(ROOT, 'src', 'host', 'kernel');
 const KERNEL_DIST = join(ROOT, 'node_modules', '@omniharness', 'kernel', 'dist');
+const KERNEL_PKG = join(ROOT, 'node_modules', '@omniharness', 'kernel', 'package.json');
+const PKG_PREFIX = '@omniharness/kernel/';
+const ROOT_SPEC = '@omniharness/kernel';
+
+/**
+ * 读内核包的**承诺清单**（M21 Phase 2：exports 通配已删，显式条目即承诺面）。
+ * @returns {Set<string>} spec 集合：深路径（不带包前缀，如 `kernel/util/foo.js`）与
+ *   根入口（`@omniharness/kernel`，exports 键 `.`）。
+ */
+function readPromisedSpecs() {
+  const promised = new Set();
+  if (!existsSync(KERNEL_PKG)) return promised;
+  const exportsMap = JSON.parse(readFileSync(KERNEL_PKG, 'utf8')).exports ?? {};
+  for (const key of Object.keys(exportsMap)) {
+    if (key === '.') promised.add(ROOT_SPEC);
+    else if (key.startsWith('./')) promised.add(key.slice(2));
+  }
+  return promised;
+}
+
+/** spec 是否在承诺清单内（根导入短路；深路径剥包前缀后查集合——域文件与 dist 索引
+ *  存的都是全 spec，清单存的是去前缀形态，两侧口径在此对齐）。 */
+function isPromised(spec, promised) {
+  if (spec === ROOT_SPEC) return true;
+  return promised.has(spec.startsWith(PKG_PREFIX) ? spec.slice(PKG_PREFIX.length) : spec);
+}
 
 /** 对接面文件名（`<area>.ts`；下划线/连字符与数字，避免误伤子目录里的实现文件）。 */
 const AREA_FILE = /^[a-z0-9_-]+\.ts$/;
@@ -225,19 +253,44 @@ function readKernelIndex() {
  * @param {string} name 符号名
  * @param {ReturnType<typeof readCurrentSurface>} surface 现有对接面
  * @param {ReturnType<typeof readKernelIndex>} kernelIndex 内核包索引
+ * @param {Set<string>} promised 内核承诺清单（exports 显式条目，M21 Phase 3）
+ * @param {Set<string>} unpromised 未承诺命中收集器（黄标：内核需先显式导出）
  * @returns {{ spec: string, typeOnly: boolean } | undefined}
  */
-function resolveSymbol(area, name, surface, kernelIndex) {
+function resolveSymbol(area, name, surface, kernelIndex, promised, unpromised) {
+  const stale = (spec) => unpromised.add(`${area}::${name} -> ${spec}`);
+  // 1) 现有对接面映射：**仍被内核承诺**才算数——通配已删，stale 自续会指向已从承诺面
+  //    消失的路径（M20 时代「stale 行自我永续」缺陷的根治点）；未承诺则黄标并落向下重解析。
   const local = surface.get(area)?.get(name);
-  if (local !== undefined) return local;
-  // 同名符号可能在不同域指向不同模块（TrustTier 就有两个）。只有全仓唯一映射才可直接回退；
-  // 多域同名时交给内核包索引 + 本域已用模块消歧，避免把两个不同符号混成一个。
+  if (local !== undefined) {
+    if (isPromised(local.spec, promised)) return local;
+    stale(local.spec);
+  }
+  // 2) 同名符号可能在不同域指向不同模块（TrustTier 就有两个）。只有全仓唯一映射才可直接
+  //    回退；多域同名时交给内核包索引 + 本域已用模块消歧，避免把两个不同符号混成一个。
+  //    同样只认已承诺映射。
   const hits = [...surface.values()].filter((map) => map.has(name));
-  if (hits.length === 1) return hits[0].get(name);
+  if (hits.length === 1) {
+    const candidate = hits[0].get(name);
+    if (isPromised(candidate.spec, promised)) return candidate;
+    stale(candidate.spec);
+  }
   const candidates = kernelIndex.get(name) ?? [];
-  if (candidates.length === 1) return candidates[0];
   if (candidates.length === 0) return undefined;
-  // 同名多模块：优先选该域已经用过的模块，避免把两个不同符号混成一个。
+  // 3) M21 Phase 3：dist 索引候选**先按承诺清单过滤**——解析源 = 内核承诺面。
+  const promisedCandidates = candidates.filter((item) => isPromised(item.spec, promised));
+  if (promisedCandidates.length === 1) return promisedCandidates[0];
+  if (promisedCandidates.length > 1) {
+    // 同名多模块：优先选该域已经用过的模块，避免把两个不同符号混成一个。
+    const specs = new Set([...(surface.get(area)?.values() ?? [])].map((item) => item.spec));
+    const preferred = promisedCandidates.filter((item) => specs.has(item.spec));
+    if (preferred.length === 1) return preferred[0];
+    return undefined;
+  }
+  // 4) 只有未承诺候选：黄标后按旧消歧规则选一个（生成继续，硬门禁由 kernel:check 的
+  //    「导入 ⊆ 承诺清单」红灯承担——先让开发者看见，再让门禁拦住 install）。
+  stale(candidates.map((item) => item.spec).join(' | '));
+  if (candidates.length === 1) return candidates[0];
   const specs = new Set([...(surface.get(area)?.values() ?? [])].map((item) => item.spec));
   const preferred = candidates.filter((item) => specs.has(item.spec));
   if (preferred.length === 1) return preferred[0];
@@ -246,12 +299,14 @@ function resolveSymbol(area, name, surface, kernelIndex) {
 
 /**
  * 计算生成结果。
- * @returns {{ files: Map<string, string>, errors: string[] }}
+ * @returns {{ files: Map<string, string>, errors: string[], unpromised: Set<string>, promisedCount: number }}
  */
 export function buildSurface() {
   const { maps: surface, orders } = readCurrentSurface();
   const used = collectUsed();
   const kernelIndex = readKernelIndex();
+  const promised = readPromisedSpecs();
+  const unpromised = new Set();
   const errors = [];
   const files = new Map();
   for (const area of [...surface.keys()].sort()) {
@@ -263,7 +318,7 @@ export function buildSurface() {
       : [...usedNames].filter((name) => name !== '*').sort();
     const groups = new Map();
     for (const name of names) {
-      const hit = resolveSymbol(area, name, surface, kernelIndex);
+      const hit = resolveSymbol(area, name, surface, kernelIndex, promised, unpromised);
       if (hit === undefined) {
         errors.push(`${area}: 无法解析内核符号 ${name}（不在现有对接面，也不在内核包 .d.ts 索引里）`);
         continue;
@@ -301,7 +356,7 @@ export function buildSurface() {
       });
     files.set(`${area}.ts`, header.join('\n') + '\n\n' + lines.join('\n') + '\n');
   }
-  return { files, errors };
+  return { files, errors, unpromised, promisedCount: promised.size };
 }
 
 /**
@@ -310,11 +365,19 @@ export function buildSurface() {
  * @returns {number} 退出码
  */
 export function runSurface({ check }) {
-  const { files, errors } = buildSurface();
+  const { files, errors, unpromised, promisedCount } = buildSurface();
   if (errors.length > 0) {
     process.stderr.write('kernel:surface 失败 —— 无法解析以下符号：\n');
     for (const message of errors) process.stderr.write(`  - ${message}\n`);
     return 1;
+  }
+  // M21 Phase 3 黄标：解析命中了内核 exports 未承诺的路径——生成继续（开发期可见），
+  // 硬门禁由 kernel:check 的「导入 ⊆ 承诺清单」红灯承担（倒逼内核先显式导出）。
+  if (unpromised.size > 0) {
+    process.stderr.write(
+      `⚠ 未承诺内核路径（exports 清单未列，kernel:check 将红——需先在内核显式导出）：\n`,
+    );
+    for (const item of [...unpromised].sort()) process.stderr.write(`  ⚠ ${item}\n`);
   }
   const changed = [];
   for (const [name, content] of files) {
@@ -363,7 +426,8 @@ export function runSurface({ check }) {
   process.stdout.write(
     `kernel:surface 已生成 ${String(files.size)} 个域文件` +
       `${changed.length > 0 ? `（更新 ${String(changed.length)} 个）` : '（无变化）'}` +
-      `${extras.length > 0 ? `，删除 ${String(extras.length)} 个无使用域文件` : ''}\n`,
+      `${extras.length > 0 ? `，删除 ${String(extras.length)} 个无使用域文件` : ''}` +
+      `；解析源 = 内核承诺清单（${String(promisedCount)} 条），未承诺命中 ${String(unpromised.size)}\n`,
   );
   return 0;
 }
