@@ -134,13 +134,21 @@ export class RoutineScheduler {
 
   /**
    * 返回截至 now 应执行的任务（interval 到期 / cron 命中且距上次≥1 分钟）。
+   *
+   * M30 双定时器统一：CLI daemon 与 app-server 共享同一份 routines.json，各自只消费
+   * 自己 scope 的任务——**缺省只回 daemon**（既有调用点零改动；无 scope 字段的条目 =
+   * daemon，行为不变），server 自动化经 `runDue(now, 'server')` 取用。`enabled === false`
+   * 的任务一律跳过（启停语义，web 自动化面板用）。
    * @param now 判定基准时间戳（毫秒，缺省当前时间）。
+   * @param scope 驱动方归属（缺省 `'daemon'`）。
    * @returns 本次应执行的任务数组（按存储顺序）。
    */
-  public runDue(now: number = Date.now()): Routine[] {
+  public runDue(now: number = Date.now(), scope: 'daemon' | 'server' = 'daemon'): Routine[] {
     const store = this.load();
     const due: Routine[] = [];
     for (const routine of store.routines) {
+      if (routine.enabled === false) continue;
+      if ((routine.scope ?? 'daemon') !== scope) continue;
       if (this.isDue(routine, now)) {
         due.push(routine);
       }

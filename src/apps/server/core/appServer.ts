@@ -3,7 +3,7 @@ import type { AppServerOptions } from './appServerState.ts';
 import { registerModules, type RpcHandler, type ServerModule } from './serverModule.ts';
 import { ServerServices } from './serverServices.ts';
 import { coreModules } from '../modules/index.ts';
-import { AutomationScheduler } from '../services/automationScheduler.ts';
+import type { ServerAutomations } from '../services/serverAutomations.ts';
 import { providerPresets } from '../services/providerPresets.ts';
 import type { PluginProfile, ApplyProfileResult } from '../../../host/kernel/plugin.js';
 
@@ -31,7 +31,7 @@ export class AppServer {
   /** RPC 方法表（模块注册产出；分发唯一事实源）。 */
   private readonly handlers: Map<string, RpcHandler>;
   /** 自动化调度器（仅注入 automations 存储时启用）。 */
-  private readonly automationScheduler?: AutomationScheduler;
+  private readonly automationScheduler?: ServerAutomations;
 
   /**
    * 装配共享服务与全部模块，注册传输层监听并启动可选调度器。
@@ -51,13 +51,12 @@ export class AppServer {
     // 分发顺序：内置模块 → 插件贡献 → 404。提供器是惰性的（插件在 listen 后才加载）。
     this.services.plugins.setReservedRpcProvider(() => new Set(this.handlers.keys()));
     if (options.automations !== undefined) {
-      this.automationScheduler = new AutomationScheduler(
-        options.automations,
-        async (automation) => {
-          await this.services.turns.createThread({ prompt: automation.prompt });
-        },
-      );
-      this.automationScheduler.start();
+      // M30 双定时器统一：注入的 ServerAutomations 自带调度核心（RoutineScheduler，
+      // scope='server'）与执行语义（先落 lastRun / 单条失败可观测 / 防重入）。
+      this.automationScheduler = options.automations;
+      this.automationScheduler.start(async (automation) => {
+        await this.services.turns.createThread({ prompt: automation.prompt });
+      });
     }
     options.transport.onMessage((message) => void this.handle(message));
     // 启动时异步探测一次当前 active 厂商（fire-and-forget，不阻塞 listen）。

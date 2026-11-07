@@ -18,7 +18,8 @@ import { HttpBridgeTransport } from '../server/transport/httpServer.ts';
 import type { HttpServer } from '../server/transport/httpServer.ts';
 import { ServerAuthGuard } from '../server/transport/serverAuthGuard.ts';
 import { Metrics } from '../server/services/metrics.ts';
-import { AutomationStore } from '../server/services/automationStore.ts';
+import { ServerAutomations } from '../server/services/serverAutomations.ts';
+import { RoutineScheduler } from '../daemon/routineScheduler.ts';
 import type { AuditSink } from '../server/services/auditSink.ts';
 import type { AppServer } from '../server/core/appServer.ts';
 import type { ServerEventBridge } from '../server/core/serverEventBridge.ts';
@@ -548,7 +549,10 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
       // 凭据保险库（vault.list/set/delete 的后端）：无主密钥来源时不注入，面板如实显示"未接线"。
       vault: await this.buildServeVault(args),
       // 自动化任务：用户级文件 + 30s 调度；任务触发即新建一个普通会话。
-      automations: new AutomationStore(join(OmniHome.dir(), 'automations.json')),
+      automations: new ServerAutomations(
+        new RoutineScheduler(),
+        join(OmniHome.dir(), 'automations.json'),
+      ),
     };
   }
 

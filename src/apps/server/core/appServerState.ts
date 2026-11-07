@@ -4,7 +4,7 @@ import { RuleApproval } from '../../../host/kernel/adapters-approval.ts';
 import { BUILTIN_APPROVAL_RULES } from '../../../host/kernel/adapters-approval.ts';
 
 import type { SkillRegistry } from '../../../host/kernel/platform.ts';
-import type { AutomationStore } from '../services/automationStore.ts';
+import type { ServerAutomations } from '../services/serverAutomations.ts';
 import type { PluginRegistry } from '../../../host/kernel/plugin.js';
 import type { Transport } from '../../../host/kernel/runtime.ts';
 import type { Metrics } from '../services/metrics.ts';
@@ -21,7 +21,7 @@ export interface AppServerOptions {
   readonly transport: Transport;
   readonly skills?: SkillRegistry | undefined;
   /** 自动化任务存储（缺省不启用调度；CLI serve 注入用户级文件）。 */
-  readonly automations?: AutomationStore | undefined;
+  readonly automations?: ServerAutomations | undefined;
   readonly approvalUplink?: boolean | undefined;
   /**
    * 事件/上行桥（可注入）。
