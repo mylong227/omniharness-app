@@ -8,6 +8,7 @@
 import { ApiClient } from '../../core/ApiClient.ts';
 import type { AppRoute } from '../../core/Router.ts';
 import { EventStream } from '../../core/EventStream.ts';
+import { dismissAuthBanner } from '../authRequiredBanner.ts';
 import { RouteBinding } from './RouteBinding.ts';
 import { LayoutController } from './LayoutController.ts';
 import { MethodBinder } from './methodBinder.ts';
@@ -414,22 +415,38 @@ export class AppController {
       case 'thread.event':
         this.children.sessions.handleEvent(params.event as ThreadEvent);
         break;
-      case 'approval.request':
-        this.host.patch({ approval: params as unknown as ApprovalRequest });
+      case 'approval.request': {
+        const incoming = params as unknown as ApprovalRequest;
+        // 单槽 UI 不变量（见 restorePendingCards）：槽位被占用时**不覆盖**——服务端可同时挂起
+        // 多条审批（多线程并行回合），此前无条件 patch 会把用户正在看的 A 卡静默顶掉（B 的
+        // 工具挂起却无人可见）。后到请求仍在服务端挂起表排队，当前卡片处置成功后的
+        // restorePendingCards 会把它接续重建；这里只补一条应用内提示让排队可见。
+        const queued = this.host.getState().approval !== null;
+        this.host.patch((s) => (s.approval ? {} : { approval: incoming }));
+        if (queued) {
+          this.services.toast(t('已有一条审批在等待：新请求已排队，处理完当前卡片后自动接续'), 'info');
+        }
         notifyDesktop({
           title: t('需要你的确认'),
           body: t('有一个工具调用等待审批，请回到 OmniHarness 处理。'),
           ...(typeof params['threadId'] === 'string' ? { sessionId: params['threadId'] } : {}),
         });
         break;
-      case 'question.request':
-        this.host.patch({ question: params as unknown as QuestionRequest });
+      }
+      case 'question.request': {
+        // 与 approval.request 同一单槽纪律：占用时不覆盖（服务端挂起表为真源）。
+        const queuedQuestion = this.host.getState().question !== null;
+        this.host.patch((s) => (s.question ? {} : { question: params as unknown as QuestionRequest }));
+        if (queuedQuestion) {
+          this.services.toast(t('已有一个提问在等待：新提问已排队，回答完当前后自动接续'), 'info');
+        }
         notifyDesktop({
           title: t('需要你的回答'),
           body: t('Agent 正在等待你的回答。'),
           ...(typeof params['threadId'] === 'string' ? { sessionId: params['threadId'] } : {}),
         });
         break;
+      }
       case 'memory.changed':
         this.host.patch((s) => ({ memoryReloadKey: s.memoryReloadKey + 1 }));
         break;
@@ -461,7 +478,8 @@ export class AppController {
   }
 
   /** 连接 SSE 并把各消息方法路由到对应子控制器。 @returns 无 */
-  public connectStream(): void {    const stream = this.services.stream;
+  public connectStream(): void {
+    const stream = this.services.stream;
     // 连接态三态（2026-09-27 用户报「显示区域会出现显示断开」）：
     //   open       = 已连接（绿）
     //   connecting = 重连中（黄）——EventSource 的瞬时抖动（含每秒自动重连）都会先落到这里
@@ -472,6 +490,8 @@ export class AppController {
     stream.onOpen = () => {
       this.clearStreamGrace();
       this.host.patch({ connected: true, streamState: 'open' });
+      // 宽限期自愈成功：横幅里的「需要授权」已不成立，收起（无横幅时无害）。
+      dismissAuthBanner();
       // 断连/刷新恢复（2026-11-01）：approval.request / question.request 是 live-only 通知
       // （不进 SSE 重放历史），刷新或重连后的新连接收不到「正在等待」这件事；服务端有 10s
       // 断连宽限期，宽限期内复联 ⇒ 挂起仍在 ⇒ 这里拉得到并重建卡片。已有卡片时不覆盖。
@@ -483,10 +503,19 @@ export class AppController {
       this.streamGraceTimer = setTimeout(() => {
         this.streamGraceTimer = null;
         this.host.patch({ connected: false, streamState: 'closed' });
+        // 宽限期满仍连不上：close 后用**当前**令牌重建（2026-11-08 审计）。EventSource 的自动
+        // 重连永远复用构造时的 URL——令牌轮换后它会拿旧 ?token= 无限重试且永不换新；这里是
+        // 唯一确定性自愈入口（若 401 横幅里提交了新令牌，reconnect 即取到）。
+        this.services.stream.reconnect();
       }, AppController.STREAM_DISCONNECT_GRACE_MS);
     };
     stream.onMessage = (msg: SseEnvelope) => this.routeStreamMessage(msg);
     stream.connect();
+    // 就地换令牌（2026-11-08 审计）：401 横幅提交新令牌后派发 omni:token-updated——这里用
+    // 新令牌重建 SSE 流。订阅随 desktopUnsubscribes 统一卸载（unmount 幂等）。
+    const onTokenUpdated = (): void => this.services.stream.reconnect();
+    window.addEventListener('omni:token-updated', onTokenUpdated);
+    this.desktopUnsubscribes.push(() => window.removeEventListener('omni:token-updated', onTokenUpdated));
     this.keyHandler = (e: KeyboardEvent) => {
       const action = this.children.keyBindings.resolve(e);
       if (!action) return;
@@ -510,7 +539,11 @@ export class AppController {
         const first = list[0];
         if (first !== undefined) this.host.patch((s) => (s.approval ? {} : { approval: first }));
       })
-      .catch(() => {});
+      .catch(() => {
+        // 恢复失败不再静默（2026-11-08 审计）：用户看到的是「重连成功但没有卡片」，而服务端
+        // 明明挂着待办——如实提示，用户可刷新或稍后重试；下一次 onOpen 会再拉一次。
+        this.services.toast(t('挂起审批恢复失败，可刷新页面重试'), 'err');
+      });
     this.services.api
       .pendingQuestions()
       .then((list) => {
@@ -522,7 +555,9 @@ export class AppController {
           );
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        this.services.toast(t('挂起提问恢复失败，可刷新页面重试'), 'err');
+      });
   }
 
   /** 拉取当前厂商可用模型清单并写入状态 / 持久化（含推理强度档位）。 @returns 无 */

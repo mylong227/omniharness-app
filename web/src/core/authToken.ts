@@ -2,8 +2,13 @@
  * 前端 Bearer 令牌解析：把服务端的 OMNI_SERVE_TOKEN 暴露给浏览器侧 RPC / SSE。
  *
  * OmniHarness Web 是零打包器、由服务端静态托管的原生 ESM，没有构建期注入令牌的通道，
- * 故令牌只能「运行时」取得：显式 set() 覆盖 > localStorage['omni.serveToken'] > URL ?token=。
+ * 故令牌只能「运行时」取得：显式 set() 覆盖 > sessionStorage['omni.serveToken'] > URL ?token=。
  * 当服务端未启用令牌（回环默认）时 resolve() 返回空串，调用方据此跳过 Authorization。
+ *
+ * 为什么是 sessionStorage 而不是 localStorage（2026-11-08 审计纵深）：令牌是**会话级**凭据，
+ * 服务端重启即轮换——localStorage 的跨会话持久只会保留一份注定失效的旧令牌，还把可外泄面
+ * 从「当前标签页」扩大到「关闭浏览器之前的所有标签页/会话」。sessionStorage 刷新仍在
+ * （URL 抹除后不丢）、关浏览器即清，与会话语义严格对齐。
  */
 
 /** 只读存储的最小接口（避免依赖具体 DOM 类型，便于在非浏览器环境注入）。 */
@@ -13,7 +18,7 @@ interface KeyValueStore {
 
 /** 浏览器全局的最小接口（仅在真实浏览器环境存在）。 */
 interface BrowserGlobals {
-  readonly localStorage?: KeyValueStore;
+  readonly sessionStorage?: KeyValueStore & { setItem?: (k: string, v: string) => void };
   readonly location?: { readonly search: string };
 }
 
@@ -33,18 +38,19 @@ export class AuthToken {
 
   /**
    * 启动期令牌安置（2026-11-06 审计 P2）：URL `?token=` 存在时——写入覆盖 + 持久化到
-   * localStorage，然后 `history.replaceState` **把 token 从地址栏抹掉**。
+   * sessionStorage，然后 `history.replaceState` **把 token 从地址栏抹掉**。
    *
    * 为什么必须做：令牌留在 URL 里会进浏览器历史、屏幕共享与复制粘贴的链接
-   * （服务端的 `Referrer-Policy: no-referrer` 管不到这些通道）；此前 localStorage 层是
-   * 死代码（没人写），本方法就是那个「写的人」。页面刷新后从 localStorage 恢复。
+   * （服务端的 `Referrer-Policy: no-referrer` 管不到这些通道）；此前持久化层是
+   * 死代码（没人写），本方法就是那个「写的人」。页面刷新后从 sessionStorage 恢复
+   * （2026-11-08 起不再是 localStorage——会话级凭据不跨浏览器会话持久）。
    * @returns 无返回值。
    */
   public adoptFromUrl(): void {
     const urlToken = this.readUrlToken();
     if (urlToken === '') return;
     this.set(urlToken);
-    const store = (globalThis as unknown as BrowserGlobals & { localStorage?: KeyValueStore & { setItem?: (k: string, v: string) => void } }).localStorage;
+    const store = (globalThis as unknown as BrowserGlobals).sessionStorage;
     try {
       store?.setItem?.('omni.serveToken', urlToken);
     } catch {
@@ -80,11 +86,11 @@ export class AuthToken {
   }
 
   /**
-   * 从 localStorage 读持久化令牌。
+   * 从 sessionStorage 读持久化令牌。
    * @returns 令牌原文；不可用或缺失时返回 null。
    */
   private readPersisted(): string | null {
-    const store = (globalThis as unknown as BrowserGlobals).localStorage;
+    const store = (globalThis as unknown as BrowserGlobals).sessionStorage;
     if (store === undefined || typeof store.getItem !== 'function') {
       return null;
     }

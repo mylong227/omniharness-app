@@ -36,6 +36,19 @@ export class EventStream {
     return this.es ? this.es.readyState === 1 : false;
   }
 
+  /**
+   * 用**当前**令牌重建连接（断连宽限期满 / 令牌更新后的自愈路径）。
+   *
+   * 为什么必须有它：EventSource 的自动重连永远复用**构造时**的 URL——服务端重启换令牌后
+   * 它会拿旧 `?token=` 无限重试，且 `connect()` 的幂等闸门（`if (this.es) return`）会拦住
+   * 一切「复用已存在连接」的重试入口。令牌变化只能由调用方显式 close 后带新令牌重建。
+   * @returns 无返回值。
+   */
+  public reconnect(): void {
+    this.close();
+    this.connect();
+  }
+
   public close(): void {
     if (this.es) this.es.close();
     this.es = null;

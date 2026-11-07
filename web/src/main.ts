@@ -32,9 +32,9 @@ import '../styles/highlight.css'; // **必须最后**：语法色要盖住前面
 
 import { mountApp } from './ui/App.ts';
 import { authToken } from './core/authToken.ts';
-import { installAuthRequiredBanner } from './core/authRequiredBanner.ts';
+import { installAuthRequiredBanner } from './ui/authRequiredBanner.ts';
 
-// 令牌安置（2026-11-06 审计 P2）：URL ?token= 存在时先收进覆盖层 + localStorage 并把
+// 令牌安置（2026-11-06 审计 P2）：URL ?token= 存在时先收进覆盖层 + sessionStorage 并把
 // token 从地址栏抹掉（防进历史/屏幕共享/复制外泄），再挂载应用——任何早于本行的
 // authToken.resolve() 都还读得到 URL，但挂载后的请求与刷新都走持久化层。
 authToken.adoptFromUrl();
