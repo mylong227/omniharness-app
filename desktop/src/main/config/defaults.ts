@@ -58,7 +58,14 @@ export const DEFAULT_DESKTOP_CONFIG: DesktopConfig = {
     permissions: ['notifications', 'clipboard-sanitized-write'],
     csp: {
       defaultSrc: ["'none'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
+      // script-src 用**哈希白名单**放行 index.html 里的主题防闪烁内联脚本（SHA-256 of
+      // 脚本内容，2026-11-08 审计高危摘除 'unsafe-inline'）：渲染层渲染模型/工具输出的富文本，
+      // unsafe-inline 让 CSP 对注入脚本不设防——同源 localStorage/sessionStorage 里的服务端
+      // 令牌可被一锅端。哈希与产物由 `desktop/scripts/test.mjs` 的 CSP 门禁判据钉死：
+      // web/index.html（及 web/dist 产物）的内联脚本哈希变化 ⇒ desktop:test 直接红。
+      scriptSrc: ["'self'", "'sha256-xGZ5bcutV1RqO2FYMshTMrQD4Z2lz4NdTg/vVe2WXv8='"],
+      // style-src 保留 unsafe-inline：antd v6 的 cssinjs 运行时注入 <style> 标签，哈希白名单
+      // 不可行（样式块内容随机）；样式注入的攻击面远小于脚本，接受并在此登记。
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", 'data:', 'blob:'],
       fontSrc: ["'self'", 'data:'],

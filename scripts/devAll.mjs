@@ -85,6 +85,20 @@ const children = [
 let stopping = false;
 
 /**
+ * Windows 树杀：`kill()` 只能收掉直接子进程——vite 经 `shell:true` 起在 `cmd.exe` 包装里，
+ * 杀 cmd 不会杀孙进程，vite 会存活占住 5173（2026-11-08 审计）。`taskkill /T /PID` 收整棵树。
+ * @param {number} pid 进程 id。
+ * @returns {void}
+ */
+function treeKill(pid) {
+  if (isWin) {
+    spawnSync('taskkill', ['/T', '/F', '/PID', String(pid)], { stdio: 'ignore' });
+  } else {
+    process.kill(-pid, 'SIGTERM');
+  }
+}
+
+/**
  * 把两个子进程一起收走（任何一个先退出都不留孤儿进程）。
  * @param {number} code 退出码。
  * @returns {void}
@@ -92,7 +106,14 @@ let stopping = false;
 function stopAll(code) {
   if (stopping) return;
   stopping = true;
-  for (const c of children) if (c.exitCode === null) c.kill();
+  for (const c of children) {
+    if (c.exitCode !== null) continue;
+    if (isWin) {
+      treeKill(c.pid ?? 0);
+    } else {
+      c.kill();
+    }
+  }
   process.exit(code);
 }
 for (const c of children) c.on('exit', (code) => stopAll(code ?? 0));

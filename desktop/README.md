@@ -14,7 +14,7 @@ desktop/
   src/main/lib/       # 纯逻辑：args / ready 契约 / 路径
   src/preload/        # contextBridge：只暴露 window.omni 最小桥
   src/main/harnessSupervisor.ts  # spawn node.exe serve --port 0 / ready / 优雅停
-  static/loading.html # 启动画面（当前主进程用内联 data URL，保留作源文件）
+  src/main/ipcGuards.ts    # IPC 安全守卫纯逻辑（sender/frame/origin、notify、revealPath 白名单）
   static/icon.svg     # 项目 Ω 标志源文件
   static/icon.png     # 512×512 窗口/托盘图标
   static/icon.ico     # 多尺寸 Windows 安装包/任务栏图标
@@ -88,7 +88,8 @@ npm run dist    # NSIS 安装包（未配置签名）
 `stage` 会：
 
 - 从**后端根**（`OMNI_BACKEND_ROOT`，缺省 = 应用根）复制 `dist`、`defaults`、`native`、
-  `package.json`、`package-lock.json`；`web/dist` 同样来自应用根；
+  `vendor`、`package.json`、`package-lock.json`（`vendor/` 是 `npm ci` 解析 `file:` 内核
+  依赖的前提，缺了 stage 内安装直接失败）；`web/dist` 同样来自应用根；
 - 复制当前 `node.exe`（或 `OMNI_NODE_BIN`）；
 - `npm ci --omit=dev --ignore-scripts` 后删除前端库（React/KaTeX/highlight 已打进 `web/dist`）
   与 ONNX/transformers 重型可选包；
@@ -106,11 +107,11 @@ npm run dist    # NSIS 安装包（未配置签名）
 OmniHarness/
   OmniHarness.exe
   resources/
-    app.asar                 # Electron main/preload/loading.html
+    app.asar                 # Electron main/preload
     desktop.config.json      # 发布默认配置（可被 userData/OMNI_DESKTOP_CONFIG 覆盖）
     harness/
       node.exe
-      dist/ web/ defaults/ native/
+      dist/ web/ defaults/ native/ vendor/
       node_modules/
       package.json
 ```
@@ -213,7 +214,7 @@ npm --prefix desktop run startup:report -- --budget-ms=5000
 | 项目/线程  | 中栏「项目 / 线程」面包屑；左栏项目行显示线程数，支持项目内新建线程与在文件管理器中打开目录                                                 |
 | 活动       | 活动面板聚合当前状态、待审批/提问、变更摘要与最近事件，可跳转 Trace/工具/变更                                                               |
 | 技能       | 技能目录面板（搜索）+ 输入框 `/` 触发选择器；`skills.list` 只回名称/描述/标签                                                               |
-| 自动化     | 自动化面板 + `automations.*` RPC；任务持久化到 `~/.omniharness/automations.json`，serve 每 30s 检查并新建会话                               |
+| 自动化     | 自动化面板 + `automations.*` RPC；任务持久化到 `~/.omniharness/routines.json`（与 CLI daemon 共享 RoutineScheduler 调度核心，M30 统一；旧 automations.json 首启自动迁移）|
 | 窗口状态   | 保存 bounds，恢复时校验可见屏幕；多显示器/DPI 变化兜底                                                                                      |
 | 渲染层自愈 | UI 加载失败/渲染进程崩溃（abnormal-exit/oom/memory-eviction）自动用当前句柄重载（窗口内限次，`recovery` 配置）；耗尽后弹「重试/退出」对话框 |
 | 日志       | 主进程/Harness 分文件、脱敏、环形缓冲；菜单/托盘可打开目录                                                                                  |
@@ -257,16 +258,18 @@ $env:OMNI_SMOKE_OUT='D:\tmp\smoke.json'; npm run smoke # 指定结果落盘位�
 
 ## 8. 下一步
 
-1. **真实桌面验收**：跑 `npm run smoke`（§7.1，一键出结论与明细 JSON）；托盘/深链/通知的
-   手工核对项在其观测明细里列出。
+1. **GUI 冒烟常态化**：真实桌面验收已跑通（[docs/DESKTOP-SMOKE.md](../docs/DESKTOP-SMOKE.md)，
+   2026-11-04 8/8）；CI 已接 `workflow_dispatch` 手动门，发版前触发一次即可。
 2. **安装包**：代码签名、N-1 升级实跑、安装/卸载保留 `~/.omniharness`、高 DPI 验收。
-3. **安全复核**：精确 Origin/Host 校验、CSP 收紧到实际端口、Renderer 权限白名单。
+3. **安全复核余项**：script-src 哈希白名单与 `revealPath` 工作区白名单已就位（2026-11-08），
+   剩 Renderer 权限白名单细化与 CSP 的 style-src unsafe-inline 替代方案（antd cssinjs 限制，
+   已登记为接受项）。
 4. **平台**：macOS 签名/公证；Linux 的托盘/通知能力按桌面环境降级验证。
 
 ## 9. 与文档的关系
 
 - 应用壳仓库总览：[../README.md](../README.md)；
-- 与内核的契约缺口（87 RPC vs 4 端点）与三条对接路径：[../docs/KERNEL-CONTRACT.md](../docs/KERNEL-CONTRACT.md)。
+- 与内核的契约（93 RPC 单点对接）与迁移总账：[../docs/KERNEL-CONTRACT.md](../docs/KERNEL-CONTRACT.md)。
 - 上游架构决策（ADR-0017 等）仍在上游仓库 `docs/adr/`，本仓库不复制。
 
 ## 10. 已知限制
@@ -274,5 +277,6 @@ $env:OMNI_SMOKE_OUT='D:\tmp\smoke.json'; npm run smoke # 指定结果落盘位�
 - 当前直接复用现有 Web 工作台；**还不是 Codex 式的全新 React UI**。
 - 托盘/通知/深链/开机启动/更新已接线，但 GUI 级验证需真实桌面；本会话 Electron 沙箱不允许。
 - 自动更新/安装包未签名，未完成 N-1 实跑；`npm run dist` 需要 electron-builder 下载 NSIS/winCodeSign。
-- GUI 冒烟验收已脚本化（§7.1）但**执行**仍需真实桌面会话（受限 shell 里 Electron 起不来）；
-  macOS/Linux 未验证；`stageHarness`/`nodeBinary` 已按平台分支，但 electron-builder 配置目前只配 Windows。
+- GUI 冒烟验收已脚本化（§7.1）且真实桌面已跑通（2026-11-04 8/8，见 docs/DESKTOP-SMOKE.md）；
+  本仓受限 shell 里 Electron 仍起不来；macOS/Linux 未验证；`stageHarness`/`nodeBinary` 已按
+  平台分支，但 electron-builder 配置目前只配 Windows。

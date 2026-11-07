@@ -117,7 +117,12 @@ writeFileSync(kernelPkgPath, `${JSON.stringify(kernelPkg, null, 2)}\n`);
 const stagingDir = join(ROOT, '.tmp', 'kernel-pack');
 rmSync(stagingDir, { recursive: true, force: true });
 mkdirSync(stagingDir, { recursive: true });
-run('npm', ['pack', '--pack-destination', stagingDir], worktree);
+// pack 不走 `npm`（2026-11-08 审计）：Windows 下 npm.cmd 必须 shell:true，参数按空格裸拼接——
+// 带空格的暂存目录路径会被 cmd 撕成两半（run 头注点破的缺陷在参数侧的真身）。改用当前 node
+// 直跑 npm-cli.js，参数数组原样传递、零 shell。
+const npmCli = join(dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js');
+if (!existsSync(npmCli)) throw new Error(`npm-cli.js 不存在：${npmCli}`);
+run(process.execPath, [npmCli, 'pack', '--pack-destination', stagingDir], worktree);
 const packedStaged = readdirSync(stagingDir).filter((name) => /^omniharness-kernel-.*\.tgz$/.test(name));
 if (packedStaged.length !== 1) throw new Error(`期望恰好一个 kernel tarball，实际：${packedStaged.join(', ')}`);
 mkdirSync(vendorDir, { recursive: true });

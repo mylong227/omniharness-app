@@ -1,5 +1,7 @@
 # OmniHarness App 验证流水线：与本地 `npm run verify` 同一裁决链
-# （桌面 GUI 打包除外；桌面 30 条纯逻辑判据包含在最后一步）。
+# （桌面 GUI 打包除外；桌面纯逻辑判据包含在最后一步）。
+# 真实桌面 GUI 冒烟（desktop:smoke）作为 workflow_dispatch 手动门——GUI 在 CI 上偶尔
+# 抖（窗口时序/显卡驱动），日常每次 push 都跑会制造噪音；发版前手动触发一次即可。
 # 判据布局见 CONTRIBUTING.md。
 name: verify
 
@@ -7,6 +9,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 # 同分支新推送取消旧跑（省配额；结论以最新一次为准）。
 concurrency:
@@ -55,3 +58,31 @@ jobs:
           npm --prefix desktop ci --no-audit --no-fund
           npm run desktop:build
           npm run desktop:test
+
+  # 真实桌面 GUI 验收（窗口/侧车/UI origin/DOM 挂载，退出码即结论）：仅手动触发。
+  # 依赖构建产物（侧车 spawn dist + UI 载入 web/dist），故先全量构建再跑 smoke。
+  desktop-gui-smoke:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.14'
+          cache: npm
+
+      - name: 安装依赖（含 vendored 内核 tarball + desktop）
+        run: |
+          npm ci
+          npm --prefix desktop ci --no-audit --no-fund
+
+      - name: 构建后端 + 前端 + 桌面主进程
+        run: |
+          npm run build
+          npm run build:web
+          npm run desktop:build
+
+      - name: 真实桌面 GUI 冒烟
+        run: npm run desktop:smoke

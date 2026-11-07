@@ -4,6 +4,7 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync,
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { createHash } from 'node:crypto';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -69,6 +70,8 @@ bundle('src/main/app/WindowLifecycle.ts', 'windowLifecycle');
 bundle('src/main/app/SmokeHarness.ts', 'smokeHarness');
 // 托盘：用假 electron 打包，busy 态切换/去重/回退/复位都在 node 里可测（不启动 GUI）。
 bundle('src/main/tray.ts', 'tray', [], { electron: './scripts/fakeElectron.cjs' });
+// IPC 安全守卫纯逻辑（2026-11-08 审计）：electron 仅 type-only 导入，无需假替身即可打包。
+bundle('src/main/ipcGuards.ts', 'ipcGuards');
 
 const { parseLaunchArgs } = await import(pathToFileURL(join(out, 'args.cjs')).href);
 const { parseReadyInfo } = await import(pathToFileURL(join(out, 'ready.cjs')).href);
@@ -84,6 +87,9 @@ const { HarnessRestartPolicy } = await import(pathToFileURL(join(out, 'restartPo
 const { WindowLifecycle } = await import(pathToFileURL(join(out, 'windowLifecycle.cjs')).href);
 const { SmokeHarness } = await import(pathToFileURL(join(out, 'smokeHarness.cjs')).href);
 const { TrayService } = await import(pathToFileURL(join(out, 'tray.cjs')).href);
+const { assertNotifyInput, trustRejection, assertRevealPathInside } = await import(
+  pathToFileURL(join(out, 'ipcGuards.cjs')).href
+);
 
 test('DesktopI18n：system 解析 + 中英词条完整 + 占位符替换', () => {
   assert.equal(DesktopI18n.resolve('system', 'en-US'), 'en-US');
@@ -698,7 +704,10 @@ test('loadDesktopConfig: 环境文件优先级最高（DEFAULT < builtin < user 
 
 test('formatCsp: 指令顺序稳定且含配置项', () => {
   const csp = formatCsp(DEFAULT_DESKTOP_CONFIG.security.csp);
-  assert.ok(csp.startsWith("default-src 'none'; script-src 'self' 'unsafe-inline'"));
+  assert.ok(
+    csp.startsWith("default-src 'none'; script-src 'self' 'sha256-"),
+    'script-src 必须以主题脚本哈希白名单开头（2026-11-08 摘除 unsafe-inline）',
+  );
   assert.ok(csp.includes("connect-src 'self' http://127.0.0.1:* ws://127.0.0.1:*"));
   assert.ok(csp.endsWith("frame-ancestors 'none'"));
 });
@@ -745,4 +754,101 @@ test('打包裁剪：locales 只留中英 + stage 删除死重量（onnxruntime-
     assert.ok(stage.includes(`'${name}'`), `stage 必须删除 ${name}`);
   }
   assert.ok(stage.includes('.old.node'), 'stage 必须清理旧版原生内核产物');
+});
+
+test('ipcGuards.assertNotifyInput：渲染层入参 fail-closed（2026-11-08 审计补覆盖）', () => {
+  const limits = { notifyTitleMax: 160, notifyBodyMax: 800, notifySessionIdMax: 200 };
+  assert.deepEqual(assertNotifyInput({ title: 't', body: 'b' }, limits), { title: 't', body: 'b' });
+  assert.deepEqual(assertNotifyInput({ title: 't', body: 'b', sessionId: 's1' }, limits), {
+    title: 't',
+    body: 'b',
+    sessionId: 's1',
+  });
+  for (const bad of [null, undefined, 'str', 42]) {
+    assert.throws(() => assertNotifyInput(bad, limits), /invalid notify$/, '非对象入参必须拒绝');
+  }
+  assert.throws(() => assertNotifyInput({ title: '', body: 'b' }, limits), /notify\.title/);
+  assert.throws(() => assertNotifyInput({ title: 'x'.repeat(161), body: 'b' }, limits), /notify\.title/);
+  assert.throws(() => assertNotifyInput({ title: 't', body: 1 }, limits), /notify\.body/);
+  assert.throws(
+    () => assertNotifyInput({ title: 't', body: 'b', sessionId: 'x'.repeat(201) }, limits),
+    /notify\.sessionId/,
+  );
+});
+
+test('ipcGuards.trustRejection：sender / 主 frame / origin 三重校验（2026-11-08 审计补覆盖）', () => {
+  const main = { id: 'main' };
+  const other = { id: 'other' };
+  const origin = 'http://127.0.0.1:8787';
+  const frame = { url: `${origin}/?token=secret`, parent: null };
+  const deps = { mainContents: () => main };
+  const eventFrom = (sender, senderFrame = frame) => ({ sender, senderFrame });
+  assert.equal(trustRejection(eventFrom(main), deps, origin), null, '主窗口主 frame 同 origin = 可信');
+  assert.equal(
+    trustRejection(eventFrom(other), { mainContents: () => main, isTrustedContents: (c) => c === other }, origin),
+    null,
+    '多窗口白名单放行',
+  );
+  assert.equal(trustRejection(eventFrom(other), deps, origin), 'sender', '陌生 sender 拒绝');
+  assert.equal(trustRejection(eventFrom(main, null), deps, origin), 'frame', '无 frame 拒绝');
+  assert.equal(
+    trustRejection(eventFrom(main, { url: `${origin}/`, parent: { id: 'parent' } }), deps, origin),
+    'frame',
+    'iframe（子 frame）拒绝',
+  );
+  assert.equal(trustRejection(eventFrom(main), deps, ''), 'origin', 'origin 未就绪一律拒绝');
+  assert.equal(
+    trustRejection(eventFrom(main, { url: 'https://evil.example/', parent: null }), deps, origin),
+    'origin',
+    '异 origin 拒绝',
+  );
+});
+
+test('ipcGuards.assertRevealPathInside：revealPath 白名单（仅工作区子树）', () => {
+  const root = mkdtempSync(join(tmpdir(), 'omni-guard-'));
+  try {
+    mkdirSync(join(root, 'sub'), { recursive: true });
+    assert.equal(
+      assertRevealPathInside(join(root, 'sub'), [root]),
+      join(root, 'sub'),
+      '工作区子树内放行',
+    );
+    assert.equal(assertRevealPathInside(root, [root]), root, '根本身放行');
+    assert.throws(
+      () => assertRevealPathInside(join(root, '..', 'omni-guard-outside'), [root]),
+      /允许的目录子树/,
+      '子树外（兄弟目录）拒绝',
+    );
+    assert.throws(
+      () => assertRevealPathInside(join(root, 'sub', 'nope'), [root]),
+      /工作区不存在/,
+      '子树内但不存在的目录仍被 assertDirectory 拒绝',
+    );
+    assert.throws(() => assertRevealPathInside(join(root, 'sub'), []), /允许的目录子树/, '空白名单全拒');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('CSP 门禁：script-src 哈希白名单必须覆盖主题内联脚本；unsafe-inline 摘除（2026-11-08 审计）', () => {
+  /** 提取 HTML 里真实内联脚本（先剥注释，避免把注释里的 <script> 字样当脚本）的 CSP 哈希。 */
+  const inlineScriptHashes = (file) =>
+    [...readFileSync(file, 'utf8')
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .matchAll(/<script>([\s\S]*?)<\/script>/g)]
+      .map((m) => `'sha256-${createHash('sha256').update(m[1]).digest('base64')}'`);
+
+  const sourceHashes = inlineScriptHashes(join(process.cwd(), '..', 'web', 'index.html'));
+  assert.equal(sourceHashes.length, 1, 'web/index.html 应恰好有一个内联脚本（主题防闪烁）');
+  const themeHash = sourceHashes[0];
+  const { scriptSrc, styleSrc } = DEFAULT_DESKTOP_CONFIG.security.csp;
+  assert.ok(scriptSrc.includes(themeHash), `desktop CSP 必须白名单主题脚本哈希 ${themeHash}`);
+  assert.ok(!scriptSrc.includes("'unsafe-inline'"), 'script-src 不得放行 unsafe-inline');
+  assert.ok(styleSrc.includes("'unsafe-inline'"), 'style-src 的 unsafe-inline 是登记过的接受项（antd cssinjs）');
+
+  // 真实被 serve 的是 web/dist 产物：其内联脚本哈希必须与 source 一致（防 Vite 未来转换内联脚本）。
+  const distIndex = join(process.cwd(), '..', 'web', 'dist', 'index.html');
+  if (existsSync(distIndex)) {
+    assert.deepEqual(inlineScriptHashes(distIndex), sourceHashes, 'web/dist 与 source 的内联脚本哈希漂移');
+  }
 });

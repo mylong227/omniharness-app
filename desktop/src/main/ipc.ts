@@ -8,11 +8,19 @@ import {
   type IpcMainInvokeEvent,
   type WebContents,
 } from 'electron';
-import { existsSync, statSync } from 'node:fs';
 import type { NotifyInput } from './notifications.ts';
 import type { DesktopIpcConfig } from './config.ts';
 import { currentHarnessOrigin } from './security.ts';
 import type { UpdateStatus } from './updateService.ts';
+import {
+  assertNotifyInput as assertNotifyInputPure,
+  assertRevealPathInside,
+  trustRejection,
+} from './ipcGuards.ts';
+
+// assertDirectory 的实现移入纯逻辑模块 ipcGuards.ts（可被桌面判据直接打包测试）；此处
+// 再导出保持 main.ts 的既有导入路径不变。
+export { assertDirectory } from './ipcGuards.ts';
 
 /** IPC 依赖。 */
 export interface IpcDeps {
@@ -116,7 +124,9 @@ export function registerIpc(deps: IpcDeps): void {
   ipcMain.handle('omni:revealPath', async (event, path: unknown) => {
     assertTrusted(event, deps);
     if (typeof path !== 'string') throw new Error('invalid path');
-    await deps.revealPath(path);
+    // 白名单（2026-11-08 审计中危）：渲染层不可信——路径必须落在当前工作区子树内才允许
+    // 唤起系统文件管理器（日志目录走语义化的 omni:openLogs，不经本通道）。
+    await deps.revealPath(assertRevealPathInside(path, [deps.workspace()]));
   });
   ipcMain.handle('omni:notify', (event, input: unknown) => {
     assertTrusted(event, deps);
@@ -165,28 +175,7 @@ export function registerIpc(deps: IpcDeps): void {
  * @returns 合法输入。
  */
 function assertNotifyInput(value: unknown, limits: DesktopIpcConfig): NotifyInput {
-  if (value === null || typeof value !== 'object') throw new Error('invalid notify');
-  const raw = value as Record<string, unknown>;
-  const title = raw['title'];
-  const body = raw['body'];
-  const sessionId = raw['sessionId'];
-  if (typeof title !== 'string' || title.trim() === '' || title.length > limits.notifyTitleMax) {
-    throw new Error('invalid notify.title');
-  }
-  if (typeof body !== 'string' || body.length > limits.notifyBodyMax) {
-    throw new Error('invalid notify.body');
-  }
-  if (
-    sessionId !== undefined &&
-    (typeof sessionId !== 'string' || sessionId.length > limits.notifySessionIdMax)
-  ) {
-    throw new Error('invalid notify.sessionId');
-  }
-  return {
-    title,
-    body,
-    ...(sessionId !== undefined ? { sessionId } : {}),
-  };
+  return assertNotifyInputPure(value, limits) as NotifyInput;
 }
 
 /**
@@ -196,26 +185,10 @@ function assertNotifyInput(value: unknown, limits: DesktopIpcConfig): NotifyInpu
  * @returns 无返回值；不可信时抛错。
  */
 function assertTrusted(event: IpcMainInvokeEvent, deps: IpcDeps): void {
-  const main = deps.mainContents();
-  const trusted =
-    (main !== undefined && event.sender === main) ||
-    deps.isTrustedContents?.(event.sender) === true;
-  if (!trusted) throw new Error('ipc denied: sender');
-  const frame = event.senderFrame;
-  if (frame === null || frame.parent !== null) throw new Error('ipc denied: frame');
-  const origin = currentHarnessOrigin();
-  if (origin === '' || new URL(frame.url).origin !== origin) throw new Error('ipc denied: origin');
-}
-
-/**
- * 校验目录并返回绝对路径；不是目录时抛错。
- * @param path 路径。
- * @returns 绝对路径。
- */
-export function assertDirectory(path: string): string {
-  if (!existsSync(path)) throw new Error(`工作区不存在：${path}`);
-  if (!statSync(path).isDirectory()) throw new Error(`不是目录：${path}`);
-  return path;
+  const rejection = trustRejection(event, deps, currentHarnessOrigin());
+  if (rejection === 'sender') throw new Error('ipc denied: sender');
+  if (rejection === 'frame') throw new Error('ipc denied: frame');
+  if (rejection === 'origin') throw new Error('ipc denied: origin');
 }
 
 /**
