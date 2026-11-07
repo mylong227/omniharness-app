@@ -3,8 +3,9 @@ import type { ServerModule } from '../core/serverModule.ts';
 /**
  * 自动化任务模块：`automations.*`（列表/创建/删除/启停/立即运行）。
  *
- * 存储来自组合根注入（`options.automations`；缺省未接线）——`automations.list` 未接线时回空表
- * 与旧行为一致，其余方法经 `requireStore` fail-closed。`automations.run` 经
+ * 存储来自组合根注入（`options.automations`）——**仅 HTTP serve 路径接线**（见
+ * composedServerCore 的 serve-only 边界登记）：stdio 面下 `automations.list` 回空表、其余方法
+ * 经 `requireStore` fail-closed，这是登记过的边界而非缺陷。`automations.run` 经
  * {@link TurnOrchestration.createThread} 触发真回合（与 `threads.create` 同一事实源）。
  */
 export function automationsModule(): ServerModule {

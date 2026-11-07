@@ -221,7 +221,7 @@ function collectUsed() {
  *
  * 只认直接声明（`export declare class/function/const/...`、`export interface/type`），跳过
  * `index.d.ts` 聚合桶（同一符号会在桶里重复出现，制造假歧义）与 `export { ... }` 再导出。
- * 对 2026-11 的 alpha.6 实测：1680 个导出名、仅 3 个同名（WorkflowStep/TrustTier/LspPosition），
+ * alpha.6 期（2026-11 上旬，历史实测、非当前版本）数据：1680 个导出名、仅 3 个同名（WorkflowStep/TrustTier/LspPosition），
  * 且都已在现有对接面里有确定映射。
  * @returns {Map<string, { spec: string, typeOnly: boolean }[]>}
  */

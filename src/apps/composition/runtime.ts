@@ -1,5 +1,5 @@
 /**
- * app Runtime —— 内核 Runtime 的薄扩展（0.6.0 对接 alpha.6 起）。
+ * app Runtime —— 内核 Runtime 的薄扩展（0.6.0 对接内核包起；下列叙事为 alpha.6 期历史）。
  *
  * 历史注记：本文件曾是内核 composition/runtime.ts 的应用侧拷贝（543 行编排 +
  * a2a/spark/共振场/CRISPR 接线）。内核 0.1.0-alpha.6 完成切片（M4）与确定性重建后，

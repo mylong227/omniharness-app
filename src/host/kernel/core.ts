@@ -15,6 +15,6 @@ export { CheckpointManager } from '@omniharness/kernel/kernel/core/checkpointMan
 export { Container } from '@omniharness/kernel/kernel/core/container.js';
 export { SessionRecorder } from '@omniharness/kernel/kernel/core/sessionRecorder.js';
 export { StepRunner } from '@omniharness/kernel/kernel/core/stepRunner.js';
-export { MUTATING_TOOLS, ToolGate } from '@omniharness/kernel/kernel/core/toolGate.js';
+export { ToolGate } from '@omniharness/kernel/kernel/core/toolGate.js';
 export { TurnRunner } from '@omniharness/kernel/kernel/core/turnRunner.js';
 export { InterjectionClassifier } from '@omniharness/kernel/kernel/core/steering/interjectionClassifier.js';

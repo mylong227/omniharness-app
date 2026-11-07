@@ -7,6 +7,13 @@
 
 ### Changed（变更）
 - **双定时器统一（M30）**：server 自动化收敛到 RoutineScheduler 调度核心（与 CLI daemon 共享 routines.json，scope 隔离驱动方），AutomationStore / AutomationScheduler 退役；`automations.*` RPC 形状与执行语义逐字不变（web 面零改动），旧 automations.json 首次启动自动迁移（按 id 幂等、改名 .migrated 留证）；自动化自此支持 cron 调度（注入 CronSchedulePort 即用）。
+- **审计 canonical 收敛内核单一真源（M29）**：auditChain / auditReportBuilder / auditReportVerifier
+  改用内核 `Jcs.serialize`（alpha.13 新承诺 `kernel/receipts/jcs.js` + 深度护栏 `MAX_DEPTH=64`），
+  app 侧第二实现 `apps/audit/auditCanonical.ts` 退役；合并结论钉死于
+  `tests/auditCanonicalJcsGolden.test.ts` 4 例（JSON 值域逐字 golden / fail-closed 加固 /
+  审计链端到端 / HTML 内嵌复核脚本同口径）。裁决留应用：auditSink（链原语已共享内核
+  HashChain，轮转/布局属部署形状）、auditExporter（导出格式属 server 层）。
+  vendor 钉版升级至 `vendor/omniharness-kernel-0.1.0-alpha.13.tgz`。
 - **兼容层清零（M27）**：`src/host/kernel-compat` 目录**不复存在**——目录更名
   `src/host/extensions/`（app 自有扩展层，只剩 Laya/CLI worker/doctor 等真应用形状件）。
   内核 v0.1.0-alpha.12（M26 终盘收编 36 件 + M27 SDK 客户端族/凭据打码单一真源）收编后，
@@ -24,6 +31,12 @@
   `rpc.register`），应用 16 个消费文件改经 `src/host/kernel/plugin.ts` 对接桶；资产域的 zip 依赖
   同步走桶。`AppPluginPermission` 别名保留（= PluginPermission）。vendor 钉版升级至
   `vendor/omniharness-kernel-0.1.0-alpha.11.tgz`（含 M22 认知域重入 / M23 断线清偿 / M24 评测闭环）。
+- **内核词表配置化（M28）**：随 alpha.12 到货并入账（此前仅在 M27 条目括号带过）——词表数据进内核 defaults 单一真源，应用经对接面零适配消费。
+- **对话底部宽度统一**：计划条 / 输入框 / 排队坞统一 `max-width: 800px`（专注模式 920px）并居中；专注时中栏变宽，它们不再跟着铺满整屏。计划条底色同时从实心 `panel` 收到 30% 透明、边框收到 soft 的 70%，贴近页面底色只留一层淡淡浮起。
+- **事件字段口径收敛**：新增 `web/src/ui/models/EventFields.ts`，把原先散在 StreamView / ThinkingTrail / TurnSummary / TraceView / 三个控制器里的 `callId 回落 / rawCallId / content / toolName / timestamp` 收成一份；轨迹筛选的行折叠与结果卡、钻取、工具清单共用同一口径。
+- **对接面目录纯化**：`src/host/kernel/` 现在**只放**自动生成的 re-export，不含任何实现。原混在其中的 app 自有代码已迁出——Laya 决策引擎（10 个 TS + `laya_infer.py`）与 `decisionEngineResolver` 收进自有扩展层，企业 OIDC / jose 适配器收进 `src/apps/enterprise/`，`toolHandler` 纯 shim 删除、消费点直连 `contracts` 对接面。
+- **内核对接面自动生成**：新增 `npm run kernel:surface`（`scripts/kernelSurface.mjs`）——从「业务代码实际 import + 内核包 `.d.ts`」生成 `src/host/kernel/<域>.ts`（现 18 个域文件），只保留实际使用的符号。新增内核符号只需在业务代码里正常 import 再跑一次生成命令，不再手写 re-export；`kernel:check` 第 8 条「生成物不漂移」裁决，升级内核 = 换 tgz → `kernel:surface` → typecheck。
+- 会话置顶不再写 localStorage（删除 `web/src/ui/models/SessionPins.ts`）：服务端侧车为**唯一真源**，面板从 `sessions.list` 的 `pinned` 字段派生置顶集合。
 
 ### Added（新增）
 - **事件流时间旅行**：历史用户消息新增「从此处重开」——确认后走服务端 `threads.rewind` 截断 append-only 事件流，重新加载并把该条原文回填输入框。确认框不再只说「N 条事件」，而是拆出被丢弃的构成（工具调用 / 工具结果 / 助手回复 / 思考说明）；回退前自动尝试落一个检查点（失败不阻断回退，但 toast 如实说明），可在回滚面板恢复「回退前」的对话与文件。本操作本身不还原工作区文件，文件还原仍走检查点/Rollback。
@@ -34,18 +47,32 @@
 - **托盘 busy 态**：复用既有 `omni:setProgress` 信号（回合开始 `2` / 收尾 `-1`，与任务栏进度同源）切换托盘图标为带绿点的 `icon-busy.png`，悬停提示同步显示「回合进行中」；变体缺失时回退常规图标，重复设置去重，`destroy` 复位。
 - **视觉探针基线**：`web/test/visualProbe.ts` 新增 `pinned`（置顶组 + 行内 pin 角标 + 行菜单「取消置顶」）与 `jump-bottom`（回到底部浮钮）交互态；会话夹具补齐 `workspace` / `pinned` 真实形状。
 
-### Changed（变更）
-- **对话底部宽度统一**：计划条 / 输入框 / 排队坞统一 `max-width: 800px`（专注模式 920px）并居中；专注时中栏变宽，它们不再跟着铺满整屏。计划条底色同时从实心 `panel` 收到 30% 透明、边框收到 soft 的 70%，贴近页面底色只留一层淡淡浮起。
-- **事件字段口径收敛**：新增 `web/src/ui/models/EventFields.ts`，把原先散在 StreamView / ThinkingTrail / TurnSummary / TraceView / 三个控制器里的 `callId 回落 / rawCallId / content / toolName / timestamp` 收成一份；轨迹筛选的行折叠与结果卡、钻取、工具清单共用同一口径。
-- **对接面目录纯化**：`src/host/kernel/` 现在**只放** 17 个自动生成的 re-export，不含任何实现。原混在其中的 app 自有代码已迁出——Laya 决策引擎（10 个 TS + `laya_infer.py`）与 `decisionEngineResolver` 收进 `src/host/kernel-compat/kernel/`，企业 OIDC / jose 适配器收进 `src/apps/enterprise/`，`toolHandler` 纯 shim 删除、消费点直连 `contracts` 对接面。迁出文件改为经对接面消费内核（不再直接 import 包）。
-- **内核对接面自动生成**：新增 `npm run kernel:surface`（`scripts/kernelSurface.mjs`）——从「业务代码实际 import + 内核包 `.d.ts`」生成 17 个 `src/host/kernel/<域>.ts`，只保留实际使用的符号（本次裁掉 2 个零使用再导出）。新增内核符号只需在业务代码里正常 import 再跑一次生成命令，不再手写 re-export；`kernel:check` 新增第 8 条「生成物不漂移」，升级内核 = 换 tgz → `kernel:surface` → typecheck。
-- 会话置顶不再写 localStorage（删除 `web/src/ui/models/SessionPins.ts`）：服务端侧车为**唯一真源**，面板从 `sessions.list` 的 `pinned` 字段派生置顶集合。
-
 ### Tests（判据）
 - 新增 `web/test/sessionRewind.test.ts`（确认/取消、运行中/末条/服务端拒绝的分支、回退影响面分类、检查点成功/失败）与 `userCardDuration.test.ts` 的「历史消息重开 / 末条编辑重发」互斥判据；新增 `focusMode.test.ts`、`trailFilter.test.ts`、`eventFields.test.ts` 等随对应能力落地。
 - 新增 `tests/sessionPinned.test.ts`（侧车读写 / 列表回传 / 换实例仍可见 / 非法 id 拒绝）与 `web/test/sessionPins.test.ts`（置顶组浮出 / 刷新映射 / 乐观回滚 / 接线守卫）。
 - 新增 `tests/kernelSurface.test.ts`：把「对接面生成物一致 + 目录纯净」纳入常规 `web:test`，忘了跑 `kernel:surface` 时本地测试直接红。
 - 桌面端新增托盘 busy 判据（切图 / 去重 / 缺失回退 / destroy 复位 / 创建即 busy + 图标资产 + IPC 接线）。
+- **2026-11-08 审计判据批**：`web/test/eventStreamReconnect.test.ts`（reconnect 用当前令牌重建 / connect 幂等）、`web/test/approvalQueue.test.ts`（审批/提问单槽占用不覆盖 + 宽限期满重建 + omni:token-updated 即时重建 + unmount 摘除订阅）、`web/test/authRequiredBanner.test.ts`（横幅幂等 / 就地换令牌 / 空值忽略）、`tests/devAddressContract.test.ts`（devConfig ↔ serveDefaults 端口镜像——三处脚本头注长期声称的守卫补齐）与 `tests/launchReadiness.test.ts`（resolveServePort 三层优先级 / classifyReadyProbe 五分类 fail-closed / readinessUrl 钉 127.0.0.1）；桌面新增 ipcGuards 三组判据（notify fail-closed / trustRejection 三重校验 / revealPath 白名单）+ CSP 哈希门禁（30 → 34 条）。
+
+### Fixed（修复）
+- **SSE 令牌轮换后永不自愈**：EventSource 的自动重连永远复用构造时的 URL，服务端重启换令牌后它拿旧 `?token=` 无限重试，用户只看到红色「断开」。新增 `EventStream.reconnect()`，AppController 在断连宽限期满与 `omni:token-updated` 时用**当前**令牌重建。
+- **401 只能整页重开**：授权失效横幅升级为可就地换令牌——粘贴新令牌 → `authToken.set` → 派发 `omni:token-updated` → SSE 重建、横幅收起；模块同时 `core/` → `ui/` 迁移（core 无 DOM 是既定约定，core 层唯一 DOM 违规件除名）。
+- **并行会话审批/提问卡片互相顶掉**：单槽占用时不再无条件 patch（服务端挂起表为真源，处置后 `restorePendingCards` 接续），排队以 toast 可见；挂起恢复失败不再 `.catch(() => {})` 静默。
+- **桌面杂项**：`desktop/package-lock.json` 版本对齐 0.6.0-alpha.2；`devAll` 停止改 Windows 树杀（`taskkill /T`，修 vite 孤儿占 5173）；`vendorKernel` 的 pack 改 node 直跑 npm-cli.js（带空格路径不再被 cmd 撕裂）；组合根显式登记 vault/automations 的 serve-only 边界（stdio 面 fail-closed 属设计而非缺陷）；「92 个 RPC 方法」过期注释四处对齐 93、门禁头注「七条判据」对齐八条。
+
+### Security（安全）
+- **桌面 CSP script-src 摘除 `unsafe-inline`**：唯一内联脚本（主题防闪烁）改 SHA-256 哈希白名单；style-src 的 unsafe-inline 为 antd cssinjs 必需，登记为接受项。CSP 门禁判据把 source 与 dist 产物的内联脚本哈希双钉，漂移即红。
+- **`omni:revealPath` 白名单**：渲染层传入路径必须落在当前工作区子树内才允许唤起系统文件管理器（此前仅校验 string 即 shell 打开，被攻陷渲染层可侧探任意目录存在性）。
+- **serve token 持久化 localStorage → sessionStorage**：会话级凭据不跨浏览器会话持久（刷新仍在、关浏览器即清），缩小令牌外泄面。
+
+- **A2A 僵尸 CLI 旗标面退役**：`--a2a / --a2a-port / --a2a-peer / --a2a-transport` 与
+  `A2A_TRANSPORTS` 枚举、帮助条目、`config.a2a` 段构造全部删除——A2A 互操作已随内核 M4
+  退役（v0.3 线格式，runtime 自 alpha.6 起即忽略该段），此前帮助仍在许诺「起对等 agent
+  服务端监听」的幽灵能力，违反本仓「帮助不许诺幽灵命令」纪律。待 v1.0 重基后按新契约另行接入。
+- **defaults/ 五份文档性死拷贝删除**：providers / limits / endpoints / ssrf / injection-snapshot——运行时读内核包内那份（`builtinDefaults.locatePackageRoot` 锚定内核包根、明确不做 cwd 推断），本仓拷贝实测已逐字节漂移、「逐字节一致可 diff 自检」的 README 声明失真（含描述已不存在的 a2a 段，a6d4bd5 删除 limits.json a2a 段的入账欠账一并补记）；`defaults/README.md` 重写为「数据流真相 + 两件活数据」。
+- **`src/indexBeta.ts` 删除**：自述的 `omniharness/beta` 发布通道不存在（package exports 无 `./beta`、注释里连包名都对不上、全仓零 import）——「以为发布了其实没发布」的发布面脱节。
+- **`scripts/codemods/` 一次性迁移脚本删除**：旧版 kernelSurface.mjs（内嵌旧分域规则，误跑会按旧口径覆写 18 个生成物）与 m27ShadowRetire.mjs；git 历史可考。
+- **`desktop/static/loading.html` 删除**：零引用死资源（security.ts 导航白名单注释与 desktop/README 同步事实）。
 
 ## [0.6.0-alpha.2] - 2026-11-05
 

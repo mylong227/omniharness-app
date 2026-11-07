@@ -2,7 +2,7 @@
 /**
  * 内核边界门禁：证明本应用**真的**在消费 `@omniharness/kernel`，而不是又长回一份内嵌副本。
  *
- * 七条判据（任一失败退出码 1）：
+ * 八条判据（任一失败退出码 1）：
  * 1. `package.json` 的 `@omniharness/kernel` 必须是 `file:vendor/*.tgz`（单一真源 + 可复现）；
  * 2. 仓库根不得再存在 `src/{kernel,contracts,protocols}`；
  * 3. `src/**` 不得出现解析到这三个目录的相对导入（宿主的相对路径必须落在 `src/host` 内）；
@@ -12,7 +12,7 @@
  * 7. **对接面单点**：`src/**` 里只有 `src/host/kernel/<area>.ts` 允许导入 `@omniharness/kernel`——
  *    业务代码一律经 `src/host/kernel/` 分域对接面消费内核，内核升级只适配这一个目录
  *    （分域而非单文件桶的原因见该目录文件头注释：整包加载 ~780ms vs 单域 ~60ms）。
- * 8. **对接面不漂移且纯净**：17 个域文件必须与「业务代码实际 import + 内核包 .d.ts」一致，
+ * 8. **对接面不漂移且纯净**：18 个域文件必须与「业务代码实际 import + 内核包 .d.ts」一致，
  *    且 `src/host/kernel/` 内只允许这些生成物（不得再混入实现/子目录）——只改业务导入不跑
  *    `npm run kernel:surface` 会在这里被判红（生成器见 `scripts/kernelSurface.mjs`）。
  *

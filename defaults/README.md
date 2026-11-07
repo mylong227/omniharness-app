@@ -1,306 +1,29 @@
 # `defaults/` —— 内建默认数据
 
-## 数据流真相（2026-11-06 审计后如实化）
+## 数据流真相（2026-11-08 收敛）
 
-内核的 `builtinDefaults.locatePackageRoot` 从**内核模块目录**向上找最近的「package.json + defaults/
-」目录——即 `node_modules/@omniharness/kernel/defaults/`（随 vendored tarball 发布的那份）。
-因此：**运行时真正被读的是内核包内那份**；本目录的 ssrf / providers / endpoints / limits /
-injection-snapshot 五个 JSON 是**同源文档性拷贝**（改它们不改变运行时行为——要改默认值请改
-内核仓的 defaults 并重新 vendor）。两类例外是本仓的**活数据**：
+内核的 `builtinDefaults.locatePackageRoot` 从**内核模块目录**向上找最近的「package.json + defaults/」
+目录——即 `node_modules/@omniharness/kernel/defaults/`（随 vendored tarball 发布的那份）。
+因此**运行时真正被读的是内核包内那份**（不做 cwd 推断；文件缺失/不可读/非法 JSON 一律抛错，
+fail-closed——安全默认档读不到时静默退化等于「护栏看着还在、实际更松」）。
 
-- `cliHelp.json`：CLI 帮助文案（`src/apps/cli/cliHelp.ts` 读**本目录**这份）；
-- `skills/harness-core.json`：随包技能包（`cliSkillFlags` 读本目录）。
+本仓曾长期维护 ssrf / providers / endpoints / limits / injection-snapshot 五份「文档性拷贝」，
+2026-11-08 盘点后**全部删除**：它们运行时根本不被读，且实测已与内核包逐字节漂移——
+「可 diff 自检」的声明本身成了假绿。要改默认值：改**内核仓**的 defaults → `npm run kernel:vendor`
+重建钉版。数据形状字典随内核包走（`node_modules/@omniharness/kernel/defaults/` 与内核仓文档）。
 
-另外 `../examples/catalog/registry.json` 是离线插件市场 catalog（`createRegistry` 消费，打包
-stage 会带上）。
+## 本目录的活数据（仅两件）
 
-本目录 `providers.json` 与内核包逐字节一致（可 diff 自检）；`limits.json` 仍含内核已退役的
-a2a 段（死数据，仅文档意义）。下文的字段字典保留作数据形状参考。
-## 文件与消费方
+| 文件                    | 内容                                 | 消费方                                  |
+| ----------------------- | ------------------------------------ | --------------------------------------- |
+| `cliHelp.json`          | `omniharness --help` 的文案          | `src/apps/cli/cliHelp.ts`（读本目录）   |
+| `skills/harness-core.json` | 随包技能包                        | `cliSkillFlags`（读本目录）             |
 
-| 文件             | 内容                                                | 单一来源实现                                          | 覆盖入口                                                         |
-| ---------------- | --------------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------- |
-| `ssrf.json`      | 云元数据主机 / 内网域名后缀 / IPv4 私有保留网段     | `src/host/kernel/adapters-sandbox.ts`（内核 security/ssrfPolicy，经对接面） | `omniharness.json` 的 `ssrfPolicy`                               |
-| `providers.json` | 大模型厂商目录（端点 / 模型 / 推理档位 / CLI 映射） | `src/host/kernel/config.ts`（内核 config/providerPresets，经对接面）  | `omniharness.json` 的 `providerPresets`                          |
-| `endpoints.json` | 适配器兜底端点/模型/凭据 env 名 + 各服务端点地址    | `src/host/kernel/util.ts`（内核 util/endpointDefaults，经对接面）  | CLI/配置文件显式值 > 该适配器的 env > 本文件（服务端点见 `env`） |
-| `limits.json`    | 运维限制（HTTP/预览源/A2A/工具缺省限额）            | `src/host/kernel/util.ts`（内核 util/runtimeLimits，经对接面）        | `omniharness.json` 的 `limits` > 数据里的 `env` > 本文件         |
-| `cliHelp.json`   | `omniharness --help` 的文案（命令与选项说明）       | `src/apps/cli/cliHelp.ts`（`CliHelp`）                     | 无（面向用户的帮助文案；枚举取值在渲染时从 `cliEnums` 派生）     |
+另外 `../examples/catalog/registry.json` 是离线插件市场 catalog（`createRegistry` 消费，
+打包 stage 会带上）——它不在本目录，一并在此登记。
 
-四个文件都由 `src/host/kernel/util.ts`（内核 util/builtinDefaults，经对接面） 按**模块相对路径**读包根下的 `defaults/`（不做 cwd 推断），
-结果缓存。**文件缺失 / 不可读 / 不是合法 JSON 一律抛错**（fail-closed）：安全默认档读不到时静默退化成空表，
-等于护栏「看着还在、实际更松」。
-
-> 发布要求：`package.json#files` 必须含 `defaults`，否则安装后启动即报错（这是刻意的响亮失败，不是静默放宽）。
-
-## `ssrf.json`
-
-三个字段**都必须存在且为数组**（缺任一段会被 `security/ssrfPolicy.ts` 当场拒绝）：
-
-| 字段               | 含义                                     | 匹配方式                                      |
-| ------------------ | ---------------------------------------- | --------------------------------------------- |
-| `metadataHosts`    | 云元数据端点主机名 / IP                  | 精确匹配（`allowMetadata` 无法覆盖，恒拦）    |
-| `internalSuffixes` | 内网 / 本机域名后缀，**必须以 `.` 开头** | `endsWith` 匹配（`localhost` 另有显式判定）   |
-| `ipv4Blocks`       | `[基点, 前缀长度]` 形式的私有 / 保留网段 | CIDR 包含判定；同时作用于 IPv6 内嵌 IPv4 写法 |
-
-`ipv4Blocks` 各项的由来（改动前请先想清楚「拦更多还是放更多」）：
-
-| 网段          | 前缀 | 用途                                       |
-| ------------- | ---- | ------------------------------------------ |
-| `0.0.0.0`     | 8    | 本网络                                     |
-| `10.0.0.0`    | 8    | 私有                                       |
-| `100.64.0.0`  | 10   | CGNAT（运营商级 NAT）                      |
-| `127.0.0.0`   | 8    | 环回                                       |
-| `169.254.0.0` | 16   | 链路本地（**含云元数据 169.254.169.254**） |
-| `172.16.0.0`  | 12   | 私有                                       |
-| `192.0.0.0`   | 24   | IETF 协议分配                              |
-| `192.168.0.0` | 16   | 私有                                       |
-| `198.18.0.0`  | 15   | 基准测试                                   |
-| `224.0.0.0`   | 4    | 组播                                       |
-| `240.0.0.0`   | 4    | 保留（含 `255.255.255.255`）               |
-
-**变更纪律**：这里的任何改动都会改变**所有未配置用户**的拦截面，须在看板登记并写明理由。
-只想对自己环境生效，请写 `omniharness.json`：
-
-```json
-{ "ssrfPolicy": { "internalSuffixes": [".localhost", ".corp", ".mycompany"] } }
-```
-
-语义是**替换**（不是合并）：写了哪一项就整体替换哪一项，**显式给空数组**表示清空该项（显式且危险，不静默）。
-非法条目（坏 CIDR、越界前缀、不以 `.` 开头的后缀、含空白的主机）一律抛错。
-
-## `providers.json`
-
-```json
-{
-  "presets": [
-    {
-      "id": "deepseek",
-      "label": "DeepSeek",
-      "adapter": "openai",
-      "cliAdapters": ["openai"],
-      "baseUrl": "https://api.deepseek.com",
-      "defaultModel": "deepseek-v4-flash",
-      "needsKey": true,
-      "models": ["deepseek-v4-flash"],
-      "reasoningEffort": ["none", "low", "medium", "high"],
-      "notes": "来源 / 实测日期 / 为何这么配（纯文档字段）"
-    }
-  ]
-}
-```
-
-| 字段              | 必填 | 说明                                                               |
-| ----------------- | ---- | ------------------------------------------------------------------ |
-| `id`              | 是   | 厂商标识，`providerKeys` 的键；**唯一**，不含空白                  |
-| `label`           | 是   | UI 展示名（允许空格，如 `Moonshot Kimi`）                          |
-| `adapter`         | 是   | `openai` / `anthropic` / `responses`——模型构造用哪个适配器         |
-| `cliAdapters`     | 否   | 哪些 `--model-adapter` 取值应解析到本厂商，**缺省 `[adapter]`**    |
-| `baseUrl`         | 是   | `http(s)://` 端点                                                  |
-| `defaultModel`    | 是   | 启用该厂商时的默认模型                                             |
-| `needsKey`        | 是   | 是否必需 Key（本地 Ollama 为 `false`）                             |
-| `models`          | 是   | `/v1/models` 不可用时的兜底清单（可为空数组）                      |
-| `reasoningEffort` | 否   | 该厂商合法的 `reasoning_effort` 档位；空/缺省 = 不暴露推理强度下拉 |
-| `notes`           | 否   | 维护说明（来源、实测日期、遗留问题）；不参与任何判定               |
-
-**加一家厂商只需改本文件**：追加一条记录即可，CLI（`--model-adapter` 反查、`providerKeys` 凭据兜底）、
-服务端（厂商卡片 / Key 探测 / 运行时模型构造）与 UI 都从这一份派生。若它的 CLI 归属与 `adapter` 不同
-（如 Ollama 的 `adapter` 是 `openai`、但 CLI 侧属 `llamacpp`），**显式写 `cliAdapters`**——不要另开映射表，
-那正是此前两处漂移的根因。
-
-用户可覆盖或追加（按 `id` **整条替换**，新 `id` **追加**；不做字段级继承，缺字段会被拒绝）：
-
-```json
-{
-  "providerPresets": [
-    {
-      "id": "corp-gateway",
-      "label": "公司自建网关",
-      "adapter": "openai",
-      "baseUrl": "https://llm-gateway.corp/v1",
-      "defaultModel": "internal-1",
-      "needsKey": true,
-      "models": ["internal-1"]
-    }
-  ]
-}
-```
-
-## `endpoints.json`
-
-**适配器兜底**（`modelAdapters`）与**服务端点**（`services`）两段。前者是「连厂商都没选」时的最后一道默认，
-后者是各功能模块自己要用的地址。
-
-```json
-{
-  "modelAdapters": [
-    {
-      "id": "openai",
-      "baseUrl": "https://api.openai.com/v1",
-      "model": "gpt-4o-mini",
-      "requiresApiKey": true,
-      "apiKeyEnv": "OPENAI_API_KEY",
-      "baseUrlEnv": "OPENAI_BASE_URL",
-      "modelEnv": "OPENAI_MODEL",
-      "notes": "改动理由 / 与哪个预设不可合并"
-    }
-  ],
-  "services": [
-    {
-      "id": "pluginRegistryIndex",
-      "url": "https://registry.omniharness.dev/index.json",
-      "env": "OMNI_REGISTRY_URL",
-      "notes": "…"
-    }
-  ]
-}
-```
-
-| `modelAdapters` 字段 | 必填 | 说明                                                                              |
-| -------------------- | ---- | --------------------------------------------------------------------------------- |
-| `id`                 | 是   | 适配器标识（`--model-adapter` 取值：`openai`/`anthropic`/`responses`/`llamacpp`） |
-| `baseUrl`            | 是   | 兜底端点（http(s)）                                                               |
-| `model`              | 是   | 兜底模型名                                                                        |
-| `requiresApiKey`     | 是   | 是否必须给 Key（本地 Ollama 为 `false`）                                          |
-| `apiKeyEnv`          | 否   | Key 的环境变量名（**同时用于拼错误提示**，改名后提示自动跟随）                    |
-| `baseUrlEnv`         | 否   | 端点的环境变量名                                                                  |
-| `modelEnv`           | 否   | 模型名的环境变量名                                                                |
-| `notes`              | 否   | 维护说明（为什么是这个值、与哪个预设不可合并）                                    |
-
-生效优先级（`cliBuildConfig.buildModel` 与 `configBuilder.buildRouterAdapter` 同一口径）：
-**CLI / 配置文件显式值 > `xxxEnv` 环境变量 > 本文件的 `baseUrl` / `model`**。
-
-| `services` 字段 | 必填 | 说明                                                                   |
-| --------------- | ---- | ---------------------------------------------------------------------- |
-| `id`            | 是   | 服务标识（调用方按字面量取用；**拼错即抛错**，不会静默拿到 undefined） |
-| `url`           | 是   | 地址；支持 `{port}` 模板（由调用方代入）                               |
-| `env`           | 否   | 可覆盖该地址的环境变量名                                               |
-| `notes`         | 否   | 维护说明                                                               |
-
-现有服务端点：`pluginRegistryIndex`（插件市场索引，env `OMNI_REGISTRY_URL`）、
-`gitRemoteBase`（SWE-bench 克隆远端基址）、`githubApiBase`（GitHub Contents API，env `GITHUB_API_URL`，
-沿用 GitHub Actions 标准名，故 GHE 环境天然生效）、`cdpProbeUrl` / `cdpVersionPath`（浏览器 CDP 自检）、
-`webSearchBrave` / `webSearchTavily`（Web 搜索端点，env `BRAVE_SEARCH_URL` / `TAVILY_SEARCH_URL`）、
-`hfMirror`（HuggingFace 镜像，env `OMNI_HF_ENDPOINT`）、`geminiBase`（Gemini 原生 API 基址，env
-`GEMINI_BASE_URL`；配置项 `baseUrl` 仍优先）。
-
-**别把 `endpoints.json` 与 `providers.json` 合并**：厂商预设按**厂商**组织、可被用户整体覆盖；
-适配器兜底按**适配器**组织、是「没选厂商」时的兜底。合并会让「用户覆盖某厂商」意外改掉适配器兜底。
-最典型的例子是 Ollama：`endpoints.json` 的 `llamacpp` 兜底是 `http://localhost:11434`（原生 `/api/chat`），
-而 `providers.json` 的 `ollama` 预设是 `http://localhost:11434/v1`（OpenAI 兼容层）——**两者都对，勿统一**。
-
-## `limits.json`
-
-**运维限制**：HTTP 主服务的收头/请求时限、并发连接数、请求体上限、静态缓存上限；工作区网页预览源
-的同名三项；A2A 互操作的调用/投递/传输超时、缺省页大小与游标有效期、任务与推送桶上限、入站请求体上限；
-工具族缺省限额（`web_fetch` 的超时与响应体上限、shell 并发与队列上限）；媒体抽帧的 ffmpeg 并发；浏览器
-（CDP/Playwright）的动作/加载/CDP/建连/启动/探测/空闲关闭超时；LSP 的请求/诊断等待超时；维护巡检与
-会话保留策略（keepNewest / 年龄 / 总量、临时清扫阈值、周期间隔）。这些值此前写死在
-`HttpServer` / `PreviewServer` / `A2aClient` / `A2aPushNotifications` / `A2aTaskStore` / `A2aTaskPager` /
-`HttpA2aTransport` / `HttpA2aServerTransport` / `WebFetchTool` / `FairSessionScheduler` 装配处 /
-`MediaStackAssembler` / `CdpClient` / `ChromeProcess` /
-`BrowserSession` / `PlaywrightBrowserSession` / `BrowserAvailability` / `BrowserScreenshotTool` /
-`BrowserActTool` / `LspProcessAdapter` / `LspJsonRpcConnection` / `SessionGc` / `TmpSweep` /
-`MaintenanceRunner` 里，改一次要改代码重发。
-
-```json
-{
-  "http": {
-    "headersTimeoutMs": { "value": 30000, "env": "OMNI_HTTP_HEADERS_TIMEOUT_MS", "notes": "…" },
-    "maxBodyBytes": { "value": 8388608, "env": "OMNI_HTTP_MAX_BODY_BYTES", "notes": "…" }
-  },
-  "preview": {
-    "maxConnections": { "value": 64, "env": "OMNI_PREVIEW_MAX_CONNECTIONS", "notes": "…" }
-  },
-  "a2a": {
-    "clientTimeoutMs": { "value": 60000, "env": "OMNI_A2A_CLIENT_TIMEOUT_MS", "notes": "…" },
-    "webhookTimeoutMs": { "value": 10000, "env": "OMNI_A2A_WEBHOOK_TIMEOUT_MS", "notes": "…" },
-    "pageSize": { "value": 50, "env": "OMNI_A2A_PAGE_SIZE", "notes": "…" },
-    "pageTokenTtlMs": { "value": 86400000, "env": "OMNI_A2A_PAGE_TOKEN_TTL_MS", "notes": "…" },
-    "maxPushConfigsPerTask": {
-      "value": 20,
-      "notes": "单任务 push 配置上限（env 仍由 LimitEnv 宽松解释）"
-    },
-    "maxPushTasks": { "value": 500, "notes": "push 配置桶总数上限" },
-    "maxTasks": { "value": 500, "notes": "A2A 任务记录上限" },
-    "maxArtifactsPerTask": { "value": 200, "notes": "单任务产出上限" },
-    "transportSendTimeoutMs": {
-      "value": 10000,
-      "notes": "出站 send 空闲超时（env 仍由 LimitEnv 宽松解释）"
-    },
-    "transportReadTimeoutMs": { "value": 30000, "notes": "入站读超时" },
-    "transportMaxBodyBytes": { "value": 1048576, "notes": "入站请求体上限" }
-  },
-  "tools": {
-    "webFetchTimeoutMs": { "value": 30000, "env": "OMNI_WEB_FETCH_TIMEOUT_MS", "notes": "…" },
-    "webFetchMaxBytes": { "value": 200000, "env": "OMNI_WEB_FETCH_MAX_BYTES", "notes": "…" },
-    "shellConcurrency": {
-      "value": 8,
-      "notes": "前台 shell 并发上限（env 仍由 LimitEnv 宽松解释）"
-    },
-    "shellQueuePerSession": { "value": 64, "notes": "单会话 shell 排队上限" },
-    "shellQueueTotal": { "value": 256, "notes": "全部会话 shell 排队总上限" }
-  },
-  "media": {
-    "processConcurrency": {
-      "value": 4,
-      "notes": "ffmpeg/ffprobe 并发进程上限（env 仍由 LimitEnv 宽松解释）"
-    }
-  },
-  "browser": {
-    "actionTimeoutMs": { "value": 10000, "env": "OMNI_BROWSER_ACTION_TIMEOUT_MS", "notes": "…" },
-    "loadTimeoutMs": { "value": 30000, "env": "OMNI_BROWSER_LOAD_TIMEOUT_MS", "notes": "…" },
-    "commandTimeoutMs": { "value": 20000, "env": "OMNI_BROWSER_COMMAND_TIMEOUT_MS", "notes": "…" },
-    "connectTimeoutMs": { "value": 15000, "env": "OMNI_BROWSER_CONNECT_TIMEOUT_MS", "notes": "…" },
-    "launchTimeoutMs": { "value": 30000, "env": "OMNI_BROWSER_LAUNCH_TIMEOUT_MS", "notes": "…" },
-    "probeTimeoutMs": { "value": 5000, "env": "OMNI_BROWSER_PROBE_TIMEOUT_MS", "notes": "…" },
-    "idleCloseMs": { "value": 180000, "env": "OMNI_BROWSER_IDLE_CLOSE_MS", "notes": "…" }
-  },
-  "lsp": {
-    "requestTimeoutMs": { "value": 15000, "env": "OMNI_LSP_REQUEST_TIMEOUT_MS", "notes": "…" },
-    "diagnosticsTimeoutMs": {
-      "value": 5000,
-      "env": "OMNI_LSP_DIAGNOSTICS_TIMEOUT_MS",
-      "notes": "…"
-    }
-  },
-  "maintenance": {
-    "keepNewest": { "value": 50, "notes": "会话保留条数（配置最低 1：0 = 清空全部，属脚枪）" },
-    "maxAgeDays": { "value": 90, "notes": "会话年龄阈值（天）" },
-    "maxBytes": { "value": 4294967296, "notes": "会话存档总量上限" },
-    "tmpOlderThanMs": { "value": 86400000, "notes": "临时目录清扫阈值" },
-    "intervalHours": { "value": 6, "notes": "serve 周期巡检间隔" }
-  }
-}
-```
-
-> **`maintenance` 段为什么没有 `env`**：这四个环境变量（`OMNI_GC_KEEP` / `OMNI_GC_MAX_AGE_DAYS` /
-> `OMNI_GC_MAX_BYTES` / `OMNI_MAINTENANCE_INTERVAL_HOURS`）由 `MaintenanceRunner` 按**旧语义**解释——
-> 写错就忽略并回落，绝不让维护因一个坏环境变量停摆。本段只承载"出厂值 + 配置覆盖"，环境变量在
-> `MaintenanceRunner` 里叠在配置之下：**显式选项 > 配置段 > env > 本文件**。
->
-> **`tools.shell*` 与 `media.processConcurrency` 为什么也没有 `env`**：同一条理由——`OMNI_SHELL_*` 与
-> `OMNI_MEDIA_PROCESS_CONCURRENCY` 由调用点的 `LimitEnv.int` 宽松解释（写错回落），数据只提供默认值，
-> 配置段作为更高优先的严格层：**配置段 > env > 本文件**。把 env 名写进数据会绕过 `LimitEnv` 的宽松语义。
-
-| 字段    | 必填 | 说明                                                                |
-| ------- | ---- | ------------------------------------------------------------------- |
-| `value` | 是   | 出厂默认值（正整数，区间由 `RuntimeLimits` 的 `SCHEMA` 定义）       |
-| `env`   | 否   | 可覆盖该项的环境变量名（形如 `OMNI_XXX`；**全局唯一**，重名即拒绝） |
-| `notes` | 否   | 维护说明（为什么是这个值、何时该改）；不参与任何判定                |
-
-**必须给全每段的每个键**（缺键即抛错）：缺一项就等于「默认值悄悄改了」，比启动失败更难查。
-未知段 / 未知键 / 非整数 / 越界 / env 重名也一律在构造期抛错（fail-closed）。
-
-生效优先级：**`omniharness.json` 的 `limits` 段 > 数据里 `env` 字段声明的环境变量 > 本文件的 `value`**。
-只写要覆盖的项即可（逐键覆盖，不是整段替换）：
-
-```json
-{ "limits": { "http": { "headersTimeoutMs": 45000, "maxConnections": 4096 } } }
-```
-
-配置段与数据文件**同源校验**（`limitsConfigValidator` 直接调用 `RuntimeLimits.validateConfig`）：
-未知段/未知键、非整数、越界一律拒绝启动——这些值直接决定「服务会不会被慢速头拖死 / 被大请求体打爆」，
-静默回落默认值是最危险的一种"看起来配了"。
+> 发布要求：`package.json#files` 必须含 `defaults`，否则安装后启动即报错（这是刻意的响亮
+> 失败，不是静默放宽）——`cliHelp.json` 与 `skills/` 仍需随包。
 
 ## `cliHelp.json`
 
@@ -325,17 +48,13 @@ a2a 段（死数据，仅文档意义）。下文的字段字典保留作数据�
   绝不把 `{{x}}` 渲染给用户。可用的名字见 `HELP_ENUM_SOURCES`（`storageAdapters` / `approvals` /
   `sandboxProfiles` / `outputFormats` …）。
 - **排版**：描述列固定第 36 列；spec 过长则留 3 空格（渲染器统一保证，不需要手工对齐）。
-- **改文案**：直接改本文件的 `description` 即可；**新增旗标**要在这里补一条，否则
-  （上游仓有「新增旗标必须文档化」机检；本仓暂无该判据，改文案请自查 `--help` 渲染）。
+- **改文案**：直接改本文件的 `description` 即可；**新增旗标**要在这里补一条
+  （`tests/cliFlagsDiscipline.test.ts` 钉住「帮助不许诺幽灵命令」双向核对，漏了会红）。
 
 ## 改完怎么验
 
 ```bash
 npm run typecheck && npm run web:test   # 三端类型 + 全部判据（本仓判据在 web/test 与 tests/）
 npm run build && npm run smoke          # 端到端冒烟（真起 serve 验默认数据生效）
-npm run kernel:check                    # 内核边界门禁（7 条）
+npm run kernel:check                    # 内核边界门禁（8 条）
 ```
-
-> 注：上游仓的 `tests/unit/*` 守卫（反硬编码 / 体量铁律 / 接线审计）**没有**切到本仓；
-> 上文提及的「具体字面量守卫」属上游看板内容，仅作历史背景。本仓的对应防线是
-> `kernel:check` 门禁 + 冒烟 + parity 快照（`tests/serverModulesParity.test.ts`）。

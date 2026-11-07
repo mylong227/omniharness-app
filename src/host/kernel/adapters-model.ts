@@ -11,7 +11,7 @@
 export { AnthropicModel } from '@omniharness/kernel/kernel/adapters/model/anthropicModel.js';
 export type { AnthropicModelConfig } from '@omniharness/kernel/kernel/adapters/model/anthropicModel.js';
 export { BudgetedModel } from '@omniharness/kernel/kernel/adapters/model/budgetedModel.js';
-export { CostBudget, DEFAULT_SOFT_RATIO } from '@omniharness/kernel/kernel/adapters/model/costBudget.js';
+export { CostBudget } from '@omniharness/kernel/kernel/adapters/model/costBudget.js';
 export type { BudgetSnapshot } from '@omniharness/kernel/kernel/adapters/model/costBudget.js';
 export { LlamaCppModel } from '@omniharness/kernel/kernel/adapters/model/llamaCppModel.js';
 export type { LlamaCppConfig } from '@omniharness/kernel/kernel/adapters/model/llamaCppModel.js';

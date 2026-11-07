@@ -487,7 +487,7 @@ export interface SessionModes {
  *
  * 为什么不直接复用服务端类型：Web 只经 RPC 消费 JSON，且 `web/tsconfig.json` 不跨到 `src/`；
  * 故这里只声明**面板真正会渲染的字段**。字段名与服务端
- * `src/host/kernel-compat/contracts/ports/observability/doctorReport.ts` 逐字一致（判据 `web/test/diagnosticsTab.test.ts`
+ * `src/host/extensions/contracts/ports/observability/doctorReport.ts` 逐字一致（判据 `web/test/diagnosticsTab.test.ts`
  * 会核对本类型与面板用到的字段名）。
  */
 export interface DoctorReportLike {

@@ -1,18 +1,18 @@
 # OmniHarness App
 
 > **独立应用仓：完整后端宿主 + React 工作台 + Electron 桌面端。**
-> 内核是 [`@omniharness/kernel`](../omniharness-kernel) 的**固定发行物**（vendored tarball，当前 `0.1.0-alpha.6`），
+> 内核是 [`@omniharness/kernel`](../omniharness-kernel) 的**固定发行物**（vendored tarball，当前 `0.1.0-alpha.13`），
 > 应用经 `src/host/kernel/` **分域对接面**消费内核（全仓唯一的包导入点，门禁强制），
-> 内核切片清理掉的应用能力收留在 `src/host/kernel-compat/`（app 自有扩展层）。
-> 2026-11-04 从 [OmniHarness](https://github.com/mylong227/OmniHarness) 切出并完成内核包迁移（M2）；
-> 本仓不依赖上游任何文件。
+> app 自有能力收留在 `src/host/extensions/`（原 `kernel-compat/`，M27 兼容层清零后更名）。
+> 2026-11-04 从 [OmniHarness](https://github.com/mylong227/OmniHarness) 切出并完成内核包迁移（M2），
+> M21–M30 已把内核切片期的全部影子副本退役；本仓不依赖上游任何文件。
 
 ## 1. 三个部分
 
 | 目录 | 内容 | 规模 |
 | ---- | ---- | ---- |
-| `src/` | **后端宿主**：HTTP/SSE、JSON-RPC（93 方法，16 个域模块声明式注册）、会话存储、审批/沙箱、插件宿主、CLI、MCP/ACP/AG-UI | `src/apps` + `src/host/kernel/`（17 域对接面）+ `src/host/kernel-compat/`（app 自有扩展层） |
-| `web/` | **前端**：React 19 工作台（会话/工具/计划/变更/设置/审计/插件…） | 252 个源文件 + 149 个判据文件 / 732 用例（后端 7 文件 16 用例另计，合计 156 文件 / 748 用例） |
+| `src/` | **后端宿主**：HTTP/SSE、JSON-RPC（93 方法，16 个域模块声明式注册）、会话存储、审批/沙箱、插件宿主、CLI、MCP/ACP/AG-UI | `src/apps` + `src/host/kernel/`（17 域对接面）+ `src/host/extensions/`（app 自有扩展层） |
+| `web/` | **前端**：React 19 工作台（会话/工具/计划/变更/设置/审计/插件…） | 255 个源文件 + 149 个判据文件 / 732 用例（后端 9 文件 23 用例另计，合计 158 文件 / 755 用例） |
 | `desktop/` | **桌面端**：Electron 主进程 + preload（窗口/托盘/菜单/更新/侧车监督） | 30 个源文件，30 条纯逻辑判据 |
 
 运行形态：
@@ -22,7 +22,7 @@ Electron main（受信） ──spawn──▶ node dist/src/apps/cli/exec.js se
         │                              │  HTTP+SSE 127.0.0.1:<port>（Bearer + HttpOnly Cookie）
         └── BrowserWindow ──load──▶ http://127.0.0.1:<port>/?token=…
                                        ├─ GET  /            → web/dist（Vite 产物）
-                                       ├─ POST /rpc         → JSON-RPC 2.0（91 个方法）
+                                       ├─ POST /rpc         → JSON-RPC 2.0（93 个方法）
                                        ├─ GET  /events      → SSE 事件流
                                        ├─ GET  /files       → 工作区文件
                                        └─ GET  /healthz     → 运行时自述（含 previewPort）
@@ -76,7 +76,7 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 | ---- | ---- |
 | `npm run build` | 后端：`tsc` → `dist`（原子换入）+ 伴生资源/原生库镜像 |
 | `npm run build:web` / `web:dev` | 前端 Vite 构建 / 开发服务器 |
-| `npm run web:test` | 判据（前端 149 文件 + 后端 7 文件 / 共 748 用例，文件级串行） |
+| `npm run web:test` | 判据（前端 149 文件 + 后端 9 文件 / 共 755 用例，文件级串行） |
 | `npm run typecheck` | 后端 + 前端 + 桌面三份 strict 类型检查 |
 | `npm run kernel:check` | **内核边界门禁（8 条）**：vendored 钉定 / 无内嵌副本 / 对接面单点 / tarball 与锁文件一致 / 原生内核实载 / **对接面生成物不漂移** |
 | `npm run kernel:surface` | 从「业务代码实际 import + 内核包 .d.ts」生成 17 个域文件（新增符号无需手写 re-export） |
@@ -109,30 +109,45 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 
 ```json
 "dependencies": {
-  "@omniharness/kernel": "file:vendor/omniharness-kernel-0.1.0-alpha.6.tgz"
+  "@omniharness/kernel": "file:vendor/omniharness-kernel-0.1.0-alpha.13.tgz"
 }
 ```
 
-- **alpha.6**（内核 M4/M5/M6 闭环）：内核完成了「应用形状切片」并把运行时编排收敛为
-  `Runtime.createRuntime` 单源——app 的 `Runtime` 现在只是内核 Runtime 的薄扩展。
-- **`src/host/kernel/` 对接面（17 个域文件，自动生成、无实现）**：全仓**唯一**允许导入
-  `@omniharness/kernel` 的地方（`checkKernelBoundary.mjs` 第 7 条强制单点、第 8 条拒绝
-  生成物漂移）。文件由 `npm run kernel:surface` 从业务代码实际 import 生成——新增内核符号
-  只需在业务代码里正常 import 再跑一次生成命令，不必手写 re-export。目录内**只放 re-export**：
-  Laya 决策引擎 / 企业 OIDC 等 app 自有实现已分别收在 `kernel-compat/kernel/` 与
-  `src/apps/enterprise/`。分域而非单文件桶的原因：实测根入口整包加载 ~780ms vs 单域 ~60ms——
-  单文件桶会给每个 CLI 冷启动平添 ~700ms。
-  **升级内核 = 换 tgz + `npm run kernel:surface` + 适配 typecheck**，业务代码零改动。
-- **`src/host/kernel-compat/`（app 自有扩展层）**：插件宿主体系、图存储、资产、媒体、
-  审计演化等内核切片清理掉的应用能力收留于此。归属契约见
-  [其 README](src/host/kernel-compat/README.md)：app 自有、随 app 演进、不得反向要求内核兼容。
+对接全景——谁在哪里、怎么连、哪条门禁在把守：
+
+```text
+package.json 钉定 vendor/omniharness-kernel-0.1.0-alpha.13.tgz
+      │  npm ci（lockfile integrity 钉死 tarball —— kernel:check 第 1/5 条）
+      ▼
+@omniharness/kernel —— vendored 固定发行物（dist/** + native/omni_napi.node 随包）
+      │  全仓唯一导入点（kernel:check 第 7 条强制）
+      ▼
+src/host/kernel/<域>.ts —— 17 个自动生成的分域 re-export，无实现
+      │  （kernel:surface 生成，第 8 条拒绝漂移；分域而非单文件桶，避免 CLI 冷启动 ~700ms 税）
+      ├─▶ src/apps/**             宿主：16 个 RPC 域模块（93 方法）+ CLI + 嵌入 API
+      └─▶ src/host/extensions/**  app 自有扩展层：Laya 决策引擎 / CLI worker / doctor /
+                                 图存储 / web 广播…（同样禁止直接 import 内核包名）
+```
+
+- **对接只有一条路**：业务代码一律 `import { X } from '<相对路径>/host/kernel/<域>.js'`，
+  全仓不出现 `@omniharness/kernel` 包名（实测 265 源文件 / 316 处包导入全部命中对接面）。
+  新增内核符号的姿势：在业务代码里正常 import 包名 → 跑一次 `npm run kernel:surface`
+  生成/扩充对应域文件 → 提交生成物（忘了跑，`kernel:check` 第 8 条与
+  `tests/kernelSurface.test.ts` 都会红）。
+- **`src/host/extensions/`（app 自有扩展层，原 `kernel-compat/`）**：M22–M27 迁移后，
+  内核形状的影子副本已全部退役（plugin 域 44 件、终批 41 件删除；36 件收编回归内核），
+  目录只剩真应用形状的实现。归属契约见[其 README](src/host/extensions/README.md)：
+  app 自有、随 app 演进、不得反向要求内核兼容。
 - **93 个 RPC 方法**由 `src/apps/server/modules/` 的 16 个域模块声明式注册
   （parity 快照 `tests/serverModulesParity.test.ts` 钉住全表）；stdio 与 serve 两条组合根
   共用 `composedServerCore()` 不变量核心（历史「serve 漏接 doctor」缺陷类已结构性消灭）。
 - **原生内核随包**：内核 tarball 包含 `native/omni_napi.node`（`kernel:vendor` 注入），
   `NativeKernel.available() === true`，`kernel:check` 会实载并 ping。
-- **升级路径**：改 package.json 钉新 tgz → `npm run kernel:vendor` → 适配 `src/host/kernel/`
-  （typecheck 指出缺哪些符号）→ `npm run verify`。细节见 [docs/KERNEL-CONTRACT.md](docs/KERNEL-CONTRACT.md)。
+- **升级回路（四步，常态业务代码零改动）**：
+  ① 改 package.json 钉新 tgz（或 `npm run kernel:vendor` 从内核仓构建钉定，tag 缺省自
+  package.json 解析）→ ② `npm run kernel:surface` 重新生成对接面 → ③ `npm run typecheck`
+  指出真正不兼容的符号（只适配对接面与个别消费点）→ ④ `npm run verify` 全链验收。
+  细节见 [docs/KERNEL-CONTRACT.md](docs/KERNEL-CONTRACT.md)。
 
 ## 6. 扩展指南（三种方式，按介入深度递增）
 
@@ -146,15 +161,15 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 （可选）在 `tests/serverModulesParity.test.ts` 快照补方法名 →（可选）`web/src/core/ApiClient.ts` 加客户端方法。
 冲突（两处注册同名）在启动期即抛错。
 
-## 7. 今日实测（2026-11-06，本机 Node 22.20 / Windows）
+## 7. 今日实测（2026-11-07，本机 Node 22.20 / Windows）
 
 | 检查 | 结果 |
 | ---- | ---- |
 | 三份 typecheck（后端 / 前端 / 桌面） | ✅ 0 error |
-| `npm run kernel:check` | ✅ 349 源文件 / 316 处包导入（全部收敛对接面）/ 内嵌副本 0 / tarball integrity 一致 / 原生内核实载 / 生成物一致 |
+| `npm run kernel:check` | ✅ 265 源文件 / 316 处包导入（17 域对接面，全部收敛）/ 内嵌副本 0 / tarball integrity 一致 / 原生内核实载 / 生成物一致 |
 | 后端构建 `npm run build` | ✅ dist 原子换入；原生内核可加载 |
 | 前端构建 `npm run build:web` | ✅ 单入口 + vendor/panel-antd 分块 |
-| 判据 `npm run web:test` | ✅ 156 文件 / 748 用例（含 parity/守卫/家具/嵌入 API） |
+| 判据 `npm run web:test` | ✅ 158 文件 / 755 用例（含 parity/守卫/家具/嵌入 API/JCS golden） |
 | 端到端 `npm run smoke` | ✅ 7/7（banner token、`/healthz`、`/readyz`、`/` HTML、`/rpc config.get`、`sessions.list`、原生内核实载） |
 | 桌面 `desktop:build` + `desktop:test` | ✅ 30/30 |
 | 嵌入 API 实测 | ✅ `createOmniHarness` 启动 / healthz 200 / RPC 往返 / 优雅关闭（另有自动判据 tests/embedApi.test.ts） |
@@ -162,12 +177,12 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 
 ## 8. 与上游 / 内核仓的关系
 
-- 应用代码来自上游 `OmniHarness@main`（0.4.0）；本仓的仓库级解耦、内核包迁移（M2）与
-  模块化重构用 `git log` 可审。
-- 内核来自 `../omniharness-kernel` 的 `v0.1.0-alpha.6` tag；`vendor/*.tgz` 是它的发行物，
+- 应用代码来自上游 `OmniHarness@main`（0.4.0）；本仓的仓库级解耦、内核包迁移（M2）、
+  模块化重构与 M21–M30 影子清零迁移用 `git log` 可审。
+- 内核来自 `../omniharness-kernel` 的 `v0.1.0-alpha.13` tag；`vendor/*.tgz` 是它的发行物，
   **不是**第二份源码。重建用 `npm run kernel:vendor`（tag 缺省自 package.json 解析）。
 - 上游的 `tests/`、`crates/`、`third-party/`、看板与审计脚本没有切过来：本仓的判据是
-  748 用例（web 732 + 后端 16）+ 桌面 30 条 + 冒烟 7 条 + 内核边界 8 条。
+  755 用例（web 732 + 后端 23）+ 桌面 30 条 + 冒烟 7 条 + 内核边界 8 条。
 
 ## License
 

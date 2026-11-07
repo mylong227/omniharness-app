@@ -44,7 +44,7 @@ describe('createOmniHarness（嵌入 API 生命周期）', () => {
     expect(harness.url).toContain(`token=${token}`);
     expect(harness.port).toBeGreaterThan(0);
 
-    // 自描述：内置 92 方法（无 registry 部署少 5 个市场方法 = 87）+ 本判据的自定义 1 个。
+    // 自描述：内置 93 方法（无 registry 部署少 5 个市场方法 = 88）+ 本判据的自定义 1 个。
     // 自定义**模块**的方法归入 builtin 台账（owner = 模块名）；source:'plugin' 只属于
     // 插件运行时经 registerRpc 注册的方法（ctx.services.plugins.pluginRpcMethods）。
     const list = await rpc<{ count: number; methods: { method: string; owner: string; source: string }[] }>(

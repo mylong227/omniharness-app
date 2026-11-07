@@ -27,7 +27,7 @@ import type { RoutineSchedule } from '../../host/extensions/contracts/ports/daem
 import type { CronSchedulePort } from '../../host/extensions/contracts/ports/daemon/cronSchedule.ts';
 
 /**
- * 定时任务相关契约（唯一声明见 `src/contracts/ports/daemon/`：`routine.ts` / `routineModelAdapter.ts` /
+ * 定时任务相关契约（唯一声明见 `src/host/extensions/contracts/ports/daemon/`：`routine.ts` / `routineModelAdapter.ts` /
  * `routineSchedule.ts`；此处为原路径再导出，调用点零改动）。
  */
 export type { Routine, RoutineModelAdapter, RoutineSchedule };
@@ -41,8 +41,6 @@ export interface RoutineSchedulerOptions {
   /** cron 判定所用时区（缺省由 `cron` 实现的确定性默认值决定，本仓为 `UTC`）。 */
   readonly timezone?: string | undefined;
 }
-
-/** 把单段 cron 字段（如「每5分」「1-3,9」「任意」）展开为命中的数值集合。 */
 
 /**
  * @beta

@@ -7,7 +7,7 @@
     "条目示例（去掉注释字段后即合法）：",
     "  { \"name\": \"demo-tool\", \"version\": \"1.0.0\", \"description\": \"示例插件\",",
     "    \"permissions\": [\"fs.read\"], \"entry\": \"index.js\", \"localPath\": \"examples/plugins/demo-tool.zip\" }",
-    "permissions 必须是 ALL_PERMISSIONS 白名单子集（见 src/host/kernel-compat/kernel/plugin/permission.ts），",
+    "permissions 必须是 PluginPermission 白名单子集（内核包单一真源，经 src/host/kernel/plugin.ts 对接面），",
     "未知权限在安装阶段 fail-closed 拒绝。"
   ],
   "plugins": []

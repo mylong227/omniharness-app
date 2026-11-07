@@ -15,10 +15,6 @@ export type { PromotionHistoryView } from '@omniharness/kernel/kernel/governance
 export { ProvenanceIssuer } from '@omniharness/kernel/kernel/governance/provenanceIssuer.js';
 export type { ProvenanceCertificate, ProvenanceIssuerIdentity } from '@omniharness/kernel/kernel/governance/provenanceIssuer.js';
 export { NativeKernel } from '@omniharness/kernel/kernel/native/nativeKernel.js';
-export { Bm25Index } from '@omniharness/kernel/kernel/search/bm25Index.js';
-export type { Bm25Hit, Bm25Options } from '@omniharness/kernel/kernel/search/bm25Index.js';
-export { ToolDiscovery } from '@omniharness/kernel/kernel/search/toolDiscovery.js';
-export { ToolIndex } from '@omniharness/kernel/kernel/search/toolIndex.js';
 export type { Skill, SkillEntry } from '@omniharness/kernel/kernel/skill/skill.js';
 export { SkillMdCodec } from '@omniharness/kernel/kernel/skill/skillMdCodec.js';
 export { SkillRegistry } from '@omniharness/kernel/kernel/skill/skillRegistry.js';

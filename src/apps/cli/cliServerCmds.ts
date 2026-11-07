@@ -91,6 +91,12 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
    * 单一出处的原因：`AppServerOptions` 的可选注入字段曾由两条路径各自手写，2026-10-11 真实缺陷
    * ——「stdio 路径接了 doctor，serve 路径却漏了」（Web UI 连的正是 serve，诊断面板永远回
    * "未接线"）。凡新增「两路径都必须有」的注入，只改本方法。
+   *
+   * **serve-only 边界（2026-11-08 登记，属设计而非缺陷）**：`vault` 与 `automations` 仅在
+   * HTTP serve 路径注入（见 runServe 的 options 展开）。stdio 面下 `automations.list` 回空表、
+   * 其余 automations 方法 fail-closed 抛「自动化未接线」、vault 面板如实显示「未接线」——
+   * 把调度定时器与保险库接进常驻 stdio 进程对嵌入方是行为意外，故刻意不进本方法；
+   * 若未来要接线，先过 RoutineScheduler 的驱动方 scope 语义评审。
    * @param deps 子命令参数（registry/audit 按旗标构建）、插件目录与启动审批档位。
    * @returns 不变量字段的 partial（由两条路径展开进各自的 AppServerOptions）。
    */

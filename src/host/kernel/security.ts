@@ -10,7 +10,6 @@
 
 export { EnforcementModeResolver } from '@omniharness/kernel/kernel/security/enforcementModeResolver.js';
 export { PromptInjectionGuard } from '@omniharness/kernel/kernel/security/promptInjectionGuard.js';
-export type { InjectionHit, InjectionScan, InjectionSeverity } from '@omniharness/kernel/kernel/security/promptInjectionGuard.js';
 export { SandboxDenial } from '@omniharness/kernel/kernel/security/sandboxDenial.js';
 export { SsrfGuard } from '@omniharness/kernel/kernel/security/ssrfGuard.js';
 export { SsrfPolicy } from '@omniharness/kernel/kernel/security/ssrfPolicy.js';

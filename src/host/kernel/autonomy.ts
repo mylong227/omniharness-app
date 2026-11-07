@@ -9,12 +9,8 @@
  */
 
 export { GoalChecker } from '@omniharness/kernel/kernel/autonomy/goalChecker.js';
-export type { GoalCheck } from '@omniharness/kernel/kernel/autonomy/goalChecker.js';
-export { DEFAULT_GOAL_MAX_ITERATIONS, GoalRunner } from '@omniharness/kernel/kernel/autonomy/goalRunner.js';
-export type { GoalResult, GoalRunnerOptions } from '@omniharness/kernel/kernel/autonomy/goalRunner.js';
-export { RUN_GOAL_TOOL_NAME } from '@omniharness/kernel/kernel/autonomy/goalToolNames.js';
+export { GoalRunner } from '@omniharness/kernel/kernel/autonomy/goalRunner.js';
 export { WorkflowRunLog } from '@omniharness/kernel/kernel/autonomy/workflowRunLog.js';
-export { DEFAULT_WORKFLOW_CONCURRENCY, WorkflowCycleError, WorkflowRunner } from '@omniharness/kernel/kernel/autonomy/workflowRunner.js';
+export { WorkflowRunner } from '@omniharness/kernel/kernel/autonomy/workflowRunner.js';
 export type { GraphNodeStatus } from '@omniharness/kernel/kernel/autonomy/workflowRunner.js';
-export { RUN_WORKFLOW_TOOL_NAME } from '@omniharness/kernel/kernel/autonomy/workflowToolNames.js';
-export type { WorkflowDef, WorkflowResult, WorkflowStep, WorkflowStepResult } from '@omniharness/kernel/kernel/autonomy/workflowTypes.js';
+export type { WorkflowDef } from '@omniharness/kernel/kernel/autonomy/workflowTypes.js';

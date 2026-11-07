@@ -6,7 +6,7 @@
  *
  * `tsc` **只写不删**：源文件改名或删除后，旧产物会永久留在输出目录里。已实测两类后果——
  * ① `dist/tests/unit/*.test.js` 通配会继续执行**已删除的测试**（看着是绿的，跑的是幽灵用例）；
- * ② `package.json` 的 `files` 含 `dist/src` 与 `web`，陈旧模块会随发布进入 tarball。
+ * ② `package.json` 的 `files` 含 `dist/src`（伴 defaults/examples/CHANGELOG），陈旧模块会随发布进入 tarball。
  *
  * 故 `build` / `web:build` 在编译前先清理各自的输出目录，让「磁盘产物 ≡ 当前源码」恒成立。
  *

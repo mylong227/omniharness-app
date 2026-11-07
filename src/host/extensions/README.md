@@ -24,7 +24,7 @@ daemon/routine 契约、图存储等产品件）——它们不是「兼容」�
 contracts/   app 形态的端口契约（daemon/routine、doctor 报告、图摘要、spec 端口等）
 kernel/      上述契约的实现（Laya 决策引擎、CLI worker、doctor/注入自检、图存储、
              资产 wasm 技能包、维护 runner、web 广播、模型能力探针、…）
-protocols/   （空；a2a 残件已移除）
+protocols/   MCP 客户端活代码（mcpRegistryClient / mcpServerCommand，src/index.ts 与 CLI 消费）
 ```
 
 2026-11-06 起 `src/host/kernel/` 只保留**自动生成**的分域 re-export（无实现）；

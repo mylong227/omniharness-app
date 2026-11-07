@@ -11,9 +11,7 @@
 export { ArrayAt } from '@omniharness/kernel/kernel/util/arrayAt.js';
 export { AsyncChildProcess } from '@omniharness/kernel/kernel/util/asyncChildProcess.js';
 export { BuiltinDefaults, builtinDefaults } from '@omniharness/kernel/kernel/util/builtinDefaults.js';
-export { ConcurrencyLimiter } from '@omniharness/kernel/kernel/util/concurrency/concurrencyLimiter.js';
 export { FileLock } from '@omniharness/kernel/kernel/util/concurrency/fileLock.js';
-export { ParallelMap } from '@omniharness/kernel/kernel/util/concurrency/parallelMap.js';
 export { PendingRequests } from '@omniharness/kernel/kernel/util/concurrency/pendingRequests.js';
 export type { PendingTimeout } from '@omniharness/kernel/kernel/util/concurrency/pendingRequests.js';
 export { Ed25519PublicKey } from '@omniharness/kernel/kernel/util/ed25519PublicKey.js';
