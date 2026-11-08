@@ -1,6 +1,6 @@
 # 本仓与内核（`@omniharness/kernel`）的契约
 
-> 实测日期 2026-11-08（对接收口批次）。**结论**：应用消费 vendored `@omniharness/kernel@0.1.0-alpha.14`，
+> 实测日期 2026-11-08（alpha.15 对齐批次）。**结论**：应用消费 vendored `@omniharness/kernel@0.1.0-alpha.15`，
 > 全部内核导入收敛于 **`src/host/kernel/` 分域对接面**（19 个**自动生成**的域文件，
 > `npm run kernel:check` 第 7 条强制单点、第 8 条拒绝生成物漂移、第 9 条拒绝「已承诺能力的同名副本」）；
 > 内核切片清掉、app 仍需要的能力收留于 **`src/host/extensions/`**（app 自有扩展层，原 `kernel-compat/`，
@@ -18,7 +18,7 @@ web/ + desktop/ ──HTTP/SSE──▶ src/apps（宿主：CLI / RPC 域模块 
                                    ├─▶ src/host/extensions/        app 自有扩展层
                                    │      Laya 决策引擎 / CLI worker / doctor / 图存储 / web 广播 / …
                                    │
-                                   └─▶ @omniharness/kernel@0.1.0-alpha.14（vendored tarball）
+                                   └─▶ @omniharness/kernel@0.1.0-alpha.15（vendored tarball）
                                           ├─ dist/kernel/**        主循环 / 编排单源 / 工具 / 门禁 / 存储 / Jcs
                                           ├─ dist/contracts/**     端口 / 类型 / schema
                                           ├─ dist/protocols/**     ACP / MCP
@@ -48,6 +48,7 @@ web/ + desktop/ ──HTTP/SSE──▶ src/apps（宿主：CLI / RPC 域模块 
 | M30 | alpha.13 | server 自动化收敛 `RoutineScheduler` 调度核心（与 CLI daemon 共享 routines.json），AutomationStore / AutomationScheduler 退役；`automations.*` RPC 形状不变 |
 | M31（2026-11-08） | alpha.14 | 对接收口：`CryptoVault` / `EnvVault` 从 extensions 迁回对接面（内核已承诺，app 旧版缺 scrypt/legacy 修复）；删除 `extensions/kernel/adapters/index.ts` 纯再导出桶（70 条 → 仅 3 条有消费者）；`governance.rollbackTargets` 冗余 RPC 删除；门禁新增第 9 条「已承诺能力无同名副本」 |
 | M32（2026-11-08 傍晚） | alpha.14 | 影子清零终盘：修复第 9 条的两处漏检（curated 键拼成目录、再导出桶未解析）后，`IsolationLadderFactory` / `SdkPreferredMcpConnector` / `SessionGc` / `SessionStorageLocation` / `TmpSweep` + 6 类型共 11 个名字判红；删除 5 件影子（约 760 行），消费点改经 `maintenance` / `adapters-sandbox` / `adapters-misc` 对接面，生成器支持 curated 子路径落点；登记表清零，新增桶再导出回归判据 |
+| M33（2026-11-08 夜） | alpha.15 | 内核 P1 信任边界收敛 + 16 件 L0 清零 + MCP 反向请求 + 覆盖率收紧 + 跨仓消费契约层；app 重新 vendor 到 alpha.15（对接面/域文件/符号数零变化，`kernel:check` 九条复绿） |
 
 对接面规模随迁移演化：alpha.6 时代 349 源文件 / 316 处导入 / 17 域 → M30 收官 267/361/18 →
 2026-11-08 上午清死桶 `src/indexBeta.ts`（从未接线的 beta 发布面，消费 45 处内核符号却零被消费）

@@ -4,7 +4,7 @@
 
 | 文件 | 说明 |
 | ---- | ---- |
-| `omniharness-kernel-0.1.0-alpha.14.tgz` | `@omniharness/kernel` 在 tag `v0.1.0-alpha.14` 的构建产物 + 应用 `native/omni_napi.node`（`NativeKernel` 从包根找它） |
+| `omniharness-kernel-0.1.0-alpha.15.tgz` | `@omniharness/kernel` 在 tag `v0.1.0-alpha.15` 的构建产物 + 应用 `native/omni_napi.node`（`NativeKernel` 从包根找它） |
 
 ## 重新生成
 
@@ -23,7 +23,8 @@ npm run kernel:check     # 9 条判据（含生成物不漂移 / 已承诺能力
 
 ## 版本史
 
-- **alpha.14**（当前）：内核审计整改同步（25 个提交：P0 15 / P1 57 / P2/P3 分批），
+- **alpha.15**（当前）：内核 P1 信任边界收敛（`shell_interactive` 补 OS 沙箱包装 / RFC3161 证书链 / 浏览器页面内请求拦截）+ 16 件 `L0-unverified` 清零 + MCP 客户端反向请求 + 覆盖率二次收紧 + 跨仓消费契约层（alpha.14 未发布，本版合并其全部内容）；app 侧契约不变（对接面 19 域 / 256 文件 / 286 导入 / 影子 0），tarball 换成 alpha.15、`kernel:check` 九条判据复绿。
+- **alpha.14**：内核审计整改同步（25 个提交：P0 15 / P1 57 / P2/P3 分批），
   安全域 `TrustTier` 更名 `ContentTrustTier`、`AesGcmSealer` 单一密码学实现（scrypt + 旧密文回退）；
   app 侧 M31 对接收口：`CryptoVault` / `EnvVault` 迁回对接面、compat 再导出桶删除、
   `kernel:check` 增第 9 条「已承诺能力无同名副本」；M32 影子清零终盘：第 9 条修复两处漏检
