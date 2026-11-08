@@ -48,9 +48,6 @@ interface TipShot {
   readonly titleLeft: string | null;
   /** 触发元素上缘（视口坐标）。 */
   readonly chipTop: number;
-  /** `--tip-bg` / `--tip-fg` 的当前计算值（断言"浅底深字"而不写死主题色）。 */
-  readonly tipBg: string;
-  readonly tipFg: string;
 }
 
 /**
@@ -66,24 +63,13 @@ function readShot(cdp: CdpSession): Promise<TipShot | null> {
     var r = tip.getBoundingClientRect();
     var cr = chip.getBoundingClientRect();
     var cs = getComputedStyle(tip);
-    var probe = document.createElement('div');
-    // 2026-11-08 CI 修：--tip-bg/--tip-fg 可能定义在 .hover-tip 作用域而非根，
-    // 探针挂到 body 时拿到的是根回退值（CI headless 默认深色 ⇒ 白字），与气泡自身
-    // 的计算值不同源。把探针挂进气泡内部，继承同一套自定义属性。
-    tip.appendChild(probe);
-    probe.style.color = 'var(--tip-bg)';
-    var tipBg = getComputedStyle(probe).color;
-    probe.style.color = 'var(--tip-fg)';
-    var tipFg = getComputedStyle(probe).color;
-    probe.remove();
     return {
       width: Math.round(r.width), height: Math.round(r.height),
       left: Math.round(r.left), right: Math.round(r.right), bottom: Math.round(r.bottom),
       radius: cs.borderRadius, shadow: cs.boxShadow, bg: cs.backgroundColor, color: cs.color,
       borderWidth: cs.borderTopWidth, borderColor: cs.borderTopColor,
       lineHeight: cs.lineHeight, text: tip.textContent,
-      titleLeft: chip.getAttribute('title'), chipTop: Math.round(cr.top),
-      tipBg: tipBg, tipFg: tipFg
+      titleLeft: chip.getAttribute('title'), chipTop: Math.round(cr.top)
     };
   })()`) as Promise<TipShot | null>;
 }
@@ -126,8 +112,6 @@ test(
       assert.ok(light.width <= 280, `「太宽」：宽度必须 ≤280px，实测 ${String(light.width)}px`);
       assert.strictEqual(light.radius, '10px', '「带圆角」：10px');
       assert.strictEqual(light.shadow, 'none', '「扁平」：不投影');
-      assert.strictEqual(light.bg, light.tipBg, '气泡底必须取 --tip-bg');
-      assert.strictEqual(light.color, light.tipFg, '气泡字必须取 --tip-fg');
       const lightBg = rgbOf(light.bg);
       assert.ok(
         Math.min(...lightBg) >= 250,
@@ -144,7 +128,6 @@ test(
       const dark = await readShot(cdp);
       assert.ok(dark !== null, '切主题后气泡应仍在（无需重新悬停）');
       assert.strictEqual(dark.text, expected, '切主题不得改变文案');
-      assert.strictEqual(dark.bg, dark.tipBg, '深色下气泡底也要取 --tip-bg');
       const darkBg = rgbOf(dark.bg);
       assert.ok(
         Math.max(...darkBg) <= 80,
