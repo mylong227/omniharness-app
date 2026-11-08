@@ -17,6 +17,9 @@
 - **web SSE 三态判据修正（2026-11-08）**：`streamStability.test.ts` 第 ④ 步原只等 1.2s 断言
   「断开」，而宽限期是 4s（判据按定义不可能通过，历史假绿）；改为在触发断线后替换为
   「永不 onopen」的同形 EventSource 桩，等待越过 4s 宽限期再断言，消除重连竞态。
+- **smoke 与用户级配置解耦（2026-11-08）**：`npm run smoke` 显式以 `--model-adapter mock
+  --model mock` 启动 serve。此前继承 `~/.omniharness` 的 `modelAdapter=openai`，没有可用
+  `OPENAI_API_KEY` 的机器上 serve 启动即失败（默认配置污染导致判据假红）。
 - **双定时器统一（M30）**：server 自动化收敛到 RoutineScheduler 调度核心（与 CLI daemon 共享 routines.json，scope 隔离驱动方），AutomationStore / AutomationScheduler 退役；`automations.*` RPC 形状与执行语义逐字不变（web 面零改动），旧 automations.json 首次启动自动迁移（按 id 幂等、改名 .migrated 留证）；自动化自此支持 cron 调度（注入 CronSchedulePort 即用）。
 - **审计 canonical 收敛内核单一真源（M29）**：auditChain / auditReportBuilder / auditReportVerifier
   改用内核 `Jcs.serialize`（alpha.13 新承诺 `kernel/receipts/jcs.js` + 深度护栏 `MAX_DEPTH=64`），

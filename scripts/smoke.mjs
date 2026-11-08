@@ -34,7 +34,21 @@ function check(name, ok, detail) {
 
 const child = spawn(
   process.execPath,
-  [ENTRY, 'serve', '--port', '0', '--workspace', workspace],
+  [
+    ENTRY,
+    'serve',
+    '--port',
+    '0',
+    '--workspace',
+    workspace,
+    // 2026-11-08：冒烟必须**与用户级配置无关**。此前继承 ~/.omniharness 的
+    // modelAdapter=openai，于是没有可用 OPENAI_API_KEY 的机器上 serve 启动即失败
+    //（默认配置被污染时判据假红）。显式钉 mock 适配器/模型，只验证 serve+RPC+原生内核。
+    '--model-adapter',
+    'mock',
+    '--model',
+    'mock',
+  ],
   { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, OMNI_NO_OPEN: '1' } },
 );
 
