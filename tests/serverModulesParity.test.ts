@@ -46,8 +46,8 @@ describe('RPC parity 快照（coreModules）', () => {
   const entries = collectMethods(coreModules());
   const methods = entries.map((e) => e.method).sort();
 
-  it('方法总数 == 93（92 + sessions.setPinned 置顶同步；有意识地增减并同步 web ApiClient）', () => {
-    expect(methods.length).toBe(93);
+  it('方法总数 == 92（91 + sessions.setPinned 置顶同步；有意识地增减并同步 web ApiClient）', () => {
+    expect(methods.length).toBe(92);
   });
 
   it('全量方法清单（按域前缀分组快照）', () => {
@@ -87,7 +87,6 @@ describe('RPC parity 快照（coreModules）', () => {
         "fs.mkdir",
         "fs.read",
         "governance.history",
-        "governance.rollbackTargets",
         "graph.delete",
         "graph.get",
         "graph.list",

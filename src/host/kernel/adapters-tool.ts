@@ -12,18 +12,7 @@ export { CodeExecutorTool } from '@omniharness/kernel/kernel/adapters/tool/code/
 export type { CodeExecutorOptions } from '@omniharness/kernel/kernel/adapters/tool/code/codeExecutorTool.js';
 export { CodeInterpreter } from '@omniharness/kernel/kernel/adapters/tool/code/codeInterpreter.js';
 export type { CodeInterpreterDeps, CodeRunResult } from '@omniharness/kernel/kernel/adapters/tool/code/codeInterpreter.js';
-export { ApplyPatchTool } from '@omniharness/kernel/kernel/adapters/tool/fs/applyPatchTool.js';
-export { EditFileTool } from '@omniharness/kernel/kernel/adapters/tool/fs/editFileTool.js';
-export { GlobTool } from '@omniharness/kernel/kernel/adapters/tool/fs/globTool.js';
-export { GrepTool } from '@omniharness/kernel/kernel/adapters/tool/fs/grepTool.js';
-export { ListDirTool } from '@omniharness/kernel/kernel/adapters/tool/fs/listDirTool.js';
-export { PatchApplier } from '@omniharness/kernel/kernel/adapters/tool/fs/patchApplier.js';
-export { ReadFileTool } from '@omniharness/kernel/kernel/adapters/tool/fs/readFileTool.js';
-export { WriteFileTool } from '@omniharness/kernel/kernel/adapters/tool/fs/writeFileTool.js';
 export { SpillReadTool } from '@omniharness/kernel/kernel/adapters/tool/meta/spillReadTool.js';
 export { RegistryToolPort } from '@omniharness/kernel/kernel/adapters/tool/registryToolPort.js';
 export { ProcessTreeKiller } from '@omniharness/kernel/kernel/adapters/tool/shell/processTreeKiller.js';
-export { ShellTool } from '@omniharness/kernel/kernel/adapters/tool/shell/shellTool.js';
-export { WebSearchTool } from '@omniharness/kernel/kernel/adapters/tool/web/webSearchTool.js';
-export type { WebSearchToolOptions } from '@omniharness/kernel/kernel/adapters/tool/web/webSearchTool.js';
 export { DelegateTool } from '@omniharness/kernel/kernel/adapters/tool/workflow/delegateTool.js';

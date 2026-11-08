@@ -1,7 +1,7 @@
 import type { FileConfig } from '../../host/kernel/config.ts';
 import { CliFlagTable, FLAG_TABLE, VALUE_FLAGS } from './cliFlagTable.ts';
 import { ArgConfigDefaults } from './argConfigDefaults.ts';
-import { SessionStorageLocation } from '../../host/extensions/kernel/util/sessionStorageLocation.ts';
+import { SessionStorageLocation } from '../../host/kernel/maintenance.ts';
 import { ArrayAt } from '../../host/kernel/util.ts';
 import { providerPresets, type ProviderPreset } from '../server/services/providerPresets.ts';
 import { cliHelp } from './cliHelp.ts';

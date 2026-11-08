@@ -27,9 +27,26 @@ kernel/      上述契约的实现（Laya 决策引擎、CLI worker、doctor/注
 protocols/   MCP 客户端活代码（mcpRegistryClient / mcpServerCommand，src/index.ts 与 CLI 消费）
 ```
 
-2026-11-06 起 `src/host/kernel/` 只保留**自动生成**的分域 re-export（无实现）；
-2026-11-07（M27）起本目录不再含任何与内核包同名/同体的影子副本——
-`kernel:check` 的「导入 ⊆ 内核承诺清单」+ 全仓扫描把守，回归即红。
+2026-11-06 起 `src/host/kernel/` 只保留**自动生成**的分域 re-export（无实现）。
+
+## 「同名副本」的准确口径（2026-11-08 校准，M32 清零）
+
+此前这里写的是「本目录不再含任何与内核包同名/同体的影子副本」——**这句话当时不成立**，
+现已改成可机检的两条：
+
+1. **内核已承诺的能力**（在 `exports` 里）：本目录**不得**再有同名实现。`kernel:check` 第 9 条
+   逐名比对内核承诺面与这里声明的符号，回归即红。
+2. **内核未承诺的实现**（内核包里带着同体代码，但没进 `exports`，app 侧无通道可用）：
+   **只能自有**，并在此登记。
+
+**2026-11-08 M32 收口后，登记表为 0。** 上午那批「内核未承诺」的 5 件（连同 6 个同名配套类型）
+并不是真的没有通道——内核把 `IsolationLadderFactory` / `SdkPreferredMcpConnector` /
+`SessionGc` / `SessionStorageLocation` / `TmpSweep` 承诺在 **curated 子路径**
+`./sandbox` / `./mcp` / `./maintenance` 的**再导出桶**里；旧影子扫描只认 `.d.ts` 的
+`export class` 直接声明，扫不到桶里的 `export { X } from './…'`，于是门禁全绿、双份维护照留。
+本轮把扫描器改成「直接声明 + 再导出名单 + `export *`」递归可达，11 个名字立刻判红；随后
+删除 5 件（约 760 行），消费点改经 `src/host/kernel/{maintenance,adapters-sandbox,adapters-misc}.ts`
+对接面，由生成器落到内核 curated 子路径（不再为应用消费倒逼深路径承诺膨胀）。
 
 ## 消费方式
 

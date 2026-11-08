@@ -4,11 +4,11 @@
  *
  * ## 它解决什么
  *
- * `src/host/kernel/<area>.ts` 是 app 里唯一允许导入 `@omniharness/kernel` 的地方。此前这 17 个
+ * `src/host/kernel/<area>.ts` 是 app 里唯一允许导入 `@omniharness/kernel` 的地方。此前这 19 个
  * 文件是**手写**的纯 re-export：每加一个内核符号都要人去翻包的 `.d.ts`、找深路径、区分
  * `export` / `export type`。本脚本把它变成**生成物**：
  *
- *   1. 扫 `src/**`（排除 17 个生成物），收集业务代码实际从 `host/kernel/<area>.ts` 导入的符号；
+ *   1. 扫 `src/**`（排除 19 个生成物），收集业务代码实际从 `host/kernel/<area>.ts` 导入的符号；
  *   2. 解析每个符号的**真实模块**——M21 Phase 3 起解析源 = 内核承诺面：现有对接面映射与
  *      dist 索引候选都先过「内核 exports 显式清单」过滤，未承诺命中黄标（生成继续，
  *      kernel:check 的「导入 ⊆ 承诺清单」红灯是硬门禁，倒逼内核先显式导出）；
@@ -17,7 +17,7 @@
  * 于是新增符号的姿势变成：业务代码照常 `import { X } from '../../host/kernel/<area>.ts'`
  * → 跑 `npm run kernel:surface` → 自动补上（无需手写，也不会留下没人用的 re-export）。
  *
- * ## 为什么不是「删掉 17 个文件、直接深路径导入」
+ * ## 为什么不是「删掉 19 个文件、直接深路径导入」
  *
  * 内核明确不承诺内部路径兼容。集中一层虽然文件多，但内核升级只改这一层；直接深路径会让
  * 升级的爆炸半径扩散到全部业务文件。分域而不是单文件桶，是为了保留「按域加载」——根入口
@@ -64,6 +64,86 @@ function isPromised(spec, promised) {
 
 /** 对接面文件名（`<area>.ts`；下划线/连字符与数字，避免误伤子目录里的实现文件）。 */
 const AREA_FILE = /^[a-z0-9_-]+\.ts$/;
+
+/** 声明式导出的匹配（与 `kernelShadowScan.mjs` 同口径：只认直接声明，不认再导出行）。 */
+const DECLARATION_RE =
+  /export\s+(?:declare\s+)?(?:abstract\s+)?(class|function|const|let|var|enum|namespace|interface|type)\s+([A-Za-z_$][\w$]*)/gu;
+
+/** 再导出名单：`export [type] { A, B as C } from './x.ts'`（curated 子路径桶的形态）。 */
+const REEXPORT_RE = /export\s+(type\s+)?\{([^}]+)\}\s+from\s+['"]([^'"]+)['"]/gu;
+
+/** 星号再导出：`export * from './x.ts'`。 */
+const STAR_REEXPORT_RE = /export\s+\*\s+from\s+['"]([^'"]+)['"]/gu;
+
+/** curated 子路径键：`./sandbox` / `./maintenance` / `./mcp`（单段、无 `.js` 后缀）。 */
+const CURATED_KEY = /^\.\/[a-z0-9-]+$/u;
+
+/**
+ * 把再导出 spec 解析成声明文件候选（`.ts` / `.js` / 省略后缀三种写法都收）。
+ * @param {string} fromFile 引用方 `.d.ts`。
+ * @param {string} spec 再导出 spec。
+ * @returns {string[]} 候选声明文件（绝对路径，按约定优先）。
+ */
+function declarationCandidates(fromFile, spec) {
+  const resolved = resolve(dirname(fromFile), spec);
+  const base = resolved.replace(/\.d\.ts$/u, '').replace(/\.(?:js|ts)$/u, '');
+  return [`${base}.d.ts`, resolved];
+}
+
+/**
+ * 递归收集一个声明文件的导出名（直接声明 + 再导出名单 + 星号再导出）。
+ * @param {string} dtsPath 声明文件绝对路径。
+ * @param {string} spec 归属的包 spec（curated 子路径根）。
+ * @param {boolean} typeOnly 继承的类型标记（星号再导出时沿用父级）。
+ * @param {Map<string, {spec: string, typeOnly: boolean}>} index 导出名 → 落点。
+ * @param {Set<string>} visited 已访问文件（防循环）。
+ * @returns {void}
+ */
+function collectCuratedNames(dtsPath, spec, typeOnly, index, visited) {
+  if (visited.has(dtsPath) || !existsSync(dtsPath)) return;
+  visited.add(dtsPath);
+  const add = (name, isType) => {
+    // 同名以首次出现为准（curated 桶里不会重复；重复即声明点冲突，交给上游修）。
+    if (!index.has(name)) index.set(name, { spec, typeOnly: isType });
+  };
+  const text = readFileSync(dtsPath, 'utf8');
+  for (const match of text.matchAll(DECLARATION_RE)) {
+    add(match[2], match[1] === 'interface' || match[1] === 'type');
+  }
+  for (const match of text.matchAll(REEXPORT_RE)) {
+    for (const name of namesOf(match[2], 'exported')) add(name, Boolean(match[1]) || typeOnly);
+  }
+  for (const match of text.matchAll(STAR_REEXPORT_RE)) {
+    for (const candidate of declarationCandidates(dtsPath, match[1])) {
+      collectCuratedNames(candidate, spec, typeOnly, index, visited);
+    }
+  }
+}
+
+/**
+ * 读 curated 子路径（`./sandbox` / `./mcp` / `./maintenance` …）的导出名索引。
+ *
+ * 为什么需要（2026-11-08 收口）：curated 子路径的 `.d.ts` 是**纯再导出桶**，而
+ * `readKernelIndex()` 只认直接声明——于是 `IsolationLadderFactory` /
+ * `SdkPreferredMcpConnector` / `SessionGc` 这些**只在桶里承诺**的符号，解析时找不到
+ * 已承诺落点，会被回退成未承诺的深路径（黄标 + `kernel:check` 红）。本索引把它们
+ * 显式映射到 `@omniharness/kernel/<curated>`：既是内核写明的稳定入口，也避免为
+ * 「应用消费」逐个新增深路径承诺（深路径是生成闭包，不该被应用倒逼膨胀）。
+ * @returns {Map<string, {spec: string, typeOnly: boolean}>} 导出名 → curated 落点。
+ */
+function readCuratedIndex() {
+  const index = new Map();
+  if (!existsSync(KERNEL_PKG)) return index;
+  const exportsMap = JSON.parse(readFileSync(KERNEL_PKG, 'utf8')).exports ?? {};
+  for (const key of Object.keys(exportsMap)) {
+    if (!CURATED_KEY.test(key)) continue;
+    const name = key.slice('./'.length);
+    const dts = join(KERNEL_DIST, `${name}.d.ts`);
+    if (!existsSync(dts)) continue;
+    collectCuratedNames(dts, `@omniharness/kernel/${name}`, false, index, new Set());
+  }
+  return index;
+}
 
 /**
  * 递归列出某目录下的文件。
@@ -220,7 +300,8 @@ function collectUsed() {
  * 扫内核包 `.d.ts` 建立「导出名 → 模块」索引（新符号的回退解析）。
  *
  * 只认直接声明（`export declare class/function/const/...`、`export interface/type`），跳过
- * `index.d.ts` 聚合桶（同一符号会在桶里重复出现，制造假歧义）与 `export { ... }` 再导出。
+ * `index.d.ts` 聚合桶（同一符号会在桶里重复出现，制造假歧义）与 `export { ... }` 再导出——
+ * 再导出的承诺由 {@link readCuratedIndex} 单独承接（桶 = curated 子路径，落点稳定）。
  * alpha.6 期（2026-11 上旬，历史实测、非当前版本）数据：1680 个导出名、仅 3 个同名（WorkflowStep/TrustTier/LspPosition），
  * 且都已在现有对接面里有确定映射。
  * @returns {Map<string, { spec: string, typeOnly: boolean }[]>}
@@ -238,9 +319,7 @@ function readKernelIndex() {
     const spec =
       '@omniharness/kernel/' + relative(KERNEL_DIST, file).replaceAll('\\', '/').replace(/\.d\.ts$/u, '.js');
     const text = readFileSync(file, 'utf8');
-    for (const match of text.matchAll(
-      /export\s+(?:declare\s+)?(?:abstract\s+)?(class|function|const|let|var|enum|namespace|interface|type)\s+([A-Za-z_$][\w$]*)/gu,
-    )) {
+    for (const match of text.matchAll(DECLARATION_RE)) {
       add(match[2], spec, match[1] === 'interface' || match[1] === 'type');
     }
   }
@@ -248,16 +327,17 @@ function readKernelIndex() {
 }
 
 /**
- * 解析一个业务导入符号的真实模块（优先现有面对应域，其次同名全局映射，最后内核包索引）。
+ * 解析一个业务导入符号的真实模块（优先现有面对应域，其次同名全局映射，再深路径，最后 curated 桶）。
  * @param {string} area 域
  * @param {string} name 符号名
  * @param {ReturnType<typeof readCurrentSurface>} surface 现有对接面
  * @param {ReturnType<typeof readKernelIndex>} kernelIndex 内核包索引
  * @param {Set<string>} promised 内核承诺清单（exports 显式条目，M21 Phase 3）
+ * @param {ReturnType<typeof readCuratedIndex>} curated curated 子路径索引（再导出桶）
  * @param {Set<string>} unpromised 未承诺命中收集器（黄标：内核需先显式导出）
  * @returns {{ spec: string, typeOnly: boolean } | undefined}
  */
-function resolveSymbol(area, name, surface, kernelIndex, promised, unpromised) {
+function resolveSymbol(area, name, surface, kernelIndex, promised, curated, unpromised) {
   const stale = (spec) => unpromised.add(`${area}::${name} -> ${spec}`);
   // 1) 现有对接面映射：**仍被内核承诺**才算数——通配已删，stale 自续会指向已从承诺面
   //    消失的路径（M20 时代「stale 行自我永续」缺陷的根治点）；未承诺则黄标并落向下重解析。
@@ -276,7 +356,6 @@ function resolveSymbol(area, name, surface, kernelIndex, promised, unpromised) {
     stale(candidate.spec);
   }
   const candidates = kernelIndex.get(name) ?? [];
-  if (candidates.length === 0) return undefined;
   // 3) M21 Phase 3：dist 索引候选**先按承诺清单过滤**——解析源 = 内核承诺面。
   const promisedCandidates = candidates.filter((item) => isPromised(item.spec, promised));
   if (promisedCandidates.length === 1) return promisedCandidates[0];
@@ -285,9 +364,14 @@ function resolveSymbol(area, name, surface, kernelIndex, promised, unpromised) {
     const specs = new Set([...(surface.get(area)?.values() ?? [])].map((item) => item.spec));
     const preferred = promisedCandidates.filter((item) => specs.has(item.spec));
     if (preferred.length === 1) return preferred[0];
-    return undefined;
+    return curated.get(name);
   }
-  // 4) 只有未承诺候选：黄标后按旧消歧规则选一个（生成继续，硬门禁由 kernel:check 的
+  // 4) 深路径未承诺（或没有索引项）：curated 子路径是内核写明的稳定入口——桶里承诺的符号
+  //    就落到桶上，不再为「应用消费」倒逼深路径承诺膨胀（2026-11-08 收口）。
+  if (candidates.length === 0) return curated.get(name);
+  const barrel = curated.get(name);
+  if (barrel !== undefined) return barrel;
+  // 5) 只有未承诺候选：黄标后按旧消歧规则选一个（生成继续，硬门禁由 kernel:check 的
   //    「导入 ⊆ 承诺清单」红灯承担——先让开发者看见，再让门禁拦住 install）。
   stale(candidates.map((item) => item.spec).join(' | '));
   if (candidates.length === 1) return candidates[0];
@@ -305,6 +389,7 @@ export function buildSurface() {
   const { maps: surface, orders } = readCurrentSurface();
   const used = collectUsed();
   const kernelIndex = readKernelIndex();
+  const curated = readCuratedIndex();
   const promised = readPromisedSpecs();
   const unpromised = new Set();
   const errors = [];
@@ -318,7 +403,7 @@ export function buildSurface() {
       : [...usedNames].filter((name) => name !== '*').sort();
     const groups = new Map();
     for (const name of names) {
-      const hit = resolveSymbol(area, name, surface, kernelIndex, promised, unpromised);
+      const hit = resolveSymbol(area, name, surface, kernelIndex, promised, curated, unpromised);
       if (hit === undefined) {
         errors.push(`${area}: 无法解析内核符号 ${name}（不在现有对接面，也不在内核包 .d.ts 索引里）`);
         continue;

@@ -36,7 +36,8 @@ import { protocolSchema } from '../../host/extensions/contracts/schema/protocolS
 import { configFile } from '../../host/kernel/config.ts';
 import type { FileConfig } from '../../host/kernel/config.ts';
 import { ServeTrust } from './serveTrust.ts';
-import { CompositeLiveView, WebLiveView, ConsoleLiveView } from '../../host/extensions/kernel/adapters/index.ts';
+import { CompositeLiveView, ConsoleLiveView } from '../../host/kernel/adapters-misc.ts';
+import { WebLiveView } from '../../host/extensions/kernel/adapters/live/webLiveView.ts';
 import { PluginProfileStore } from '../../host/kernel/plugin.js';
 import { ArgParser } from './argParser.ts';
 import type { CliArgs } from './argParser.ts';

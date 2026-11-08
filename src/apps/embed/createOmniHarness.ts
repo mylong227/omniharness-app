@@ -40,7 +40,7 @@ export type { ServerModule };
  * 缺省即安全可用：MockModel（零凭据）+ MemoryStorage + AutoApproval + PassthroughSandbox，
  * 与内核 `examples/headless.mjs` 同一口径；给真实 `ModelPort` 即接任意厂商。
  * 自定义能力经 `modules: [defineModule({ name, register(ctx) { ctx.rpc(...) } })]`
- * 与内置 93 个 RPC 同权注册（同名冲突启动即抛错）。
+ * 与内置 92 个 RPC 同权注册（同名冲突启动即抛错）。
  */
 export interface OmniHarnessInput {
   /** 工作区根（缺省 `process.cwd()`）。 */

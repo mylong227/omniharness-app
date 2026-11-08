@@ -362,7 +362,7 @@ export class CliBuildConfig extends CliCredentialBuild {
       return;
     }
     const { SdkPreferredMcpConnector } =
-      await import('../../host/extensions/kernel/adapters/mcp/sdkPreferredMcpConnector.ts');
+      await import('../../host/kernel/adapters-misc.ts');
     const gateway = new McpGateway({
       registry: tools,
       context: { sessionId: 'mcp-bridge', workspaceRoot: args.workspace },

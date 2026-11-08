@@ -9,8 +9,7 @@ import type { ServerModule } from '../core/serverModule.ts';
 const LEDGER_DIR = join('.omniharness', 'evolution');
 
 /**
- * 进化治理台模块（**F2**）：把晋升台账的数据面暴露给工作台 UI
- * （`governance.history` / `governance.rollbackTargets`）。
+ * 进化治理台模块（**F2**）：把晋升台账的数据面暴露给工作台 UI（`governance.history`）。
  *
  * ## 与 F2 判据的关系（数据与证据同源）
  *
@@ -20,7 +19,9 @@ const LEDGER_DIR = join('.omniharness', 'evolution');
  *
  * ## 只读边界
  *
- * 本模块**不**提供"直接改台账"的方法：回滚入口 `governance.rollbackTargets` 只给**候选锚点**，
+ * 本模块**不**提供"直接改台账"的方法：回滚候选锚点随 `governance.history` 的
+ * `view.rollbackTargets` 一并下发（**一次往返、一份真源**——曾另有 `governance.rollbackTargets`
+ * 单独方法，但 UI 已从 history 视图取同一份数据，两个入口只会让两者慢慢漂移，故删除），
  * 真正回滚仍走 `evolution rollback --yes`（治理动作必须显式确认，不能在 UI 上一点就改历史）。
  */
 export function governanceModule(): ServerModule {
@@ -29,13 +30,6 @@ export function governanceModule(): ServerModule {
     register(ctx) {
       const s = ctx.services;
       ctx.rpc('governance.history', async () => governanceView(s));
-      ctx.rpc('governance.rollbackTargets', async () => {
-        const result = governanceView(s);
-        // 不可用时同样返回 `available:false`：UI 据此显示"台账读不出来"，
-        // 而不是收到一个空列表（空列表会被误读成"没有可回滚的快照"）。
-        if (!result.available) return result;
-        return { available: true, targets: result.view.rollbackTargets };
-      });
     },
   };
 }

@@ -2,7 +2,7 @@
 /**
  * 内核边界门禁：证明本应用**真的**在消费 `@omniharness/kernel`，而不是又长回一份内嵌副本。
  *
- * 八条判据（任一失败退出码 1）：
+ * 九条判据（任一失败退出码 1）：
  * 1. `package.json` 的 `@omniharness/kernel` 必须是 `file:vendor/*.tgz`（单一真源 + 可复现）；
  * 2. 仓库根不得再存在 `src/{kernel,contracts,protocols}`；
  * 3. `src/**` 不得出现解析到这三个目录的相对导入（宿主的相对路径必须落在 `src/host` 内）；
@@ -12,9 +12,15 @@
  * 7. **对接面单点**：`src/**` 里只有 `src/host/kernel/<area>.ts` 允许导入 `@omniharness/kernel`——
  *    业务代码一律经 `src/host/kernel/` 分域对接面消费内核，内核升级只适配这一个目录
  *    （分域而非单文件桶的原因见该目录文件头注释：整包加载 ~780ms vs 单域 ~60ms）。
- * 8. **对接面不漂移且纯净**：18 个域文件必须与「业务代码实际 import + 内核包 .d.ts」一致，
+ * 8. **对接面不漂移且纯净**：19 个域文件必须与「业务代码实际 import + 内核包 .d.ts」一致，
  *    且 `src/host/kernel/` 内只允许这些生成物（不得再混入实现/子目录）——只改业务导入不跑
  *    `npm run kernel:surface` 会在这里被判红（生成器见 `scripts/kernelSurface.mjs`）。
+ * 9. **已承诺能力不得在 extensions 另起同名实现**：`src/host/extensions/**` 声明的符号名
+ *    不得与内核 `exports` 承诺模块的 `.d.ts` 导出名重合——内核已经承诺的东西必须经对接面消费，
+ *    自留一份即「影子副本回归」（2026-11-08：CryptoVault / EnvVault 曾因此滞留，迁走后本判据
+ *    上线把守）。承诺面解析**穿透 curated 子路径的再导出桶**（`export { X } from './…'`）：
+ *    `./sandbox` / `./mcp` / `./maintenance` 里的承诺同样受判据保护（M32 修的正是桶漏扫）。
+ *    内核**未承诺**的内部实现不在判据范围：那种情况 app 只能自有（登记在 extensions/README）。
  *
  * 边界说明（2026-11-06 审计）：范围是 `src/**`（web/ 与 desktop/ 不消费内核包——它们的
  * 通道是 HTTP/SSE 与侧车 spawn；scripts/ 里的门禁自身是合法消费者）。导入正则连注释里
@@ -28,6 +34,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runSurface } from './kernelSurface.mjs';
+import { formatShadowReport, scanPromisedShadows } from './kernelShadowScan.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const failures = [];
@@ -151,6 +158,13 @@ if (runSurface({ check: true }) !== 0) {
   fail('对接面生成物漂移：运行 npm run kernel:surface 后重跑门禁');
 }
 
+// 9. 已承诺能力不得在 extensions 里另起同名实现（影子副本回归即红）
+// 判据实现收在 scripts/kernelShadowScan.mjs：门禁与 tests/kernelShadowScan.test.ts 共用一份。
+if (existsSync(kernelPkgPath)) {
+  const report = formatShadowReport(scanPromisedShadows(ROOT));
+  if (!report.ok) fail(report.text);
+}
+
 if (failures.length > 0) {
   process.stderr.write(`kernel:check 失败 —— ${String(failures.length)} 项：\n`);
   for (const message of failures) process.stderr.write(`  - ${message}\n`);
@@ -158,5 +172,5 @@ if (failures.length > 0) {
 }
 process.stdout.write(
   `kernel:check OK —— ${String(srcFiles.length)} 个源文件 / ${String(packageImports)} 处包导入（全部收敛于 src/host/kernel/ 对接面）/ ` +
-    `内嵌副本 0 / vendored tarball integrity 一致 / 原生内核实载 / 对接面生成物一致\n`,
+    `内嵌副本 0 / vendored tarball integrity 一致 / 原生内核实载 / 对接面生成物一致 / extensions 无已承诺影子\n`,
 );

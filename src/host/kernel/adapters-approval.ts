@@ -8,14 +8,11 @@
  * 分域原因：按域加载——根入口整包实测 ~780ms，单域 ~60ms（Node 22，见 vendor/README.md）。
  */
 
-export type { ApprovalRule, ApprovalRuleDecision } from '@omniharness/kernel/kernel/adapters/approval/approvalRule.js';
+export type { ApprovalRule } from '@omniharness/kernel/kernel/adapters/approval/approvalRule.js';
 export { AutoApproval } from '@omniharness/kernel/kernel/adapters/approval/autoApproval.js';
 export { DenyApproval } from '@omniharness/kernel/kernel/adapters/approval/denyApproval.js';
 export { RuleApproval } from '@omniharness/kernel/kernel/adapters/approval/ruleApproval.js';
-export type { RuleApprovalOptions } from '@omniharness/kernel/kernel/adapters/approval/ruleApproval.js';
 export { AskApproval } from '@omniharness/kernel/kernel/adapters/approval/askApproval.js';
 export { BUILTIN_APPROVAL_RULES } from '@omniharness/kernel/kernel/adapters/approval/builtinApprovalRules.js';
 export { GuardianApproval } from '@omniharness/kernel/kernel/adapters/approval/guardianApproval.js';
-export type { GuardianApprovalOptions } from '@omniharness/kernel/kernel/adapters/approval/guardianApproval.js';
-export { GuardianPrompt } from '@omniharness/kernel/kernel/adapters/approval/guardianPrompt.js';
 export { PlanApproval } from '@omniharness/kernel/kernel/adapters/approval/planApproval.js';

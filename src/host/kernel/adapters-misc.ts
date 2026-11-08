@@ -12,9 +12,6 @@ export { DenyEscalation } from '@omniharness/kernel/kernel/adapters/escalation/d
 export { ConsoleEventPort } from '@omniharness/kernel/kernel/adapters/event/consoleEventPort.js';
 export { SilentEventPort } from '@omniharness/kernel/kernel/adapters/event/silentEventPort.js';
 export { Ed25519AgentIdentity } from '@omniharness/kernel/kernel/adapters/identity/ed25519AgentIdentity.js';
-export { BuiltinWasmRunner } from '@omniharness/kernel/kernel/adapters/isolation/builtinWasmRunner.js';
-export { IsolationLadder } from '@omniharness/kernel/kernel/adapters/isolation/isolationLadder.js';
-export type { IsolationLadderOptions } from '@omniharness/kernel/kernel/adapters/isolation/isolationLadder.js';
 export { CompositeLiveView } from '@omniharness/kernel/kernel/adapters/live/compositeLiveView.js';
 export { ConsoleLiveView } from '@omniharness/kernel/kernel/adapters/live/consoleLiveView.js';
 export { FileSpill } from '@omniharness/kernel/kernel/adapters/spill/fileSpill.js';
@@ -29,9 +26,7 @@ export { GitWorkspaceSnapshot } from '@omniharness/kernel/kernel/adapters/worksp
 export { McpServeRunner } from '@omniharness/kernel/kernel/adapters/mcp/mcpServeRunner.js';
 export { SkillManifestSigner } from '@omniharness/kernel/kernel/skill/skillManifestSigner.js';
 export { AskEscalation } from '@omniharness/kernel/kernel/adapters/escalation/askEscalation.js';
-export type { AskEscalationOptions } from '@omniharness/kernel/kernel/adapters/escalation/askEscalation.js';
 export { AutoEscalation } from '@omniharness/kernel/kernel/adapters/escalation/autoEscalation.js';
-export type { AutoEscalationOptions } from '@omniharness/kernel/kernel/adapters/escalation/autoEscalation.js';
 export { CompositeEventPort } from '@omniharness/kernel/kernel/adapters/event/compositeEventPort.js';
 export { JsonFileKv } from '@omniharness/kernel/kernel/adapters/kv/jsonFileKv.js';
 export { MemoryKv } from '@omniharness/kernel/kernel/adapters/kv/memoryKv.js';
@@ -41,3 +36,6 @@ export { SessionEventReader } from '@omniharness/kernel/kernel/adapters/telemetr
 export { CacheHitRateWatch } from '@omniharness/kernel/kernel/observability/cacheHitRateWatch.js';
 export { CacheMissAttributionAnalyst } from '@omniharness/kernel/kernel/observability/cacheMissAttributionAnalyst.js';
 export type { CacheMissAttribution, CacheMissCause } from '@omniharness/kernel/kernel/observability/cacheMissAttributionAnalyst.js';
+export { CryptoVault } from '@omniharness/kernel/kernel/adapters/vault/cryptoVault.js';
+export { EnvVault } from '@omniharness/kernel/kernel/adapters/vault/envVault.js';
+export { SdkPreferredMcpConnector } from '@omniharness/kernel/mcp';

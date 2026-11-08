@@ -18,7 +18,7 @@ export type { AppServerOptions } from './appServerState.ts';
  * 是被「上帝类」行数门禁逼出来的分层，91 个 `handlers.set` 散布 6 个文件，加一个能力要改 6~9 个文件。
  * 现在的结构：
  *   - **装配**：全部协作者在 {@link ServerServices} 按原顺序构建（逐字节等价搬移）；
- *   - **注册**：93 个 RPC 方法按业务域拆进 `../modules/*`（每域一个模块文件，见 `coreModules()`）；
+ *   - **注册**：92 个 RPC 方法按业务域拆进 `../modules/*`（每域一个模块文件，见 `coreModules()`）；
  *   - **本类**只剩三件事——组装（services + modules + 传输挂钩 + 调度器）、分发（`handle`）、
  *     生命周期（`loadPlugins` / `setPluginsReady` / `applyPluginProfile` / `shutdown` / `effectiveWorkspace`）。
  *

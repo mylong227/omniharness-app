@@ -8,21 +8,12 @@
  * 分域原因：按域加载——根入口整包实测 ~780ms，单域 ~60ms（Node 22，见 vendor/README.md）。
  */
 
-export { ContainerSandbox } from '@omniharness/kernel/kernel/adapters/sandbox/containerSandbox.js';
-export type { ContainerSandboxOptions } from '@omniharness/kernel/kernel/adapters/sandbox/containerSandbox.js';
-export { DangerousCommands, dangerousCommands } from '@omniharness/kernel/kernel/adapters/sandbox/dangerousCommands.js';
-export { LinuxBwrapSandbox } from '@omniharness/kernel/kernel/adapters/sandbox/linuxBwrapSandbox.js';
-export { MacOsSeatbeltSandbox } from '@omniharness/kernel/kernel/adapters/sandbox/macosSeatbeltSandbox.js';
+export { dangerousCommands } from '@omniharness/kernel/kernel/adapters/sandbox/dangerousCommands.js';
 export { EgressBlockedError, NetworkEgressGuard } from '@omniharness/kernel/kernel/adapters/sandbox/networkEgressGuard.js';
 export type { NetworkEgressOptions } from '@omniharness/kernel/kernel/adapters/sandbox/networkEgressGuard.js';
 export { PassthroughSandbox } from '@omniharness/kernel/kernel/adapters/sandbox/passthroughSandbox.js';
-export { PolicySandbox } from '@omniharness/kernel/kernel/adapters/sandbox/policySandbox.js';
-export type { PolicySandboxOptions } from '@omniharness/kernel/kernel/adapters/sandbox/policySandbox.js';
-export { RestrictedSandbox } from '@omniharness/kernel/kernel/adapters/sandbox/restrictedSandbox.js';
-export type { RestrictedSandboxOptions } from '@omniharness/kernel/kernel/adapters/sandbox/restrictedSandbox.js';
 export { SandboxCapabilityTable } from '@omniharness/kernel/kernel/adapters/sandbox/sandboxCapabilityTable.js';
 export type { SandboxCapabilityEntry } from '@omniharness/kernel/kernel/adapters/sandbox/sandboxCapabilityTable.js';
 export { SandboxManager } from '@omniharness/kernel/kernel/adapters/sandbox/sandboxManager.js';
 export type { SandboxProfile } from '@omniharness/kernel/kernel/adapters/sandbox/sandboxManager.js';
-export { UnsupportedSandbox } from '@omniharness/kernel/kernel/adapters/sandbox/unsupportedSandbox.js';
-export { WindowsNativeSandbox } from '@omniharness/kernel/kernel/adapters/sandbox/windowsNativeSandbox.js';
+export { IsolationLadderFactory } from '@omniharness/kernel/sandbox';

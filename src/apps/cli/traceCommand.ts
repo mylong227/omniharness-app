@@ -1,4 +1,4 @@
-﻿/**
+/**
  * trace 子命令（TraceCommand）——只读自省「我刚做了什么」的 CLI 入口。
  *
  * 事故口径（2026-09-19 入口可达性审计）：`ports/intelligence/traceIntrospection.ts`（端口）与
@@ -11,7 +11,7 @@
  * 后端不落该目录时如实报告「会话未找到或无 trace」，不伪造条目。
  */
 import { SessionEventReader } from '../../host/kernel/adapters-misc.ts';
-import { SessionStorageLocation } from '../../host/extensions/kernel/util/sessionStorageLocation.ts';
+import { SessionStorageLocation } from '../../host/kernel/maintenance.ts';
 import { SessionTraceService } from '../server/services/session/sessionTraceService.ts';
 import type {
   TraceEntry,

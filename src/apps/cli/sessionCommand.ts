@@ -8,7 +8,7 @@
 import { join } from 'node:path';
 import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { CliArgReader } from './cliArgReader.ts';
-import { SessionStorageLocation } from '../../host/extensions/kernel/util/sessionStorageLocation.ts';
+import { SessionStorageLocation } from '../../host/kernel/maintenance.ts';
 import { SessionTransfer } from './sessionTransfer.ts';
 import { JsonlStorage } from '../../host/kernel/adapters-misc.ts';
 import { SessionArchive } from '../server/services/session/sessionArchive.ts';

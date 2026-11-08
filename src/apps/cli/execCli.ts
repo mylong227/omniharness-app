@@ -30,7 +30,7 @@ import { EvolutionCommand } from './evolutionCommand.ts';
 import { CapabilityCommand } from './capabilityCommand.ts';
 import { LicenseCommand } from './licenseCommand.ts';
 import { AssetPackInstaller } from '../../host/kernel/plugin.ts';
-import { IsolationLadderFactory } from '../../host/extensions/kernel/adapters/isolation/isolationLadderFactory.ts';
+import { IsolationLadderFactory } from '../../host/kernel/adapters-sandbox.ts';
 import { WasmSkillPack } from '../../host/extensions/kernel/asset/wasmSkillPack.ts';
 import { HashChainPromotionLedger } from '../../host/kernel/evolution.ts';
 import type { AssetPackPort } from '../../host/kernel/contracts.ts';

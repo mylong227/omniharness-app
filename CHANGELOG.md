@@ -6,6 +6,50 @@
 ## [Unreleased]
 
 ### Changed（变更）
+- **M32 影子清零终盘（2026-11-08 傍晚，内核侧同批加跨仓消费契约）**：
+  - **第 9 条门禁此前有两处漏检**：curated 子路径（`./sandbox` / `./mcp` / `./maintenance`）的
+    `.d.ts` 是纯再导出桶，旧扫描①把 `./maintenance` 拼成 `dist/maintenance` 目录（永远不存在）、
+    ②只认 `export class …` 直接声明、不解析 `export { X } from './…'`。于是承诺导出名扫成 0，
+    11 个名字（5 类 + 6 类型）在门禁全绿时照旧双份维护。修复后扫描「直接声明 + 再导出名单 +
+    `export *`」递归可达，11 个名字立刻判红。
+  - **删除 5 件影子（约 760 行）**：`extensions/kernel/{util/sessionGc,util/tmpSweep,
+    util/sessionStorageLocation,adapters/isolation/isolationLadderFactory,
+    adapters/mcp/sdkPreferredMcpConnector}.ts` 退役；`MaintenanceRunner`、CLI（`argParser` /
+    `sessionCommand` / `traceCommand` / `bundleCommand` / `execCli` / `cliBuildConfig` /
+    `cliMcpCmds`）改经 `host/kernel/{maintenance,adapters-sandbox,adapters-misc}.ts` 对接面。
+  - **对接面生成器支持 curated 子路径**：新增符号在「深路径未承诺」时落到内核的
+    `./sandbox` / `./mcp` / `./maintenance` 桶（不再为应用消费倒逼深路径承诺膨胀）；
+    新增 `maintenance` 域，域文件 18 → **19**、对接面 **408 符号 / 241 条模块落点**
+    （238 深路径 + 3 curated）、源文件 260 → **256**、包导入 287 → **286**、影子 11 → **0**。
+  - **新增桶再导出回归判据** `tests/kernelShadowScanBarrel.test.ts`：夹具「桶承诺 + extensions
+    同名」必红、对照组必绿，钉死这次漏检。判据规模 164 文件 / 773 用例 → **165 文件 / 775 用例**。
+  - `extensions/README` 登记表清零，并把 M31 的「内核未承诺」结论更正为「承诺在桶里」。
+- **M31 对接收口（2026-11-08，按当日上午盘点结果逐条修复）**：
+  - **`CryptoVault` / `EnvVault` 迁回对接面**：内核 alpha.14 已承诺这两个实现（scrypt 派生 +
+    旧 SHA-256 密文回退 + 缓存上限 + 并发单飞，2026-11-07 审计 P1-2/P2），app 侧旧版只有单轮
+    SHA-256 且无容量上限——同能力双份维护、安全修复吃不到。`src/host/extensions/kernel/adapters/vault/*`
+    删除（332 行），`cliCredentialBuild` / `storeCommand` 改经 `host/kernel/adapters-misc.ts`；
+    旧密文可读（内核版保留 SHA-256 候选），新写入自然迁到 scrypt 派生，`vault.key` 语义与 0600 不变。
+  - **删除 compat 再导出桶** `src/host/extensions/kernel/adapters/index.ts`：70 条纯转口，全仓只有
+    `cliServerCmds` 用其中 3 个，却让 33 个零真实消费者的内核符号钉在对接面里（生成器把「桶的再导出」
+    也算作使用）。改直连后对接面 435 → **402 符号** / 262 → **242 条深路径**。
+  - **`governance.rollbackTargets` 删除**：注册了但全仓零调用——UI 的 `GovernanceTab` 从
+    `governance.history` 的 `view.rollbackTargets` 取同一份数据，两个入口只会慢慢漂移。
+    RPC 全集 93 → **92**（parity 快照、README、注释同步）。
+  - **门禁新增第 9 条**「已承诺能力无同名副本」：逐名比对内核 `exports` 承诺面与
+    `src/host/extensions/**` 的声明名，回归即红（正/负向都已实测：放入临时同名类会红，删掉即绿）。
+    判据实现独立成 `scripts/kernelShadowScan.mjs`，门禁与新增的常规判据
+    `tests/kernelShadowScan.test.ts` 共用同一份（子进程调用，规避 Windows CI 上 `.mjs`
+    动态 import 的打包器坑）；判据同时断言「承诺导出名 / extensions 声明名」两侧计数非零，
+    防「扫描器扫空也绿」。`kernel:check` 由此 8 条 → **9 条**，判据 163 文件 / 772 用例 →
+    **164 文件 / 773 用例**。
+  - **记账对齐**：README / KERNEL-CONTRACT / vendor README / CHANGELOG 的 alpha.13 → alpha.14、
+    17 域 → 18 域、265·316 → **260 源文件 / 287 处包导入**、93 → 92 方法；`extensions/README` 更正
+    「不再含任何同名/同体影子副本」的不实自述，改为「已承诺=0（第 9 条把守）+ 内核未承诺的 5 件
+    登记在册（`SessionGc` / `SessionStorageLocation` / `TmpSweep` / `IsolationLadderFactory` /
+    `SdkPreferredMcpConnector`，相似度 0.72–0.92，待内核纳入承诺面后退役）」。
+    > M32 复核：这 5 件其实**早已承诺在 curated 桶里**，是第 9 条漏检才被误判为「未承诺」；
+    > 见上方 M32 条（已全部删除）。
 - **内核钉版升级 alpha.13 → alpha.14（2026-11-08 审计整改同步）**：vendor 升级至
   `vendor/omniharness-kernel-0.1.0-alpha.14.tgz`（内核侧 25 个提交：P0 15 / P1 57 / P2/P3 分批闭环）。
   应用侧同步：
@@ -13,7 +57,7 @@
     `injectionSelfCheck` / `injectionSnapshotAggregator` 随迁，`kernel:surface` 重新生成；
   - 内核恢复会话旁路摘要（`SessionSummaryBuilder` / `SessionSummarySidecar`）——应用
     `sessionScanCache` / `sessionArchive` 是其生产消费者，升级后无需改动；
-  - `kernel:check` 通过（265 源文件 / 316 处包导入 / vendored integrity / 原生内核）。
+  - `kernel:check` 通过（M31 收口后 260 源文件 / 287 处包导入 / vendored integrity / 原生内核）。
 - **web SSE 三态判据修正（2026-11-08）**：`streamStability.test.ts` 第 ④ 步原只等 1.2s 断言
   「断开」，而宽限期是 4s（判据按定义不可能通过，历史假绿）；改为在触发断线后替换为
   「永不 onopen」的同形 EventSource 桩，等待越过 4s 宽限期再断言，消除重连竞态。

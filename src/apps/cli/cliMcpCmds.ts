@@ -284,7 +284,7 @@ export class CliMcpCmds extends CliServerCmds {
     }
     // 客户端方向走官方 SDK 优先（协议协商 + 远端 url 支持）；失败回落手写并打到 stderr。
     const [{ SdkPreferredMcpConnector }, { McpServerCommand }] = await Promise.all([
-      import('../../host/extensions/kernel/adapters/mcp/sdkPreferredMcpConnector.ts'),
+      import('../../host/kernel/adapters-misc.ts'),
       import('../../host/extensions/protocols/mcp/mcpServerCommand.ts'),
     ]);
     const connection = await new SdkPreferredMcpConnector().connect(
@@ -320,7 +320,7 @@ export class CliMcpCmds extends CliServerCmds {
       return 2;
     }
     const [{ SdkPreferredMcpConnector }, { McpServerCommand }] = await Promise.all([
-      import('../../host/extensions/kernel/adapters/mcp/sdkPreferredMcpConnector.ts'),
+      import('../../host/kernel/adapters-misc.ts'),
       import('../../host/extensions/protocols/mcp/mcpServerCommand.ts'),
     ]);
     const connection = await new SdkPreferredMcpConnector().connect(

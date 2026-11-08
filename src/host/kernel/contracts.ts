@@ -39,7 +39,6 @@ export type { IsolationPayload } from '@omniharness/kernel/contracts/ports/runti
 export type { RuntimeObservation, RuntimeTelemetryPort, TelemetryChainReport, TelemetryKind, TelemetryProvenance } from '@omniharness/kernel/contracts/ports/runtime/runtimeTelemetry.js';
 export type { SandboxAction, SandboxDecision, SandboxDenialCategory, SandboxPort } from '@omniharness/kernel/contracts/ports/runtime/sandbox.js';
 export type { SandboxCapabilityEntry } from '@omniharness/kernel/contracts/ports/runtime/sandbox/sandboxCapabilityEntry.js';
-export type { RuntimeFailure } from '@omniharness/kernel/contracts/ports/runtime/sandboxDenial.js';
 export type { MoireOptions, SkillPort } from '@omniharness/kernel/contracts/ports/runtime/skill.js';
 export type { AuditSinkLike, HealthEntry, HealthSnapshot, SafeMode, SupervisorOptions, SupervisorPort } from '@omniharness/kernel/contracts/ports/runtime/supervisor.js';
 export type { ToolGatePort } from '@omniharness/kernel/contracts/ports/runtime/toolGatePort.js';
@@ -56,7 +55,6 @@ export type { DecisionAnswer } from '@omniharness/kernel/contracts/ports/decisio
 export type { DecisionQuestion } from '@omniharness/kernel/contracts/ports/decision/decisionEngine/decisionQuestion.js';
 export type { DecisionRequest } from '@omniharness/kernel/contracts/ports/decision/decisionEngine/decisionRequest.js';
 export type { DecisionResponse } from '@omniharness/kernel/contracts/ports/decision/decisionEngine/decisionResponse.js';
-export type { McpConnectionHandle, McpConnectorPort } from '@omniharness/kernel/contracts/ports/mcp/mcpConnectorPort.js';
 export type { McpServerConfig } from '@omniharness/kernel/protocols/mcp/mcpGateway.js';
 export type { VaultPort } from '@omniharness/kernel/contracts/ports/memory/vault.js';
 export type { TraceEntry } from '@omniharness/kernel/contracts/ports/telemetry/traceIntrospection/traceEntry.js';

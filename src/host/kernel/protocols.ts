@@ -15,7 +15,7 @@ export { McpAskUserInputHandler } from '@omniharness/kernel/protocols/mcp/mcpAsk
 export { McpClient } from '@omniharness/kernel/protocols/mcp/mcpClient.js';
 export type { McpClientOptions } from '@omniharness/kernel/protocols/mcp/mcpClient.js';
 export { McpCompositeInputHandler } from '@omniharness/kernel/protocols/mcp/mcpCompositeInputHandler.js';
-export { McpConnector, mcpConnector } from '@omniharness/kernel/protocols/mcp/mcpConnector.js';
+export { McpConnector } from '@omniharness/kernel/protocols/mcp/mcpConnector.js';
 export type { McpConnection, McpConnectorOptions } from '@omniharness/kernel/protocols/mcp/mcpConnector.js';
 export { McpGateway } from '@omniharness/kernel/protocols/mcp/mcpGateway.js';
 export type { McpBridgeResult, McpGatewayOptions, McpServerConfig } from '@omniharness/kernel/protocols/mcp/mcpGateway.js';
@@ -32,4 +32,3 @@ export type { McpStdioHandle, McpStdioServerOptions } from '@omniharness/kernel/
 export { McpToolMapper } from '@omniharness/kernel/protocols/mcp/mcpToolMapper.js';
 export { McpAuthFlow } from '@omniharness/kernel/protocols/mcp/mcpAuthFlow.js';
 export { McpHttpServer } from '@omniharness/kernel/protocols/mcp/mcpHttpServer.js';
-export { SdkMcpConnector } from '@omniharness/kernel/kernel/adapters/mcp/sdkMcpConnector.js';

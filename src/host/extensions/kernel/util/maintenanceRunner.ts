@@ -29,11 +29,16 @@
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { OmniHome } from '../../../kernel/util.ts';
-import { SessionGc, type SessionGcOptions, type SessionGcReport } from './sessionGc.ts';
-import { TmpSweep, type TmpSweepReport } from './tmpSweep.ts';
+import {
+  SessionGc,
+  SessionStorageLocation,
+  TmpSweep,
+  type SessionGcOptions,
+  type SessionGcReport,
+  type TmpSweepReport,
+} from '../../../kernel/maintenance.ts';
 import { SessionArchiveLayout } from '../../../kernel/util.ts';
 import { ServeInstance, type ServeInstanceRecord } from './serveInstance.ts';
-import { SessionStorageLocation } from './sessionStorageLocation.ts';
 import { runtimeLimits } from '../../../kernel/util.ts';
 import type { MaintenanceLimits } from '../../../kernel/contracts.ts';
 
