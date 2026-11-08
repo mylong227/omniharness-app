@@ -174,14 +174,12 @@ export class CliMcpCmds extends CliServerCmds {
     const sessionId = 'mcp';
     const context = { sessionId, workspaceRoot: cliArgs.workspace };
     const { ToolGate } = await import('../../host/kernel/core.ts');
-    const gate = new ToolGate(
-      config.approvals,
-      config.sandbox,
-      undefined,
-      false,
-      config.escalation,
-      config.elevatedSandbox,
-    );
+    const gate = new ToolGate({
+      approvals: config.approvals,
+      sandbox: config.sandbox,
+      escalation: config.escalation,
+      elevatedSandbox: config.elevatedSandbox,
+    });
     const httpPort = this.flagValue(args, '--mcp-http-port');
     if (httpPort !== undefined) {
       return await this.runMcpHttpServe({

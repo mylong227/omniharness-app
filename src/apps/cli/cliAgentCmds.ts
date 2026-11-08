@@ -26,7 +26,7 @@ import type { TuiEvent } from '../tui/tuiRenderer.ts';
 import { ArgParser, CliDefaults } from './argParser.ts';
 import { CronerSchedule } from '../../host/extensions/kernel/adapters/schedule/cronerSchedule.ts';
 import type { CliArgs } from './argParser.ts';
-import { ModelCapabilityProbe } from '../../host/extensions/kernel/adapters/model/modelCapabilityProbe.ts';
+import { ModelCapabilityProbe } from '../../host/kernel/eval.ts';
 import { CliNativeCmds } from './cliNativeCmds.ts';
 import {
   ACP_PERMISSION_MODES,

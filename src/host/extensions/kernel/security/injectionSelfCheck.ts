@@ -20,8 +20,8 @@
  * 由 doctor 转成问题项——绝不静默输出空报告冒充「检查通过」。
  */
 import { builtinDefaults } from '../../../kernel/util.ts';
-import { InjectionMetric } from './injectionMetric.ts';
-import type { InjectionCase, SnapshotReport } from './injectionSnapshotAggregator.ts';
+import { InjectionMetric } from '../../../kernel/eval.ts';
+import type { InjectionCase, SnapshotReport } from '../../../kernel/eval.ts';
 import type { ContentTrustTier } from '../../../kernel/security.ts';
 
 /** 快照文件在 `defaults/` 下的数据名（`BuiltinDefaults.json` 口径，I6 门禁据此强制随包发布）。 */
