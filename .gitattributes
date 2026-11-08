@@ -1,0 +1,4 @@
+# 主题内联脚本的 CSP 哈希逐字节敏感：Windows 检出若把 web/index.html 转成 CRLF，
+# 哈希会变（desktop CSP 白名单与 web/dist 产物都按字节算），CI 与本地必有一边红。
+# 强制该文件 LF，保证「源码 → Vite 产物 → 运行时哈希」三段一致。
+web/index.html text eol=lf
