@@ -33,8 +33,10 @@ jobs:
           node-version: '22.14'
           cache: npm
 
-      - name: 安装依赖（含 vendored 内核 tarball）
-        run: npm ci
+      - name: 安装依赖（含 vendored 内核 tarball + 桌面 Electron 依赖）
+        run: |
+          npm ci
+          npm --prefix desktop ci --no-audit --no-fund
 
       - name: 内核边界门禁（8 条判据；先跑，生成物漂移时给出可执行修复）
         run: npm run kernel:check
@@ -53,9 +55,8 @@ jobs:
       - name: 端到端冒烟（真起 serve）
         run: npm run smoke
 
-      - name: 桌面纯逻辑判据（30 条；需本地装 Electron 依赖，与本地 desktop:test 同源）
+      - name: 桌面纯逻辑判据（30 条；依赖已在前置步骤安装，与本地 desktop:test 同源）
         run: |
-          npm --prefix desktop ci --no-audit --no-fund
           npm run desktop:build
           npm run desktop:test
 
