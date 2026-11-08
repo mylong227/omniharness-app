@@ -382,7 +382,11 @@ export function runSurface({ check }) {
   const changed = [];
   for (const [name, content] of files) {
     const path = join(SURFACE, name);
-    const current = existsSync(path) ? readFileSync(path, 'utf8') : '';
+    // 2026-11-08 CI 实锤：Windows 检出（core.autocrlf）会把生成物换成 CRLF，与 LF 的
+    // `content` 逐字比较必然判「漂移」。行尾不属于生成物语义，比较前统一归一。
+    const current = existsSync(path)
+      ? readFileSync(path, 'utf8').replace(/\r\n/g, '\n')
+      : '';
     if (current !== content) changed.push(name);
   }
   const generated = new Set(files.keys());
