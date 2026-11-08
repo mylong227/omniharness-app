@@ -44,13 +44,13 @@ jobs:
       - name: 类型检查（后端 / 前端 / 桌面）
         run: npm run typecheck
 
-      - name: 判据（前端 + 后端 parity/守卫）
-        run: npm run web:test
-
-      - name: 构建后端 + 前端
+      - name: 构建后端 + 前端（web 判据读取 web/dist，必须先构建）
         run: |
           npm run build
           npm run build:web
+
+      - name: 判据（前端 + 后端 parity/守卫）
+        run: npm run web:test
 
       - name: 端到端冒烟（真起 serve）
         run: npm run smoke
