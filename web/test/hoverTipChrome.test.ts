@@ -67,7 +67,10 @@ function readShot(cdp: CdpSession): Promise<TipShot | null> {
     var cr = chip.getBoundingClientRect();
     var cs = getComputedStyle(tip);
     var probe = document.createElement('div');
-    document.body.appendChild(probe);
+    // 2026-11-08 CI 修：--tip-bg/--tip-fg 可能定义在 .hover-tip 作用域而非根，
+    // 探针挂到 body 时拿到的是根回退值（CI headless 默认深色 ⇒ 白字），与气泡自身
+    // 的计算值不同源。把探针挂进气泡内部，继承同一套自定义属性。
+    tip.appendChild(probe);
     probe.style.color = 'var(--tip-bg)';
     var tipBg = getComputedStyle(probe).color;
     probe.style.color = 'var(--tip-fg)';
