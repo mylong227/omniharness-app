@@ -134,8 +134,16 @@ function run(): void {
     // `OMNI_SMOKE_TIMEOUT_MS` 供 CI / 慢机器放宽：首次冷启动要下载 Electron 运行时，90s 会踩线。
     const smokeTimeoutMs = SmokeHarness.timeoutMs(process.env['OMNI_SMOKE_TIMEOUT_MS']);
     setTimeout(() => {
+      // 超时也要给出「卡在哪」：CI 上看不到窗口，没有这行就只能猜（2026-11-10 实测）。
+      const win = context?.window ?? null;
+      const url =
+        win === null || win.isDestroyed()
+          ? '(无窗口)'
+          : win.webContents.getURL().replace(/([?&])token=[^&]*/g, '$1token=***');
+      const sidecar = context?.supervisor?.getState() ?? '(未创建)';
       process.stdout.write(
-        `[omni-smoke] TIMEOUT: ${Math.round(smokeTimeoutMs / 1000)}s 内未得出结论\n`,
+        `[omni-smoke] TIMEOUT: ${Math.round(smokeTimeoutMs / 1000)}s 内未得出结论` +
+          `（sidecar=${sidecar} url=${url}）\n`,
       );
       app.exit(2);
     }, smokeTimeoutMs);
@@ -432,6 +440,15 @@ async function resolveWorkspace(
   const remembered = state.get().workspace ?? state.get().recentWorkspaces[0];
   if (remembered !== undefined && existsSync(remembered) && statSync(remembered).isDirectory()) {
     return remembered;
+  }
+  if (process.env['OMNI_SMOKE'] === '1') {
+    // 无人值守冒烟：原生目录选择框没人点，会一直挂到超时闸才退出（2026-11-10 CI 实测）。
+    // 与其挂 300s 再报「TIMEOUT」，不如当场说清楚缺什么。
+    process.stderr.write(
+      '[omni-smoke] 缺少 --workspace：无人值守冒烟不弹目录选择框，请显式传工作区目录\n',
+    );
+    app.exit(2);
+    return null;
   }
   return pickWorkspace();
 }
