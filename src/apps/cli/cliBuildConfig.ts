@@ -67,6 +67,7 @@ import type { ResolvedConfig } from '../../host/kernel/contracts.ts';
 import type { ExtraTool } from '../../host/kernel/contracts.ts';
 import type { UserResponder } from '../../host/kernel/contracts.ts';
 import type { EventPort } from '../../host/kernel/contracts.ts';
+import { UnconfiguredModel } from './unconfiguredModel.ts';
 
 /**
  * F3 凭据水合的内置默认名列表。
@@ -95,6 +96,17 @@ const egressOptions = (allowed: string[], args: CliArgs): NetworkEgressOptions =
   allowedHosts: allowed,
   policy: SsrfPolicy.resolveSsrfPolicy(args.ssrfPolicy),
 });
+
+/** `buildModel` 的装配选项（缺凭据时的处置策略）。 */
+export interface BuildModelOptions {
+  /**
+   * Key 缺失时是否返回「占位模型」而不是抛错。
+   *
+   * 只有常驻服务（`serve` / 桌面端侧车）该置 true：服务必须先起来，用户才能进设置页补 Key。
+   * 一次性 CLI 执行保持 false——在开跑前就报错比跑一半再报错更清楚。
+   */
+  readonly allowUnconfigured?: boolean;
+}
 
 /** ExecCli 继承链根基类：共享接线与配置装配。 */
 export class CliBuildConfig extends CliCredentialBuild {
@@ -239,7 +251,12 @@ export class CliBuildConfig extends CliCredentialBuild {
    */
   protected async buildConfig(
     args: CliArgs,
-    overrides: { readonly userResponder?: UserResponder; readonly events?: EventPort } = {},
+    overrides: {
+      readonly userResponder?: UserResponder;
+      readonly events?: EventPort;
+      /** 常驻服务专用：缺 Key 时用占位模型继续启动（见 {@link BuildModelOptions}）。 */
+      readonly allowUnconfiguredModel?: boolean;
+    } = {},
   ): Promise<ResolvedConfig> {
     if (args.native && !new NativeKernel().available()) {
       process.stderr.write(
@@ -248,7 +265,9 @@ export class CliBuildConfig extends CliCredentialBuild {
     }
     // F3：凭据水合必须早于 buildModel——模型适配器与模型路由都在构造期直接读 process.env。
     await this.hydrateCredentials(args);
-    const model = this.buildModel(args);
+    const model = this.buildModel(args, {
+      allowUnconfigured: overrides.allowUnconfiguredModel === true,
+    });
     const { ConfigFactory } = await import('../../host/kernel/config.ts');
     const config = ConfigFactory.build({
       workspaceRoot: args.workspace,
@@ -404,10 +423,11 @@ export class CliBuildConfig extends CliCredentialBuild {
    *
    * 优先级（与历史逐字一致）：CLI / 配置文件显式值 > 适配器的环境变量 > `defaults/endpoints.json` 兜底。
    * @param args 解析后的 CLI 参数（读取 modelAdapter / apiKey / baseUrl / model 等）。
+   * @param options 装配选项：`allowUnconfigured` 为 true 时缺 Key 返回占位模型（服务先起来）。
    * @returns 按 modelAdapter 选择的模型端口；未知适配器（枚举已把关）与 mock 都返回演示模型，
-   *   必需 Key 缺失时抛错（fail-closed）。
+   *   必需 Key 缺失时：默认抛错（fail-closed），`allowUnconfigured` 下返回占位端口。
    */
-  protected buildModel(args: CliArgs): ModelPort {
+  protected buildModel(args: CliArgs, options: BuildModelOptions = {}): ModelPort {
     // 未知适配器回落 mock：适配器名已由 CLI 枚举把关，此分支只作防御（不静默连到错误端点）。
     const spec =
       modelAdapterRegistry.get(args.modelAdapter) ?? modelAdapterRegistry.get(MOCK_ADAPTER_ID);
@@ -426,7 +446,16 @@ export class CliBuildConfig extends CliCredentialBuild {
     // 覆写成兜底模型，发到 deepseek 端点 → HTTP 400
     // （supported: deepseek-v4-pro/flash/vision-exp, you passed gpt-4o-mini）。
     const model = args.model ?? defaults.model;
-    if (defaults.requiresApiKey && apiKey === undefined) {
+    const hasApiKey = apiKey !== undefined && apiKey !== '';
+    if (defaults.requiresApiKey && !hasApiKey) {
+      if (options.allowUnconfigured === true) {
+        // 常驻服务：先起得来，用户才能在设置页补 Key（见 unconfiguredModel 的类注释）。
+        return new UnconfiguredModel({
+          adapter: spec.id,
+          model,
+          apiKeyEnv: defaults.apiKeyEnv,
+        });
+      }
       throw new Error(`${spec.id} 适配器需要 --api-key 或环境变量 ${defaults.apiKeyEnv ?? ''}`);
     }
     return spec.create({ baseUrl: args.baseUrl ?? defaults.baseUrl, model, apiKey });

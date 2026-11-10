@@ -296,6 +296,9 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
     const config = await this.buildConfig(args, {
       userResponder: events.questionPort(),
       events: events.eventPort(),
+      // 常驻服务（桌面端侧车的唯一入口）必须能在「尚未配置 API Key」时正常起来：
+      // 否则侧车就绪前退出 ⇒ 主进程弹启动失败并退出，用户连设置页都进不去（2026-11-08 用户报障）。
+      allowUnconfiguredModel: true,
     });
     return { bridge, metrics, events, config };
   }

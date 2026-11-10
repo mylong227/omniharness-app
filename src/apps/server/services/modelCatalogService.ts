@@ -142,8 +142,12 @@ export class ModelCatalogService {
 
   /**
    * UI 覆盖的运行时模型（agent 重建用）：仅当显式设置了 modelAdapter 时生效。
-   * mock 保持启动时模型不动；其余按覆盖字段构造真适配器，Key 缺失 fail-closed 抛可读错误。
-   * @returns 模型端口；mock/llamacpp/未配置时为 undefined
+   * mock 保持启动时模型不动；其余按覆盖字段构造真适配器。
+   *
+   * Key 缺失时返回 undefined（而不是抛错）：启动期已用「未配置凭据」占位模型保证应用能开，
+   * 这里若抛错，用户一点发送就会在建 Agent 阶段失败，错误还发生在生成之前；返回 undefined
+   * 让占位模型接手，抛出带「设置 → 模型接入」指引的可读错误。保存 Key 后下回合即恢复真适配器。
+   * @returns 模型端口；mock/llamacpp/未配置/缺 Key 时为 undefined
    */
   public resolveOverride(): ModelPort | undefined {
     // 适配器来源：UI 覆盖优先，回退落盘配置（修复「serve 以 mock 启动后，配置文件里
@@ -161,6 +165,9 @@ export class ModelCatalogService {
       file.apiKey ??
       file.providerKeys?.[preset.id] ??
       (adapter === 'anthropic' ? process.env.ANTHROPIC_API_KEY : process.env.OPENAI_API_KEY);
+    if (preset.needsKey && (apiKey === undefined || apiKey === '')) {
+      return undefined;
+    }
     const effectivePreset =
       file.baseUrl !== undefined ? { ...preset, baseUrl: file.baseUrl } : preset;
     return ProviderProbe.buildModelForProvider(effectivePreset, apiKey ?? undefined, file.model);
