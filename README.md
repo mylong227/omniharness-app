@@ -1,7 +1,7 @@
 # OmniHarness App
 
 > **独立应用仓：完整后端宿主 + React 工作台 + Electron 桌面端。**
-> 内核是 [`@omniharness/kernel`](../omniharness-kernel) 的**固定发行物**（vendored tarball，当前 `0.1.0-alpha.14`），
+> 内核是 [`@omniharness/kernel`](../omniharness-kernel) 的**固定发行物**（vendored tarball，当前 `0.1.0-alpha.16`），
 > 应用经 `src/host/kernel/` **分域对接面**消费内核（全仓唯一的包导入点，门禁强制），
 > app 自有能力收留在 `src/host/extensions/`（原 `kernel-compat/`，M27 兼容层清零后更名）。
 > 2026-11-04 从 [OmniHarness](https://github.com/mylong227/OmniHarness) 切出并完成内核包迁移（M2），
@@ -46,6 +46,17 @@ npm run dev            # 开发回路：后端 serve + Vite dev server（HMR，5
 
 `npm start` 打印的 `OmniHarness UI: http://127.0.0.1:<port>/?token=…` 是唯一可用入口
 （回环 serve 默认带一次性令牌，裸地址会 401）。
+
+### 一键启动 / 一键打包（Windows 双击）
+
+不想记命令时，仓库根有两个双击即可的入口（缺依赖会自动 `npm ci`，失败会停在窗口里显示错误）：
+
+| 文件 | 作用 |
+| ---- | ---- |
+| `start.cmd` | 构建后端 + 前端，起 serve 并自动打开带 token 的工作台；`start.cmd mock` 用零凭据 mock 模型，`start.cmd desktop` 启动 Electron 桌面应用 |
+| `package-desktop.cmd` | 构建后端 + 前端 → stage → electron-builder，产出 `desktop/release/` 下的 NSIS 安装包 |
+
+两者是 `npm start` / `npm run desktop:dist` 的薄包装，参数语义与对应命令一致。
 
 接真模型（缺省 mock 适配器，零凭据可跑）：
 
@@ -112,14 +123,14 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 
 ```json
 "dependencies": {
-  "@omniharness/kernel": "file:vendor/omniharness-kernel-0.1.0-alpha.14.tgz"
+  "@omniharness/kernel": "file:vendor/omniharness-kernel-0.1.0-alpha.16.tgz"
 }
 ```
 
 对接全景——谁在哪里、怎么连、哪条门禁在把守：
 
 ```text
-package.json 钉定 vendor/omniharness-kernel-0.1.0-alpha.14.tgz
+package.json 钉定 vendor/omniharness-kernel-0.1.0-alpha.16.tgz
       │  npm ci（lockfile integrity 钉死 tarball —— kernel:check 第 1/5 条）
       ▼
 @omniharness/kernel —— vendored 固定发行物（dist/** + native/omni_napi.node 随包）
@@ -185,7 +196,7 @@ src/host/kernel/<域>.ts —— 19 个自动生成的分域 re-export，无实�
 
 - 应用代码来自上游 `OmniHarness@main`（0.4.0）；本仓的仓库级解耦、内核包迁移（M2）、
   模块化重构与 M21–M30 影子清零迁移用 `git log` 可审。
-- 内核来自 `../omniharness-kernel` 的 `v0.1.0-alpha.14` tag；`vendor/*.tgz` 是它的发行物，
+- 内核来自 `../omniharness-kernel` 的 `v0.1.0-alpha.16` tag；`vendor/*.tgz` 是它的发行物，
   **不是**第二份源码。重建用 `npm run kernel:vendor`（tag 缺省自 package.json 解析）。
 - 上游的 `tests/`、`crates/`、`third-party/`、看板与审计脚本没有切过来：本仓的判据是
   775 用例（web 742 + 后端 33）+ 桌面 34 条 + 冒烟 7 条 + 内核边界 9 条。

@@ -5,7 +5,50 @@
 
 ## [Unreleased]
 
+### Added（新增）
+- **Windows 一键入口**：仓库根新增 `start.cmd`（构建后端 + 前端 → 起 serve → 自动打开带 token 的工作台；
+  `start.cmd mock` 走零凭据 mock，`start.cmd desktop` 启动 Electron 桌面应用）与 `package-desktop.cmd`
+  （构建 → stage → NSIS 安装包，产物在 `desktop/release/`）。两者是 `npm start` / `npm run desktop:dist`
+  的薄包装，缺依赖时自动 `npm ci`，失败时停在窗口里保留错误。
+
+### Fixed（修复）
+- **没有 API Key 时桌面端直接进不去（侧车启动即退出，2026-11-08 用户报障）**：`serve` 的模型
+  装配在「配置了需要 Key 的厂商、但 Key 缺失」时直接抛错，侧车在就绪前退出 ⇒ 主进程弹
+  「Harness 启动失败」并 `app.quit()`，用户连「设置 → 模型接入」都进不去（启动被配置反向卡死）。
+  现在 serve 路径改用 `UnconfiguredModel` 占位端口：窗口与 UI 正常打开，只有真正发送消息时才
+  报「请到 设置 → 模型接入 填写 API Key」；保存 Key 后下一回合即换成真适配器，无需重启。
+  一次性 CLI 仍保持缺 Key 当场失败（fail-fast 语义不变）。回归判据
+  `tests/unconfiguredModel.test.ts`（真机桌面冒烟：无 Key 配置下 8 项全过）。
+- **从 PowerShell 7 终端启动时 DPAPI 凭据解密失败（应用直接起不来）**：配置里的
+  `apiKeyDpapi` / `providerKeysDpapi` 由 `powershell.exe`（5.1）解密，而从 PS7 终端启动时
+  `PSModulePath` 里排前的全是 PS7 模块目录，5.1 会先加载到不兼容的
+  `Microsoft.PowerShell.Security`，报「凭据解密失败」并退出。现在 CLI 入口在读取任何配置前
+  把 5.1 自己的模块目录提到 `PSModulePath` 首位（纯环境归一化，不改配置、不吞解密错误）。
+  真机复测：同一份 DPAPI 配置可直接启动，桌面冒烟 8 项全过；回归判据
+  `tests/windowsPowerShellModulePath.test.ts`。
+- **右栏纯文本预览下方空出一大块**（2026-11-08 用户截图，`TECH-UPGRADE-REPORT.md.bak`）：
+  `.bak` 这类扩展名不在语言表里 ⇒ 走 `<pre class="file-content">` 纯文本分支，而 layout.css 的
+  `max-height:70vh` 没有被 `.file-pane .file-content`（flex:1）覆盖，正文只长到七成视口高。
+  面板内改为 `max-height:none`、填满剩余高度并由自身滚动；新增
+  `web/test/plainTextFill.test.ts`（含「注回 70vh 必须变红」的正对照）。
+- **切换项目必失败（`decisionEngine.mode` 非 off）**：`ConfigFactory.build` 只消费
+  `decisionEnginePort`、不写回 `ResolvedConfig`，而 `workspace.switch` 的
+  `ConfigRebase.forWorkspace` 以已解析配置为基线 ⇒ 重基后只剩声明段 `decisionEngine`（生产入口
+  默认 `shadow`），内核 fail-closed 抛「未注入 decisionEnginePort」，UI 报「切换失败」。现由
+  `ServerServices` 复用同一 `LayaDecisionEngine` 端口并在重基时重新注入；真机 RPC 实测
+  `workspace.switch` 返回 `ok:true`。
+- `scripts/startAll.mjs` 的 TmpSweep 导入仍指向 M32 已删除的
+  `extensions/kernel/util/tmpSweep.js`（启动时静默跳过预清扫）——改经 `host/kernel/maintenance` 对接面。
+- `desktop/scripts/verifyPackage.mjs` 的安装包提示写死 `0.2.0`：改为在 `release/` 里探测
+  `OmniHarness Setup*.exe`，如实显示当前版本与体积。
+
 ### Changed（变更）
+- **品牌标识与桌面图标统一为白底版**（2026-11-08 用户口径「一起换统一下」）：新增固定 token
+  `--brand-tile` / `--brand-tile-rim` / `--brand-tile-ink`（白底 + 靛墨 Ω + 淡靛描边，不随主题/方案
+  变化），左栏品牌芯片、工作台状态条紧凑标识、站点 favicon、桌面启动页 `.mark` 全部改用同一配色。
+- **桌面图标改为白底版**（2026-11-08 用户口径「用正常的 logo 白底的」）：`desktop/static/` 的
+  `icon.svg` / `icon.png` / `icon.ico` / `icon-busy.png` 由深墨底浅字反转为**白底 + 靛墨 Ω**
+  （`#3d4a86`，与应用内品牌芯片同源），描边取 accent 混白；ICO 仍为 16–256 七档。
 - **M32 影子清零终盘（2026-11-08 傍晚，内核侧同批加跨仓消费契约）**：
   - **第 9 条门禁此前有两处漏检**：curated 子路径（`./sandbox` / `./mcp` / `./maintenance`）的
     `.d.ts` 是纯再导出桶，旧扫描①把 `./maintenance` 拼成 `dist/maintenance` 目录（永远不存在）、
