@@ -1,6 +1,8 @@
 import { ContextWindowCatalog } from '../../../host/kernel/context.ts';
 import type { ResolvedConfig } from '../../../host/kernel/contracts.ts';
 import { ConfigFactory } from '../../../host/kernel/config.ts';
+import type { DecisionEngine } from '../../../host/kernel/contracts.ts';
+import { DecisionEngineResolver } from '../../../host/extensions/kernel/config/decisionEngineResolver.ts';
 import { SandboxManager, type SandboxProfile } from '../../../host/kernel/adapters-sandbox.ts';
 import { ConfigRebase } from '../../../host/kernel/config.ts';
 import type { PluginManager } from '../../../host/kernel/plugin.js';
@@ -56,6 +58,8 @@ export class ServerServices {
   readonly activeTurns = new Set<string>();
   /** 图运行台账（运行态 + 取消句柄）。 */
   readonly graphRuns = new GraphRunRegistry();
+  /** 决策引擎端口（首次按需构造后复用；工作区切换重基时不能丢）。 */
+  private decisionEnginePort: DecisionEngine | undefined;
 
   // ── 核心协作者（原 AppServerBase，装配顺序即语义） ────────────────────────────
   /** 文件对话框 RPC（浏览 / 新建 / 附件）。 */
@@ -334,6 +338,22 @@ export class ServerServices {
   }
 
   /**
+   * 解析决策引擎端口（工作区切换重基时复用同一实例）。
+   *
+   * 为什么需要它：内核 `ConfigFactory.build` 只消费 `decisionEnginePort`、不把它写回
+   * `ResolvedConfig`；而 `ConfigRebase.forWorkspace` 以已解析配置为基线重基 ⇒ 直接重基会只剩
+   * 声明段 `decisionEngine`（生产入口默认 `shadow`），内核据此 fail-closed 拒绝构建。
+   * @param config 当前已解析配置（读 `decisionEngine` 声明段）。
+   * @returns 决策引擎；`off` / 缺省时为 undefined。
+   */
+  private resolveDecisionEnginePort(config: ResolvedConfig): DecisionEngine | undefined {
+    this.decisionEnginePort ??= new DecisionEngineResolver().resolve({
+      decisionEngine: config.decisionEngine,
+    });
+    return this.decisionEnginePort;
+  }
+
+  /**
    * 「切换项目」：按新工作区根目录重建运行时组件（sandbox/hooks/memory/spill 等全部
    * 随 ConfigFactory.build 按新 root 重造），清 agent/graph 缓存，下回合即在新工作区执行。
    * 审批/模型覆盖沿用现有解析逻辑，UI 感知零断裂。
@@ -361,8 +381,12 @@ export class ServerServices {
     const cfg = this.options.config;
     const file = this.configStore.fileConfig();
     const sandbox = new SandboxManager(root).build((file.sandbox ?? 'policy') as SandboxProfile);
+    const decisionEnginePort = this.resolveDecisionEnginePort(cfg);
     const rebuilt = ConfigFactory.build({
       ...ConfigRebase.forWorkspace(cfg, root),
+      // 决策引擎端口不在 `ResolvedConfig` 里（`ConfigFactory.build` 只消费它、不写回），
+      // 重基时必须重新注入，否则只剩 `decisionEngine.mode=shadow` 的声明段 ⇒ 内核 fail-closed。
+      ...(decisionEnginePort !== undefined ? { decisionEnginePort } : {}),
       // 切换工作区 = 新的未信任根：在用户对该根显式 `--trust-workspace` 前，绝不自动注入其项目技能
       // （否则 serve 在 A 中启动、UI 切到恶意 B 就绕过 trust 闸）。
       allowWorkspaceSkills: false,
