@@ -110,6 +110,12 @@
   --brand-on: #14161c;
   --user: #a8b4e8;
 
+  /* —— 品牌白底芯片（2026-11-08 与桌面图标统一）——
+     固定配色、不随主题/方案变化：白底 + 靛墨 Ω + 淡靛描边，与应用图标逐像素同源。 */
+  --brand-tile: #ffffff;
+  --brand-tile-rim: #c9d0ea;
+  --brand-tile-ink: #3d4a86;
+
   /* —— 语义色：低饱和、只做"信号"，不做"装饰" ——
      暗色下取中高明度（8:1 上下），保证落在任何表面上都能读。 */
   --ok: #8fbf9f;
@@ -200,6 +206,11 @@
   --brand-bg: #3d4a86;
   --brand-on: #fdfcf9;
   --user: #3d4a86;
+
+  /* 品牌白底芯片：与深色主题同值（见深色块注释）。 */
+  --brand-tile: #ffffff;
+  --brand-tile-rim: #c9d0ea;
+  --brand-tile-ink: #3d4a86;
 
   --ok: #3a7150;
   --err: #a6362f;

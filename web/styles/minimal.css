@@ -169,10 +169,12 @@
   width: var(--bm-w);
   height: var(--bm-h);
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+  border: 1px solid var(--brand-tile-rim);
   border-radius: 10px / 6px;
-  background: color-mix(in srgb, var(--accent) 15%, var(--panel));
-  color: var(--accent);
+  /* 2026-11-08「统一」：与应用图标同一套固定配色——白底 + 靛墨 Ω + 淡靛描边。
+     此前是 accent 15% 混 panel 的淡墨底，浅色主题下与图标的白底不一致。 */
+  background: var(--brand-tile);
+  color: var(--brand-tile-ink);
   font-family: var(--font-sans);
   font-size: 14px;
   font-weight: 650;
