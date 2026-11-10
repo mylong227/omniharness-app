@@ -130,11 +130,15 @@ function openNewWindow(): void {
 function run(): void {
   app.setAppUserModelId(config.app.appId);
   if (process.env['OMNI_SMOKE'] === '1') {
-    // 冒烟超时闸：90s 内没跑到结论（侧车起不来 / UI 挂了）⇒ 退出码 2，绝不吊死调用方。
+    // 冒烟超时闸：默认 90s 内没跑到结论（侧车起不来 / UI 挂了）⇒ 退出码 2，绝不吊死调用方。
+    // `OMNI_SMOKE_TIMEOUT_MS` 供 CI / 慢机器放宽：首次冷启动要下载 Electron 运行时，90s 会踩线。
+    const smokeTimeoutMs = SmokeHarness.timeoutMs(process.env['OMNI_SMOKE_TIMEOUT_MS']);
     setTimeout(() => {
-      process.stdout.write('[omni-smoke] TIMEOUT: 90s 内未得出结论\n');
+      process.stdout.write(
+        `[omni-smoke] TIMEOUT: ${Math.round(smokeTimeoutMs / 1000)}s 内未得出结论\n`,
+      );
       app.exit(2);
-    }, 90_000);
+    }, smokeTimeoutMs);
   }
   if (app.isPackaged) {
     app.setAsDefaultProtocolClient(config.app.protocol);

@@ -15,7 +15,7 @@
 | ---- | ---- | ---- |
 | `src/` | **后端宿主**：HTTP/SSE、JSON-RPC（92 方法，16 个域模块声明式注册）、会话存储、审批/沙箱、插件宿主、CLI、MCP/ACP/AG-UI | `src/apps` + `src/host/kernel/`（19 域对接面）+ `src/host/extensions/`（app 自有扩展层） |
 | `web/` | **前端**：React 19 工作台（会话/工具/计划/变更/设置/审计/插件…） | 255 个源文件 + 153 个判据文件 / 743 用例（后端 15 文件 37 用例另计，合计 168 文件 / 780 用例） |
-| `desktop/` | **桌面端**：Electron 主进程 + preload（窗口/托盘/菜单/更新/侧车监督） | 31 个源文件，34 条纯逻辑判据 |
+| `desktop/` | **桌面端**：Electron 主进程 + preload（窗口/托盘/菜单/更新/侧车监督） | 31 个源文件，35 条纯逻辑判据 |
 
 运行形态：
 
@@ -98,7 +98,7 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 | `npm run smoke` | **端到端**：真起 serve，验启动令牌、`/healthz` `/readyz` `/`、`/rpc config.get` |
 | `npm run serve` | 只起 backend serve（需先 `npm run build` + `build:web`） |
 | `npm run example:embed` | 跑可运行嵌入样例（需先 `npm run build`；见 examples/embed-demo.mjs） |
-| `npm run desktop:build` / `desktop:test` | 打包主进程 / 34 条纯逻辑判据 |
+| `npm run desktop:build` / `desktop:test` | 打包主进程 / 35 条纯逻辑判据 |
 | `npm run desktop:smoke` | **真实桌面 GUI 验收**：窗口 / 侧车 / UI origin / DOM 挂载，退出码即结论 |
 | `npm run desktop:stage` / `desktop:dist` | 打包资源（含 vendor）/ NSIS 安装包 |
 | `npm run verify` | kernel:check → typecheck → 判据 → 后端构建 → 前端构建 → 冒烟 → 桌面构建与判据 |
@@ -188,7 +188,7 @@ src/host/kernel/<域>.ts —— 19 个自动生成的分域 re-export，无实�
 | 前端构建 `npm run build:web` | ✅ 单入口 + vendor/panel-antd 分块 |
 | 判据 `npm run web:test` | ✅ 168 文件 / 780 用例（含 parity/守卫/家具/嵌入 API/JCS golden/审计修复/影子扫描判据） |
 | 端到端 `npm run smoke` | ✅ 7/7（banner token、`/healthz`、`/readyz`、`/` HTML、`/rpc config.get`、`sessions.list`、原生内核实载） |
-| 桌面 `desktop:build` + `desktop:test` | ✅ 34/34（含 ipcGuards 三组 + CSP 哈希门禁） |
+| 桌面 `desktop:build` + `desktop:test` | ✅ 35/35（含 ipcGuards 三组 + CSP 哈希门禁） |
 | 嵌入 API 实测 | ✅ `createOmniHarness` 启动 / healthz 200 / RPC 往返 / 优雅关闭（另有自动判据 tests/embedApi.test.ts） |
 | `rpc.list` 自描述 | ✅ 一次调用返回 87~92 个方法 → 归属模块/插件（打包/嵌入形态少 5 个市场方法属正常） |
 
@@ -199,7 +199,7 @@ src/host/kernel/<域>.ts —— 19 个自动生成的分域 re-export，无实�
 - 内核来自 `../omniharness-kernel` 的 `v0.1.0-alpha.16` tag；`vendor/*.tgz` 是它的发行物，
   **不是**第二份源码。重建用 `npm run kernel:vendor`（tag 缺省自 package.json 解析）。
 - 上游的 `tests/`、`crates/`、`third-party/`、看板与审计脚本没有切过来：本仓的判据是
-  780 用例（web 743 + 后端 37）+ 桌面 34 条 + 冒烟 7 条 + 内核边界 9 条。
+  780 用例（web 743 + 后端 37）+ 桌面 35 条 + 冒烟 7 条 + 内核边界 9 条。
 
 ## License
 

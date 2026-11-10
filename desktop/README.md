@@ -247,7 +247,7 @@ GUI 级验证（窗口、CSP、菜单、IPC）需要在真实桌面跑；本会�
 
 ```powershell
 cd desktop
-npm run smoke                       # 退出码 0=全过 / 1=断言失败 / 2=90s 超时
+npm run smoke                       # 退出码 0=全过 / 1=断言失败 / 2=超时（默认 90s，OMNI_SMOKE_TIMEOUT_MS 可放宽）
 npm run smoke -- --workspace D:\deepseek\omniharness   # 免首次目录选择框
 $env:OMNI_SMOKE_OUT='D:\tmp\smoke.json'; npm run smoke # 指定结果落盘位置
 ```

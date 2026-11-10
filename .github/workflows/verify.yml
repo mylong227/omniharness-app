@@ -55,7 +55,7 @@ jobs:
       - name: 端到端冒烟（真起 serve）
         run: npm run smoke
 
-      - name: 桌面纯逻辑判据（30 条；依赖已在前置步骤安装，与本地 desktop:test 同源）
+      - name: 桌面纯逻辑判据（35 条；依赖已在前置步骤安装，与本地 desktop:test 同源）
         run: |
           npm run desktop:build
           npm run desktop:test
@@ -85,5 +85,19 @@ jobs:
           npm run build:web
           npm run desktop:build
 
+      # Electron 二进制缺失时，electron/cli.js 会在冒烟窗口内临时下载 ~100MB，
+      # 把 90s 预算挤掉 ⇒ 判「超时」而非真实断言失败（2026-11-10 手动门首跑踩中）。
+      - name: 预热 Electron 运行时
+        shell: pwsh
+        run: |
+          if (-not (Test-Path 'desktop/node_modules/electron/dist/electron.exe')) {
+            Write-Host 'Electron 二进制缺失，显式下载……'
+            node desktop/node_modules/electron/install.js
+          }
+          $exe = Get-Item 'desktop/node_modules/electron/dist/electron.exe'
+          Write-Host ('electron.exe {0:N1} MB' -f ($exe.Length / 1MB))
+
       - name: 真实桌面 GUI 冒烟
+        env:
+          OMNI_SMOKE_TIMEOUT_MS: '300000'
         run: npm run desktop:smoke

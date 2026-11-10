@@ -20,7 +20,7 @@ npm run smoke -- --workspace D:\path\to\workspace
 | ------ | ---- |
 | 0 | 全部致命断言通过 |
 | 1 | 有致命断言失败（stdout 会逐条列出 ✗） |
-| 2 | 90s 超时（侧车没起来 / UI 没加载） |
+| 2 | 冒烟超时（默认 90s，`OMNI_SMOKE_TIMEOUT_MS` 可放宽；侧车没起来 / UI 没加载） |
 
 明细 JSON 默认写到 `app.getPath('userData')/smoke-result.json`，也可用 `OMNI_SMOKE_OUT` 指定。
 

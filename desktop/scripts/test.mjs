@@ -429,6 +429,15 @@ test('SmokeHarness：DOM 探针脚本可执行且含桥版本判定', () => {
   });
 });
 
+test('SmokeHarness.timeoutMs：默认 90s、可放宽、越界夹取、脏值回落', () => {
+  assert.equal(SmokeHarness.timeoutMs(undefined), 90_000);
+  assert.equal(SmokeHarness.timeoutMs(''), 90_000);
+  assert.equal(SmokeHarness.timeoutMs('300000'), 300_000);
+  assert.equal(SmokeHarness.timeoutMs('1'), 10_000);
+  assert.equal(SmokeHarness.timeoutMs('9999999'), 600_000);
+  assert.equal(SmokeHarness.timeoutMs('abc'), 90_000);
+});
+
 test('parseLaunchArgs: workspace / inline / hidden / deep link', () => {
   assert.deepEqual(parseLaunchArgs(['electron', '.', '--workspace', 'D:\\ws']), {
     workspace: 'D:\\ws',
