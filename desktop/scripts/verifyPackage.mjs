@@ -15,7 +15,7 @@
  * - 输出总大小与文件数，供看板回填。
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 
 const args = process.argv.slice(2);
 const dirFlag = args.indexOf('--dir');
@@ -86,10 +86,20 @@ if (failures.length > 0) {
   for (const item of failures) process.stderr.write(`  - ${item}\n`);
   process.exit(1);
 }
-const installer = join(root, '..', 'OmniHarness Setup 0.2.0.exe');
-const installerNote = existsSync(installer)
-  ? `${(statSync(installer).size / 1024 / 1024).toFixed(1)} MB`
-  : '未生成';
+/** 在 release/ 里找当前版本的安装包（文件名带版本，不能写死）。 */
+const findInstaller = () => {
+  const releaseDir = join(root, '..');
+  if (!existsSync(releaseDir)) return undefined;
+  return readdirSync(releaseDir)
+    .filter((name) => name.toLowerCase().endsWith('.exe') && name.startsWith('OmniHarness Setup'))
+    .map((name) => join(releaseDir, name))
+    .find((path) => statSync(path).isFile());
+};
+const installer = findInstaller();
+const installerNote =
+  installer === undefined
+    ? '未生成'
+    : `${(statSync(installer).size / 1024 / 1024).toFixed(1)} MB（${basename(installer)}）`;
 process.stdout.write(
   `✅ 打包产物校验通过：${root}\n` +
     `   ${mb} MB / ${stats.files.toLocaleString('en-US')} 文件 ｜ ` +
