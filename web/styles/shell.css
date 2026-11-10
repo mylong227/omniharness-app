@@ -537,6 +537,9 @@
 .file-pane .file-content {
   flex: 1;
   min-height: 0;
+  /* 覆盖 layout.css 基础规则的 `max-height:70vh`（2026-11-08 用户截图：`.md.bak` 走纯文本分支，
+     面板里只长到七成高，下面留出一大块死区）。面板内一律填满剩余高度，滚动交给自身。 */
+  max-height: none;
   overflow: auto;
   background: var(--panel);
   border: 1px solid var(--border-soft);
