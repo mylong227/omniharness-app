@@ -51,7 +51,7 @@ export class ProofService {
   /**
    * 回合列表（`proof.turns`）：按 user 事件切分并统计每回合规模。
    * @param threadId 会话 id（空串 → no_session）。
-   * @returns 回合摘要列表；会话不可读时 fail-soft 空数组（UI 显示「还没有可复核的回合」）。
+   * @returns 回合摘要列表；会话不可读时判别失败（不能伪装成「没有回合」）。
    */
   public async turnsOf(threadId: string): Promise<readonly ProofTurnSummary[] | ProofFailure> {
     if (threadId === '') {
@@ -60,8 +60,8 @@ export class ProofService {
     let events: readonly SessionEvent[];
     try {
       events = await this.deps.events(threadId);
-    } catch {
-      return [];
+    } catch (error) {
+      return ProofService.failure('proof_invalid', `事件流不可读：${ProofService.messageOf(error)}`);
     }
     return ProofTurnSlicer.slice(events).map((slice) => ProofService.summaryOf(threadId, events, slice));
   }
@@ -250,7 +250,17 @@ export class ProofService {
     if (sink === undefined) {
       return ProofService.checkOf('AUDIT_CHAIN', 'warn', '本地审计链未启用（serve 组合根未注入 audit sink）。');
     }
-    const records = sink.read().filter((event) => event.sessionId === threadId);
+    let all: ReturnType<AuditSink['read']>;
+    try {
+      all = sink.read();
+    } catch (error) {
+      return ProofService.checkOf(
+        'AUDIT_CHAIN',
+        'warn',
+        `本地审计链不可读：${ProofService.messageOf(error)}。`,
+      );
+    }
+    const records = all.filter((event) => event.sessionId === threadId);
     if (records.length === 0) {
       return ProofService.checkOf('AUDIT_CHAIN', 'warn', '本地审计链没有该会话的记录。');
     }

@@ -592,6 +592,8 @@ export interface FleetSnapshotLike {
   nodes: readonly FleetNodeLike[];
   runningCount: number;
   collectedAt: string;
+  /** 事件流不可读等快照级错误；有值时 nodes 为空，UI 必须显示错误。 */
+  error?: string;
 }
 
 /** 一条压缩记录（`context.studio` 的 compactions 元素）。 */
@@ -609,9 +611,20 @@ export interface ContextStudioSnapshotLike {
   threadId: string;
   report: ContextUsageReport;
   compactions: readonly CompactionMarkLike[];
-  handoff: readonly unknown[];
+  handoff: readonly HandoffNoteLike[];
   handoffAvailable: boolean;
+  /** 事件流不可读等快照级错误；有值时 compactions 为空。 */
+  error?: string;
   collectedAt: string;
+}
+
+/** 一条交接便签（服务端 HandoffNote 同形；v1 未接线时为空）。 */
+export interface HandoffNoteLike {
+  id: string;
+  text: string;
+  tags: readonly string[];
+  createdAt: string;
+  source: 'user' | 'agent';
 }
 
 /** 单项复核结论（`proof.build` 的 checks 元素）。 */

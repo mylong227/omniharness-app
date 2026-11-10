@@ -70,14 +70,18 @@ export interface FleetModeProps {
   readonly active: boolean;
 }
 
+/** 车道稳定 key：子会话 id 优先；运行中还没有 id 时用「开始时刻 + 任务」避免同任务串选。 */
+function laneKey(node: FleetNodeLike): string {
+  return node.childSessionId ?? `${node.startedAt}:${node.task}`;
+}
+
 /** 编队模式：父会话的车道一览。 */
 export function FleetMode(props: FleetModeProps): ReactElement {
   const { snapshot, loading, error, staleMs, refresh } = useFleet(props.threadId, props.active);
   const [selected, setSelected] = React.useState<string | null>(null);
 
-  // 选中态跟随快照里的车道（切会话/快照更新后保持 task 文本匹配）。
-  const selectedNode =
-    snapshot?.nodes.find((node) => (node.childSessionId ?? node.task) === selected) ?? null;
+  // 选中态跟随快照里的车道（切会话/快照更新后保持稳定 key 匹配）。
+  const selectedNode = snapshot?.nodes.find((node) => laneKey(node) === selected) ?? null;
 
   if (props.threadId === null || props.threadId === '') {
     return <div className="control-mode">{t('先选择一个会话，再打开编队。')}</div>;
@@ -88,6 +92,16 @@ export function FleetMode(props: FleetModeProps): ReactElement {
         <p className="hint">
           {t('编队状态不可读：{msg}', { msg: error })}
         </p>
+        <button type="button" onClick={refresh}>
+          {t('重试')}
+        </button>
+      </div>
+    );
+  }
+  if (snapshot?.error !== undefined && snapshot.error !== '') {
+    return (
+      <div className="control-mode">
+        <p className="hint">{t('编队状态不可读：{msg}', { msg: snapshot.error })}</p>
         <button type="button" onClick={refresh}>
           {t('重试')}
         </button>
@@ -115,13 +129,13 @@ export function FleetMode(props: FleetModeProps): ReactElement {
         })}
         {stale ? ` · ${t('已过期（{sec} 秒前的快照）', { sec: Math.round(staleMs / 1000) })}` : ''}
       </p>
-      <div className="control-lanes" role="list">
-        {snapshot.nodes.map((node, index) => (
+      <div className="control-lanes">
+        {snapshot.nodes.map((node) => (
           <LaneRow
-            key={(node.childSessionId ?? node.task) + String(index)}
+            key={laneKey(node)}
             node={node}
-            selected={(node.childSessionId ?? node.task) === selected}
-            onSelect={() => setSelected(node.childSessionId ?? node.task)}
+            selected={laneKey(node) === selected}
+            onSelect={() => setSelected(laneKey(node))}
           />
         ))}
       </div>
@@ -153,7 +167,6 @@ function LaneRow(props: LaneRowProps): ReactElement {
   return (
     <button
       type="button"
-      role="listitem"
       className={`control-lane${props.selected ? ' is-selected' : ''}`}
       onClick={props.onSelect}
       aria-pressed={props.selected}

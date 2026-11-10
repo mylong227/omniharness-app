@@ -42,6 +42,18 @@ test('ProofService：未签名时只报结构自洽，并完成事件/根/会话
   assert.equal(bundle.certificate?.sessionId, 'sess_test');
 });
 
+test('ProofService：事件流不可读返回判别失败，不伪装成空回合列表', async () => {
+  const service = new ProofService({
+    events: () => Promise.reject(new Error('disk unavailable')),
+    tools: () => [],
+    audit: () => undefined,
+  });
+  const result = await service.turnsOf('sess_test');
+  assert.ok('ok' in result && result.ok === false);
+  assert.equal(result.code, 'proof_invalid');
+  assert.match(result.message, /disk unavailable/u);
+});
+
 test('ProofService：非法回合下标返回判别失败，不抛 RPC 错误', async () => {
   const service = serviceOf([event(0, 'user', { content: 'x' })]);
   const result = await service.buildOf('sess_test', 9);

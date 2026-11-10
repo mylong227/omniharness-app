@@ -76,6 +76,7 @@ export const EN_TABS_C: Record<string, string> = {
   '前缀指纹 {hash}': 'prefix fingerprint {hash}',
   '压缩记录': 'Compaction records',
   '交接便签': 'Handoff notes',
+  '便签通道已接线，但还没有便签。': 'Note channel is wired, but there are no notes yet.',
   '便签通道未接线（内核 ScratchpadPort 在当前 serve 路径没有注入点），v1 暂无便签；接线后这里显示跨压缩存活的交接内容。':
     'Notes channel not wired (the kernel ScratchpadPort has no injection point in the current serve path); v1 shows none. Once wired, cross-compaction handoffs appear here.',
   '上下文报告读取失败：{msg}': 'Failed to read context report: {msg}',

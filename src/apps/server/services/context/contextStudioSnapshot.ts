@@ -62,6 +62,8 @@ export interface ContextStudioSnapshot {
   readonly handoff: readonly HandoffNote[];
   /** scratchpad 是否已接线（v1 恒 false）。 */
   readonly handoffAvailable: boolean;
+  /** 事件流不可读等快照级错误；有值时压缩记录为空，UI 必须显示错误而不是「尚未压缩」。 */
+  readonly error?: string;
   /** 快照采集时刻（ISO 8601）。 */
   readonly collectedAt: string;
 }

@@ -70,6 +70,16 @@ test('ContextStudioService：坏 marker 不当作压缩记录，避免“坏数�
   assert.equal(snapshot.compactions.length, 0);
 });
 
+test('ContextStudioService：事件流不可读返回快照级错误，不伪装成「尚未压缩」', async () => {
+  const service = new ContextStudioService({
+    usage: () => Promise.resolve(REPORT),
+    events: () => Promise.reject(new Error('archive broken')),
+  });
+  const snapshot = await service.snapshotOf('sess_test');
+  assert.match(snapshot.error ?? '', /archive broken/u);
+  assert.deepEqual(snapshot.compactions, []);
+});
+
 test('ContextStudioService：空会话不触发事件回放，返回空压缩记录', async () => {
   let read = 0;
   const service = new ContextStudioService({

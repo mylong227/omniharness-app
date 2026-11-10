@@ -55,8 +55,8 @@ export class FleetRegistry {
     let events: readonly SessionEvent[];
     try {
       events = await this.deps.events(threadId);
-    } catch {
-      return FleetRegistry.empty(threadId);
+    } catch (error) {
+      return FleetRegistry.empty(threadId, `事件流不可读：${FleetRegistry.messageOf(error)}`);
     }
     const parsed = FleetRegistry.PARSER.parse(events, threadId);
     const nodes: FleetNode[] = [];
@@ -88,6 +88,12 @@ export class FleetRegistry {
    */
   private attachPatchBytes(node: FleetNode): FleetNode {
     if (node.patchPath === undefined) return node;
+    // 结果文本来自模型可见的工具输出：只允许读内核约定的 patch 目录，拒绝绝对路径 /
+    // `..` 穿越；否则一次伪造的 tool_result 就能让服务端 stat 工作区外的文件。
+    const normalized = node.patchPath.replaceAll('\\', '/');
+    if (!normalized.startsWith('.omniharness/subagent-patches/') || normalized.split('/').includes('..')) {
+      return node;
+    }
     const root = this.deps.workspaceRoot();
     if (root === '') return node;
     try {
@@ -102,9 +108,25 @@ export class FleetRegistry {
   /**
    * 空快照（会话不存在 / 事件流不可读 / 未选会话）。
    * @param threadId 会话 id。
+   * @param error 快照级错误（可选；有值时 UI 必须显示错误）。
    * @returns 零车道快照。
    */
-  private static empty(threadId: string): FleetSnapshot {
-    return { parentSessionId: threadId, nodes: [], runningCount: 0, collectedAt: new Date().toISOString() };
+  private static empty(threadId: string, error?: string): FleetSnapshot {
+    return {
+      parentSessionId: threadId,
+      nodes: [],
+      runningCount: 0,
+      collectedAt: new Date().toISOString(),
+      ...(error !== undefined ? { error } : {}),
+    };
+  }
+
+  /**
+   * 提取错误消息。
+   * @param error 任意抛出值。
+   * @returns Error 取 message，其余 String() 化。
+   */
+  private static messageOf(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
   }
 }

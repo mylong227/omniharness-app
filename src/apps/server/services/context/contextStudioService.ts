@@ -51,8 +51,12 @@ export class ContextStudioService {
     let events: readonly SessionEvent[];
     try {
       events = await this.deps.events(threadId);
-    } catch {
-      return ContextStudioService.empty(threadId, report);
+    } catch (error) {
+      return ContextStudioService.empty(
+        threadId,
+        report,
+        `事件流不可读：${error instanceof Error ? error.message : String(error)}`,
+      );
     }
     return {
       threadId,
@@ -123,15 +127,17 @@ export class ContextStudioService {
    * 空快照（未选会话 / 事件流不可读）。
    * @param threadId 会话 id。
    * @param report 已算好的 usage 报告（含 empty 报告）。
+   * @param error 快照级错误（可选）。
    * @returns 零记录快照。
    */
-  private static empty(threadId: string, report: ContextUsageReport): ContextStudioSnapshot {
+  private static empty(threadId: string, report: ContextUsageReport, error?: string): ContextStudioSnapshot {
     return {
       threadId,
       report,
       compactions: [],
       handoff: [],
       handoffAvailable: false,
+      ...(error !== undefined ? { error } : {}),
       collectedAt: new Date().toISOString(),
     };
   }

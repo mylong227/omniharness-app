@@ -36,6 +36,16 @@ export function ContextMode(props: ContextModeProps): ReactElement {
       </div>
     );
   }
+  if (snapshot?.error !== undefined && snapshot.error !== '') {
+    return (
+      <div className="control-mode">
+        <p className="hint">{t('上下文报告读取失败：{msg}', { msg: snapshot.error })}</p>
+        <button type="button" onClick={refresh}>
+          {t('重试')}
+        </button>
+      </div>
+    );
+  }
   if (loading && snapshot === null) {
     return <div className="control-mode">{t('正在读取上下文…')}</div>;
   }
@@ -94,7 +104,23 @@ export function ContextMode(props: ContextModeProps): ReactElement {
 
       <section className="control-block" aria-label={t('交接便签')}>
         <h3>{t('交接便签')}</h3>
-        {snapshot.handoffAvailable ? null : (
+        {snapshot.handoffAvailable ? (
+          snapshot.handoff.length === 0 ? (
+            <p className="hint">{t('便签通道已接线，但还没有便签。')}</p>
+          ) : (
+            <ul className="control-notes">
+              {snapshot.handoff.map((note) => (
+                <li key={note.id}>
+                  <p>{note.text}</p>
+                  <p className="hint">
+                    {timeOf(Date.parse(note.createdAt))}
+                    {note.tags.length > 0 ? ` · ${note.tags.join('、')}` : ''}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )
+        ) : (
           <p className="hint">
             {t(
               '便签通道未接线（内核 ScratchpadPort 在当前 serve 路径没有注入点），v1 暂无便签；接线后这里显示跨压缩存活的交接内容。',

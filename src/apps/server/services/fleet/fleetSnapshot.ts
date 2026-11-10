@@ -64,4 +64,6 @@ export interface FleetSnapshot {
   readonly runningCount: number;
   /** 快照采集时刻（ISO 8601）。 */
   readonly collectedAt: string;
+  /** 事件流不可读等快照级错误；有值时 `nodes` 为空，UI 必须显示错误而不是「没有子代理」。 */
+  readonly error?: string;
 }

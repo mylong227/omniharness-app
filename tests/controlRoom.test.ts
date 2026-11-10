@@ -3,6 +3,7 @@ import { test } from 'vitest';
 import type { SessionEvent } from '../src/host/kernel/contracts.ts';
 import { ProofTurnSlicer } from '../src/apps/server/services/proof/proofTurnSlicer.ts';
 import { FleetLaneParser } from '../src/apps/server/services/fleet/fleetLaneParser.ts';
+import { FleetRegistry } from '../src/apps/server/services/fleet/fleetRegistry.ts';
 
 /** 构造一条最小会话事件。 */
 function event(index: number, type: SessionEvent['type'], payload: unknown = {}): SessionEvent {
@@ -86,4 +87,14 @@ test('FleetLaneParser：非 subagent 调用不产生车道', () => {
     'sess_parent',
   );
   assert.equal(nodes.length, 0);
+});
+
+test('FleetRegistry：事件流不可读返回快照级错误，不伪装成空编队', async () => {
+  const registry = new FleetRegistry({
+    events: () => Promise.reject(new Error('archive broken')),
+    workspaceRoot: () => 'D:/work',
+  });
+  const snapshot = await registry.snapshotOf('sess_parent');
+  assert.match(snapshot.error ?? '', /archive broken/u);
+  assert.equal(snapshot.nodes.length, 0);
 });

@@ -65,7 +65,7 @@ export function ControlTab(props: ControlTabProps): ReactElement {
       props.onNavigate(view.key);
       window.requestAnimationFrame(() => tabRefs.current[next]?.focus());
     },
-    [props],
+    [props.onNavigate],
   );
 
   /**
