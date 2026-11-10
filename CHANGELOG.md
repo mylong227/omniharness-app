@@ -41,12 +41,14 @@
   `extensions/kernel/util/tmpSweep.js`（启动时静默跳过预清扫）——改经 `host/kernel/maintenance` 对接面。
 - `desktop/scripts/verifyPackage.mjs` 的安装包提示写死 `0.2.0`：改为在 `release/` 里探测
   `OmniHarness Setup*.exe`，如实显示当前版本与体积。
-- **桌面 GUI 冒烟在 CI 上首跑即以「超时」判死（2026-11-10，手动门首跑踩中）**：CI 装完依赖后
-  `electron` 二进制缺失，`electron/cli.js` 在冒烟窗口内临时下载 ~100MB，把 90s 预算挤掉 ⇒ 报
-  `TIMEOUT` 而不是真实断言失败。workflow 新增「预热 Electron 运行时」步骤（缺失时显式
-  `node desktop/node_modules/electron/install.js` 并校验 `electron.exe`），GUI 作业把
-  `OMNI_SMOKE_TIMEOUT_MS` 放宽到 300s；超时闸改为可配置（`SmokeHarness.timeoutMs`，缺省仍 90s，
-  夹取 10–600s，脏值回落默认），回归判据 `desktop/scripts/test.mjs` 增 1 条（34 → 35 条）。
+- **桌面 GUI 冒烟在 CI 上以「超时」判死（2026-11-10，手动门首跑踩中两个坑）**：
+  ① CI 装完依赖后 `electron` 二进制缺失，`electron/cli.js` 在冒烟窗口内临时下载 ~100MB，把
+  90s 预算挤掉；② 无记忆工作区 ⇒ 启动时弹原生目录选择框，无人值守下没人点，一直挂到超时闸。
+  处置：workflow 新增「预热 Electron 运行时」步骤（缺失时显式 `node desktop/node_modules/electron/install.js`
+  并校验 `electron.exe`）；GUI 作业固定传 `--workspace` 临时目录并把 `OMNI_SMOKE_TIMEOUT_MS` 放宽到 300s；
+  超时闸改为可配置（`SmokeHarness.timeoutMs`，缺省仍 90s，夹取 10–600s，脏值回落默认），超时行补打
+  `sidecar`/`url` 现场；`OMNI_SMOKE` 下缺 `--workspace` 直接退出码 2 并说明原因，不再弹框空转。
+  回归判据 `desktop/scripts/test.mjs` 增 1 条（34 → 35 条）。
 
 ### Changed（变更）
 - **品牌标识与桌面图标统一为白底版**（2026-11-08 用户口径「一起换统一下」）：新增固定 token

@@ -98,6 +98,15 @@ jobs:
           Write-Host ('electron.exe {0:N1} MB' -f ($exe.Length / 1MB))
 
       - name: 真实桌面 GUI 冒烟
+        shell: pwsh
         env:
           OMNI_SMOKE_TIMEOUT_MS: '300000'
-        run: npm run desktop:smoke
+        run: |
+          # 无人值守：必须显式给工作区，否则会弹原生目录选择框，一直挂到超时闸才退出。
+          $ws = Join-Path $env:RUNNER_TEMP 'omni-smoke-ws'
+          New-Item -ItemType Directory -Force -Path $ws | Out-Null
+          Push-Location desktop
+          node scripts/smoke.mjs --workspace $ws
+          $code = $LASTEXITCODE
+          Pop-Location
+          exit $code

@@ -14,6 +14,10 @@ cd desktop
 npm run smoke -- --workspace D:\path\to\workspace
 ```
 
+> 无人值守（CI）：**必须显式传 `--workspace`**——缺省会弹原生目录选择框，没人点就一直挂到
+> 超时闸；`.github/workflows/verify.yml` 的 GUI 作业因此固定传一个临时工作区，并把
+> `OMNI_SMOKE_TIMEOUT_MS` 放宽到 300s（首次冷启动含 Electron 运行时预热）。
+
 判据由主进程 `SmokeHarness.judge` 给出，结论经退出码回传：
 
 | 退出码 | 含义 |
