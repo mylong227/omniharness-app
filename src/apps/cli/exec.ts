@@ -19,6 +19,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { API_VERSION } from '../../version.ts';
 import { ArgParser } from './argParser.ts';
+import { WindowsPowerShellModulePath } from './windowsPowerShellModulePath.ts';
 
 /**
  * Exec 相关纯函数工具（C7 收口：原顶层内部函数迁入）。
@@ -30,6 +31,9 @@ export class Exec {
    * @returns Promise<void>
    */
   public static async main(): Promise<void> {
+    // 必须在任何配置读取之前：DPAPI 凭据由 powershell.exe(5.1) 解密，而从 PS7 终端启动时
+    // PSModulePath 会让 5.1 加载不兼容模块 ⇒ 配置「凭据解密失败」⇒ 应用起不来（见类注释）。
+    WindowsPowerShellModulePath.ensure();
     const argv = process.argv.slice(2);
 
     // 快速路径 ①：版本查询 —— 零重模块加载
