@@ -4,7 +4,7 @@
 
 1. **fail-closed**：没接线就如实报「未接线」，绝不返回空值冒充正常——「看着绿」是本仓历史缺陷的头号形态。
 2. **单点真源**：内核导入只走 `src/host/kernel/`、RPC 注册只走 `src/apps/server/modules/`、厂商目录只读 `providerPresets`。发现第二份拷贝，收敛它而不是绕过它。
-3. **改一处，验证全链**：`npm run verify` 是唯一裁决（kernel:check 8 判据 → typecheck×3 → 755 判据 → build → smoke → desktop）。
+3. **改一处，验证全链**：`npm run verify` 是唯一裁决（kernel:check 8 判据 → typecheck×3 → 780 判据 → build → smoke → desktop）。
 
 ## 常见任务的最短路径
 
@@ -20,6 +20,7 @@
 ## 提交规范
 
 - 格式：`type(scope): 祈使句摘要`（refactor / feat / fix / docs / test / chore）。破坏性变更加 `!` 并在正文写迁移说明。
+- 分支惯例：日常提交只推 `feat/<主题>`；`main` 由快进合并或 PR 推进，不直接 `git push origin main`（2026-11-10 定）。
 - 每个提交自成一体：typecheck + 相关判据过；不提交「半截 dist」或 `.zcode/`、`.tmp/` 产物。
 - 大重构按「基线 → 机械搬移（行为等价）→ 行为变更」拆提交，diff 可审。
 
