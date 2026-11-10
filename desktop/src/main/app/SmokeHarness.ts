@@ -135,6 +135,32 @@ export class SmokeHarness {
     return { pass: checks.every((check) => check.ok), checks };
   }
 
+  /** 缺省冒烟超时（毫秒）：90s 内没跑到结论即判超时。 */
+  public static readonly SMOKE_TIMEOUT_DEFAULT_MS = 90_000;
+  /** 超时下限（毫秒）：低于此值会误杀正常冷启动。 */
+  public static readonly SMOKE_TIMEOUT_MIN_MS = 10_000;
+  /** 超时上限（毫秒）：再长就等于没有闸。 */
+  public static readonly SMOKE_TIMEOUT_MAX_MS = 600_000;
+
+  /**
+   * 解析冒烟超时闸（`OMNI_SMOKE_TIMEOUT_MS`）。
+   *
+   * 为什么不写死 90s：CI 首次冷启动要先下载 Electron 运行时，90s 会踩线，
+   * 冒烟就以「超时」而非「真实断言失败」判死（2026-11-10 CI 实测）。
+   * @param raw 环境变量原值（缺省 / 空串 / 非数字 / 非正数一律回落默认值）。
+   * @returns 夹取到 [10s, 600s] 的超时毫秒数。
+   */
+  public static timeoutMs(raw: string | undefined): number {
+    const fallback = SmokeHarness.SMOKE_TIMEOUT_DEFAULT_MS;
+    if (raw === undefined || raw.trim() === '') return fallback;
+    const parsed = Number(raw.trim());
+    if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+    return Math.min(
+      SmokeHarness.SMOKE_TIMEOUT_MAX_MS,
+      Math.max(SmokeHarness.SMOKE_TIMEOUT_MIN_MS, Math.round(parsed)),
+    );
+  }
+
   /** 渲染层探针脚本（`webContents.executeJavaScript` 用；返回 root 挂载 + 桥版本）。 */
   public static readonly DOM_PROBE =
     "(function(){ return { root: document.querySelector('#root') !== null, bridgeVersion: (window.omni && window.omni.apiVersion) || 0 }; })()";

@@ -30,7 +30,7 @@
 | ---- | ---- | ---- |
 | `web/test/**` | 前端 149 文件（组件/逻辑/a11y，文件级串行） | `npm run web:test` |
 | `tests/**` | 后端判据（RPC parity、ApiClient 漂移守卫、家具守卫、嵌入 API 生命周期、旗标注册纪律、内核对接面生成物） | 同上 |
-| `desktop/scripts/test.mjs`（内联 30 条） | 桌面纯逻辑判据 | `npm run desktop:test` |
+| `desktop/scripts/test.mjs`（内联 35 条） | 桌面纯逻辑判据 | `npm run desktop:test` |
 | `scripts/checkKernelBoundary.mjs` | 内核边界门禁 8 条（含对接面生成物不漂移） | `npm run kernel:check` |
 | `scripts/kernelSurface.mjs` | 从业务 import 生成 17 个内核对接面文件 | `npm run kernel:surface` |
 | `scripts/smoke.mjs` | 端到端 7 项（真起 serve） | `npm run smoke` |
