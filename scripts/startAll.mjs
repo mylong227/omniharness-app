@@ -163,7 +163,7 @@ if (!skipBuild) {
 // 只清本仓前缀且超龄，不会碰另一个正在运行的进程；失败只告警，不阻断启动。
 try {
   const { TmpSweep } = await import(
-    pathToFileURL(join(REPO, 'dist', 'src', 'host', 'extensions', 'kernel', 'util', 'tmpSweep.js')).href
+    pathToFileURL(join(REPO, 'dist', 'src', 'host', 'kernel', 'maintenance.js')).href
   );
   const sweep = TmpSweep.run({ olderThanMs: 7 * 24 * 60 * 60 * 1000 });
   if (sweep.matched.length > 0) {
