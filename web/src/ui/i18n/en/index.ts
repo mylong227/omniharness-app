@@ -10,6 +10,7 @@ import { EN_SHELL } from './shell.ts';
 import { EN_STREAM } from './stream.ts';
 import { EN_TABS_A } from './tabs_a.ts';
 import { EN_TABS_B } from './tabs_b.ts';
+import { EN_TABS_C } from './tabs_c.ts';
 
 /** en 词条总表。键 = 中文原文；缺词条时 t() 回落中文原文（完整性由 i18nCoverage 测试兜底）。 */
 export const EN: Record<string, string> = {
@@ -24,4 +25,5 @@ export const EN: Record<string, string> = {
   ...EN_STREAM,
   ...EN_TABS_A,
   ...EN_TABS_B,
+  ...EN_TABS_C,
 };

@@ -43,6 +43,9 @@ export interface PanelEntry {
  * 设置分栏仍在 `SettingsModel.SETTINGS_TABS`。要加回面板列表前先读控制台组件的头注释。
  */
 export const PANELS: readonly PanelEntry[] = [
+  // 控制室（2026-11-10）：一个入口三模式（编队/上下文/凭证），内部 tab 切换——
+  // 设计上刻意只占 1 个导航位（设计 §2.3），不与编排/记忆/审计重复。
+  { key: 'control', label: '控制室', icon: 'gauge', description: '编队 / 上下文 / 凭证：一屏掌控当前运行' },
   { key: 'activity', label: '活动', icon: 'chart', description: '本会话的审批、变更与最近事件汇总' },
   { key: 'skills', label: '技能', icon: 'sparkle', description: '可复用技能目录，按名称、描述与标签检索' },
   { key: 'automations', label: '自动化', icon: 'refresh', description: '定时与事件触发的自动化任务' },

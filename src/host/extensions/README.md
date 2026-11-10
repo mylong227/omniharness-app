@@ -48,6 +48,14 @@ protocols/   MCP 客户端活代码（mcpRegistryClient / mcpServerCommand，src
 删除 5 件（约 760 行），消费点改经 `src/host/kernel/{maintenance,adapters-sandbox,adapters-misc}.ts`
 对接面，由生成器落到内核 curated 子路径（不再为应用消费倒逼深路径承诺膨胀）。
 
+**2026-11-11 登记新增 1 条**：`kernel/context/compactionMarkerReader.ts`（`CompactionMarkerReader`）——
+上下文工作室解析压缩游标事件时需要 `CompactionStateCodec.decode`，但 alpha.16 的 `exports`
+承诺面没有 `kernel/context/compactionStateCodec.js` 深路径（context 域只承诺 8 条深路径，
+`contextCompactor.js` 只再导出 `CompactionState` 类型、不再导出 codec）。解码口径与内核
+`CompactionStateCodec.encode` 的稳定文本格式逐字节对齐，fail-closed：前缀/字段不符一律
+`undefined`，绝不把坏记录当「没压缩」。内核若在未来版本承诺 codec，删除本件、消费点改指
+对接面即可（归属契约第 3 条）。
+
 ## 消费方式
 
 业务代码经相对路径直接引用本目录，或经 `contracts/ports/index.ts`

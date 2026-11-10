@@ -76,8 +76,9 @@ const BASE_SETTINGS_ORDER: readonly (SettingsTabKey | 'vault')[] = [
   'shortcuts',
 ];
 
-/** Agent 能力组：按"上下文 → 扩展 → 执行"的顺序。 */
+/** Agent 能力组：控制室在首位（运行态一览），其余按"上下文 → 扩展 → 执行"的顺序。 */
 const AGENT_PANEL_ORDER: readonly string[] = [
+  'control',
   'profiles',
   'plugins',
   'skills',

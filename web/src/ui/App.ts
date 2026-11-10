@@ -58,6 +58,9 @@ import { FileTab } from './components/tabs/FileTab.tsx';
 const ConsoleView = React.lazy(() =>
   import('./components/console/ConsoleView.tsx').then((m) => ({ default: m.ConsoleView })),
 );
+const ControlTab = React.lazy(() =>
+  import('./components/tabs/ControlTab.tsx').then((m) => ({ default: m.ControlTab })),
+);
 const GraphTab = React.lazy(() =>
   import('./components/tabs/GraphTab.tsx').then((m) => ({ default: m.GraphTab })),
 );
@@ -114,6 +117,7 @@ const DetailTab = React.lazy(() =>
 function prefetchLazyPanes(): void {
   const loaders: (() => Promise<unknown>)[] = [
     () => import('./components/console/ConsoleView.tsx'),
+    () => import('./components/tabs/ControlTab.tsx'),
     () => import('./components/tabs/ActivityTab.tsx'),
     () => import('./components/tabs/SkillsTab.tsx'),
     () => import('./components/tabs/AutomationsTab.tsx'),
@@ -233,6 +237,13 @@ function mergeAppPatch(prev: AppState, action: AppAction): AppState {
  */
 function renderPane(ctrl: AppController, s: AppState): ReactElement {
   switch (s.activePane) {
+    case 'control':
+      // 控制室（2026-11-10）：编队/上下文/凭证三模式 tab；view 从路由读（深链可恢复 tab）。
+      return React.createElement(ControlTab, {
+        threadId: s.currentThreadId,
+        view: ctrl.route().view,
+        onNavigate: (view: string) => ctrl.navigateRoute({ pane: 'control', view }),
+      });
     case 'activity':
       return React.createElement(ActivityTab, {
         events: s.events,

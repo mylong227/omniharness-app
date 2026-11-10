@@ -33,6 +33,9 @@ import { DiffReview } from '../services/diffReview.ts';
 import { DiffCommentStore } from '../services/diffCommentStore.ts';
 import { SessionCheckpoints } from '../services/session/sessionCheckpoints.ts';
 import { SessionRewindService } from '../services/session/sessionRewindService.ts';
+import { FleetRegistry } from '../services/fleet/fleetRegistry.ts';
+import { ContextStudioService } from '../services/context/contextStudioService.ts';
+import { ProofService } from '../services/proof/proofService.ts';
 import { TurnOrchestration } from './turnOrchestration.ts';
 import type { ToolDefinition } from '../../../host/kernel/contracts.ts';
 
@@ -112,6 +115,14 @@ export class ServerServices {
   readonly checkpoints: SessionCheckpoints;
   /** 会话回退服务：把持久化事件流截断到指定事件（`threads.rewind` RPC 的后端）。 */
   readonly rewinder: SessionRewindService;
+
+  // ── 控制室服务（2026-11-10，设计 §7.3：全部只读，经门面构造注入） ──────────────
+  /** 编队台账：父会话的子代理车道快照（`fleet.list` RPC 的后端）。 */
+  readonly fleet: FleetRegistry;
+  /** 上下文工作室：六类构成 + 压缩记录 + 便签（`context.studio` RPC 的后端）。 */
+  readonly contextStudio: ContextStudioService;
+  /** 凭证服务：回合证书 + 六项复核 + 证据包导出（`proof.*` RPC 的后端）。 */
+  readonly proof: ProofService;
 
   /** 回合/线程跨域编排（线程模块与自动化模块共享的「起一个回合」事实源）。 */
   readonly turns: TurnOrchestration;
@@ -253,6 +264,22 @@ export class ServerServices {
       events: (sessionId) => this.runtime.agent().eventsOf(sessionId),
       save: (sessionId, events) => this.options.config.storage.save(sessionId, events),
       isRunning: (sessionId) => this.activeTurns.has(sessionId),
+    });
+    // ── 控制室（2026-11-10）：三个只读服务，取值器与 contextUsage 同构（事件流 / 工具面 /
+    // 工作区根都是实时 getter，支持运行时 workspace.switch）。装配顺序不敏感，但集中在此
+    // 保持「门面按原顺序装配」的口径。
+    this.fleet = new FleetRegistry({
+      events: (threadId) => this.runtime.agent().eventsOf(threadId),
+      workspaceRoot,
+    });
+    this.contextStudio = new ContextStudioService({
+      usage: (threadId) => this.contextUsage.usage(threadId),
+      events: (threadId) => this.runtime.agent().eventsOf(threadId),
+    });
+    this.proof = new ProofService({
+      events: (threadId) => this.runtime.agent().eventsOf(threadId),
+      tools: () => this.visibleTools(),
+      audit: () => this.options.audit,
     });
     // ── 编排（必须最后：以完整装配好的门面注入） ──
     this.turns = new TurnOrchestration(this);

@@ -46,8 +46,8 @@ describe('RPC parity 快照（coreModules）', () => {
   const entries = collectMethods(coreModules());
   const methods = entries.map((e) => e.method).sort();
 
-  it('方法总数 == 92（91 + sessions.setPinned 置顶同步；有意识地增减并同步 web ApiClient）', () => {
-    expect(methods.length).toBe(92);
+  it('方法总数 == 97（92 + 控制室 5 个只读方法；有意识地增减并同步 web ApiClient）', () => {
+    expect(methods.length).toBe(97);
   });
 
   it('全量方法清单（按域前缀分组快照）', () => {
@@ -79,9 +79,11 @@ describe('RPC parity 快照（coreModules）', () => {
         "checkpoint.rollback",
         "config.get",
         "config.update",
+        "context.studio",
         "context.usage",
         "daemon.status",
         "doctor.report",
+        "fleet.list",
         "fs.browse",
         "fs.list",
         "fs.mkdir",
@@ -113,6 +115,9 @@ describe('RPC parity 快照（coreModules）', () => {
         "profile.delete",
         "profile.list",
         "profile.save",
+        "proof.build",
+        "proof.export",
+        "proof.turns",
         "question.pending",
         "question.respond",
         "quota.get",
@@ -160,6 +165,9 @@ describe('RPC parity 快照（coreModules）', () => {
     expect(byOwner.get('sessions.reorder')).toBe('sessions');
     expect(byOwner.get('sessions.setPinned')).toBe('sessions');
     expect(byOwner.get('context.usage')).toBe('surface');
+    expect(byOwner.get('fleet.list')).toBe('control');
+    expect(byOwner.get('context.studio')).toBe('control');
+    expect(byOwner.get('proof.build')).toBe('control');
     expect(byOwner.get('plugins.reload')).toBe('plugins');
     expect(byOwner.get('graph.resume')).toBe('graphs');
     expect(byOwner.get('memory.search')).toBe('memory');

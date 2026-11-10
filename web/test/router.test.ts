@@ -76,6 +76,15 @@ test('解析 pane + thread 深链', () => {
   assert.deepEqual(parseHash(), { pane: 'profiles', threadId: 'abc-123' });
 });
 
+test('控制室 view 深链：合法三模式解析，未知 view 落回 fleet，序列化总带 view', () => {
+  withHash('#pane=control&thread=s1&view=proof');
+  assert.deepEqual(parseHash(), { pane: 'control', threadId: 's1', view: 'proof' });
+  withHash('#pane=control&view=unknown');
+  assert.deepEqual(parseHash(), { pane: 'control', threadId: null }, '未知 view 不写入状态');
+  assert.strictEqual(toHash({ pane: 'control', threadId: null }), '#pane=control&view=fleet');
+  assert.strictEqual(toHash({ pane: 'control', threadId: null, view: 'context' }), '#pane=control&view=context');
+});
+
 test('settings 不再是合法 pane：旧深链安全落回默认面板', () => {
   // 2026-10-17：设置从右栏面板改为模态（左栏页脚按钮 + 居中模态）。
   // 旧书签 `#pane=settings` 必须**明确落回 tools**，而不是"解析成合法但渲染空白"——

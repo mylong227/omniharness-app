@@ -8,6 +8,11 @@ export interface AppRoute {
   pane: string;
   /** 当前打开的会话 id；null 表示未打开具体会话。 */
   threadId: string | null;
+  /**
+   * 面板内部视图（可选，2026-11-10 控制室引入）：仅 `pane=control` 有意义——
+   * `fleet` / `context` / `proof` 三模式 tab。其它面板忽略该字段。
+   */
+  view?: string;
 }
 
 /** 合法面板标识（与 PanelRegistry / RightPanel 的单一来源保持一致）。 */
@@ -34,7 +39,15 @@ const VALID_PANES: ReadonlySet<string> = new Set([
   'trace',
   'permission',
   'vault',
+  // 控制室（2026-11-10）：编队/上下文/凭证三模式的唯一入口面板。
+  'control',
 ]);
+
+/** 控制室三模式的合法 view 值（深链白名单；未知值落回 fleet，见 parseHash）。 */
+const CONTROL_VIEWS: ReadonlySet<string> = new Set(['fleet', 'context', 'proof']);
+
+/** 控制室默认 view（设计 CR-03：未知 view 落回编队）。 */
+const DEFAULT_CONTROL_VIEW = 'fleet';
 
 /** 默认路由（首屏 / 无 hash 时）。 */
 const DEFAULT_ROUTE: Readonly<AppRoute> = { pane: 'tools', threadId: null };
@@ -62,7 +75,15 @@ export function parseHash(): AppRoute {
   const paneRaw = params.get('pane');
   const pane = paneRaw !== null && VALID_PANES.has(paneRaw) ? paneRaw : DEFAULT_ROUTE.pane;
   const threadRaw = params.get('thread');
-  return { pane, threadId: threadRaw === null || threadRaw === '' ? null : threadRaw };
+  // 控制室的内部视图：只在 pane=control 时解析；未知值落回 fleet（不把脏值写进状态）。
+  const viewRaw = params.get('view');
+  const view =
+    pane === 'control' && viewRaw !== null && CONTROL_VIEWS.has(viewRaw) ? viewRaw : undefined;
+  return {
+    pane,
+    threadId: threadRaw === null || threadRaw === '' ? null : threadRaw,
+    ...(view !== undefined ? { view } : {}),
+  };
 }
 
 /**
@@ -74,6 +95,9 @@ export function toHash(route: AppRoute): string {
   const params = new URLSearchParams();
   params.set('pane', route.pane);
   if (route.threadId !== null && route.threadId !== '') params.set('thread', route.threadId);
+  if (route.pane === 'control') {
+    params.set('view', route.view !== undefined && CONTROL_VIEWS.has(route.view) ? route.view : DEFAULT_CONTROL_VIEW);
+  }
   return '#' + params.toString();
 }
 

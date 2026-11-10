@@ -234,7 +234,7 @@ test('buildSessionCommands：置顶优先、最多 10 条、空标题回落 id',
   assert.deepStrictEqual(opened, ['s11'], 'run 必须把会话 id 交给打开回调');
 });
 
-test('buildCommands：面板单源派生 + 26 条命令，run 闭包正确驱动依赖', () => {
+test('buildCommands：面板单源派生 + 27 条命令，run 闭包正确驱动依赖', () => {
   // 原字面量里 right 重复声明（JS 重复键后者生效 = 0，TS1117 不允许）——运行时初值本就是 0，
   // 故只保留一份；right 会被 setRightOpen 写 true / toggleRight 累加，类型取 boolean | number 联合。
   const calls: {
@@ -263,8 +263,8 @@ test('buildCommands：面板单源派生 + 26 条命令，run 闭包正确驱动
     openSettings: () => {},
   });
   // 面板入口改由 PanelRegistry 单源派生（手写 10 条清单曾让 9 个面板在命令面板里失踪）。
-  // 数量随 PANELS 走，此处对齐当前全集 = 19 面板 + 7 动作。
-  assert.strictEqual(cmds.length, 26, '19 面板 + 7 动作');
+  // 数量随 PANELS 走，此处对齐当前全集 = 20 面板 + 7 动作（2026-11-10 增加控制室）。
+  assert.strictEqual(cmds.length, 27, '20 面板 + 7 动作');
   const paneTools = cmds.find((c) => c.id === 'pane-tools')!;
   paneTools.run();
   assert.strictEqual(calls.pane, 'tools');

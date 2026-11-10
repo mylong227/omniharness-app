@@ -52,7 +52,14 @@ export class RouteBinding {
   public navigate(partial: Partial<AppRoute>): void {
     const pane = partial.pane ?? this.route.pane;
     const threadId = partial.threadId !== undefined ? partial.threadId : this.route.threadId;
-    const next: AppRoute = { pane, threadId };
+    // 控制室内部视图：显式传入优先；同面板继续沿用当前值（跨面板导航时丢弃——view 只属于 control）。
+    const view =
+      partial.view !== undefined
+        ? partial.view
+        : pane === 'control' && pane === this.route.pane
+          ? this.route.view
+          : undefined;
+    const next: AppRoute = { pane, threadId, ...(view !== undefined ? { view } : {}) };
     const changed = next.pane !== this.route.pane || next.threadId !== this.route.threadId;
     this.route = next;
     navigate(this.route);

@@ -87,7 +87,9 @@ export type IconName =
   // 控制台（设置中心）：返回、下拉指示、键盘。
   | 'arrow-left'
   | 'chevron-down'
-  | 'keyboard';
+  | 'keyboard'
+  // 控制室（编队 / 上下文 / 凭证）：仪表盘。
+  | 'gauge';
 
 /** 一个图标的几何：路径集合 + 需要的线条/圆点。 */
 interface IconShape {
@@ -298,6 +300,11 @@ const SHAPES: Readonly<Record<IconName, IconShape>> = {
       'M15 10h.01',
       'M9 14h6',
     ],
+  },
+  /* 控制室：仪表盘（表盘 + 指针 + 底部支点）。 */
+  gauge: {
+    paths: ['M5 19a9 9 0 1 1 14 0', 'M12 13l4-4'],
+    circles: [[12, 13, 1.5]],
   },
 };
 

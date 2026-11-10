@@ -598,3 +598,114 @@ select:focus-visible,
 }
 .crash-retry:hover, .crash-reload:hover, .crash-copy:hover { background: var(--hover, var(--panel-2)); }
 
+
+/* ---- 控制室（ControlTab：编队 / 上下文 / 凭证，2026-11-10） ---- */
+.control-tab { padding: 18px 20px 32px; max-width: 1120px; }
+.control-tabs {
+  display: flex; gap: 4px; border-bottom: 1px solid var(--border-soft);
+  margin-bottom: 20px; padding-bottom: 0;
+}
+.control-tab__btn {
+  font: 13px/1 inherit; color: var(--dim); background: transparent; border: none;
+  border-radius: 0; appearance: none; box-shadow: none;
+  padding: 10px 14px 12px; cursor: pointer; border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.control-tab__btn.is-active { color: var(--text); border-bottom-color: var(--accent-line); }
+.control-tab__btn:hover,
+.control-tab__btn:focus-visible {
+  color: var(--text);
+  background: transparent;
+  border-color: transparent;
+  border-bottom-color: var(--accent-line);
+}
+.control-tab__btn:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+  box-shadow: none;
+}
+.control-panel[hidden] { display: none; }
+.control-mode { display: flex; flex-direction: column; gap: 24px; }
+.control-meta { font-size: 11px; color: var(--dim); margin: 0; }
+.control-block { border: 1px solid var(--border-soft); border-radius: 12px; padding: 16px 18px; background: var(--panel); }
+.control-block h3 { margin: 0 0 10px; font-size: 13px; font-weight: 600; color: var(--text); }
+.control-block .hint { margin: 4px 0 0; }
+/* 状态点：圆点 + 文字（不只靠颜色）。 */
+.control-dot { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text); }
+.control-dot__ink { width: 6px; height: 6px; border-radius: 50%; background: var(--dim); flex: none; }
+.control-dot--ok .control-dot__ink { background: var(--ok); }
+.control-dot--failed .control-dot__ink { background: var(--err); }
+.control-dot--truncated .control-dot__ink, .control-dot--aborted .control-dot__ink { background: var(--warn); }
+.control-dot--running .control-dot__ink { background: var(--accent-line); }
+.control-dot--queued .control-dot__ink { background: var(--dim); }
+.control-dot--cut .control-dot__ink { background: var(--accent-line); border-radius: 1px; }
+/* 编队车道。 */
+.control-lanes { display: flex; flex-direction: column; gap: 6px; }
+.control-lane {
+  display: flex; align-items: center; gap: 12px; min-height: 46px; padding: 8px 12px;
+  background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: 10px;
+  cursor: pointer; text-align: left; color: var(--text); font: 12.5px/1.4 inherit;
+  transition: background 120ms ease;
+}
+.control-lane:hover { background: var(--hover, var(--panel-2)); }
+.control-lane.is-selected { border-color: var(--accent-line); }
+.control-lane__task { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.control-lane__meta { flex: none; color: var(--dim); font-size: 11.5px; }
+.control-detail { border: 1px solid var(--border-soft); border-radius: 10px; padding: 14px 16px; background: var(--panel-2); }
+.control-detail h3 { margin: 0 0 6px; font-size: 13px; color: var(--text); }
+.control-facts { display: grid; grid-template-columns: 96px 1fr; gap: 6px 14px; margin: 10px 0 0; }
+.control-facts dt { color: var(--dim); font-size: 11.5px; }
+.control-facts dd { margin: 0; font-size: 12.5px; color: var(--text); overflow-wrap: anywhere; }
+/* 上下文构成与切点。 */
+.control-usage { display: flex; height: 14px; border-radius: 7px; overflow: hidden; border: 1px solid var(--border-soft); background: var(--panel-2); }
+.control-usage__seg { min-width: 2px; }
+.control-usage__seg--systemPrompt { background: var(--accent-line); }
+.control-usage__seg--messages { background: color-mix(in srgb, var(--accent-line) 55%, var(--panel)); }
+.control-usage__seg--tools { background: color-mix(in srgb, var(--ok) 55%, var(--panel)); }
+.control-usage__seg--todos { background: color-mix(in srgb, var(--warn) 55%, var(--panel)); }
+.control-usage__seg--skills { background: color-mix(in srgb, var(--dim) 45%, var(--panel)); }
+.control-usage__seg--other, .control-usage__seg--memory { background: var(--panel-2); }
+.control-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; list-style: none; margin: 10px 0 0; padding: 0; font-size: 11.5px; color: var(--dim); }
+.control-marks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.control-mark { border-bottom: 1px dashed var(--border-soft); }
+.control-mark:last-child { border-bottom: none; }
+.control-mark__head {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px;
+  background: none; border: none; cursor: pointer; font: 12.5px/1.4 inherit;
+  color: var(--text); padding: 8px 4px; text-align: left;
+}
+.control-mark__body { padding: 0 4px 12px 26px; }
+.control-summary {
+  margin: 6px 0 0; white-space: pre-wrap; font: 11.5px/1.6 var(--mono); color: var(--dim);
+  background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: 8px; padding: 10px 12px;
+  max-height: 220px; overflow: auto;
+}
+/* 凭证回合与复核。 */
+.control-turns { display: flex; flex-wrap: wrap; gap: 8px; }
+.control-turn {
+  display: flex; flex-direction: column; gap: 3px; min-width: 118px; padding: 8px 12px;
+  background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: 10px;
+  cursor: pointer; color: var(--text); font: 12.5px/1.3 inherit; text-align: left;
+}
+.control-turn.is-selected { border-color: var(--accent-line); }
+.control-checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.control-check { display: flex; align-items: baseline; gap: 10px; min-height: 42px; padding: 8px 4px; font-size: 12.5px; color: var(--text); border-bottom: 1px dashed var(--border-soft); }
+.control-check:last-child { border-bottom: none; }
+.control-check > .control-dot { flex: none; min-width: 46px; white-space: nowrap; }
+.control-check__code { flex: none; width: 96px; color: var(--dim); font-size: 11px; }
+/* 凭证两栏：左证据/复核，右导出；窄屏回落单列。 */
+.control-proof-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.9fr);
+  gap: 24px;
+  align-items: start;
+}
+.control-proof-main { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.control-proof-side { min-width: 0; }
+@media (max-width: 1100px) {
+  .control-proof-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 880px) {
+  .control-lane { flex-wrap: wrap; }
+  .control-facts { grid-template-columns: 1fr; }
+}

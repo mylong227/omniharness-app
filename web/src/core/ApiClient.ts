@@ -828,4 +828,33 @@ export class ApiClient {
   ): Promise<{ files: import('../types/models.ts').SearchHit[]; chats: import('../types/models.ts').SearchHit[] }> {
     return this.rpc('search.all', limit === undefined ? { query } : { query, limit });
   }
+
+  // ---- 控制室（2026-11-10，v1 全部只读：编队 / 上下文 / 凭证） ----
+
+  /** 编队快照：当前父会话的子代理车道（运行中 + 已回传；无派生为空数组）。 */
+  public fleetList(threadId: string): Promise<import('../types/models.ts').FleetSnapshotLike> {
+    return this.rpc('fleet.list', { threadId });
+  }
+  /** 上下文工作室快照：六类构成 + 压缩记录 + 便签（v1 便签未接线如实标注）。 */
+  public contextStudio(threadId: string): Promise<import('../types/models.ts').ContextStudioSnapshotLike> {
+    return this.rpc('context.studio', { threadId });
+  }
+  /** 凭证回合列表：按 user 事件切分的回合摘要（系统回合单独标注）。 */
+  public proofTurns(threadId: string): Promise<import('../types/models.ts').ProofResult<readonly import('../types/models.ts').ProofTurnSummaryLike[]>> {
+    return this.rpc('proof.turns', { threadId });
+  }
+  /** 构造一回合执行证书并复核（六项矩阵一次返回；不导出文件）。 */
+  public proofBuild(
+    threadId: string,
+    turnIndex: number,
+  ): Promise<import('../types/models.ts').ProofResult<import('../types/models.ts').ProofBundleViewLike>> {
+    return this.rpc('proof.build', { threadId, turnIndex });
+  }
+  /** 导出一回合证据包（JSON 文本由前端下载；超过 2 MB 返回 export_too_large）。 */
+  public proofExport(
+    threadId: string,
+    turnIndex: number,
+  ): Promise<import('../types/models.ts').ProofResult<import('../types/models.ts').ProofExportResultLike>> {
+    return this.rpc('proof.export', { threadId, turnIndex });
+  }
 }

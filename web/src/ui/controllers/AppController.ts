@@ -244,6 +244,23 @@ export class AppController {
   /** 哈希路由绑定（F8：深链 / 浏览器前进后退，逻辑在 RouteBinding 内，避免越过上帝类红线）。 */
   private readonly routeBinding: RouteBinding;
 
+  /**
+   * 当前路由只读快照（2026-11-10 控制室引入：面板内部视图 `view` 由 ControlTab 经它读取）。
+   * @returns 当前路由（pane / threadId / 可选 view）。
+   */
+  public route(): AppRoute {
+    return this.routeBinding.current();
+  }
+
+  /**
+   * 路由导航（2026-11-10 控制室引入：面板内部 view 切换写 hash 的公开通道）。
+   * @param partial 路由局部补丁（pane / threadId / view）。
+   * @returns 无
+   */
+  public navigateRoute(partial: Partial<AppRoute>): void {
+    this.routeBinding.navigate(partial);
+  }
+
   /** 会话子控制器（只读暴露给视图层）。 */
   public get sessions(): SessionController {
     return this.children.sessions;

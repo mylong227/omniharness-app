@@ -557,3 +557,121 @@ export type VaultListResult = { ok: true; names: string[] } | { ok: false; reaso
 export type VaultWriteResult =
   | { ok: true; name: string; removed?: boolean }
   | { ok: false; reason: string };
+
+// ── 控制室（2026-11-10，与服务端 services/{fleet,context,proof} 同形） ─────────────
+
+/** 编队车道状态（服务端 FleetStatus 同形）。 */
+export type FleetStatus = 'queued' | 'running' | 'ok' | 'failed' | 'aborted' | 'truncated';
+
+/** 一条子代理车道（`fleet.list` 的节点）。 */
+export interface FleetNodeLike {
+  childSessionId?: string;
+  parentSessionId: string;
+  task: string;
+  status: FleetStatus;
+  startedAt: string;
+  endedAt?: string;
+  steps?: number;
+  durationMs?: number;
+  tokens?: number;
+  changedFiles?: readonly string[];
+  patchPath?: string;
+  patchBytes?: number;
+  patchTruncated?: boolean;
+  writesUnrecoverable?: boolean;
+  writesForbidden?: boolean;
+  isolation: 'worktree' | 'copy';
+  verificationState?: 'not-run' | 'failed' | 'unverified' | 'passed';
+  error?: string;
+  traceAvailable?: boolean;
+}
+
+/** 编队快照（`fleet.list` 返回体）。 */
+export interface FleetSnapshotLike {
+  parentSessionId: string;
+  nodes: readonly FleetNodeLike[];
+  runningCount: number;
+  collectedAt: string;
+}
+
+/** 一条压缩记录（`context.studio` 的 compactions 元素）。 */
+export interface CompactionMarkLike {
+  at: string;
+  turnIndex: number;
+  compactedUpTo: number;
+  headHash: string;
+  summary: string;
+  auditRecorded: boolean;
+}
+
+/** 上下文工作室快照（`context.studio` 返回体；report 与 `context.usage` 同一类型）。 */
+export interface ContextStudioSnapshotLike {
+  threadId: string;
+  report: ContextUsageReport;
+  compactions: readonly CompactionMarkLike[];
+  handoff: readonly unknown[];
+  handoffAvailable: boolean;
+  collectedAt: string;
+}
+
+/** 单项复核结论（`proof.build` 的 checks 元素）。 */
+export interface ProofCheckLike {
+  code: 'EVENT_COUNT' | 'EVENT_ROOT' | 'SESSION' | 'TOOL_SURFACE' | 'AUDIT_CHAIN' | 'SIGNATURE';
+  status: 'pass' | 'warn' | 'fail';
+  detail: string;
+  kernelCode?: string;
+}
+
+/** 执行证书（服务端 ExecutionCertificate 同形子集）。 */
+export interface ExecutionCertificateLike {
+  version: 1;
+  sessionId: string;
+  eventCount: number;
+  eventRoot: string;
+  toolSurfaceDigest?: string;
+  issuedAt: string;
+}
+
+/** 一回合凭证视图（`proof.build` 返回体）。 */
+export interface ProofBundleViewLike {
+  sessionId: string;
+  turnIndex: number;
+  displayIndex: number;
+  certificate?: ExecutionCertificateLike;
+  checks: readonly ProofCheckLike[];
+  state: 'unverified' | 'structural' | 'signed' | 'failed';
+  eventCount: number;
+  auditRecords: number;
+  collectedAt: string;
+}
+
+/** 回合摘要（`proof.turns` 的元素）。 */
+export interface ProofTurnSummaryLike {
+  sessionId: string;
+  turnIndex: number;
+  /** 用户回合序号（1 起；系统回合为 0）。 */
+  displayIndex: number;
+  startedAt: string;
+  endedAt: string;
+  eventCount: number;
+  toolCalls: number;
+  changedFiles: number;
+  systemTurn: boolean;
+}
+
+/** 导出结果（`proof.export` 返回体）。 */
+export interface ProofExportResultLike {
+  filename: string;
+  content: string;
+  size: number;
+}
+
+/** 凭证 RPC 的判别失败（服务端 ProofFailure 同形）。 */
+export interface ProofFailureLike {
+  ok: false;
+  code: 'proof_empty' | 'proof_invalid' | 'export_too_large' | 'no_session';
+  message: string;
+}
+
+/** `proof.turns` / `proof.build` / `proof.export` 的返回体。 */
+export type ProofResult<T> = T | ProofFailureLike;

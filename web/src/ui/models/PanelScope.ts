@@ -23,6 +23,7 @@ export interface PanelScopeMeta {
 
 /** 面板 key → 范围元数据（与 `PANELS` 的 key 一一对应）。 */
 export const PANEL_SCOPE: Readonly<Record<string, PanelScopeMeta>> = {
+  control: { scope: 'session', hint: '编队 / 上下文 / 凭证三模式都跟随当前会话；切换会话整页跟随。' },
   tools: { scope: 'session', hint: '本次会话已触发的工具调用；随回合实时追加。' },
   changes: { scope: 'workspace', hint: '当前工作区的文件变更（非 git 工作区按本会话事件聚合）。' },
   file: { scope: 'workspace', hint: '工作区文件的只读预览。' },
