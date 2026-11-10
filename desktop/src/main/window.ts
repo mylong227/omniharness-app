@@ -15,7 +15,8 @@ const loadingHtml = (hint: string, lang: string): string =>
 body{display:grid;place-items:center;background:radial-gradient(1200px 600px at 50% 20%,#252a36 0%,var(--bg) 60%);
 color:var(--ink);font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;user-select:none}
 .wrap{display:grid;gap:18px;justify-items:center}
-.mark{width:56px;height:56px;border-radius:14px;display:grid;place-items:center;background:#3d4a86;
+.mark{width:56px;height:56px;border-radius:14px;display:grid;place-items:center;background:#ffffff;
+border:1px solid #c9d0ea;color:#3d4a86;
 font:32px/1 Georgia,serif;box-shadow:0 12px 40px rgba(61,74,134,.35)}
 .spinner{width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.18);
 border-top-color:var(--accent);animation:spin .8s linear infinite}
