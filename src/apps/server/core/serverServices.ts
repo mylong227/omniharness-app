@@ -34,8 +34,10 @@ import { DiffCommentStore } from '../services/diffCommentStore.ts';
 import { SessionCheckpoints } from '../services/session/sessionCheckpoints.ts';
 import { SessionRewindService } from '../services/session/sessionRewindService.ts';
 import { FleetRegistry } from '../services/fleet/fleetRegistry.ts';
+import { FleetPatchReader } from '../services/fleet/fleetPatchReader.ts';
 import { ContextStudioService } from '../services/context/contextStudioService.ts';
 import { ProofService } from '../services/proof/proofService.ts';
+import { ProofVerifier } from '../services/proof/proofVerifier.ts';
 import { TurnOrchestration } from './turnOrchestration.ts';
 import type { ToolDefinition } from '../../../host/kernel/contracts.ts';
 
@@ -119,10 +121,14 @@ export class ServerServices {
   // ── 控制室服务（2026-11-10，设计 §7.3：全部只读，经门面构造注入） ──────────────
   /** 编队台账：父会话的子代理车道快照（`fleet.list` RPC 的后端）。 */
   readonly fleet: FleetRegistry;
+  /** 编队补丁只读预览（`fleet.patch` RPC 的后端）。 */
+  readonly fleetPatch: FleetPatchReader;
   /** 上下文工作室：六类构成 + 压缩记录 + 便签（`context.studio` RPC 的后端）。 */
   readonly contextStudio: ContextStudioService;
   /** 凭证服务：回合证书 + 六项复核 + 证据包导出（`proof.*` RPC 的后端）。 */
   readonly proof: ProofService;
+  /** 证据包离线复核（`proof.verify` RPC 的后端）。 */
+  readonly proofVerifier: ProofVerifier;
 
   /** 回合/线程跨域编排（线程模块与自动化模块共享的「起一个回合」事实源）。 */
   readonly turns: TurnOrchestration;
@@ -272,6 +278,7 @@ export class ServerServices {
       events: (threadId) => this.runtime.agent().eventsOf(threadId),
       workspaceRoot,
     });
+    this.fleetPatch = new FleetPatchReader({ workspaceRoot });
     this.contextStudio = new ContextStudioService({
       usage: (threadId) => this.contextUsage.usage(threadId),
       events: (threadId) => this.runtime.agent().eventsOf(threadId),
@@ -281,6 +288,7 @@ export class ServerServices {
       tools: () => this.visibleTools(),
       audit: () => this.options.audit,
     });
+    this.proofVerifier = new ProofVerifier();
     // ── 编排（必须最后：以完整装配好的门面注入） ──
     this.turns = new TurnOrchestration(this);
   }

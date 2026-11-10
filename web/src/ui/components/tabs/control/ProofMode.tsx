@@ -8,7 +8,13 @@ import type { ReactElement } from 'react';
 import { useApp } from '../../../context.ts';
 import { t } from '../../../i18n/i18n.ts';
 import { timeOf } from '../../../format.ts';
-import type { ProofBundleViewLike, ProofCheckLike, ProofExportResultLike, ProofTurnSummaryLike } from '../../../../types/models.ts';
+import type {
+  ProofBundleViewLike,
+  ProofCheckLike,
+  ProofExportResultLike,
+  ProofTurnSummaryLike,
+  ProofVerifyResultLike,
+} from '../../../../types/models.ts';
 import { useProof } from './useProof.ts';
 
 /** 复核状态的色彩语义 class。 */
@@ -29,7 +35,11 @@ export interface ProofModeProps {
 /** 凭证模式：回合条 + 证明摘要 + 复核清单 + 导出。 */
 export function ProofMode(props: ProofModeProps): ReactElement {
   const proof = useProof(props.threadId, props.active);
-  const { toast } = useApp();
+  const { api, toast } = useApp();
+  const [verify, setVerify] = React.useState<ProofVerifyResultLike | null>(null);
+  const [verifyError, setVerifyError] = React.useState<string | null>(null);
+  const [verifying, setVerifying] = React.useState(false);
+  const [verifyName, setVerifyName] = React.useState('');
 
   /** 下载导出包（前端下载，不上传）。 */
   const onExport = React.useCallback((): void => {
@@ -42,6 +52,41 @@ export function ProofMode(props: ProofModeProps): ReactElement {
       toast(t('证据包已下载：{name}', { name: result.filename }), 'info');
     });
   }, [proof, toast]);
+
+  /**
+   * 读取本地证据包并调用离线复核；不读取任意路径、不上传。
+   * @param event 文件选择事件。
+   */
+  const onPickBundle = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>): void => {
+      const file = event.target.files?.[0];
+      event.target.value = '';
+      if (file === undefined) return;
+      setVerify(null);
+      setVerifyError(null);
+      setVerifyName(file.name);
+      if (file.size > 2 * 1024 * 1024) {
+        setVerifyError(t('证据包超过 2 MB，无法导入。'));
+        return;
+      }
+      setVerifying(true);
+      void file
+        .text()
+        .then((text) => {
+          let bundle: unknown;
+          try {
+            bundle = JSON.parse(text);
+          } catch {
+            setVerifyError(t('证据包不是合法 JSON。'));
+            return;
+          }
+          return api.proofVerify(bundle).then((result) => setVerify(result));
+        })
+        .catch((e: unknown) => setVerifyError(e instanceof Error ? e.message : String(e)))
+        .finally(() => setVerifying(false));
+    },
+    [api],
+  );
 
   if (props.threadId === null || props.threadId === '') {
     return <div className="control-mode">{t('先选择一个会话，再生成凭证。')}</div>;
@@ -139,6 +184,66 @@ export function ProofMode(props: ProofModeProps): ReactElement {
           </div>
         </div>
       ) : null}
+          <section className="control-block" aria-label={t('导入复核')}>
+            <h3>{t('导入复核')}</h3>
+            <p className="hint">
+              {t('选择本地证据包 JSON；只做离线结构复核，不信任包内签名，也不上传网络。')}
+            </p>
+            <label className="control-file">
+              <span>{t('选择证据包…')}</span>
+              <input
+                type="file"
+                accept="application/json,.json"
+                onChange={onPickBundle}
+                aria-label={t('选择证据包文件')}
+                disabled={verifying}
+              />
+            </label>
+            {verifyName !== '' ? <p className="mono hint">{verifyName}</p> : null}
+            {verifying ? <p className="hint">{t('正在复核证据包…')}</p> : null}
+            {verifyError !== null ? <p className="err">{verifyError}</p> : null}
+            {verify !== null && !verify.ok ? <p className="err">{verify.message}</p> : null}
+            {verify !== null && verify.ok ? (
+              <div className="control-verify">
+                <p className="control-verify__state">
+                  {verify.verdict.ok ? t('结构自洽（未签名）') : t('结构复核失败')}
+                </p>
+                <p className="control-meta">
+                  {verify.verdict.signatureChecked ? t('签名已检查') : t('未验签：不能确认来源')}
+                  {' · '}
+                  {verify.verdict.commitmentChecked ? t('已核对外部承诺') : t('无带外承诺')}
+                </p>
+                <p className="control-meta">
+                  {t('{sessions} 个会话 · {events} 条事件', {
+                    sessions: verify.summary.sessions.length,
+                    events: verify.summary.eventCount,
+                  })}
+                  {verify.summary.exportedAt !== ''
+                    ? ` · ${t('导出于 {time}', { time: timeOf(Date.parse(verify.summary.exportedAt)) })}`
+                    : ''}
+                </p>
+                {verify.verdict.problems.length === 0 ? (
+                  <p className="hint">{t('复核器未报告问题；这不等于内容真实或来源可信。')}</p>
+                ) : (
+                  <ul className="control-problems">
+                    {verify.verdict.problems.map((problem, index) => (
+                      <li
+                        key={`${problem.code}-${String(index)}`}
+                        className={
+                          problem.code === 'COMMITMENT_UNVERIFIED' || problem.code === 'UNPROVEN_ORIGIN'
+                            ? 'control-problem control-problem--warn'
+                            : 'control-problem control-problem--fail'
+                        }
+                      >
+                        <span className="mono">{problem.code}</span> {problem.detail}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : null}
+          </section>
+
       {proof.building && proof.bundle === null ? <p className="hint">{t('正在构造证书…')}</p> : null}
     </div>
   );

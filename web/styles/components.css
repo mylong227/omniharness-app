@@ -683,6 +683,38 @@ select:focus-visible,
 .control-notes { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .control-notes li { border-left: 2px solid var(--accent-line); padding: 2px 0 2px 12px; }
 .control-notes p { margin: 0; font-size: 12.5px; line-height: 1.55; overflow-wrap: anywhere; }
+.control-inline-action {
+  margin-left: 8px; padding: 2px 8px; font: 11.5px/1.4 inherit; cursor: pointer;
+  color: var(--accent); background: transparent; border: 1px solid var(--border-soft); border-radius: 6px;
+}
+.control-inline-action:hover { border-color: var(--accent-line); background: transparent; }
+.control-patch {
+  border: 1px solid var(--border-soft); border-radius: 10px; padding: 14px 16px;
+  background: var(--panel-2); min-width: 0;
+}
+.control-patch__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.control-patch__head h3 { margin: 0; font-size: 13px; }
+.control-patch__head .control-inline-action { margin-left: 0; }
+.control-patch__body {
+  margin: 8px 0 0; max-height: 360px; overflow: auto; white-space: pre;
+  font: 11.5px/1.6 var(--mono); color: var(--text);
+  background: var(--panel); border: 1px solid var(--border-soft); border-radius: 8px; padding: 10px 12px;
+}
+.control-file {
+  position: relative; display: inline-flex; align-items: center; margin-top: 8px;
+  padding: 6px 10px; font-size: 12px; color: var(--text);
+  background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: 8px; cursor: pointer;
+}
+.control-file:hover { border-color: var(--accent-line); }
+.control-file:focus-within { outline: 2px solid var(--brand); outline-offset: 2px; }
+.control-file input {
+  position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;
+}
+.control-verify { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border-soft); }
+.control-verify__state { margin: 0 0 4px; font-size: 13px; font-weight: 600; color: var(--text); }
+.control-problems { margin: 8px 0 0; padding-left: 18px; font-size: 12px; line-height: 1.55; color: var(--dim); }
+.control-problem--warn { color: var(--warn); }
+.control-problem--fail { color: var(--err); }
 /* 凭证回合与复核。 */
 .control-turns { display: flex; flex-wrap: wrap; gap: 8px; }
 .control-turn {

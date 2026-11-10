@@ -1,12 +1,12 @@
 import type { ServerModule } from '../core/serverModule.ts';
 
 /**
- * 控制室模块（2026-11-10）：编队 / 上下文 / 凭证三个只读域的 RPC 注册（设计 §7.1 v1 范围）。
+ * 控制室模块（2026-11-10）：编队 / 上下文 / 凭证域的 RPC 注册（设计 §7.1 v1 + P2 交付闭环）。
  *
- * **v1 只加 5 个只读方法**，不触碰任何写路径：
- *  - `fleet.list`：父会话的子代理车道快照（运行中 + 已回传）；
- *  - `context.studio`：六类构成 + 压缩记录 + 便签（v1 只读，便签未接线如实标注）；
- *  - `proof.turns` / `proof.build` / `proof.export`：回合列表 / 证书+六项复核 / 证据包导出。
+ * **只读**：`fleet.list` / `fleet.patch` / `context.studio` / `proof.turns` / `proof.build` /
+ * `proof.export` / `proof.verify`。不触碰任何写路径：
+ *  - `fleet.patch`：只读 patch 目录内普通文件，512 KB 上限；
+ *  - `proof.verify`：只复核外部 AuditBundle，不写会话、不信任包内签名。
  *
  * 入参校验在模块层（服务层保持纯数据）；会话 id 一律原样透传给服务，由服务 fail-soft 返回
  * 空快照或判别失败，**绝不抛 JSON-RPC 错误打断面板**。
@@ -21,6 +21,10 @@ export function controlModule(): ServerModule {
         const traceExists = async (sessionId: string): Promise<boolean> =>
           s.sessionTraceExists(sessionId);
         return s.fleet.snapshotOf(threadId, traceExists);
+      });
+      ctx.rpc('fleet.patch', async (params) => {
+        const path = stringOf(params['path']);
+        return s.fleetPatch.read(path);
       });
       ctx.rpc('context.studio', async (params) => {
         const threadId = stringOf(params['threadId']);
@@ -37,6 +41,9 @@ export function controlModule(): ServerModule {
       ctx.rpc('proof.export', async (params) => {
         const threadId = stringOf(params['threadId']);
         return s.proof.exportOf(threadId, numberOf(params['turnIndex']));
+      });
+      ctx.rpc('proof.verify', async (params) => {
+        return s.proofVerifier.verifyOf(params['bundle']);
       });
     },
   };

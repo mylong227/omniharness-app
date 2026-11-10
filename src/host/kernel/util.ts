@@ -39,4 +39,4 @@ export { QuantileSketch } from '@omniharness/kernel/kernel/util/quantileSketch.j
 export { SecretRedactor } from '@omniharness/kernel/kernel/util/secretRedactor.js';
 export { Jcs } from '@omniharness/kernel/kernel/receipts/jcs.js';
 export { AuditBundles, EventMerkle, ExecutionCertificates } from '@omniharness/kernel/receipts';
-export type { ExecutionCertificate } from '@omniharness/kernel/receipts';
+export type { AuditBundleVerdict, ExecutionCertificate } from '@omniharness/kernel/receipts';

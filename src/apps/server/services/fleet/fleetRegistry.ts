@@ -97,7 +97,7 @@ export class FleetRegistry {
     const root = this.deps.workspaceRoot();
     if (root === '') return node;
     try {
-      const stat = statSync(join(root, node.patchPath), { throwIfNoEntry: false });
+      const stat = statSync(join(root, normalized), { throwIfNoEntry: false });
       if (stat === undefined || !stat.isFile()) return node;
       return { ...node, patchBytes: stat.size };
     } catch {

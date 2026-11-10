@@ -658,6 +658,58 @@ export interface ProofBundleViewLike {
   collectedAt: string;
 }
 
+/** `fleet.patch` 成功返回体。 */
+export interface FleetPatchViewLike {
+  ok: true;
+  path: string;
+  content: string;
+  bytes: number;
+  truncated: boolean;
+}
+
+/** `fleet.patch` 判别失败。 */
+export interface FleetPatchFailureLike {
+  ok: false;
+  code: 'patch_forbidden' | 'patch_unavailable' | 'patch_not_text';
+  message: string;
+}
+
+/** `fleet.patch` 返回体。 */
+export type FleetPatchResultLike = FleetPatchViewLike | FleetPatchFailureLike;
+
+/** 一条导入证据包的会话摘要。 */
+export interface ProofVerifySessionLike {
+  sessionId: string;
+  eventCount: number;
+  eventRoot: string;
+}
+
+/** `proof.verify` 成功返回体。 */
+export interface ProofVerifyViewLike {
+  ok: true;
+  verdict: {
+    ok: boolean;
+    problems: readonly { code: string; detail: string }[];
+    signatureChecked: boolean;
+    commitmentChecked: boolean;
+  };
+  summary: {
+    exportedAt: string;
+    sessions: readonly ProofVerifySessionLike[];
+    eventCount: number;
+  };
+}
+
+/** `proof.verify` 判别失败。 */
+export interface ProofVerifyFailureLike {
+  ok: false;
+  code: 'bundle_invalid' | 'bundle_too_large';
+  message: string;
+}
+
+/** `proof.verify` 返回体。 */
+export type ProofVerifyResultLike = ProofVerifyViewLike | ProofVerifyFailureLike;
+
 /** 回合摘要（`proof.turns` 的元素）。 */
 export interface ProofTurnSummaryLike {
   sessionId: string;

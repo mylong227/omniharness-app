@@ -6,8 +6,9 @@
 import * as React from 'react';
 import type { ReactElement } from 'react';
 import { t } from '../../../i18n/i18n.ts';
+import { useApp } from '../../../context.ts';
 import { timeOf } from '../../../format.ts';
-import type { FleetNodeLike, FleetStatus } from '../../../../types/models.ts';
+import type { FleetNodeLike, FleetPatchResultLike, FleetStatus } from '../../../../types/models.ts';
 import { useFleet } from './useFleet.ts';
 
 /** 状态点的色彩语义 class（配合文字，不只靠颜色——设计 §2.5）。 */
@@ -78,10 +79,41 @@ function laneKey(node: FleetNodeLike): string {
 /** 编队模式：父会话的车道一览。 */
 export function FleetMode(props: FleetModeProps): ReactElement {
   const { snapshot, loading, error, staleMs, refresh } = useFleet(props.threadId, props.active);
+  const { api } = useApp();
   const [selected, setSelected] = React.useState<string | null>(null);
+  const [patch, setPatch] = React.useState<FleetPatchResultLike | null>(null);
+  const [patchError, setPatchError] = React.useState<string | null>(null);
+  const [patchLoading, setPatchLoading] = React.useState(false);
+  /** 预览请求序号：切车道/关闭后旧响应不得落到新车道。 */
+  const patchSeqRef = React.useRef(0);
 
   // 选中态跟随快照里的车道（切会话/快照更新后保持稳定 key 匹配）。
   const selectedNode = snapshot?.nodes.find((node) => laneKey(node) === selected) ?? null;
+
+  /**
+   * 打开只读补丁预览：不应用、不写工作区。
+   * @param path 工作区相对 patch 路径。
+   */
+  const openPatch = React.useCallback(
+    (path: string): void => {
+      const seq = ++patchSeqRef.current;
+      setPatch(null);
+      setPatchError(null);
+      setPatchLoading(true);
+      api
+        .fleetPatch(path)
+        .then((result) => {
+          if (seq === patchSeqRef.current) setPatch(result);
+        })
+        .catch((e: unknown) => {
+          if (seq === patchSeqRef.current) setPatchError(e instanceof Error ? e.message : String(e));
+        })
+        .finally(() => {
+          if (seq === patchSeqRef.current) setPatchLoading(false);
+        });
+    },
+    [api],
+  );
 
   if (props.threadId === null || props.threadId === '') {
     return <div className="control-mode">{t('先选择一个会话，再打开编队。')}</div>;
@@ -135,11 +167,35 @@ export function FleetMode(props: FleetModeProps): ReactElement {
             key={laneKey(node)}
             node={node}
             selected={laneKey(node) === selected}
-            onSelect={() => setSelected(laneKey(node))}
+            onSelect={() => {
+              patchSeqRef.current += 1;
+              setPatchLoading(false);
+              setSelected(laneKey(node));
+              setPatch(null);
+              setPatchError(null);
+            }}
           />
         ))}
       </div>
-      {selectedNode !== null && <LaneDetail node={selectedNode} />}
+      {selectedNode !== null ? (
+        <>
+          <LaneDetail node={selectedNode} onViewPatch={openPatch} />
+          {patchLoading || patch !== null || patchError !== null ? (
+            <PatchPreview
+              path={selectedNode.patchPath ?? ''}
+              loading={patchLoading}
+              result={patch}
+              error={patchError}
+              onClose={() => {
+                patchSeqRef.current += 1;
+                setPatchLoading(false);
+                setPatch(null);
+                setPatchError(null);
+              }}
+            />
+          ) : null}
+        </>
+      ) : null}
     </div>
   );
 }
@@ -189,6 +245,7 @@ function LaneRow(props: LaneRowProps): ReactElement {
 /** 车道详情的入参。 */
 interface LaneDetailProps {
   readonly node: FleetNodeLike;
+  readonly onViewPatch: (path: string) => void;
 }
 
 /** 选中车道详情：任务原文 / 隔离 / 改动 / 验证 / 轨迹可用性（只读）。 */
@@ -224,7 +281,18 @@ function LaneDetail(props: LaneDetailProps): ReactElement {
                 : t('无改动')}
         </dd>
         <dt>{t('patch')}</dt>
-        <dd>{patchText(node)}</dd>
+        <dd>
+          {patchText(node)}
+          {canPreviewPatch(node) ? (
+            <button
+              type="button"
+              className="control-inline-action"
+              onClick={() => props.onViewPatch(node.patchPath ?? '')}
+            >
+              {t('查看补丁')}
+            </button>
+          ) : null}
+        </dd>
         {node.error !== undefined && node.error !== '' ? (
           <>
             <dt>{t('原因')}</dt>
@@ -241,6 +309,59 @@ function LaneDetail(props: LaneDetailProps): ReactElement {
         </dd>
       </dl>
     </div>
+  );
+}
+
+/**
+ * 是否可预览补丁（禁写 / 不可取回 / 无路径都不显示按钮）。
+ * @param node 车道。
+ * @returns 可预览时为 true。
+ */
+function canPreviewPatch(node: FleetNodeLike): boolean {
+  return (
+    node.patchPath !== undefined &&
+    node.patchPath !== '' &&
+    node.writesForbidden !== true &&
+    node.writesUnrecoverable !== true
+  );
+}
+
+/** 补丁预览入参。 */
+interface PatchPreviewProps {
+  readonly path: string;
+  readonly loading: boolean;
+  readonly result: FleetPatchResultLike | null;
+  readonly error: string | null;
+  readonly onClose: () => void;
+}
+
+/** 只读补丁预览：展开在详情下方，不自动应用。 */
+function PatchPreview(props: PatchPreviewProps): ReactElement {
+  return (
+    <section className="control-patch" aria-label={t('补丁预览')}>
+      <div className="control-patch__head">
+        <h3>{t('补丁预览')}</h3>
+        <button type="button" className="control-inline-action" onClick={props.onClose}>
+          {t('关闭预览')}
+        </button>
+      </div>
+      <p className="mono hint">{props.path}</p>
+      {props.loading ? <p className="hint">{t('正在读取补丁…')}</p> : null}
+      {props.error !== null ? <p className="err">{t('补丁不可读：{msg}', { msg: props.error })}</p> : null}
+      {props.result !== null && !props.result.ok ? (
+        <p className="err">{t('补丁不可读：{msg}', { msg: props.result.message })}</p>
+      ) : null}
+      {props.result !== null && props.result.ok ? (
+        <>
+          <p className="control-meta">
+            {t('{bytes} 字节', { bytes: props.result.bytes })}
+            {props.result.truncated ? ` · ${t('已截断（仅前 512 KB）')}` : ''}
+          </p>
+          <pre className="control-patch__body">{props.result.content}</pre>
+          <p className="hint">{t('只读预览，不会自动应用补丁。')}</p>
+        </>
+      ) : null}
+    </section>
   );
 }
 

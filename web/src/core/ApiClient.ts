@@ -835,6 +835,10 @@ export class ApiClient {
   public fleetList(threadId: string): Promise<import('../types/models.ts').FleetSnapshotLike> {
     return this.rpc('fleet.list', { threadId });
   }
+  /** 只读预览一条子代理 patch；仅允许 `.omniharness/subagent-patches/` 内文件。 */
+  public fleetPatch(path: string): Promise<import('../types/models.ts').FleetPatchResultLike> {
+    return this.rpc('fleet.patch', { path });
+  }
   /** 上下文工作室快照：六类构成 + 压缩记录 + 便签（v1 便签未接线如实标注）。 */
   public contextStudio(threadId: string): Promise<import('../types/models.ts').ContextStudioSnapshotLike> {
     return this.rpc('context.studio', { threadId });
@@ -856,5 +860,11 @@ export class ApiClient {
     turnIndex: number,
   ): Promise<import('../types/models.ts').ProofResult<import('../types/models.ts').ProofExportResultLike>> {
     return this.rpc('proof.export', { threadId, turnIndex });
+  }
+  /** 离线复核外部 AuditBundle（只读；不自动信任签名）。 */
+  public proofVerify(
+    bundle: unknown,
+  ): Promise<import('../types/models.ts').ProofVerifyResultLike> {
+    return this.rpc('proof.verify', { bundle });
   }
 }
