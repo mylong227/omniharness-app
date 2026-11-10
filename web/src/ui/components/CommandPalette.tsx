@@ -56,6 +56,8 @@ const ITEM_ICONS: Readonly<Record<string, IconName>> = {
   'pane-file': 'folder',
   'new-session': 'plus',
   'reload-sessions': 'refresh',
+  'export-session': 'download',
+  'copy-session-link': 'link',
   'open-settings': 'gear',
   'toggle-theme': 'contrast',
   'toggle-left': 'panel-left',

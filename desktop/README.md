@@ -159,6 +159,10 @@ CSP/权限、路径目录名）都集中在配置里，**不再散落在主进�
 `window.showShortcut` 是全局「显示窗口」快捷键（Electron accelerator，如
 `CommandOrControl+Shift+O`）；空串关闭。注册失败只写日志，不阻断启动。
 
+另有一条固定的全局「快速提问」快捷键 `CommandOrControl+Shift+Space`：唤起窗口并把焦点
+送进输入框（与「显示窗口」分工：前者随手记一句，后者回到应用）。它不开放配置；注册失败
+同样只写日志，托盘菜单与「文件 → 快速提问」仍可用。
+
 `harness.autoRestart`（默认 true）在崩溃后自动重启；`restartMax`/`restartWindowMs`
 限制窗口内次数（默认 3 次 / 10 分钟），超限才弹崩溃对话框，避免崩溃循环。
 

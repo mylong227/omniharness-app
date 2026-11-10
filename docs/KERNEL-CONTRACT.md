@@ -1,6 +1,6 @@
 # 本仓与内核（`@omniharness/kernel`）的契约
 
-> 实测日期 2026-11-08（alpha.15 对齐批次）。**结论**：应用消费 vendored `@omniharness/kernel@0.1.0-alpha.15`，
+> 实测日期 2026-11-10（alpha.16 对齐批次）。**结论**：应用消费 vendored `@omniharness/kernel@0.1.0-alpha.16`，
 > 全部内核导入收敛于 **`src/host/kernel/` 分域对接面**（19 个**自动生成**的域文件，
 > `npm run kernel:check` 第 7 条强制单点、第 8 条拒绝生成物漂移、第 9 条拒绝「已承诺能力的同名副本」）；
 > 内核切片清掉、app 仍需要的能力收留于 **`src/host/extensions/`**（app 自有扩展层，原 `kernel-compat/`，
@@ -18,7 +18,7 @@ web/ + desktop/ ──HTTP/SSE──▶ src/apps（宿主：CLI / RPC 域模块 
                                    ├─▶ src/host/extensions/        app 自有扩展层
                                    │      Laya 决策引擎 / CLI worker / doctor / 图存储 / web 广播 / …
                                    │
-                                   └─▶ @omniharness/kernel@0.1.0-alpha.15（vendored tarball）
+                                   └─▶ @omniharness/kernel@0.1.0-alpha.16（vendored tarball）
                                           ├─ dist/kernel/**        主循环 / 编排单源 / 工具 / 门禁 / 存储 / Jcs
                                           ├─ dist/contracts/**     端口 / 类型 / schema
                                           ├─ dist/protocols/**     ACP / MCP
@@ -27,7 +27,7 @@ web/ + desktop/ ──HTTP/SSE──▶ src/apps（宿主：CLI / RPC 域模块 
 
 - `src/**` 只有 `src/host/kernel/<域>.ts` 允许 `import '@omniharness/kernel…'`；
   业务代码（含 `src/host/extensions/`）一律经对接面消费——全仓不出现内核包名
-  （实测 256 源文件 / 286 处包导入全部命中，`kernel:check` 实载验证）。
+  （实测 258 源文件 / 286 处包导入全部命中，`kernel:check` 实载验证）。
 - `src/host/kernel/` 只放**自动生成**的 19 个分域 re-export，**不放实现**
   （Laya 与解析器在 `extensions/kernel/`，企业 OIDC 适配器在 `src/apps/enterprise/`）。
 - `extensions/` 只依赖 `../kernel/<域>.ts` 与目录内相对路径，同样不得绕过对接面。
@@ -135,8 +135,8 @@ M22–M31 的每一轮内核升级都走的这条回路，常态业务代码零�
 | 检查 | 结果 |
 | ---- | ---- |
 | `npm run typecheck`（后端 / 前端 / 桌面） | ✅ 0 error |
-| `npm run kernel:check` | ✅ 256 源文件 / 286 处包导入（19 域，全部收敛对接面）/ 内嵌副本 0 / integrity 一致 / native ping / 生成物一致 / extensions 无已承诺影子 |
-| `npm run build` + `npm run smoke` | ✅ 7/7（banner token、healthz、readyz、HTML、config.get、sessions.list、原生内核实载） |
-| `npm run web:test` | ✅ 165 文件 / 775 用例（web 152 + 后端 13；含 parity/守卫/家具/golden/影子扫描） |
-| `npm run desktop:build` + `desktop:test` | ✅ 34/34 |
+| `npm run kernel:check` | ✅ 258 源文件 / 286 处包导入（19 域，全部收敛对接面）/ 内嵌副本 0 / integrity 一致 / native ping / 生成物一致 / extensions 无已承诺影子 |
+| `npm run build` + `npm run smoke` | ✅ 8/8（banner token、healthz、readyz、HTML、config.get、sessions.list、原生内核实载） |
+| `npm run web:test` | ✅ 171 文件 / 791 用例（web 754 + 后端 37；含 parity/守卫/家具/golden/影子扫描） |
+| `npm run desktop:build` + `desktop:test` | ✅ 36/36 |
 | 嵌入 API 实测 | ✅ `createOmniHarness` 启动 / healthz 200 / RPC 往返 / 优雅关闭（tests/embedApi.test.ts 常规跑） |

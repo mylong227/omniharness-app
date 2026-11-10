@@ -16,6 +16,8 @@ export interface TrayActions {
   show(): void;
   /** 新开工作台窗口。 */
   newWindow(): void;
+  /** 全局「快速提问」：显示窗口并聚焦输入框。 */
+  quickCapture(): void;
   openWorkspace(): void;
   /** 最近工作区（最多 5 条，按最近使用排序）。 */
   recentWorkspaces(): readonly string[];
@@ -158,6 +160,7 @@ export class TrayService {
     const template: MenuItemConstructorOptions[] = [
       { label: this.i18n.t('tray.show'), click: () => this.actions.show() },
       { label: this.i18n.t('tray.newWindow'), click: () => this.actions.newWindow() },
+      { label: this.i18n.t('tray.quickCapture'), click: () => this.actions.quickCapture() },
       { type: 'separator' },
       { label: this.i18n.t('tray.openWorkspace'), click: () => this.actions.openWorkspace() },
       {

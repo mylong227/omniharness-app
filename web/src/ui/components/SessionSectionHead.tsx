@@ -1,7 +1,10 @@
-// 左栏「任务列表」区块头（从 SessionPanel 抽出）：标题 + 图标簇（搜索 / 范围 / 视图 / 添加项目）。
+// 左栏「任务列表」区块头（从 SessionPanel 抽出）：标题 + 图标簇（搜索 / 范围 / 视图）。
 //
 // 图标条态只留搜索（其余入口在展开后才有意义）；搜索按钮的 aria-expanded / aria-label 同时承担
 // 开合状态播报，视图按钮的 title 与 aria-label 同为「下一个视图」的提示。
+//
+// 2026-11-10 第二轮收敛：「+ 添加项目」不再在这里出现——项目切换器下拉里已经有唯一入口，
+// 同一面板两个 `+` 只会让用户猜哪个才是"新建会话"。
 
 import { icon } from '../models/Icon.ts';
 import type { PanelView } from './session/viewCycle.ts';
@@ -32,8 +35,6 @@ export interface SessionSectionHeadProps {
   readonly view: PanelView;
   /** 切换到下一个视图（三态循环）。 */
   readonly onCycleView: () => void;
-  /** 打开「添加项目」目录选择器。 */
-  readonly onAddProject: () => void;
 }
 
 /**
@@ -42,7 +43,7 @@ export interface SessionSectionHeadProps {
  * @returns 区块头节点
  */
 export function SessionSectionHead(props: SessionSectionHeadProps): ReactElement {
-  const { rail, searchOpen, scopeAll, view, onToggleSearch, onToggleScope, onCycleView, onAddProject } = props;
+  const { rail, searchOpen, scopeAll, view, onToggleSearch, onToggleScope, onCycleView } = props;
   return (
     <div className="side-sec-head">
       <span className="ssh-label">{rail ? null : t('任务列表')}</span>
@@ -76,9 +77,6 @@ export function SessionSectionHead(props: SessionSectionHeadProps): ReactElement
             )}
             <button className="ws-add" title={nextViewTitle(view)} aria-label={nextViewTitle(view)} onClick={onCycleView}>
               {icon('columns', { size: 14 })}
-            </button>
-            <button className="ws-add" title={t('添加项目')} aria-label={t('添加项目')} onClick={onAddProject}>
-              {icon('plus', { size: 14 })}
             </button>
           </>
         )}

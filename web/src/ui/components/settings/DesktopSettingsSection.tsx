@@ -71,6 +71,11 @@ function DesktopWindowCard(props: {
       title={t('窗口与启动')}
       description={t('长任务在后台继续运行；托盘菜单可随时恢复窗口。')}
     >
+      <ConsoleInfoRow
+        label={t('快速提问快捷键')}
+        value={props.info?.platform === 'darwin' ? '⌘ ⇧ Space' : 'Ctrl Shift Space'}
+        title={t('在任意应用中按下即可唤起窗口并聚焦输入框。')}
+      />
       <ConsoleRow label={t('关闭时最小化到托盘')} hint={t('关闭窗口不结束会话与任务。')}>
         <span className="csl-switch-state">
           {props.info?.closeToTray === true ? t('已开启') : t('已关闭')}

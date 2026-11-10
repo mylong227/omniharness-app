@@ -10,6 +10,7 @@ import type { DesktopLocale } from './DesktopI18n.ts';
 export type DesktopMessageKey =
   | 'menu.file'
   | 'menu.openWorkspace'
+  | 'menu.quickCapture'
   | 'menu.newWindow'
   | 'menu.restartHarness'
   | 'menu.checkUpdates'
@@ -22,6 +23,7 @@ export type DesktopMessageKey =
   | 'menu.help'
   | 'menu.repository'
   | 'tray.show'
+  | 'tray.quickCapture'
   | 'tray.newWindow'
   | 'tray.openWorkspace'
   | 'tray.recent'
@@ -76,6 +78,7 @@ export type DesktopMessageKey =
 const ZH: Record<DesktopMessageKey, string> = {
   'menu.file': '文件',
   'menu.openWorkspace': '打开工作区…',
+  'menu.quickCapture': '快速提问',
   'menu.newWindow': '新建窗口',
   'menu.restartHarness': '重启 Harness',
   'menu.checkUpdates': '检查更新',
@@ -88,6 +91,7 @@ const ZH: Record<DesktopMessageKey, string> = {
   'menu.help': '帮助',
   'menu.repository': 'OmniHarness on GitHub',
   'tray.show': '显示 OmniHarness',
+  'tray.quickCapture': '快速提问（全局）',
   'tray.newWindow': '新建窗口',
   'tray.openWorkspace': '打开工作区…',
   'tray.recent': '最近工作区',
@@ -144,6 +148,7 @@ const ZH: Record<DesktopMessageKey, string> = {
 const EN: Record<DesktopMessageKey, string> = {
   'menu.file': 'File',
   'menu.openWorkspace': 'Open Workspace…',
+  'menu.quickCapture': 'Quick Capture',
   'menu.newWindow': 'New Window',
   'menu.restartHarness': 'Restart Harness',
   'menu.checkUpdates': 'Check for Updates',
@@ -156,6 +161,7 @@ const EN: Record<DesktopMessageKey, string> = {
   'menu.help': 'Help',
   'menu.repository': 'OmniHarness on GitHub',
   'tray.show': 'Show OmniHarness',
+  'tray.quickCapture': 'Quick Capture (global)',
   'tray.newWindow': 'New Window',
   'tray.openWorkspace': 'Open Workspace…',
   'tray.recent': 'Recent Workspaces',

@@ -627,6 +627,24 @@ test('托盘 busy 接线：omni:setProgress 的 2 / -1 驱动 setBusy，主进�
   );
 });
 
+test('快速提问接线：主进程注册全局键 + 托盘/菜单入口 + preload/桥订阅同源', () => {
+  const main = readFileSync(join(process.cwd(), 'src', 'main', 'main.ts'), 'utf8');
+  assert.match(main, /QUICK_CAPTURE_SHORTCUT = 'CommandOrControl\+Shift\+Space'/u);
+  assert.match(main, /globalShortcut\.register\(QUICK_CAPTURE_SHORTCUT/u);
+  assert.match(main, /quickCapture/u, '主进程必须定义 quickCapture');
+  const tray = readFileSync(join(process.cwd(), 'src', 'main', 'tray.ts'), 'utf8');
+  assert.match(tray, /tray\.quickCapture/u, '托盘菜单必须有快速提问入口');
+  const menu = readFileSync(join(process.cwd(), 'src', 'main', 'menu.ts'), 'utf8');
+  assert.match(menu, /menu\.quickCapture/u, '应用菜单必须有快速提问入口');
+  const preload = readFileSync(join(process.cwd(), 'src', 'preload', 'preload.ts'), 'utf8');
+  assert.match(preload, /onQuickCapture:[\s\S]*omni:quickCapture/u);
+  const bridge = readFileSync(
+    join(process.cwd(), '..', 'web', 'src', 'core', 'desktop', 'DesktopBridge.ts'),
+    'utf8',
+  );
+  assert.match(bridge, /onQuickCapture\?\(listener: \(\) => void\)/u);
+});
+
 test('parseLaunchArgs: 深链协议可配置（不再硬编码 omniharness）', () => {
   assert.equal(
     parseLaunchArgs(['electron', '.', 'omni-test://open?workspace=x'], 'omni-test').deepLink,

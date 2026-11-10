@@ -1193,12 +1193,100 @@ input[type='radio'] {
   background: var(--bg-elev);
   -webkit-app-region: drag;
   user-select: none;
+  padding: 0 0 0 14px;
+  gap: 12px;
+}
+.titlebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.titlebar-omega {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 19px;
+  height: 19px;
+  border: 1px solid var(--brand-tile-rim);
+  border-radius: 6px / 4px;
+  background: var(--brand-tile);
+  color: var(--brand-tile-ink);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1;
+}
+.titlebar-name {
+  flex: none;
+  color: var(--dim);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+}
+.titlebar-workspace {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 28ch;
+  padding: 1px 7px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1.5;
+}
+.titlebar-actions {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  margin-left: auto;
+  -webkit-app-region: no-drag;
+}
+.tb-quick {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 100%;
+  padding: 0 10px;
+  border: 0;
+  border-left: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--dim);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+.tb-quick:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+.tb-quick-kbd {
+  padding: 0 4px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-xs);
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 9px;
+  line-height: 1.6;
+}
+@media (max-width: 1040px) {
+  .tb-quick-kbd {
+    display: none;
+  }
+}
+@media (max-width: 940px) {
+  .tb-quick-label {
+    display: none;
+  }
 }
 .titlebar-controls {
   display: inline-flex;
   align-items: stretch;
   height: 100%;
-  margin-left: auto;
+  margin-left: 0;
   -webkit-app-region: no-drag;
 }
 .tb-btn {

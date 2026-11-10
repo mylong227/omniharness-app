@@ -64,6 +64,11 @@ const api = Object.freeze({
   onNotificationClick: (listener: (sessionId: string | undefined) => void) =>
     subscribe<string | undefined>('omni:notificationClick', listener),
   onDeepLink: (listener: (url: string) => void) => subscribe<string>('omni:deepLink', listener),
+  /**
+   * 全局「快速提问」：主进程唤起窗口后发一次空事件，UI 收到即把焦点送进输入框。
+   * 纯增量能力（旧 UI 不订阅也无害），API_VERSION 不为此 bump。
+   */
+  onQuickCapture: (listener: () => void) => subscribe<void>('omni:quickCapture', listener),
   // 2026-11-06 审计 P2：删除四个**零 UI 消费**的桥能力（pickWorkspace / openWorkspace /
   // openExternal / quit）——「只暴露最小桥」的自我声明必须属实；openWorkspace 尤其不该让
   // 渲染进程（即一次 XSS）把侧车指到任意目录。主进程托盘/菜单仍直接调用同一批实现，不经 IPC。

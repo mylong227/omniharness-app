@@ -82,7 +82,6 @@ export function SessionPanelHead(props: SessionPanelHeadProps): ReactElement {
         onToggleScope={panel.onToggleScope}
         view={view}
         onCycleView={onCycleView}
-        onAddProject={workspace.addProject}
       />
       {search.open && !chrome.rail ? (
         <SessionSearchBox

@@ -154,6 +154,8 @@ export const EN_COMPOSER: Record<string, string> = {
   界面: 'Interface',
   其他: 'Other',
   '刷新会话列表': 'Refresh session list',
+  '导出会话 Markdown': 'Export session as Markdown',
+  '复制会话链接': 'Copy session link',
   '打开设置': 'Open settings',
   '切换浅色 / 深色主题': 'Toggle light / dark theme',
   '切换会话面板': 'Toggle session panel',

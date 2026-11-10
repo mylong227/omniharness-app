@@ -157,7 +157,7 @@
 #sessions::-webkit-scrollbar { display:none; }
 .ws-group { margin-bottom:8px; }
 .ws-head {
-  display:flex; align-items:center; gap:6px; padding:6px 8px; cursor:pointer; user-select:none;
+  display:flex; align-items:center; gap:6px; padding:8px 8px; cursor:pointer; user-select:none;
 }
 .ws-head .ws-caret { font-size:10px; width:10px; }
 .ws-head .ws-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; direction:rtl; text-align:left; }

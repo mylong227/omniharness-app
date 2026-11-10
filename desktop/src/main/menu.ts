@@ -9,6 +9,8 @@ export interface MenuActions {
   restartHarness(): void;
   /** 新开一个工作台窗口（多窗口）。 */
   newWindow?(): void;
+  /** 全局「快速提问」：显示窗口并聚焦输入框。 */
+  quickCapture?(): void;
   checkForUpdates(): void;
   closeToTray(): boolean;
   setCloseToTray(enabled: boolean): void;
@@ -66,6 +68,15 @@ export function installMenu(actions: MenuActions): void {
           accelerator: 'CmdOrCtrl+O',
           click: actions.openWorkspace,
         },
+        ...(actions.quickCapture !== undefined
+          ? [
+              {
+                label: actions.i18n.t('menu.quickCapture'),
+                accelerator: 'CmdOrCtrl+Shift+Space',
+                click: actions.quickCapture,
+              },
+            ]
+          : []),
         { label: actions.i18n.t('menu.restartHarness'), click: actions.restartHarness },
         { label: actions.i18n.t('menu.checkUpdates'), click: actions.checkForUpdates },
         { type: 'separator' },

@@ -382,6 +382,31 @@ svg {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+/* 快捷键提示（2026-11-10）：三条键帽说明输入区的 @ / / 与命令面板，不占说明文字。 */
+.starter-hints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 12px;
+  color: var(--faint);
+  font-size: 11px;
+}
+.starter-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.starter-hint kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-xs);
+  background: var(--panel);
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1.5;
+}
 
 /* 会话行的操作按钮（重命名 / 复制 / 删除）改为**覆盖层**：不悬停时不再占位。
    真机实测（2026-10-08，248px 侧栏）：三个按钮以 opacity:0 常驻占位 **86px**，
@@ -553,10 +578,13 @@ svg {
   color: var(--dim);
 }
 
-/* 工具错误摘要：用语义 token，浅色主题不再是"白底浅红"。 */
+/* 工具错误摘要：用语义 token，浅色主题不再是"白底浅红"。
+   2026-11-10：去掉 2px 左缘色条（craft floor：卡片单侧粗色条是最典型的生成式痕迹），
+   改成极淡的整块 error 底色 + 小圆角。 */
 .tc-error {
-  border-left: 2px solid var(--err);
-  border-radius: 0 6px 6px 0;
+  border-left: 0;
+  border-radius: var(--r-xs);
+  background: color-mix(in srgb, var(--err) 8%, transparent);
   font-size: 12px;
   padding: 4px 10px;
   margin-left: 20px;

@@ -30,7 +30,6 @@ export const EN_SESSIONS: Record<string, string> = {
   '当前只显示**本项目**的会话（点击看全部项目）': 'Showing sessions from **this project** only (click to show all projects)',
   '切换为只看本项目': 'Show this project only',
   '切换为看全部项目': 'Show all projects',
-  '添加项目': 'Add project',
   '搜索会话…': 'Search sessions…',
   '文件': 'Files',
   '打开': 'Open',

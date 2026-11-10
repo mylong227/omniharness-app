@@ -594,8 +594,10 @@
   border-radius: var(--r-sm);
 }
 .session {
-  padding: 7px 10px;
-  min-height: 34px;
+  /* 2026-11-10 第二轮：行高从 34 提到 38、纵向 7→9——左栏是使用频率最高的列表，
+     密集到「一行挨一行」会显得赶，留一点呼吸更接近日常 IM 的节奏。 */
+  padding: 9px 10px;
+  min-height: 38px;
   gap: 2px;
 }
 .session:hover,
@@ -4444,4 +4446,215 @@ button,
 .stream-jump-bottom:hover {
   background: var(--btn-fill-hover);
   border-color: var(--border);
+}
+
+/* =========================================================================
+   右栏工作台概览（2026-11-10 第二轮收敛）
+   -------------------------------------------------------------------------
+   只有三块：项目 / 本会话一句话 / 工作区变更。新建任务、命令面板、设置、最近会话
+   与上下文图表都各有唯一入口（左栏 / 输入区 / 容量图表），这里不再复制。
+   留白优先：标题下 3px，块间 28px，列表行 11px 纵向。
+   ========================================================================= */
+.rv-home {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: inherit;
+}
+.wb-home {
+  padding: 26px 24px 32px;
+}
+.wb-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.wb-title {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-size: 21px;
+  font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: -0.022em;
+}
+.wb-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  line-height: 1.55;
+}
+.wb-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 13px;
+  margin-top: 10px;
+}
+.wb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--faint);
+  font-size: 10.5px;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+.wb-chip--branch {
+  font-family: var(--mono);
+}
+.wb-chip--dirty {
+  color: var(--warn);
+}
+.wb-chip--error {
+  color: var(--err);
+}
+.wb-chip--clean {
+  color: var(--ok);
+}
+.wb-session {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 5px 16px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+  color: var(--faint);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.wb-session-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
+}
+.wb-session-item strong {
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.wb-sec {
+  margin-top: 28px;
+  min-width: 0;
+}
+.wb-sec-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.wb-sec-title {
+  margin: 0;
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.wb-sec-action {
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent-2);
+  font-size: 11px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.wb-sec-action:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.wb-list {
+  margin-top: 4px;
+}
+.wb-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 11px 2px;
+  border: 0;
+  border-bottom: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.wb-row:last-child {
+  border-bottom-color: transparent;
+}
+.wb-row:hover {
+  background: var(--hover);
+}
+.wb-row-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.wb-row-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.wb-row-path {
+  font-family: var(--mono);
+  font-size: 11.5px;
+}
+.wb-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--faint);
+  font-size: 10.5px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+.wb-change-badge {
+  flex: none;
+  min-width: 30px;
+  margin-top: 1px;
+  color: var(--faint);
+  font-size: 10px;
+  line-height: 1.6;
+}
+.wb-add {
+  color: var(--add);
+}
+.wb-del {
+  color: var(--del);
+}
+.wb-note {
+  margin: 10px 0 0;
+  color: var(--faint);
+  font-size: 11.5px;
+  line-height: 1.65;
+}
+.wb-note--error {
+  color: var(--err);
+}
+@media (max-width: 520px) {
+  .wb-home {
+    padding: 20px 18px 28px;
+  }
 }

@@ -78,6 +78,8 @@ export interface DesktopBridge {
   onUpdateStatus(listener: (status: DesktopUpdateStatus) => void): () => void;
   onNotificationClick(listener: (sessionId: string | undefined) => void): () => void;
   onDeepLink(listener: (url: string) => void): () => void;
+  /** 全局「快速提问」：窗口被唤起后要求 UI 聚焦输入框（新版 preload 才提供）。 */
+  onQuickCapture?(listener: () => void): () => void;
 }
 
 /** 必须存在的桥方法（缺任一即视为旧版/不合法，整体降级为 null）。 */
@@ -149,6 +151,9 @@ export function desktopBridge(): DesktopBridge | null {
     onNotificationClick: (listener) =>
       subscribe<string | undefined>('onNotificationClick', listener),
     onDeepLink: (listener) => subscribe<string>('onDeepLink', listener),
+    ...(typeof raw['onQuickCapture'] === 'function'
+      ? { onQuickCapture: (listener: () => void) => subscribe<void>('onQuickCapture', listener) }
+      : {}),
   };
 }
 

@@ -44,6 +44,11 @@ export interface RightPanelProps {
   /** 文件内容节点（FileTab）。 */
   children?: React.ReactNode;
   /**
+   * 没有打开任何文件 / 网页时显示的首页（工作台概览）。
+   * 缺省时不渲染（保持旧调用方「无标签即空白」的行为）。
+   */
+  home?: React.ReactNode;
+  /**
    * 网页标签状态（缺省 = 没有网页标签；旧调用方/判据不必补这个 prop）。
    * `open` 控制标签是否存在，`active` 控制当前显示网页还是文件。
    */
@@ -361,6 +366,7 @@ export function RightPanel(props: RightPanelProps): ReactElement {
     onCloseFile,
     style,
     children,
+    home,
     browser,
     browserContent,
     onOpenBrowser,
@@ -414,20 +420,24 @@ export function RightPanel(props: RightPanelProps): ReactElement {
       ref={rootRef}
       onKeyDown={onKeyDown}
     >
-      <TabBar
-        openFiles={openFiles}
-        browserOpen={browserOpen}
-        browserActive={browserActive}
-        activeFile={activeFile}
-        tabCount={tabCount}
-        onShowFile={onShowFile}
-        onCloseFile={onCloseFile}
-        {...(onShowBrowser !== undefined ? { onShowBrowser } : {})}
-        {...(onCloseBrowser !== undefined ? { onCloseBrowser } : {})}
-        {...(onOpenBrowser !== undefined ? { onOpenBrowser } : {})}
-        paneContent={paneContent}
-        browserContent={browserContent ?? null}
-      />
+      {tabCount === 0 && home !== undefined ? (
+        <div className="rv-home">{home}</div>
+      ) : (
+        <TabBar
+          openFiles={openFiles}
+          browserOpen={browserOpen}
+          browserActive={browserActive}
+          activeFile={activeFile}
+          tabCount={tabCount}
+          onShowFile={onShowFile}
+          onCloseFile={onCloseFile}
+          {...(onShowBrowser !== undefined ? { onShowBrowser } : {})}
+          {...(onCloseBrowser !== undefined ? { onCloseBrowser } : {})}
+          {...(onOpenBrowser !== undefined ? { onOpenBrowser } : {})}
+          paneContent={paneContent}
+          browserContent={browserContent ?? null}
+        />
+      )}
     </div>
   );
 }

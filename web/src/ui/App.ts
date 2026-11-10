@@ -24,6 +24,7 @@ import { SessionPanel } from './components/SessionPanel.tsx';
 import { StreamView } from './components/StreamView.tsx';
 import { TitlebarStrip } from './components/TitlebarStrip.tsx';
 import { RightPanel } from './components/RightPanel.tsx';
+import { WorkbenchHome } from './components/workbench/WorkbenchHome.tsx';
 import { BrowserPane } from './components/BrowserPane.tsx';
 import { isSettingKey } from './models/ConsoleRegistry.ts';
 import { ApprovalModal } from './components/ApprovalModal.tsx';
@@ -598,6 +599,7 @@ function rightPanelElement(
   ctrl: AppController,
   s: AppState,
   recentLocalUrls: readonly string[],
+  workspacePath: string,
 ): ReactElement {
   return React.createElement(
     RightPanel,
@@ -619,6 +621,16 @@ function rightPanelElement(
         recentUrls: recentLocalUrls,
         onNavigate: ctrl.browser.open,
         onReload: ctrl.browser.reload,
+      }),
+      // 无文件 / 无网页时的首页（2026-11-10）：只留项目、本会话与工作区变更三块。
+      home: React.createElement(WorkbenchHome, {
+        workspacePath,
+        workspaceEpoch: s.workspaceEpoch,
+        currentSession: s.sessions.find((session) => session.id === s.currentThreadId),
+        events: s.events,
+        api: ctrl.api,
+        onOpenFile: (path: string) => void ctrl.files.openFile(path),
+        onOpenChanges: () => ctrl.openPane('changes'),
       }),
     },
     // 右栏文件视图；功能面板与设置在下面的控制台（ConsoleView）里。
@@ -647,7 +659,10 @@ function renderBody(
         'app' + (desktopBridge()?.windowFrame === 'hidden' ? ' has-titlebar' : ''),
     },
     // 桌面壳（win32 隐藏系统标题栏）的一体化标题条：非桌面/旧壳渲染 null，浏览器无感。
-    React.createElement(TitlebarStrip, null),
+    React.createElement(TitlebarStrip, {
+      workspacePath,
+      onQuickCapture: () => ctrl.focusComposer(),
+    }),
     React.createElement(
       'div',
       {
@@ -690,7 +705,7 @@ function renderBody(
               width: s.rightWidth,
               onChange: (w: number) => ctrl.layout.onRightWidthChange(w),
             }),
-            rightPanelElement(ctrl, s, recentLocalUrls),
+            rightPanelElement(ctrl, s, recentLocalUrls, workspacePath),
           ),
     ),
     React.createElement(ApprovalModal, {

@@ -13,6 +13,7 @@ import {
   watchSystemTheme,
   type ThemePreference,
 } from '../models/ThemePreference.ts';
+import { RightPanePreference, RIGHT_COLLAPSED_STORAGE_KEY } from '../models/RightPanePreference.ts';
 import type { ThemeScheme } from '../theme/palette.ts';
 
 /** 布局 / 主题偏好控制器。 */
@@ -69,7 +70,10 @@ export class LayoutController {
       if (cachedLeft >= 180 && cachedLeft <= 600) this.host.patch({ leftWidth: cachedLeft });
       if (cachedRight >= 180 && cachedRight <= 760) this.host.patch({ rightWidth: cachedRight });
       // 右栏收起态也是本机偏好：上次收着，这次就别再撑开（2026-10-07 用户反馈「右栏也要可收起」）。
-      this.host.patch({ rightCollapsed: localStorage.getItem('omni-right-collapsed') === '1' });
+      // 2026-11-10：没有显式偏好时按视口自动收起——900–1100px 的三栏会把中栏挤到不可读。
+      const storedRight = localStorage.getItem(RIGHT_COLLAPSED_STORAGE_KEY);
+      const viewportWidth = typeof window === 'undefined' ? 1600 : window.innerWidth;
+      this.host.patch({ rightCollapsed: RightPanePreference.resolve(storedRight, viewportWidth) });
     } catch {
       /* 忽略 */
     }
@@ -194,7 +198,7 @@ export class LayoutController {
     }
     const next = !this.host.getState().rightCollapsed;
     try {
-      localStorage.setItem('omni-right-collapsed', next ? '1' : '');
+      localStorage.setItem(RIGHT_COLLAPSED_STORAGE_KEY, next ? '1' : '');
     } catch {
       /* 忽略 */
     }

@@ -47,6 +47,8 @@ import { SettingsController } from './SettingsController.ts';
 import { ShortcutActions } from './ShortcutActions.ts';
 import type { ChatMode } from '../models/ChatModePreference.ts';
 import type { QueuedMessage } from '../models/ChatMessageQueue.ts';
+import { ClipboardCopier } from '../models/ClipboardCopier.ts';
+import { SessionTranscript } from '../models/SessionTranscript.ts';
 import { t } from '../i18n/i18n.ts';
 
 /** 应用根组件的全部 UI 状态（原 useAppController 的各 useState 合集）。 */
@@ -383,6 +385,14 @@ export class AppController {
           }
         }),
       );
+      // 全局「快速提问」（2026-11-10）：主进程已唤起窗口，这里只把焦点送回输入框。
+      if (bridge.onQuickCapture !== undefined) {
+        this.desktopUnsubscribes.push(
+          bridge.onQuickCapture(() => {
+            this.focusComposer();
+          }),
+        );
+      }
     }
   }
 
@@ -616,6 +626,85 @@ export class AppController {
   }
 
   /**
+   * 把焦点送回输入框：关闭压在中间的控制台 / 命令面板，等 DOM 更新后聚焦 textarea。
+   *
+   * 桌面端的全局「快速提问」快捷键与标题条按钮都走这里；浏览器里也可由调用方复用。
+   * 用两帧 requestAnimationFrame 而不是同步查询：关闭控制台会让输入区重新挂载，
+   * 同步查询拿到的可能是即将卸载的旧节点。
+   * @returns 无
+   */
+  public focusComposer(): void {
+    this.host.patch({ settingsOpen: false, panelModalOpen: false, paletteOpen: false });
+    const focus = (): void => {
+      const input = document.querySelector<HTMLTextAreaElement>('.composer textarea');
+      if (input === null) return;
+      input.focus();
+      const end = input.value.length;
+      input.setSelectionRange(end, end);
+      input.scrollIntoView({ block: 'nearest' });
+    };
+    if (typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(() => window.requestAnimationFrame(focus));
+      return;
+    }
+    focus();
+  }
+
+  /**
+   * 复制当前会话的深链（不带一次性 token；同机同浏览器凭 cookie 可直接打开）。
+   * @returns 无
+   */
+  public copySessionLink(): void {
+    const threadId = this.host.getState().currentThreadId;
+    if (threadId === null || threadId === '') {
+      this.showToast(t('还没有可分享的会话'), 'info');
+      return;
+    }
+    const base = typeof location === 'undefined' ? '' : location.href.split('#')[0] ?? '';
+    const link = base + '#thread=' + encodeURIComponent(threadId);
+    void ClipboardCopier.copy(link).then((ok) => {
+      this.showToast(ok ? t('已复制会话链接') : t('复制失败，请检查剪贴板权限'), ok ? 'ok' : 'err');
+    });
+  }
+
+  /**
+   * 把当前已加载的会话导出为 Markdown 文件（浏览器下载；不写服务端）。
+   * @returns 无
+   */
+  public exportSession(): void {
+    const state = this.host.getState();
+    if (state.events.length === 0) {
+      this.showToast(t('当前会话还没有可导出的内容'), 'info');
+      return;
+    }
+    const entry = state.sessions.find((session) => session.id === state.currentThreadId);
+    const title = entry !== undefined ? entry.label : '';
+    const now = Date.now();
+    const body = SessionTranscript.markdown(state.events, {
+      title,
+      now,
+      partial: state.historyHasMore,
+    });
+    try {
+      const blob = new Blob([body], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = SessionTranscript.filename(title, now);
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+      this.showToast(t('已导出会话 Markdown'));
+    } catch (cause) {
+      this.showToast(
+        t('导出失败：{msg}', { msg: cause instanceof Error ? cause.message : String(cause) }),
+        'err',
+      );
+    }
+  }
+
+  /**
    * 响应审批（允许 / 拒绝），可选「总是允许」时写回 autoApprove。
    * @param decision 决策
    * @param always 是否记忆为始终允许
@@ -761,6 +850,8 @@ export class AppController {
       toggleRight: () => this.children.layout.toggleRight(),
       toggleFocus: () => this.children.layout.toggleFocus(),
       openSettings: () => this.children.settings.open(),
+      copySessionLink: () => this.copySessionLink(),
+      exportSession: () => this.exportSession(),
     });
   }
 }

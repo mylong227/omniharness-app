@@ -535,8 +535,10 @@ select:focus-visible,
 .usage-table { max-width: 100%; }
 .step-row { min-width: 0; }
 .step-row input, .step-row textarea { min-width: 0; }
-/* 中窗（≤1280px）：右栏/左栏按视口比例封顶，优先保中栏可读宽度。 */
-@media (max-width: 1280px) {
+/* 中窗（≤1280px 且 ≥881px）：右栏/左栏按视口比例封顶，优先保中栏可读宽度。
+   2026-11-10：排除窄窗抽屉档——≤880px 时 layout.css 已把两栏切成 84vw / 340px 抽屉，
+   这里再用 42vw / 34vw 会把抽屉压到 130–164px（移动端右侧首页只剩半屏可见）。 */
+@media (min-width: 881px) and (max-width: 1280px) {
   .col.right { max-width: 42vw; }
   .col.left { max-width: 34vw; }
   /* F8 窄栏重排（2026-10-11，看板 §8.5「未修两条」之一）：
