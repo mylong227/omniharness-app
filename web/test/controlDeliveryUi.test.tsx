@@ -66,7 +66,7 @@ test('FleetMode：选中车道后可展开只读补丁预览，明确不会自�
   await waitFor(() => {
     assert.ok(screen.getByText(/diff --git a\/a.ts/u));
   });
-  assert.match(document.body.textContent ?? '', /不会自动应用/u);
+  assert.match(document.body.textContent ?? '', /确认后才会写入主工作区/u);
 });
 
 test('FleetMode：patch 不可取回时不显示查看入口', async () => {
@@ -137,4 +137,35 @@ test('ProofMode：导入本地证据包后展示结构自洽与未验签口径',
     assert.ok(screen.getByText('结构自洽（未签名）'));
   });
   assert.match(document.body.textContent ?? '', /未验签/u);
+});
+
+test('FleetMode：运行中车道可单独取消并调用 fleet.cancel', async () => {
+  const calls: string[] = [];
+  const running: FleetSnapshotLike = {
+    ...SNAPSHOT,
+    runningCount: 1,
+    nodes: [{ ...SNAPSHOT.nodes[0]!, status: 'running', callId: 'call_live', childSessionId: undefined, patchPath: undefined }],
+  };
+  const value: AppContextValue = {
+    api: {
+      fleetList: () => Promise.resolve(running),
+      fleetCancel: (callId: string) => {
+        calls.push(callId);
+        return Promise.resolve({ ok: true as const, callId });
+      },
+    } as unknown as AppContextValue['api'],
+    toast: () => {},
+    dialog: { confirm: () => Promise.resolve(true) } as unknown as AppContextValue['dialog'],
+    sessionId: 'sess_parent',
+    sessionTick: 0,
+  };
+  render(
+    <AppContext.Provider value={value}>
+      <FleetMode threadId="sess_parent" active />
+    </AppContext.Provider>,
+  );
+  await waitFor(() => assert.ok(screen.getByText('补类型')));
+  fireEvent.click(screen.getByText('补类型'));
+  fireEvent.click(screen.getByRole('button', { name: '取消子代理' }));
+  await waitFor(() => assert.deepEqual(calls, ['call_live']));
 });

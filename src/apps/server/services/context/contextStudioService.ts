@@ -2,7 +2,14 @@ import type { SessionEvent } from '../../../../host/kernel/contracts.ts';
 import { COMPACTION_MARKER } from '../../../../host/kernel/context.ts';
 import { CompactionMarkerReader } from '../../../../host/extensions/kernel/context/compactionMarkerReader.ts';
 import type { ContextUsageService, ContextUsageReport } from '../contextUsageService.ts';
-import type { CompactionMark, ContextStudioSnapshot } from './contextStudioSnapshot.ts';
+import type { CompactionMark, ContextStudioSnapshot, HandoffNote } from './contextStudioSnapshot.ts';
+
+/** 便签端口的最小结构（避免把内核端口类型扩散到应用层）。 */
+export interface ScratchpadLike {
+  append(text: string, tags?: readonly string[]): { id: string; at: string; text: string; tags?: readonly string[] } | undefined;
+  recent(k?: number): readonly { id: string; at: string; text: string; tags?: readonly string[] }[];
+  clear(): void;
+}
 
 /** 上下文工作室依赖。 */
 export interface ContextStudioDeps {
@@ -10,6 +17,8 @@ export interface ContextStudioDeps {
   readonly usage: (threadId: string) => Promise<ContextUsageReport>;
   /** 会话事件流纯读入口（`Agent.eventsOf`）。 */
   readonly events: (threadId: string) => Promise<readonly SessionEvent[]>;
+  /** 跨重置便签端口（缺省 = 未接线，快照如实标记）。 */
+  readonly scratchpad?: ScratchpadLike | undefined;
 }
 
 /**
@@ -62,10 +71,56 @@ export class ContextStudioService {
       threadId,
       report,
       compactions: ContextStudioService.compactionsOf(events),
-      handoff: [],
-      handoffAvailable: false,
+      handoff: this.handoffOf(),
+      handoffAvailable: this.deps.scratchpad !== undefined,
       collectedAt: new Date().toISOString(),
     };
+  }
+
+  /**
+   * 追加一条交接便签（工作区级；压缩摘要会自动并入最新一条）。
+   * @param text 正文（空白拒收）。
+   * @param tags 可选标签。
+   * @returns 落盘成功的便签；未接线/空白/写盘失败返回 undefined。
+   */
+  public appendHandoff(
+    text: string,
+    tags?: readonly string[],
+  ): HandoffNote | undefined {
+    const note = this.deps.scratchpad?.append(text, tags);
+    if (note === undefined) return undefined;
+    return {
+      id: note.id,
+      text: note.text,
+      tags: note.tags ?? [],
+      createdAt: note.at,
+      source: 'user',
+    };
+  }
+
+  /**
+   * 清空便签（破坏性；仅用于用户显式清理）。
+   * @returns 是否已接线并执行。
+   */
+  public clearHandoff(): boolean {
+    if (this.deps.scratchpad === undefined) return false;
+    this.deps.scratchpad.clear();
+    return true;
+  }
+
+  /**
+   * 读取最近便签（新在前）。
+   * @returns 便签列表；未接线为空数组。
+   */
+  private handoffOf(): readonly HandoffNote[] {
+    const notes = this.deps.scratchpad?.recent(20) ?? [];
+    return notes.map((note) => ({
+      id: note.id,
+      text: note.text,
+      tags: note.tags ?? [],
+      createdAt: note.at,
+      source: 'user',
+    }));
   }
 
   /**

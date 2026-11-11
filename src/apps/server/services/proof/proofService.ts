@@ -1,6 +1,7 @@
 import type { SessionEvent, ToolDefinition } from '../../../../host/kernel/contracts.ts';
 import { AuditBundles, EventMerkle, ExecutionCertificates, Jcs } from '../../../../host/kernel/util.ts';
-import type { ExecutionCertificate } from '../../../../host/kernel/util.ts';
+import type { ExecutionCertificate, SignedExecutionCertificate } from '../../../../host/kernel/util.ts';
+import type { ProofSignerPort } from './proofSignerService.ts';
 import type { AuditSink } from '../auditSink.ts';
 import { ProofTurnSlicer } from './proofTurnSlicer.ts';
 import type { TurnSlice } from './proofTurnSlicer.ts';
@@ -14,6 +15,8 @@ export interface ProofServiceDeps {
   readonly tools: () => readonly ToolDefinition[];
   /** 本地审计链（app 自己的 HMAC 事件链；未接线 undefined——**不是**内核回执链）。 */
   readonly audit: () => AuditSink | undefined;
+  /** 本机签名器（缺省 = 未配置签名，SIGNATURE 如实 warn）。 */
+  readonly signer?: ProofSignerPort | undefined;
 }
 
 /** 导出包大小上限（2 MB；超过报 `export_too_large`，见设计 §7.1 导出边界）。 */
@@ -86,15 +89,19 @@ export class ProofService {
     } catch (error) {
       return ProofService.failure('proof_invalid', `证书构造失败：${ProofService.messageOf(error)}`);
     }
-    const checks = this.checksOf(threadId, turnEvents, certificate);
+    const signed = await this.signOf(certificate);
+    const checks = this.checksOf(threadId, turnEvents, certificate, signed);
     const failed = checks.some((check) => check.status === 'fail');
     return {
       sessionId: threadId,
       turnIndex,
       displayIndex: slice.displayIndex,
       certificate,
+      ...(signed !== undefined && this.deps.signer !== undefined
+        ? { signature: { kid: this.deps.signer.kid, alg: this.deps.signer.alg } }
+        : {}),
       checks,
-      state: failed ? 'failed' : 'structural',
+      state: failed ? 'failed' : signed !== undefined ? 'signed' : 'structural',
       eventCount: turnEvents.length,
       auditRecords: this.auditRecordsOf(threadId),
       collectedAt: new Date().toISOString(),
@@ -121,7 +128,11 @@ export class ProofService {
       ],
       exportedAt: new Date().toISOString(),
     });
-    const content = Jcs.serialize(bundle);
+    const signedBundle =
+      this.deps.signer !== undefined
+        ? await this.deps.signer.signBundle(bundle).catch(() => bundle)
+        : bundle;
+    const content = Jcs.serialize(signedBundle);
     const size = Buffer.byteLength(content, 'utf8');
     if (size > EXPORT_MAX_BYTES) {
       return ProofService.failure(
@@ -134,6 +145,20 @@ export class ProofService {
       content,
       size,
     };
+  }
+
+  /**
+   * 对证书做本机签名；签名失败降级为未签名（SIGNATURE 检查会如实 warn/fail）。
+   * @param certificate 已构造证书。
+   * @returns 已签名证书或 undefined。
+   */
+  private async signOf(certificate: ExecutionCertificate): Promise<SignedExecutionCertificate | undefined> {
+    if (this.deps.signer === undefined) return undefined;
+    try {
+      return await this.deps.signer.signCertificate(certificate);
+    } catch {
+      return undefined;
+    }
   }
 
   /**
@@ -186,6 +211,7 @@ export class ProofService {
     threadId: string,
     turnEvents: readonly SessionEvent[],
     certificate: ExecutionCertificate,
+    signed?: SignedExecutionCertificate,
   ): readonly ProofCheck[] {
     const root = EventMerkle.build(turnEvents).root;
     const toolSurface = this.toolSurfaceCheck(certificate);
@@ -213,13 +239,52 @@ export class ProofService {
       ),
       toolSurface,
       audit,
-      // v1 无 signer：SIGNATURE 是 warn（如实标注未证明），不是 pass——设计 PR-04。
-      ProofService.checkOf(
+      this.signatureCheck(turnEvents, signed),
+    ];
+  }
+
+  /**
+   * 签名检查：有本机签名则真正验签；无签名/验签失败如实标注。
+   * @param turnEvents 回合事件
+   * @param signed 已签名证书（可选）
+   * @returns 检查结论
+   */
+  private signatureCheck(
+    turnEvents: readonly SessionEvent[],
+    signed: SignedExecutionCertificate | undefined,
+  ): ProofCheck {
+    const signer = this.deps.signer;
+    if (signer === undefined) {
+      return ProofService.checkOf(
         'SIGNATURE',
         'warn',
-        '证书未签名：结构自洽（未签名），复核方无法确认签发方身份。',
-      ),
-    ];
+        '未配置签名器：结构自洽（未签名），复核方无法确认签发方身份。',
+      );
+    }
+    if (signed === undefined) {
+      return ProofService.checkOf(
+        'SIGNATURE',
+        'fail',
+        `本机签名器已配置（kid ${signer.kid}），但签名失败；不能声称已签名。`,
+        'SIGNATURE_FAILED',
+      );
+    }
+    const verdict = ExecutionCertificates.verify(turnEvents, signed, {
+      trustStore: signer.trustStore,
+    });
+    if (!verdict.ok) {
+      return ProofService.checkOf(
+        'SIGNATURE',
+        'fail',
+        `签名验签失败：${verdict.problems.map((problem) => problem.code).join(', ')}。`,
+        verdict.problems[0]?.code,
+      );
+    }
+    return ProofService.checkOf(
+      'SIGNATURE',
+      'pass',
+      `本机签名验签通过（kid ${signer.kid}，${signer.alg}）。`,
+    );
   }
 
   /**

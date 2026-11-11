@@ -35,9 +35,13 @@ import { SessionCheckpoints } from '../services/session/sessionCheckpoints.ts';
 import { SessionRewindService } from '../services/session/sessionRewindService.ts';
 import { FleetRegistry } from '../services/fleet/fleetRegistry.ts';
 import { FleetPatchReader } from '../services/fleet/fleetPatchReader.ts';
+import { FleetPatchApplier } from '../services/fleet/fleetPatchApplier.ts';
+import { FleetControlRegistry } from '../services/fleet/fleetControlRegistry.ts';
 import { ContextStudioService } from '../services/context/contextStudioService.ts';
+import { ContextCompactionService } from '../services/context/contextCompactionService.ts';
 import { ProofService } from '../services/proof/proofService.ts';
 import { ProofVerifier } from '../services/proof/proofVerifier.ts';
+import { ProofSignerService } from '../services/proof/proofSignerService.ts';
 import { TurnOrchestration } from './turnOrchestration.ts';
 import type { ToolDefinition } from '../../../host/kernel/contracts.ts';
 
@@ -123,12 +127,20 @@ export class ServerServices {
   readonly fleet: FleetRegistry;
   /** 编队补丁只读预览（`fleet.patch` RPC 的后端）。 */
   readonly fleetPatch: FleetPatchReader;
+  /** 编队补丁应用（`fleet.applyPatch` RPC 的后端）。 */
+  readonly fleetPatchApplier: FleetPatchApplier;
+  /** 运行中子代理取消令牌表（`fleet.cancel` RPC 的后端）。 */
+  readonly fleetControl: FleetControlRegistry;
   /** 上下文工作室：六类构成 + 压缩记录 + 便签（`context.studio` RPC 的后端）。 */
   readonly contextStudio: ContextStudioService;
+  /** 手动压缩服务（`context.compact` RPC 的后端）。 */
+  readonly contextCompaction: ContextCompactionService;
   /** 凭证服务：回合证书 + 六项复核 + 证据包导出（`proof.*` RPC 的后端）。 */
   readonly proof: ProofService;
   /** 证据包离线复核（`proof.verify` RPC 的后端）。 */
   readonly proofVerifier: ProofVerifier;
+  /** 本机 Ed25519 签名器（密钥损坏时为 undefined，凭证降级为未签名）。 */
+  readonly proofSigner: ProofSignerService | undefined;
 
   /** 回合/线程跨域编排（线程模块与自动化模块共享的「起一个回合」事实源）。 */
   readonly turns: TurnOrchestration;
@@ -204,6 +216,7 @@ export class ServerServices {
       registry: options.registry,
       messageOf: (error) => this.messageOf(error),
     });
+    this.fleetControl = new FleetControlRegistry();
     this.runtime = new AgentRuntimeHost({
       baseConfig: () => this.options.config,
       skills: options.skills,
@@ -218,6 +231,7 @@ export class ServerServices {
       modelOverride: () =>
         options.modelOverrideEnabled === false ? undefined : this.modelCatalog.resolveOverride(),
       workspaceRoot,
+      fleetControl: this.fleetControl,
     });
     // ── 原 AppServerSurfaceHandlers ──
     this.windows = new ContextWindowCatalog(this.envWindow());
@@ -279,16 +293,45 @@ export class ServerServices {
       workspaceRoot,
     });
     this.fleetPatch = new FleetPatchReader({ workspaceRoot });
+    this.fleetPatchApplier = new FleetPatchApplier({ workspaceRoot, reader: this.fleetPatch });
     this.contextStudio = new ContextStudioService({
       usage: (threadId) => this.contextUsage.usage(threadId),
       events: (threadId) => this.runtime.agent().eventsOf(threadId),
+      ...(options.config.scratchpad !== undefined ? { scratchpad: options.config.scratchpad } : {}),
     });
+    this.contextCompaction = new ContextCompactionService({
+      events: (threadId) => this.runtime.agent().eventsOf(threadId),
+      save: (threadId, events) => options.config.storage.save(threadId, events),
+      isRunning: (threadId) => this.activeTurns.has(threadId),
+      fragments: () => options.config.fragments ?? [],
+      tools: () => this.visibleTools(),
+      windowTokens: () => this.windows.of(options.config.model.name),
+      ...(options.config.compactionMaxTokens !== undefined
+        ? { maxTokens: options.config.compactionMaxTokens }
+        : {}),
+      ...(options.config.compactionKeepRecent !== undefined
+        ? { keepRecent: options.config.compactionKeepRecent }
+        : {}),
+      ...(options.config.compactionDeterministicShrink !== undefined
+        ? { deterministicShrink: options.config.compactionDeterministicShrink }
+        : {}),
+      ...(options.config.scratchpad !== undefined ? { scratchpad: options.config.scratchpad } : {}),
+      ...(options.config.storage.location !== undefined
+        ? { storageLocation: options.config.storage.location }
+        : {}),
+    });
+    try {
+      this.proofSigner = new ProofSignerService();
+    } catch {
+      this.proofSigner = undefined;
+    }
     this.proof = new ProofService({
       events: (threadId) => this.runtime.agent().eventsOf(threadId),
       tools: () => this.visibleTools(),
       audit: () => this.options.audit,
+      ...(this.proofSigner !== undefined ? { signer: this.proofSigner } : {}),
     });
-    this.proofVerifier = new ProofVerifier();
+    this.proofVerifier = new ProofVerifier(this.proofSigner?.trustStore);
     // ── 编排（必须最后：以完整装配好的门面注入） ──
     this.turns = new TurnOrchestration(this);
   }

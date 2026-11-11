@@ -52,8 +52,10 @@ export interface ProofBundleView {
   readonly turnIndex: number;
   /** 用户回合序号（1 起；系统回合为 0）。 */
   readonly displayIndex: number;
-  /** 执行证书（未签名；签名是 v3 能力）。 */
+  /** 执行证书（未签名；`signature` 非空时表示本机签名）。 */
   readonly certificate?: ExecutionCertificate;
+  /** 本机签名标识（不含签名字节；仅用于 UI 展示 kid/alg）。 */
+  readonly signature?: { readonly kid: string; readonly alg: 'EdDSA' | 'ES256' };
   /** 六项复核结论（与 certificate 同次构造，无需二次请求）。 */
   readonly checks: readonly ProofCheck[];
   /** 总体状态：structural（结构自洽，未签名）/ signed / failed / unverified。 */

@@ -59,6 +59,15 @@ export const EN_TABS_C: Record<string, string> = {
   '轨迹未落盘（子代理未产生事件或存档不可读）': 'trace not persisted (no child events or archive unreadable)',
   '禁写（copy 隔离）': 'writes disabled (copy isolation)',
   '改动不可取回': 'changes unrecoverable',
+  '这条车道没有可取消的调用 id。': 'This lane has no cancellable call id.',
+  '取消子代理': 'Cancel subagent',
+  '取消这个子代理？已产生的 patch 会保留，但当前子任务会中止。':
+    'Cancel this subagent? Its generated patch is kept, but the current subtask will abort.',
+  '保留': 'Keep',
+  '已发送取消信号；状态会在下一次刷新时更新。':
+    'Cancellation signal sent; the status will update on the next refresh.',
+  '正在取消…': 'Cancelling…',
+  '只中止这一条子代理；父会话继续。': 'Only this subagent is aborted; the parent session continues.',
   '查看补丁': 'View patch',
   '补丁预览': 'Patch preview',
   '关闭预览': 'Close preview',
@@ -66,7 +75,15 @@ export const EN_TABS_C: Record<string, string> = {
   '补丁不可读：{msg}': 'Patch unreadable: {msg}',
   '{bytes} 字节': '{bytes} bytes',
   '已截断（仅前 512 KB）': 'truncated (first 512 KB only)',
-  '只读预览，不会自动应用补丁。': 'Read-only preview; the patch is never applied automatically.',
+  '应用这个补丁到主工作区？会直接修改文件，不会自动提交或回滚。':
+    'Apply this patch to the main workspace? It modifies files directly; no auto-commit or rollback.',
+  '应用补丁': 'Apply patch',
+  '应用': 'Apply',
+  '补丁已应用到主工作区。': 'Patch applied to the main workspace.',
+  '应用中…': 'Applying…',
+  '截断的补丁不能应用。': 'A truncated patch cannot be applied.',
+  '应用到主工作区；不会自动提交。': 'Applies to the main workspace; no auto-commit.',
+  '只读预览；确认后才会写入主工作区。': 'Read-only preview; it is written only after explicit confirmation.',
   ' 步': ' steps',
   // 上下文模式
   '先选择一个会话，再查看上下文。': 'Select a session first to inspect context.',
@@ -82,8 +99,26 @@ export const EN_TABS_C: Record<string, string> = {
   '折叠 {n} 条': 'folded {n} messages',
   '未记录审计': 'no audit recorded',
   '前缀指纹 {hash}': 'prefix fingerprint {hash}',
+  '立即压缩': 'Compact now',
+  '压缩中…': 'Compacting…',
+  '只对空闲会话生效；会写回压缩游标，不是仅刷新显示。':
+    'Only for idle sessions; writes the compaction cursor, not just a UI refresh.',
+  '立即压缩上下文': 'Compact context now',
+  '压缩': 'Compact',
+  '立即压缩会改写压缩游标并折叠较早历史；运行中的会话会被拒绝。确定继续？':
+    'Compacting now rewrites the compaction cursor and folds earlier history; running sessions are refused. Continue?',
+  '压缩已写入：折叠 {n} 条，下一次请求会使用新游标。':
+    'Compaction written: {n} messages folded; the next request uses the new cursor.',
   '压缩记录': 'Compaction records',
   '交接便签': 'Handoff notes',
+  '工作区级便签；压缩摘要会自动带上最新一条，重置后仍能恢复「做到哪、下一步」。':
+    'Workspace-level notes; the latest one is folded into the compaction summary so the task state survives a reset.',
+  '写一条交接便签': 'Write a handoff note',
+  '例：已完成 A；下一步 B；约束：不要改 C。': 'e.g. A is done; next B; constraint: do not touch C.',
+  '写入便签': 'Save note',
+  '写入中…': 'Saving…',
+  '便签通道未接线，写入失败。': 'Note channel is not wired; write failed.',
+  '交接便签已写入；下一次压缩会带上它。': 'Handoff note saved; the next compaction will include it.',
   '便签通道已接线，但还没有便签。': 'Note channel is wired, but there are no notes yet.',
   '便签通道未接线（内核 ScratchpadPort 在当前 serve 路径没有注入点），v1 暂无便签；接线后这里显示跨压缩存活的交接内容。':
     'Notes channel not wired (the kernel ScratchpadPort has no injection point in the current serve path); v1 shows none. Once wired, cross-compaction handoffs appear here.',
@@ -103,6 +138,9 @@ export const EN_TABS_C: Record<string, string> = {
   '复核失败：{msg}': 'Verification failed: {msg}',
   '第 {n} 回合 · {state}': 'Turn {n} · {state}',
   '结构自洽（未签名）': 'structurally consistent (unsigned)',
+  '已签名（本机信任根）': 'signed (local trust root)',
+  '本机签名 {kid} · {alg}': 'signed by {kid} · {alg}',
+  '未签名：只能证明结构自洽': 'unsigned: only structural consistency is proven',
   '已签名': 'signed',
   '复核失败': 'failed',
   '未复核': 'unverified',
@@ -134,6 +172,7 @@ export const EN_TABS_C: Record<string, string> = {
   '导出于 {time}': 'exported at {time}',
   '复核器未报告问题；这不等于内容真实或来源可信。':
     'The verifier reported no problems; this does not prove the content is true or the origin trustworthy.',
+  '导出包含执行证书、整包签名与事件流；本机信任根可离线验签。': 'Exports the execution certificate, whole-bundle signature, and event stream; a local trust root can verify it offline.',
   '导出为本地 JSON 文件（包含执行证书与事件流）；未签名包只能证明结构自洽。复核方需自行核对来源。':
     'Exports a local JSON file (execution certificate + event stream); an unsigned bundle only proves structural consistency. Verifiers must check the origin themselves.',
   '下载证据包': 'Download evidence bundle',

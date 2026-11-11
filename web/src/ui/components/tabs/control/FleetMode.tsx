@@ -79,11 +79,13 @@ function laneKey(node: FleetNodeLike): string {
 /** 编队模式：父会话的车道一览。 */
 export function FleetMode(props: FleetModeProps): ReactElement {
   const { snapshot, loading, error, staleMs, refresh } = useFleet(props.threadId, props.active);
-  const { api } = useApp();
+  const { api, dialog, toast } = useApp();
   const [selected, setSelected] = React.useState<string | null>(null);
   const [patch, setPatch] = React.useState<FleetPatchResultLike | null>(null);
   const [patchError, setPatchError] = React.useState<string | null>(null);
   const [patchLoading, setPatchLoading] = React.useState(false);
+  const [cancelling, setCancelling] = React.useState<string | null>(null);
+  const [applying, setApplying] = React.useState(false);
   /** 预览请求序号：切车道/关闭后旧响应不得落到新车道。 */
   const patchSeqRef = React.useRef(0);
 
@@ -113,6 +115,82 @@ export function FleetMode(props: FleetModeProps): ReactElement {
         });
     },
     [api],
+  );
+
+  /**
+   * 取消一条运行中的子代理；先确认，再发取消信号。
+   * @param node 车道。
+   */
+  const cancelCall = React.useCallback(
+    async (node: FleetNodeLike): Promise<void> => {
+      if (node.callId === undefined) {
+        toast(t('这条车道没有可取消的调用 id。'), 'err');
+        return;
+      }
+      const ok = await dialog.confirm(
+        t('取消这个子代理？已产生的 patch 会保留，但当前子任务会中止。'),
+        {
+          title: t('取消子代理'),
+          confirmLabel: t('取消子代理'),
+          cancelLabel: t('保留'),
+          danger: true,
+        },
+      );
+      if (!ok) return;
+      setCancelling(node.callId);
+      try {
+        const result = await api.fleetCancel(node.callId);
+        if (result.ok) {
+          toast(t('已发送取消信号；状态会在下一次刷新时更新。'), 'info');
+          refresh();
+        } else {
+          toast(result.message, 'err');
+        }
+      } catch (e) {
+        toast(e instanceof Error ? e.message : String(e), 'err');
+      } finally {
+        setCancelling(null);
+      }
+    },
+    [api, dialog, refresh, t, toast],
+  );
+
+  /**
+   * 应用补丁：二次确认后写主工作区；不自动提交。
+   * @param path 工作区相对路径。
+   */
+  const applyPatch = React.useCallback(
+    (path: string): void => {
+      void dialog
+        .confirm(
+          t('应用这个补丁到主工作区？会直接修改文件，不会自动提交或回滚。'),
+          {
+            title: t('应用补丁'),
+            confirmLabel: t('应用'),
+            cancelLabel: t('取消'),
+            danger: true,
+          },
+        )
+        .then((ok) => {
+          if (!ok) return;
+          setApplying(true);
+          return api
+            .fleetApplyPatch(path)
+            .then((result) => {
+              if (!result.ok) {
+                toast(result.message, 'err');
+                return;
+              }
+              toast(t('补丁已应用到主工作区。'), 'info');
+              setPatch(null);
+              setPatchError(null);
+              refresh();
+            })
+            .catch((e: unknown) => toast(e instanceof Error ? e.message : String(e), 'err'))
+            .finally(() => setApplying(false));
+        });
+    },
+    [api, dialog, refresh, t, toast],
   );
 
   if (props.threadId === null || props.threadId === '') {
@@ -179,13 +257,20 @@ export function FleetMode(props: FleetModeProps): ReactElement {
       </div>
       {selectedNode !== null ? (
         <>
-          <LaneDetail node={selectedNode} onViewPatch={openPatch} />
+          <LaneDetail
+            node={selectedNode}
+            onViewPatch={openPatch}
+            onCancel={cancelCall}
+            cancelling={cancelling}
+          />
           {patchLoading || patch !== null || patchError !== null ? (
             <PatchPreview
               path={selectedNode.patchPath ?? ''}
               loading={patchLoading}
               result={patch}
               error={patchError}
+              applying={applying}
+              onApply={() => applyPatch(selectedNode.patchPath ?? '')}
               onClose={() => {
                 patchSeqRef.current += 1;
                 setPatchLoading(false);
@@ -246,6 +331,8 @@ function LaneRow(props: LaneRowProps): ReactElement {
 interface LaneDetailProps {
   readonly node: FleetNodeLike;
   readonly onViewPatch: (path: string) => void;
+  readonly onCancel: (node: FleetNodeLike) => void;
+  readonly cancelling: string | null;
 }
 
 /** 选中车道详情：任务原文 / 隔离 / 改动 / 验证 / 轨迹可用性（只读）。 */
@@ -308,6 +395,19 @@ function LaneDetail(props: LaneDetailProps): ReactElement {
               : t('轨迹未落盘（子代理未产生事件或存档不可读）')}
         </dd>
       </dl>
+      {node.status === 'running' && node.callId !== undefined ? (
+        <div className="control-detail__actions">
+          <button
+            type="button"
+            className="control-danger-action"
+            disabled={props.cancelling === node.callId}
+            onClick={() => props.onCancel(node)}
+          >
+            {props.cancelling === node.callId ? t('正在取消…') : t('取消子代理')}
+          </button>
+          <span className="hint">{t('只中止这一条子代理；父会话继续。')}</span>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -332,6 +432,8 @@ interface PatchPreviewProps {
   readonly loading: boolean;
   readonly result: FleetPatchResultLike | null;
   readonly error: string | null;
+  readonly applying: boolean;
+  readonly onApply: () => void;
   readonly onClose: () => void;
 }
 
@@ -358,7 +460,22 @@ function PatchPreview(props: PatchPreviewProps): ReactElement {
             {props.result.truncated ? ` · ${t('已截断（仅前 512 KB）')}` : ''}
           </p>
           <pre className="control-patch__body">{props.result.content}</pre>
-          <p className="hint">{t('只读预览，不会自动应用补丁。')}</p>
+          <p className="hint">{t('只读预览；确认后才会写入主工作区。')}</p>
+          <div className="control-detail__actions">
+            <button
+              type="button"
+              className="control-danger-action"
+              disabled={props.applying || props.result.truncated}
+              onClick={props.onApply}
+            >
+              {props.applying ? t('应用中…') : t('应用补丁')}
+            </button>
+            {props.result.truncated ? (
+              <span className="hint">{t('截断的补丁不能应用。')}</span>
+            ) : (
+              <span className="hint">{t('应用到主工作区；不会自动提交。')}</span>
+            )}
+          </div>
         </>
       ) : null}
     </section>

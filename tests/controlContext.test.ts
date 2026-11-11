@@ -80,6 +80,33 @@ test('ContextStudioService：事件流不可读返回快照级错误，不伪装
   assert.deepEqual(snapshot.compactions, []);
 });
 
+test('ContextStudioService：便签接入后读取最近便签，并能追加交接物', async () => {
+  const notes = [
+    { id: 'n1', at: new Date(1).toISOString(), text: '已完成 A', tags: ['handoff'] },
+  ];
+  const scratchpad = {
+    append(text: string, tags?: readonly string[]) {
+      const note = { id: `n${notes.length + 1}`, at: new Date(2).toISOString(), text, ...(tags !== undefined ? { tags } : {}) };
+      notes.unshift(note);
+      return note;
+    },
+    recent: (k = 10) => notes.slice(0, k),
+    clear: () => { notes.length = 0; },
+  };
+  const service = new ContextStudioService({
+    usage: () => Promise.resolve(REPORT),
+    events: () => Promise.resolve([]),
+    scratchpad,
+  });
+  const snapshot = await service.snapshotOf('sess_test');
+  assert.equal(snapshot.handoffAvailable, true);
+  assert.equal(snapshot.handoff.length, 1);
+  assert.equal(snapshot.handoff[0]?.text, '已完成 A');
+  const added = service.appendHandoff('下一步 B', ['handoff']);
+  assert.equal(added?.text, '下一步 B');
+  assert.equal(notes.length, 2);
+});
+
 test('ContextStudioService：空会话不触发事件回放，返回空压缩记录', async () => {
   let read = 0;
   const service = new ContextStudioService({

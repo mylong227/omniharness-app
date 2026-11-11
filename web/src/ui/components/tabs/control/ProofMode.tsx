@@ -149,6 +149,14 @@ export function ProofMode(props: ProofModeProps): ReactElement {
               <span className="hint">{t('事件根')}</span>{' '}
               <span className="mono">{proof.bundle.certificate.eventRoot}</span>
             </p>
+            <p className="control-meta">
+              {proof.bundle.signature !== undefined
+                ? t('本机签名 {kid} · {alg}', {
+                    kid: proof.bundle.signature.kid,
+                    alg: proof.bundle.signature.alg,
+                  })
+                : t('未签名：只能证明结构自洽')}
+            </p>
             <p className="hint">
               {t('证明的是事件流的完整性与顺序，不等于「模型说的都是真的」。')}
             </p>
@@ -173,9 +181,11 @@ export function ProofMode(props: ProofModeProps): ReactElement {
           <section className="control-block" aria-label={t('导出')}>
             <h3>{t('证据包')}</h3>
             <p className="hint">
-              {t(
-                '导出为本地 JSON 文件（包含执行证书与事件流）；未签名包只能证明结构自洽。复核方需自行核对来源。',
-              )}
+              {proof.bundle.signature !== undefined
+                ? t('导出包含执行证书、整包签名与事件流；本机信任根可离线验签。')
+                : t(
+                    '导出为本地 JSON 文件（包含执行证书与事件流）；未签名包只能证明结构自洽。复核方需自行核对来源。',
+                  )}
             </p>
             <button type="button" onClick={onExport} disabled={proof.building || proof.selectedTurn === null}>
               {proof.building ? t('构造中…') : t('下载证据包')}
@@ -302,7 +312,7 @@ function downloadOf(result: ProofExportResultLike): void {
 function stateText(state: ProofBundleViewLike['state']): string {
   switch (state) {
     case 'signed':
-      return t('已签名');
+      return t('已签名（本机信任根）');
     case 'failed':
       return t('复核失败');
     case 'structural':

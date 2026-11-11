@@ -15,6 +15,8 @@ import { AskApproval } from '../../../host/kernel/adapters-approval.ts';
 import { ServerNoopSupervisor } from './serverNoopSupervisor.ts';
 import type { ResolvedConfig } from '../../../host/kernel/contracts.ts';
 import type { SubagentPortsShape } from '../../../host/kernel/contracts.ts';
+import type { FleetControlRegistry } from '../services/fleet/fleetControlRegistry.ts';
+import { FleetToolPort } from '../services/fleet/fleetControlRegistry.ts';
 
 /** Agent/图运行时宿主依赖。 */
 export interface AgentRuntimeDeps {
@@ -45,6 +47,8 @@ export interface AgentRuntimeDeps {
   readonly modelOverride: () => ModelPort | undefined;
   /** 当前生效工作区根（图存储位置用）。 */
   readonly workspaceRoot: () => string;
+  /** 子代理取消令牌表（工具端口包装注入）。 */
+  readonly fleetControl: FleetControlRegistry;
 }
 
 /**
@@ -185,6 +189,7 @@ export class AgentRuntimeHost {
         ...(modelOverride !== undefined ? { model: modelOverride } : {}),
         events: this.deps.eventPort(),
         approvals: this.resolveApprovals(config),
+        tools: new FleetToolPort(config.tools, this.deps.fleetControl),
       };
       const supervisor = this.bypassSupervisorKernel(serverConfig);
       this.agentCache = new Agent(
@@ -264,6 +269,7 @@ export class AgentRuntimeHost {
         // 「点击运行即视为已授权」的旧口径只在 auto 档下成立；无人值守场景（ask 档弹框
         // 无人应答）由上行审批的超时 deny 兜底，不会永久挂死。
         approvals: this.resolveApprovals(config),
+        tools: new FleetToolPort(config.tools, this.deps.fleetControl),
       };
       const supervisor = this.bypassSupervisorKernel(serverConfig);
       this.portsCache = SubagentPorts.portsOf(

@@ -5,7 +5,7 @@
 > `npm run kernel:check` 第 7 条强制单点、第 8 条拒绝生成物漂移、第 9 条拒绝「已承诺能力的同名副本」）；
 > 内核切片清掉、app 仍需要的能力收留于 **`src/host/extensions/`**（app 自有扩展层，原 `kernel-compat/`，
 > M27 兼容层清零后更名；归属契约见[其 README](../src/host/extensions/README.md)）。
-> 后端 RPC 面由 **17 个域模块声明式注册**（99 方法，parity 快照钉住）。
+> 后端 RPC 面由 **17 个域模块声明式注册**（104 方法，parity 快照钉住）。
 
 ## 1. 现在的依赖方向
 
@@ -27,7 +27,7 @@ web/ + desktop/ ──HTTP/SSE──▶ src/apps（宿主：CLI / RPC 域模块 
 
 - `src/**` 只有 `src/host/kernel/<域>.ts` 允许 `import '@omniharness/kernel…'`；
   业务代码（含 `src/host/extensions/`）一律经对接面消费——全仓不出现内核包名
-  （实测 270 源文件 / 288 处包导入全部命中，`kernel:check` 实载验证）。
+  （实测 274 源文件 / 288 处包导入全部命中，`kernel:check` 实载验证）。
 - `src/host/kernel/` 只放**自动生成**的 19 个分域 re-export，**不放实现**
   （Laya 与解析器在 `extensions/kernel/`，企业 OIDC 适配器在 `src/apps/enterprise/`）。
 - `extensions/` 只依赖 `../kernel/<域>.ts` 与目录内相对路径，同样不得绕过对接面。
@@ -54,7 +54,7 @@ web/ + desktop/ ──HTTP/SSE──▶ src/apps（宿主：CLI / RPC 域模块 
 2026-11-08 上午清死桶 `src/indexBeta.ts`（从未接线的 beta 发布面，消费 45 处内核符号却零被消费）
 并把模型探针/注入度量收编进 `eval` 域后 263/318/18 → 同日下午 M31 收口（迁走 2 件影子、
 删 1 个 compat 桶与 2 个旧实现文件）后 260/287/18 → 傍晚 M32 收口（删 5 件影子、加 1 个
-`maintenance` 域）后 **270 源文件 / 288 处导入 / 19 域**（对接面 408 符号 / 241 条模块落点：
+`maintenance` 域）后 **274 源文件 / 288 处导入 / 19 域**（对接面 408 符号 / 241 条模块落点：
 238 条深路径 + 3 个 curated 子路径）。内核**已承诺**能力的影子由此**真正**清零：
 M31 的账把 5 件「内核未承诺」自留件登记在案，M32 复核发现它们早就在 `./sandbox` / `./mcp` /
 `./maintenance` 的**再导出桶**里被承诺——旧扫描只认 `.d.ts` 直接声明才漏检。现在业务对内核的
@@ -135,8 +135,8 @@ M22–M31 的每一轮内核升级都走的这条回路，常态业务代码零�
 | 检查 | 结果 |
 | ---- | ---- |
 | `npm run typecheck`（后端 / 前端 / 桌面） | ✅ 0 error |
-| `npm run kernel:check` | ✅ 270 源文件 / 288 处包导入（19 域，全部收敛对接面）/ 内嵌副本 0 / integrity 一致 / native ping / 生成物一致 / extensions 无已承诺影子 |
+| `npm run kernel:check` | ✅ 274 源文件 / 288 处包导入（19 域，全部收敛对接面）/ 内嵌副本 0 / integrity 一致 / native ping / 生成物一致 / extensions 无已承诺影子 |
 | `npm run build` + `npm run smoke` | ✅ 8/8（banner token、healthz、readyz、HTML、config.get、sessions.list、原生内核实载） |
-| `npm run web:test` | ✅ 177 文件 / 818 用例（web 771 + 后端 47；含 parity/守卫/家具/golden/影子扫描） |
+| `npm run web:test` | ✅ 180 文件 / 828 用例（web 772 + 后端 56；含 parity/守卫/家具/golden/影子扫描） |
 | `npm run desktop:build` + `desktop:test` | ✅ 36/36 |
 | 嵌入 API 实测 | ✅ `createOmniHarness` 启动 / healthz 200 / RPC 往返 / 优雅关闭（tests/embedApi.test.ts 常规跑） |

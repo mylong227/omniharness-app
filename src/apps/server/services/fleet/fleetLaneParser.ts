@@ -95,6 +95,7 @@ export class FleetLaneParser {
       callId: payload.callId,
       node: {
         parentSessionId,
+        callId: payload.callId,
         task,
         status: 'running',
         startedAt: event.timestamp,

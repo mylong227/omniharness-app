@@ -6,6 +6,7 @@
 import * as React from 'react';
 import type { ReactElement } from 'react';
 import { t } from '../../../i18n/i18n.ts';
+import { useApp } from '../../../context.ts';
 import { timeOf } from '../../../format.ts';
 import type { CompactionMarkLike } from '../../../../types/models.ts';
 import { useContextStudio } from './useContextStudio.ts';
@@ -21,7 +22,73 @@ export interface ContextModeProps {
 /** 上下文模式：构成 / 河流切点 / 压缩记录。 */
 export function ContextMode(props: ContextModeProps): ReactElement {
   const { snapshot, loading, error, refresh } = useContextStudio(props.threadId, props.active);
+  const { api, dialog, toast } = useApp();
   const [openMark, setOpenMark] = React.useState<number | null>(null);
+  const [noteText, setNoteText] = React.useState('');
+  const [noteBusy, setNoteBusy] = React.useState(false);
+  const [compacting, setCompacting] = React.useState(false);
+
+  /**
+   * 追加一条交接便签并刷新快照。
+   * @returns 无
+   */
+  const addNote = React.useCallback((): void => {
+    const text = noteText.trim();
+    if (text === '' || noteBusy) return;
+    setNoteBusy(true);
+    api
+      .contextHandoffAdd(text, ['handoff'])
+      .then((note) => {
+        if (note === null) {
+          toast(t('便签通道未接线，写入失败。'), 'err');
+          return;
+        }
+        setNoteText('');
+        refresh();
+        toast(t('交接便签已写入；下一次压缩会带上它。'), 'info');
+      })
+      .catch((e: unknown) => toast(e instanceof Error ? e.message : String(e), 'err'))
+      .finally(() => setNoteBusy(false));
+  }, [api, noteBusy, noteText, refresh, t, toast]);
+
+  /**
+   * 立即压缩：二次确认后写回压缩游标。
+   * @returns 无
+   */
+  const compactNow = React.useCallback((): void => {
+    if (compacting) return;
+    void dialog
+      .confirm(
+        t('立即压缩会改写压缩游标并折叠较早历史；运行中的会话会被拒绝。确定继续？'),
+        {
+          title: t('立即压缩上下文'),
+          confirmLabel: t('压缩'),
+          cancelLabel: t('取消'),
+          danger: true,
+        },
+      )
+      .then((ok) => {
+        if (!ok) return;
+        setCompacting(true);
+        return api
+          .contextCompact(props.threadId ?? '')
+          .then((result) => {
+            if (!result.ok) {
+              toast(result.message, 'err');
+              return;
+            }
+            toast(
+              t('压缩已写入：折叠 {n} 条，下一次请求会使用新游标。', {
+                n: result.compactedUpTo,
+              }),
+              'info',
+            );
+            refresh();
+          })
+          .catch((e: unknown) => toast(e instanceof Error ? e.message : String(e), 'err'))
+          .finally(() => setCompacting(false));
+      });
+  }, [api, compacting, dialog, props.threadId, refresh, t, toast]);
 
   if (props.threadId === null || props.threadId === '') {
     return <div className="control-mode">{t('先选择一个会话，再查看上下文。')}</div>;
@@ -65,6 +132,19 @@ export function ContextMode(props: ContextModeProps): ReactElement {
         <p className="control-meta mono">
           {report.usedTokens.toLocaleString()} / {report.windowTokens.toLocaleString()} · {report.percent}%
         </p>
+        <div className="control-detail__actions">
+          <button
+            type="button"
+            className="control-danger-action"
+            disabled={compacting}
+            onClick={compactNow}
+          >
+            {compacting ? t('压缩中…') : t('立即压缩')}
+          </button>
+          <span className="hint">
+            {t('只对空闲会话生效；会写回压缩游标，不是仅刷新显示。')}
+          </span>
+        </div>
         <div className="control-usage" role="img" aria-label={t('六类构成')}>
           {report.rows.map((row) => (
             <div
@@ -105,21 +185,44 @@ export function ContextMode(props: ContextModeProps): ReactElement {
       <section className="control-block" aria-label={t('交接便签')}>
         <h3>{t('交接便签')}</h3>
         {snapshot.handoffAvailable ? (
-          snapshot.handoff.length === 0 ? (
-            <p className="hint">{t('便签通道已接线，但还没有便签。')}</p>
-          ) : (
-            <ul className="control-notes">
-              {snapshot.handoff.map((note) => (
-                <li key={note.id}>
-                  <p>{note.text}</p>
-                  <p className="hint">
-                    {timeOf(Date.parse(note.createdAt))}
-                    {note.tags.length > 0 ? ` · ${note.tags.join('、')}` : ''}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )
+          <>
+            <p className="hint">
+              {t('工作区级便签；压缩摘要会自动带上最新一条，重置后仍能恢复「做到哪、下一步」。')}
+            </p>
+            <label className="control-note-form">
+              <span>{t('写一条交接便签')}</span>
+              <textarea
+                rows={3}
+                value={noteText}
+                maxLength={2000}
+                placeholder={t('例：已完成 A；下一步 B；约束：不要改 C。')}
+                onChange={(event) => setNoteText(event.target.value)}
+              />
+            </label>
+            <button
+              type="button"
+              className="control-inline-action"
+              disabled={noteText.trim() === '' || noteBusy}
+              onClick={addNote}
+            >
+              {noteBusy ? t('写入中…') : t('写入便签')}
+            </button>
+            {snapshot.handoff.length === 0 ? (
+              <p className="hint">{t('便签通道已接线，但还没有便签。')}</p>
+            ) : (
+              <ul className="control-notes">
+                {snapshot.handoff.map((note) => (
+                  <li key={note.id}>
+                    <p>{note.text}</p>
+                    <p className="hint">
+                      {timeOf(Date.parse(note.createdAt))}
+                      {note.tags.length > 0 ? ` · ${note.tags.join('、')}` : ''}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
         ) : (
           <p className="hint">
             {t(

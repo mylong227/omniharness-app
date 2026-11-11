@@ -36,6 +36,15 @@ export class CompactionMarkerReader {
     if (match === null) return undefined;
     return { compactedUpTo: Number(match[1]), headHash: match[2]!, summary };
   }
+
+  /**
+   * 编码压缩游标为内核可解码的文本（与 `CompactionStateCodec.encode` 同格式）。
+   * @param state 压缩游标。
+   * @returns `OMNI_COMPACTION_V1 upTo=<n> hash=<hex>\n<summary>`。
+   */
+  public static encode(state: CompactionCursor): string {
+    return `${COMPACTION_MARKER} upTo=${String(state.compactedUpTo)} hash=${state.headHash}\n${state.summary}`;
+  }
 }
 
 /** 解码产物（内核 `CompactionState` 的应用侧形状：同字段、只读）。 */

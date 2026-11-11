@@ -46,8 +46,8 @@ describe('RPC parity 快照（coreModules）', () => {
   const entries = collectMethods(coreModules());
   const methods = entries.map((e) => e.method).sort();
 
-  it('方法总数 == 99（92 + 控制室 7 个只读方法；有意识地增减并同步 web ApiClient）', () => {
-    expect(methods.length).toBe(99);
+  it('方法总数 == 104（92 + 控制室 12 个只读/控制方法；有意识地增减并同步 web ApiClient）', () => {
+    expect(methods.length).toBe(104);
   });
 
   it('全量方法清单（按域前缀分组快照）', () => {
@@ -79,10 +79,15 @@ describe('RPC parity 快照（coreModules）', () => {
         "checkpoint.rollback",
         "config.get",
         "config.update",
+        "context.compact",
+        "context.handoff.add",
+        "context.handoff.clear",
         "context.studio",
         "context.usage",
         "daemon.status",
         "doctor.report",
+        "fleet.applyPatch",
+        "fleet.cancel",
         "fleet.list",
         "fleet.patch",
         "fs.browse",
@@ -168,6 +173,10 @@ describe('RPC parity 快照（coreModules）', () => {
     expect(byOwner.get('sessions.setPinned')).toBe('sessions');
     expect(byOwner.get('context.usage')).toBe('surface');
     expect(byOwner.get('fleet.list')).toBe('control');
+    expect(byOwner.get('fleet.cancel')).toBe('control');
+    expect(byOwner.get('fleet.applyPatch')).toBe('control');
+    expect(byOwner.get('context.compact')).toBe('control');
+    expect(byOwner.get('context.handoff.add')).toBe('control');
     expect(byOwner.get('fleet.patch')).toBe('control');
     expect(byOwner.get('proof.verify')).toBe('control');
     expect(byOwner.get('context.studio')).toBe('control');

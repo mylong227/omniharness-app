@@ -1,6 +1,6 @@
 # 控制室（Control Room）· 功能需求与设计
 
-> 状态：**v1（只读）+ P2 交付闭环已实现**（2026-11-11）；写操作 / 签名仍待排期
+> 状态：**v1 + P2 + P3 已实现**（2026-11-11）；P3 含取消/应用补丁/便签/压缩/本机签名
 > 日期：2026-11-10（设计）/ 2026-11-11（v1 实现）  
 > 内核：`@omniharness/kernel@0.1.0-alpha.16`  
 > 范围：Web 控制台 + 桌面壳共用；沿用「纸与墨」视觉体系，不新建视觉世界  
@@ -11,7 +11,7 @@
 
 ## 0. 一页结论
 
-调研起点是 19 个功能面板、92 个 RPC；v1 落地后为 **20 个面板 / 99 个 RPC**（新增 `control` 与 7 个只读方法）。
+调研起点是 19 个功能面板、92 个 RPC；v1 落地后为 **20 个面板 / 104 个 RPC**（新增 `control` 与 12 个读/写方法）。
 
 1. **子代理编排**：内核有 `SubagentOrchestrator` / `SubagentResult` / 隔离工作树 / 补丁回传，应用侧只有 CLI `workflow` 在用，Web 只能通过 `agents.list` 选一个“智能体角色”，看不到运行时编队。
 2. **上下文压缩**：内核有确定性的 `CompactionReconstructor`、压缩状态审计、工具台账、交接便签；Web 只有左下角容量图表，看不到“压缩切点、丢了什么、下次还会丢什么”。
@@ -38,8 +38,11 @@
 | 凭证只读（证书 + 6 项复核 + JSON 导出） | 已实现 | `src/apps/server/services/proof/*`、`proof.turns/build/export` |
 | P2 编队补丁预览（限目录/限 512 KB） | 已实现 | `fleet.patch`、`fleetPatchReader.ts` |
 | P2 证据包导入复核（结构自洽，不信任签名） | 已实现 | `proof.verify`、`proofVerifier.ts` |
-| 取消 / 应用补丁 / 写便签 / 强制压缩 / 签名 | **未实现** | P3；需要改服务端生命周期或配置信任根 |
-| 判据 | 177 文件 / 818 用例全绿；桌面冒烟 8 项；axe 桌面控制室 0 serious/critical | `npm run web:test`、`desktop/scripts/smoke.mjs` |
+| P3 取消/应用补丁 | 已实现 | `fleet.cancel`、`fleet.applyPatch`、`FleetToolPort`、`FleetPatchApplier` |
+| P3 交接便签/强制压缩 | 已实现 | `context.handoff.*`、`context.compact`、`ContextCompactionService` |
+| P3 本机签名/信任根 | 已实现 | `ProofSignerService`、Ed25519、`ExecutionCertificates.sign`、`AuditBundles.sign` |
+| 取消 / 应用补丁 / 写便签 / 强制压缩 / 签名 | **已实现（P3）** | 见 `06-p3-actions-and-trust.md` |
+| 判据 | 180 文件 / 828 用例全绿；桌面冒烟 8 项；axe 桌面控制室 0 serious/critical | `npm run web:test`、`desktop/scripts/smoke.mjs` |
 
 诚实边界保持不变：未配置 signer 时凭证只显示「结构自洽（未签名）」；压缩审计不落事件流时显示「未记录审计」；scratchpad 未接线时显示「便签通道未接线」。
 
@@ -689,7 +692,7 @@ src/apps/server/modules/
 | `web/src/core/ApiClient.ts` | 5 个 v1 方法 + 后续动作方法 |
 | `src/apps/server/modules/` | 新增 `control.ts` 或按域拆 `fleet.ts` / `context.ts` / `proof.ts`；登记到 `index.ts` |
 | `src/apps/server/core/serverServices.ts` | 装配 `FleetRegistry` / `ContextStudioService` / `ProofService` |
-| `tests/serverModulesParity.test.ts` | 更新 92 → 99 等方法数快照 |
+| `tests/serverModulesParity.test.ts` | 更新 92 → 104 等方法数快照 |
 
 面板必须保持「一个 job」：`ControlTab` 只做 tab 容器与会话级请求，不把三个模式的数据请求混在一个 effect 里；每个模式自己的 hook 负责自己的取消与缓存。
 

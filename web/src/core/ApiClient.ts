@@ -839,9 +839,36 @@ export class ApiClient {
   public fleetPatch(path: string): Promise<import('../types/models.ts').FleetPatchResultLike> {
     return this.rpc('fleet.patch', { path });
   }
+  /** 取消一条正在运行的子代理（只中止该调用，不取消父会话）。 */
+  public fleetCancel(callId: string): Promise<import('../types/models.ts').FleetCancelResultLike> {
+    return this.rpc('fleet.cancel', { callId });
+  }
+  /** 应用一条已预览的补丁到主工作区（必须显式 confirm）。 */
+  public fleetApplyPatch(
+    path: string,
+  ): Promise<import('../types/models.ts').FleetPatchApplyResultLike> {
+    return this.rpc('fleet.applyPatch', { path, confirm: true });
+  }
   /** 上下文工作室快照：六类构成 + 压缩记录 + 便签（v1 便签未接线如实标注）。 */
   public contextStudio(threadId: string): Promise<import('../types/models.ts').ContextStudioSnapshotLike> {
     return this.rpc('context.studio', { threadId });
+  }
+  /** 追加一条跨重置交接便签（工作区级）。 */
+  public contextHandoffAdd(
+    text: string,
+    tags?: readonly string[],
+  ): Promise<import('../types/models.ts').HandoffNoteLike | null> {
+    return this.rpc('context.handoff.add', tags === undefined ? { text } : { text, tags });
+  }
+  /** 清空交接便签（破坏性；UI 必须二次确认）。 */
+  public contextHandoffClear(): Promise<{ ok: boolean }> {
+    return this.rpc('context.handoff.clear', {});
+  }
+  /** 强制压缩一个空闲会话（写回压缩游标；UI 必须二次确认）。 */
+  public contextCompact(
+    threadId: string,
+  ): Promise<import('../types/models.ts').ContextCompactionResultLike> {
+    return this.rpc('context.compact', { threadId, confirm: true });
   }
   /** 凭证回合列表：按 user 事件切分的回合摘要（系统回合单独标注）。 */
   public proofTurns(threadId: string): Promise<import('../types/models.ts').ProofResult<readonly import('../types/models.ts').ProofTurnSummaryLike[]>> {

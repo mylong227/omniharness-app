@@ -1,5 +1,5 @@
 import { AuditBundles } from '../../../../host/kernel/util.ts';
-import type { AuditBundleVerdict } from '../../../../host/kernel/util.ts';
+import type { AuditBundleVerdict, TrustStore } from '../../../../host/kernel/util.ts';
 
 /** 导入包大小上限（2 MB；与导出上限一致）。 */
 const BUNDLE_MAX_BYTES = 2 * 1024 * 1024;
@@ -40,12 +40,23 @@ export type ProofVerifyResult = ProofVerifyView | ProofVerifyFailure;
 /**
  * 证据包离线复核器（`proof.verify` RPC 后端）。
  *
- * 只调用内核 `AuditBundles.verify`，不配置 trust store / anchor trust：
+ * 只调用内核 `AuditBundles.verify`；本机信任根可选：
+ * - 有本机 trust store 时可真正验本机自签；外部未知 kid 仍 `UNPROVEN_ORIGIN`；
  * - 结构自洽通过时 `verdict.ok` 可为 true，但 `signatureChecked:false`——UI 不得显示“已验证”；
  * - 没有带外承诺时 `commitmentChecked:false`，`COMMITMENT_UNVERIFIED` 原样透传；
  * - 外部 JSON 先做大小与对象形状检查，复核器抛错收敛为 `bundle_invalid`，不打断面板。
  */
 export class ProofVerifier {
+  /** 本机信任根（仅用于复核本机自签；外部未知 kid 仍 UNPROVEN_ORIGIN）。 */
+  private readonly trustStore: TrustStore | undefined;
+
+  /**
+   * @param trustStore 本机信任根（可选；缺省只做结构复核）
+   */
+  public constructor(trustStore?: TrustStore) {
+    this.trustStore = trustStore;
+  }
+
   /**
    * 复核一份导入的 AuditBundle。
    * @param bundle 外部 JSON 解析后的值（未信任）。
@@ -68,7 +79,9 @@ export class ProofVerifier {
     let verdict: AuditBundleVerdict;
     const inner = ProofVerifier.innerBundleOf(bundle);
     try {
-      verdict = AuditBundles.verify(bundle as Parameters<typeof AuditBundles.verify>[0]);
+      verdict = AuditBundles.verify(bundle as Parameters<typeof AuditBundles.verify>[0], {
+        ...(this.trustStore !== undefined ? { trustStore: this.trustStore } : {}),
+      });
     } catch (error) {
       return ProofVerifier.fail(
         'bundle_invalid',

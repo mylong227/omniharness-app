@@ -566,6 +566,8 @@ export type FleetStatus = 'queued' | 'running' | 'ok' | 'failed' | 'aborted' | '
 /** 一条子代理车道（`fleet.list` 的节点）。 */
 export interface FleetNodeLike {
   childSessionId?: string;
+  /** 工具调用 id（运行中可用于取消）。 */
+  callId?: string;
   parentSessionId: string;
   task: string;
   status: FleetStatus;
@@ -618,6 +620,30 @@ export interface ContextStudioSnapshotLike {
   collectedAt: string;
 }
 
+/** `context.compact` 成功返回体。 */
+export interface ContextCompactionViewLike {
+  ok: true;
+  compactedUpTo: number;
+  summary: string;
+  eventCount: number;
+}
+
+/** `context.compact` 判别失败。 */
+export interface ContextCompactionFailureLike {
+  ok: false;
+  code:
+    | 'no_session'
+    | 'session_running'
+    | 'compaction_noop'
+    | 'compaction_failed'
+    | 'compaction_persist_failed'
+    | 'confirm_required';
+  message: string;
+}
+
+/** `context.compact` 返回体。 */
+export type ContextCompactionResultLike = ContextCompactionViewLike | ContextCompactionFailureLike;
+
 /** 一条交接便签（服务端 HandoffNote 同形；v1 未接线时为空）。 */
 export interface HandoffNoteLike {
   id: string;
@@ -651,6 +677,8 @@ export interface ProofBundleViewLike {
   turnIndex: number;
   displayIndex: number;
   certificate?: ExecutionCertificateLike;
+  /** 本机签名标识（kid/alg；不含签名字节）。 */
+  signature?: { kid: string; alg: 'EdDSA' | 'ES256' };
   checks: readonly ProofCheckLike[];
   state: 'unverified' | 'structural' | 'signed' | 'failed';
   eventCount: number;
@@ -674,8 +702,29 @@ export interface FleetPatchFailureLike {
   message: string;
 }
 
+/** `fleet.cancel` 返回体。 */
+export type FleetCancelResultLike =
+  | { ok: true; callId: string }
+  | { ok: false; code: 'call_not_found'; message: string };
+
 /** `fleet.patch` 返回体。 */
 export type FleetPatchResultLike = FleetPatchViewLike | FleetPatchFailureLike;
+
+/** `fleet.applyPatch` 返回体。 */
+export type FleetPatchApplyResultLike =
+  | { ok: true; path: string }
+  | {
+      ok: false;
+      code:
+        | 'confirm_required'
+        | 'patch_forbidden'
+        | 'patch_unavailable'
+        | 'patch_not_text'
+        | 'patch_truncated'
+        | 'patch_conflict'
+        | 'git_unavailable';
+      message: string;
+    };
 
 /** 一条导入证据包的会话摘要。 */
 export interface ProofVerifySessionLike {

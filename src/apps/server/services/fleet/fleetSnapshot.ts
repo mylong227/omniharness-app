@@ -16,6 +16,8 @@ export type FleetStatus = 'queued' | 'running' | 'ok' | 'failed' | 'aborted' | '
 export interface FleetNode {
   /** 子会话 id（tool_result 回传后才有；运行中为 undefined）。 */
   readonly childSessionId?: string;
+  /** 工具调用 id（运行中即可用于 `fleet.cancel`；结果回传后仍保留）。 */
+  readonly callId?: string;
   /** 父会话 id（即请求的 threadId）。 */
   readonly parentSessionId: string;
   /** 一句话任务原文（tool_call 的 args.task）。 */
