@@ -43,6 +43,104 @@ const CHECK_KIND: Readonly<Record<ProofCheckLike['status'], StatusKind>> = {
   fail: 'err',
 };
 
+/**
+ * 复核问题码 → 人读语义（内核机读口径的 UI 对接，2026-11-13 alpha.18）。
+ *
+ * 覆盖两族：`AuditBundleProblem`（`proof.verify` 直接产出）与 `ReceiptProblemCode`
+ * （深层审计包复核器，问题流透传时同套口径）。内核 m52/m53 的主题是**诚实标记**：
+ * 「未验证」是独立档位（warn/info），绝不冒充「已验证」，也不与「验证失败」混档。
+ * 未收录的码按 err 兜底并原样展示机读码（fail-closed，不猜）。
+ */
+const PROBLEM_SEMANTICS: Readonly<Record<string, { readonly label: string; readonly kind: StatusKind }>> = {
+  // —— 审计包（proof.verify）族 ——
+  MALFORMED_BUNDLE: { label: '包结构非法', kind: 'err' },
+  EMPTY_BUNDLE: { label: '空包（无会话）', kind: 'err' },
+  DUPLICATE_SESSION: { label: '会话重复', kind: 'err' },
+  SESSION_MISMATCH: { label: '会话与证书不符', kind: 'err' },
+  CERTIFICATE_INVALID: { label: '执行证书无效', kind: 'err' },
+  RECEIPTS_INVALID: { label: '回执链无效', kind: 'err' },
+  RECEIPT_BINDING_MISMATCH: { label: '回执与证书绑定不符', kind: 'err' },
+  GRAPH_INVALID: { label: '执行图无效', kind: 'err' },
+  SIGNATURE_INVALID: { label: '签名验证失败', kind: 'err' },
+  UNPROVEN_ORIGIN: { label: '来源未能证明（外部签名者，非本机信任根）', kind: 'err' },
+  COMMITMENT_UNVERIFIED: { label: '无带外承诺可核对（未验证 ≠ 失败）', kind: 'warn' },
+  COMMITMENT_MISMATCH: { label: '带外承诺与包不符（尾截断/尾篡改嫌疑）', kind: 'err' },
+  // —— 深层审计包复核器族（问题流透传时同套口径）——
+  CHAIN_BREAK: { label: '哈希链断裂', kind: 'err' },
+  SEQ_GAP: { label: '回执序号不连续', kind: 'err' },
+  PAYLOAD_HASH_MISMATCH: { label: '载荷哈希重算不符', kind: 'err' },
+  NOT_CANONICAL: { label: '载荷非规范序列化', kind: 'err' },
+  NOT_ANCHORED: { label: '缺少外部锚定', kind: 'err' },
+  ANCHOR_MISMATCH: { label: '锚与回执不符', kind: 'err' },
+  ANCHOR_UNVERIFIED: { label: '锚定存在但未验证（诚实标记）', kind: 'warn' },
+  ANCHOR_MALFORMED: { label: '锚令牌不可解析（伪造/截断/非 DER）', kind: 'err' },
+  ANCHOR_IMPRINT_MISMATCH: { label: '令牌摘要与本回执载荷不符（换锚/被改）', kind: 'err' },
+  ANCHOR_SIGNATURE_INVALID: { label: 'TSA 签名验证失败', kind: 'err' },
+  ANCHOR_UNTRUSTED: { label: '有合法令牌但未提供 TSA 信任输入（锚定未证明）', kind: 'warn' },
+  ANCHOR_UNSUPPORTED_HASH: { label: '令牌摘要/签名算法不受支持', kind: 'err' },
+  ANCHOR_NONCE_MISMATCH: {
+    label: 'nonce 绑定不匹配：令牌与锚声明不一致（重放/替换嫌疑）',
+    kind: 'err',
+  },
+  ANCHOR_TIME_INVALID: { label: '锚定时间不在可信窗口（过新/过旧）', kind: 'err' },
+  ANCHOR_REVOKED: { label: 'TSA 证书已被吊销', kind: 'err' },
+  ANCHOR_VERIFIED: {
+    label: '锚定验证通过（imprint 匹配 + CMS 验签；锚携带 nonce 时回验绑定）',
+    kind: 'info',
+  },
+  EMPTY_PACK: { label: '空回执包', kind: 'err' },
+  MALFORMED_PACK: { label: '回执包形状非法', kind: 'err' },
+  EXPECTED_MISMATCH: { label: '与带外可信摘要不符（条数/尾哈希）', kind: 'err' },
+  ISSUER_MISMATCH: { label: '签发者身份标签与期望不符（重贴标签）', kind: 'err' },
+  RETENTION_EXPIRED: { label: '回执保留期已过（保留承诺未兑现）', kind: 'err' },
+  COUNTERPARTY_MISMATCH: { label: '对手方身份与期望不符', kind: 'err' },
+  WITNESS_QUORUM_NOT_MET: { label: '见证法定人数未达成', kind: 'err' },
+};
+
+/**
+ * 查问题码语义：未收录的码 fail-closed 兜底为 err（语义空、展示机读码）。
+ * @param code 内核机读问题码。
+ * @returns 语义（label 为空串表示无收录翻译）。
+ */
+export function problemSemanticsOf(code: string): { readonly label: string; readonly kind: StatusKind } {
+  return PROBLEM_SEMANTICS[code] ?? { label: '', kind: 'err' };
+}
+
+/**
+ * 渲染复核问题列表（纯渲染分支，模块级可单测）：
+ * 每条 = 语义档标签（未收录码展示机读码）+ 机读码（mono）+ 服务端 detail。
+ * @param problems 内核复核器的问题流。
+ * @returns 列表节点。
+ */
+function verifyProblemsView(
+  problems: readonly { readonly code: string; readonly detail: string }[],
+): ReactElement {
+  return (
+    <Flex vertical gap={6}>
+      {problems.map((problem, index) => {
+        const semantics = problemSemanticsOf(problem.code);
+        return (
+          <Flex key={`${problem.code}-${String(index)}`} align="baseline" wrap gap={8}>
+            <StatusTag status={semantics.kind}>
+              {semantics.label !== '' ? (
+                t(semantics.label)
+              ) : (
+                <span className="mono">{problem.code}</span>
+              )}
+            </StatusTag>
+            <Typography.Text type="secondary" className="mono" style={{ minWidth: 108 }}>
+              {problem.code}
+            </Typography.Text>
+            <Typography.Text style={{ flex: '1 1 220px', minWidth: 0 }}>
+              {problem.detail}
+            </Typography.Text>
+          </Flex>
+        );
+      })}
+    </Flex>
+  );
+}
+
 /** 凭证模式入参。 */
 export interface ProofModeProps {
   /** 当前会话 id。 */
@@ -281,11 +379,14 @@ export function ProofMode(props: ProofModeProps): ReactElement {
                 <StatusTag status={verify.verdict.ok ? 'ok' : 'err'}>
                   {verify.verdict.ok ? t('结构自洽（未签名）') : t('结构复核失败')}
                 </StatusTag>
-                <Typography.Text type="secondary">
+                {/* 诚实标记（2026-11-13 alpha.18 口径）：「未验证」是独立档位，
+                    不冒充已验证，也不与验证失败混档。 */}
+                <StatusTag status={verify.verdict.signatureChecked ? 'ok' : 'warn'}>
                   {verify.verdict.signatureChecked ? t('签名已检查') : t('未验签：不能确认来源')}
-                  {' · '}
+                </StatusTag>
+                <StatusTag status={verify.verdict.commitmentChecked ? 'ok' : 'warn'}>
                   {verify.verdict.commitmentChecked ? t('已核对外部承诺') : t('无带外承诺')}
-                </Typography.Text>
+                </StatusTag>
               </Flex>
               <Typography.Text type="secondary">
                 {t('{sessions} 个会话 · {events} 条事件', {
@@ -301,23 +402,11 @@ export function ProofMode(props: ProofModeProps): ReactElement {
                   {t('复核器未报告问题；这不等于内容真实或来源可信。')}
                 </Typography.Text>
               ) : (
-                <Flex vertical gap={6}>
-                  {verify.verdict.problems.map((problem, index) => (
-                    <Flex key={`${problem.code}-${String(index)}`} align="center" wrap gap={8}>
-                      <StatusTag
-                        status={
-                          problem.code === 'COMMITMENT_UNVERIFIED' || problem.code === 'UNPROVEN_ORIGIN'
-                            ? 'warn'
-                            : 'err'
-                        }
-                      >
-                        <span className="mono">{problem.code}</span>
-                      </StatusTag>
-                      <Typography.Text>{problem.detail}</Typography.Text>
-                    </Flex>
-                  ))}
-                </Flex>
+                verifyProblemsView(verify.verdict.problems)
               )}
+              <Typography.Text type="secondary" style={{ fontSize: 11.5 }}>
+                {t('内核复核器对携带 nonce 的锚自动回验请求/响应绑定（防重放）；「未验证」档位如实呈现，绝不冒充已验证。')}
+              </Typography.Text>
             </Flex>
           ) : null}
         </Flex>
