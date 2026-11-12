@@ -131,3 +131,22 @@
     --frost-blur-soft: none;
   }
 }
+
+/* —— 焦点环统一（2026-11-13）：antd 6 的 genFocusStyle 给控件 3px 主色淡化描边，
+   与原生控件的双环（base.css：2px brand + offset 2 + --ring 外晕）不一致——
+   同屏混用时（审批弹窗的 antd 按钮 + 工作台原生按钮）焦点观感分裂。
+   这里把 antd 的按钮/菜单项 :focus-visible 统一到双环；双类压过 cssinjs 注入顺序。 */
+.ant-btn.ant-btn:focus-visible,
+.ant-menu .ant-menu-item.ant-menu-item:not(.ant-menu-item-disabled):focus-visible,
+.ant-menu .ant-menu-submenu-title.ant-menu-submenu-title:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  box-shadow: var(--ring);
+}
+
+/* —— 弹窗头部透明（2026-11-13）：antd 6 的 .ant-modal-header 自带实底
+   （colorBgElevated），磨砂容器上会显出一条亮度不同的头带；磨砂材质要求
+   整面板一张皮，头部透明继承容器的半透 blur。 */
+.ant-modal .ant-modal-header.ant-modal-header {
+  background: transparent;
+}
