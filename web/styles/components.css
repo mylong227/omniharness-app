@@ -258,7 +258,7 @@
   backdrop-filter: var(--frost-blur);
   -webkit-backdrop-filter: var(--frost-blur);
   border: 1px solid var(--border-strong);
-  border-radius: 16px;
+  border-radius: var(--r-xl);
   box-shadow: var(--shadow-2);
   overflow: hidden;
 }

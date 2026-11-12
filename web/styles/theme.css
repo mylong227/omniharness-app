@@ -154,9 +154,9 @@
   --hairline-top: none;
   --ring: 0 0 0 3px color-mix(in srgb, var(--accent) 26%, transparent);
 
-  --radius: 10px;
-  --radius-sm: 8px;
-  --radius-lg: 14px;
+  --radius: 12px;
+  --radius-sm: 10px;
+  --radius-lg: 18px;
   --space: 12px;
 
   --mono: 'JetBrains Mono', 'Cascadia Mono', ui-monospace, SFMono-Regular, Menlo, Consolas,
@@ -243,9 +243,9 @@
   --hairline-top: none;
   --ring: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
 
-  --radius: 10px;
-  --radius-sm: 8px;
-  --radius-lg: 14px;
+  --radius: 12px;
+  --radius-sm: 10px;
+  --radius-lg: 18px;
   --space: 12px;
 
   --mono: 'JetBrains Mono', 'Cascadia Mono', ui-monospace, SFMono-Regular, Menlo, Consolas,

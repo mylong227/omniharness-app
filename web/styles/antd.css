@@ -150,3 +150,14 @@
 .ant-modal .ant-modal-header.ant-modal-header {
   background: transparent;
 }
+
+/* —— 圆角感（2026-11-13）：antd 控件跟随纸与墨的圆角阶梯（SM 10 / MD 12 / LG 18）。
+   antd 6 cssVar 模式把 --ant-* 变量定义在**每个组件根**的 css-var-* 作用域类上
+   （流内与 portal 弹层都一样），在 .ant-app 上改变量会被逐根作用域遮蔽——
+   这里用属性选择器双写提高特异性，在作用域元素本身重定义三枚圆角变量，
+   全部 antd 控件（含 portal）随之跟随。药丸（999px）与圆点（50%）不在阶梯内。 */
+[class*='css-var-'][class*='css-var-'] {
+  --ant-border-radius: var(--r-md);
+  --ant-border-radius-lg: var(--r-lg);
+  --ant-border-radius-sm: var(--r-sm);
+}
