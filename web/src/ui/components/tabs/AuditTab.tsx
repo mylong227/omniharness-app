@@ -19,6 +19,8 @@
 import * as React from 'react';
 // 子路径导入（不走 'antd' 桶文件）：桶文件在 vendor 块里静态 re-export 每个组件族，
 // 面板组件走 barrel 导入会把该族钉死在首屏 vendor（见 vite.config.ts「分块改造」注释）。
+import Input from 'antd/es/input';
+import Button from 'antd/es/button';
 import Table from 'antd/es/table';
 import type { ColumnsType } from 'antd/es/table';
 import { useApp } from '../../context.ts';
@@ -121,9 +123,9 @@ export function AuditTab(): ReactElement {
     return (
       <div className="audit-tab">
         <p className="err">{t('读取审计数据失败：{msg}', { msg: error })}</p>
-        <button type="button" className="btn" onClick={() => void refresh()}>
+        <Button onClick={() => void refresh()}>
           {t('重试')}
-        </button>
+        </Button>
       </div>
     );
   }
@@ -134,16 +136,16 @@ export function AuditTab(): ReactElement {
         <div className="filter-bar">
           <label className="filter-field">
             <span>{t('类型')}</span>
-            <input
-              type="text"
+            <Input
+              aria-label={t('类型')}
               value={typeFilter}
               placeholder={t('如 tool_call（留空＝全部）')}
-              onChange={(e: { target: { value: string } }) => setTypeFilter(e.target.value)}
+              onChange={(e) => setTypeFilter(e.target.value)}
             />
           </label>
-          <button type="button" className="btn" onClick={() => void refresh()}>
+          <Button onClick={() => void refresh()}>
             {t('查询')}
-          </button>
+          </Button>
         </div>
         {typeFilter !== '' ? <span className="hint">{t('当前过滤类型：{type}', { type: typeFilter })}</span> : null}
       </div>

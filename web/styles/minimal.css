@@ -3179,23 +3179,6 @@ button:active,
 .sp-load-error .btn {
   flex: none;
 }
-.sp-input {
-  width: 100%;
-  background: var(--panel);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--r-sm);
-  color: var(--text);
-  font-size: var(--fs-list);
-  padding: 7px 10px;
-}
-.sp-input:focus {
-  outline: none;
-  border-color: var(--accent-line);
-  box-shadow: var(--ring);
-}
-.sp-input::placeholder {
-  color: var(--faint);
-}
 .sp-card-wrap {
   overflow: hidden;
   border: 1px solid var(--hairline);
@@ -3268,10 +3251,6 @@ button:active,
   gap: 8px;
   flex-wrap: wrap;
   margin-top: 8px;
-}
-.sp-row .sp-input {
-  flex: 1 1 200px;
-  min-width: 0;
 }
 
 /* =========================================================================
@@ -3741,16 +3720,18 @@ button:hover,
   line-height: 1.65;
   margin: 4px 0 8px;
 }
-/* 列表行：拍平卡片，只留发丝分隔线 */
+/* 列表行：拍平卡片，只留发丝分隔线（tool-item 是 antd text 按钮，表面已透明，只留节奏） */
 .panel-surface .plugin-card,
 .panel-surface .mem-row,
 .panel-surface .cp-item,
-.panel-surface .graph-card,
-.panel-surface .tool-item {
+.panel-surface .graph-card {
   background: transparent;
   border: none;
   border-radius: 0;
   box-shadow: none;
+  padding: 9px 0;
+}
+.panel-surface .tool-item {
   padding: 9px 0;
 }
 .panel-surface .plugin-card + .plugin-card,
@@ -4303,6 +4284,14 @@ button,
   background-color: var(--panel-2);
   color: var(--faint);
   border-color: var(--border-soft);
+}
+/* 语义色按钮的禁用态必须压过上面的淡底块（本节晚于 §11 的 `button:disabled`，
+   否则 `.btn.primary:disabled` 仍是 12% 淡底 + 同色文字，读起来完全像可点）。 */
+.btn.primary:disabled {
+  background-color: var(--panel-2);
+  color: var(--faint);
+  border-color: var(--border-soft);
+  opacity: 1;
 }
 .dlg .dlg-confirm.danger {
   background-color: var(--panel-2);

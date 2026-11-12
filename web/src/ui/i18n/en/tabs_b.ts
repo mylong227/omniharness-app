@@ -52,6 +52,8 @@ export const EN_TABS_B: Record<string, string> = {
   '图名': 'Graph name',
   '依赖(逗号分隔)': 'Dependencies (comma-separated)',
   '+ 添加步骤': '+ Add step',
+  '添加步骤': 'Add step',
+  '删除这一步骤': 'Remove this step',
   '保存': 'Save',
 
   // MemoryTab

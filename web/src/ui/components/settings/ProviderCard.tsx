@@ -10,11 +10,13 @@
 // 单色口径：状态用**字形 + 明度**表达（● 已启用 / ○ 未启用 / ✓ 已保存 Key / ! 检测失败），
 // 颜色只做明度差，不引入色相 —— 见 DESIGN_SYSTEM §2.4。
 
-import * as React from 'react';
 import { icon } from '../../models/Icon.ts';
 import { ProviderStatusResolver } from '../../models/ProviderStatus.ts';
 import type { ProviderPreset, ProviderProbeResult } from '../../../types/models.ts';
 import { t } from '../../i18n/i18n.ts';
+import Select from 'antd/es/select';
+import Input from 'antd/es/input';
+import Button from 'antd/es/button';
 
 /** ProviderCard 组件的入参。 */
 export interface ProviderCardProps {
@@ -76,39 +78,34 @@ export function ProviderCard(props: ProviderCardProps): ReactElement {
       </div>
 
       <div className="sp-row">
-        <input
-          type="password"
-          className="sp-input"
+        <Input.Password
           aria-label={`${preset.label} API Key`}
           placeholder={hasKey ? t('已保存 {key}，输入新值覆盖', { key: maskedKey }) : t('输入 API Key')}
+          // 迁移前是裸 type=password（无明文切换）；关闭 antd 的眼睛开关保持同一交互面。
+          visibilityToggle={false}
           value={draft}
-          onInput={(e: React.SyntheticEvent) => props.onDraft((e.target as HTMLInputElement).value)}
+          onChange={(e) => props.onDraft(e.target.value)}
         />
-        <button className="ghost" disabled={disabled} onClick={props.onSaveKey}>
+        <Button type="text" disabled={disabled} onClick={props.onSaveKey}>
           {t('保存 Key')}
-        </button>
-        <button className="ghost" disabled={disabled} onClick={props.onProbe}>
+        </Button>
+        <Button type="text" disabled={disabled} onClick={props.onProbe}>
           {t('检测')}
-        </button>
+        </Button>
       </div>
 
       {probe?.ok === true && models.length > 0 ? (
         <div className="sp-row">
-          <select
-            className="sp-input"
+          <Select
             aria-label={t('{name} 可用模型', { name: preset.label })}
             value={selectedModel ?? models[0]}
-            onChange={(e: React.SyntheticEvent) => props.onModelPick((e.target as HTMLSelectElement).value)}
-          >
-            {models.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-          <button className="ghost" disabled={disabled || !selectedModel} onClick={props.onEnable}>
+            onChange={(value: string) => props.onModelPick(value)}
+            options={models.map((m) => ({ value: m, label: m }))}
+            style={{ minWidth: 220 }}
+          />
+          <Button type="text" disabled={disabled || !selectedModel} onClick={props.onEnable}>
             {t('启用此厂商')}
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="sp-hint">

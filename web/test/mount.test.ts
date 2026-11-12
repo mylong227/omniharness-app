@@ -195,7 +195,7 @@ test('PanelPicker：唯一触发器，点击打开面板模态（不再有下拉
   assert.strictEqual(opened, 1, '点击必须打开面板模态');
 });
 
-test('面板注册表：16 项齐全、key 唯一（「全部面板」菜单据此渲染，IA 缺口的机械判据）', async () => {
+test('面板注册表：21 项齐全、key 唯一（「全部面板」菜单据此渲染，IA 缺口的机械判据）', async () => {
   // 2026-10-07 壳层重构后，注册表是面板清单的唯一事实源：PanelPicker 菜单渲染 PANELS 全集，
   // Router 的合法 pane 集合与它对齐 ⇒ "任何面板都必须有入口"由本用例机械核对。
   // 2026-10-11：新增 `diagnostics`（Web 交付项：daemon 运行态 + doctor 报告）⇒ 12 → 13，
@@ -224,11 +224,12 @@ test('面板注册表：16 项齐全、key 唯一（「全部面板」菜单据�
       'plugins',
       'diagnostics',
       'audit',
+      'decision',
       'trace',
       'permission',
       'vault',
     ],
-    '注册表必须恰好是这 20 个面板（顺序即菜单渲染顺序；2026-11-10 增加控制室）',
+    '注册表必须恰好是这 21 个面板（顺序即菜单渲染顺序；2026-11-11 增加决策账本）',
   );
   assert.ok(
     panelOf('settings') === undefined,

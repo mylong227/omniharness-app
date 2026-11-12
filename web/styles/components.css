@@ -351,11 +351,7 @@
 /* ===== 内联 diff 审查：hunk 级 stage/revert + 行内评论 ===== */
 .review { display: flex; flex-direction: column; gap: 8px; }
 .file-actions, .hunk-actions { display: inline-flex; gap: 6px; align-items: center; }
-.hunk-btn { cursor: pointer;
-  border: 1px solid var(--border-soft); background: transparent; color: var(--text);
-}
-.hunk-btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--err) 16%, transparent); border-color: var(--err); }
-.hunk-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+/* hunk/文件级 stage/丢弃按钮已迁 antd Button（danger 走 antd 语义），表面样式不再自持。 */
 .hunk-head {
   display: flex; justify-content: space-between; align-items: center;
 }
@@ -366,9 +362,9 @@
 .diff-row .diff-no { width: 34px; flex: none; text-align: right; color: var(--dim); opacity: 0.6; user-select: none; }
 .diff-row .diff-sign { width: 12px; flex: none; user-select: none; }
 .diff-row .diff-text { white-space: pre-wrap; word-break: break-all; flex: 1; }
+/* 行内评论入口（antd Button type="text"）：只保留定位与悬停显形。 */
 .line-cmt {
-  position: absolute; right: 4px; top: 1px; opacity: 0; cursor: pointer;
-  border: none; background: transparent; font-size: 12px; line-height: 1.4;
+  position: absolute; right: 4px; top: 1px; opacity: 0;
 }
 .diff-row:hover .line-cmt { opacity: 1; }
 .diff-comment {
@@ -488,8 +484,9 @@ select:focus-visible,
 .cp-day { display: flex; flex-direction: column; gap: 4px; }
 .cp-day-head { display: flex; align-items: center; justify-content: space-between; text-transform: uppercase; padding: 2px 2px 0; }
 .cp-item { border: 1px solid var(--border-soft); overflow: hidden; }
-.cp-main { width: 100%; text-align: left; background: transparent; border: none; cursor: pointer; color: var(--text); display: flex; flex-direction: column; gap: 3px; }
-.cp-main:disabled { opacity: .6; cursor: default; }
+/* 检查点条目按钮已迁 antd Button type="text" + block：这里只保两行纵排布局，
+   并压过 antd 单类的高度/换行约束（双类特异性，cssinjs 注入顺序无关）。 */
+.cp-item .cp-main { height: auto; white-space: normal; text-align: left; display: flex; flex-direction: column; gap: 3px; }
 .cp-label { font-family: var(--mono); overflow-wrap: anywhere; }
 .cp-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 11px; color: var(--dim); }
 .cp-badge { flex: none; }
@@ -599,64 +596,8 @@ select:focus-visible,
 .crash-retry:hover, .crash-reload:hover, .crash-copy:hover { background: var(--hover, var(--panel-2)); }
 
 
-/* ---- 控制室（ControlTab：编队 / 上下文 / 凭证，2026-11-10） ---- */
-.control-tab { padding: 18px 20px 32px; max-width: 1120px; }
-.control-tabs {
-  display: flex; gap: 4px; border-bottom: 1px solid var(--border-soft);
-  margin-bottom: 20px; padding-bottom: 0;
-}
-.control-tab__btn {
-  font: 13px/1 inherit; color: var(--dim); background: transparent; border: none;
-  border-radius: 0; appearance: none; box-shadow: none;
-  padding: 10px 14px 12px; cursor: pointer; border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-}
-.control-tab__btn.is-active { color: var(--text); border-bottom-color: var(--accent-line); }
-.control-tab__btn:hover,
-.control-tab__btn:focus-visible {
-  color: var(--text);
-  background: transparent;
-  border-color: transparent;
-  border-bottom-color: var(--accent-line);
-}
-.control-tab__btn:focus-visible {
-  outline: 2px solid var(--brand);
-  outline-offset: -2px;
-  box-shadow: none;
-}
-.control-panel[hidden] { display: none; }
-.control-mode { display: flex; flex-direction: column; gap: 24px; }
-.control-meta { font-size: 11px; color: var(--dim); margin: 0; }
-.control-block { border: 1px solid var(--border-soft); border-radius: 12px; padding: 16px 18px; background: var(--panel); }
-.control-block h3 { margin: 0 0 10px; font-size: 13px; font-weight: 600; color: var(--text); }
-.control-block .hint { margin: 4px 0 0; }
-/* 状态点：圆点 + 文字（不只靠颜色）。 */
-.control-dot { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text); }
-.control-dot__ink { width: 6px; height: 6px; border-radius: 50%; background: var(--dim); flex: none; }
-.control-dot--ok .control-dot__ink { background: var(--ok); }
-.control-dot--failed .control-dot__ink { background: var(--err); }
-.control-dot--truncated .control-dot__ink, .control-dot--aborted .control-dot__ink { background: var(--warn); }
-.control-dot--running .control-dot__ink { background: var(--accent-line); }
-.control-dot--queued .control-dot__ink { background: var(--dim); }
-.control-dot--cut .control-dot__ink { background: var(--accent-line); border-radius: 1px; }
-/* 编队车道。 */
-.control-lanes { display: flex; flex-direction: column; gap: 6px; }
-.control-lane {
-  display: flex; align-items: center; gap: 12px; min-height: 46px; padding: 8px 12px;
-  background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: 10px;
-  cursor: pointer; text-align: left; color: var(--text); font: 12.5px/1.4 inherit;
-  transition: background 120ms ease;
-}
-.control-lane:hover { background: var(--hover, var(--panel-2)); }
-.control-lane.is-selected { border-color: var(--accent-line); }
-.control-lane__task { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.control-lane__meta { flex: none; color: var(--dim); font-size: 11.5px; }
-.control-detail { border: 1px solid var(--border-soft); border-radius: 10px; padding: 14px 16px; background: var(--panel-2); }
-.control-detail h3 { margin: 0 0 6px; font-size: 13px; color: var(--text); }
-.control-facts { display: grid; grid-template-columns: 96px 1fr; gap: 6px 14px; margin: 10px 0 0; }
-.control-facts dt { color: var(--dim); font-size: 11.5px; }
-.control-facts dd { margin: 0; font-size: 12.5px; color: var(--text); overflow-wrap: anywhere; }
-/* 上下文构成与切点。 */
+/* 控制室 · 六类构成条（antd 没有按比例堆叠的分段条，这一处按数据图形自绘）。
+   2026-11-11 控制台 antd 化：卡片/按钮/折叠/输入/状态徽标全走 antd，这里只留图形。 */
 .control-usage { display: flex; height: 14px; border-radius: 7px; overflow: hidden; border: 1px solid var(--border-soft); background: var(--panel-2); }
 .control-usage__seg { min-width: 2px; }
 .control-usage__seg--systemPrompt { background: var(--accent-line); }
@@ -665,95 +606,14 @@ select:focus-visible,
 .control-usage__seg--todos { background: color-mix(in srgb, var(--warn) 55%, var(--panel)); }
 .control-usage__seg--skills { background: color-mix(in srgb, var(--dim) 45%, var(--panel)); }
 .control-usage__seg--other, .control-usage__seg--memory { background: var(--panel-2); }
-.control-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; list-style: none; margin: 10px 0 0; padding: 0; font-size: 11.5px; color: var(--dim); }
-.control-marks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.control-mark { border-bottom: 1px dashed var(--border-soft); }
-.control-mark:last-child { border-bottom: none; }
-.control-mark__head {
-  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px;
-  background: none; border: none; cursor: pointer; font: 12.5px/1.4 inherit;
-  color: var(--text); padding: 8px 4px; text-align: left;
-}
-.control-mark__body { padding: 0 4px 12px 26px; }
+/* 机器产物（压缩摘要 / 补丁正文）：等宽 + 代码底，可滚动。 */
 .control-summary {
-  margin: 6px 0 0; white-space: pre-wrap; font: 11.5px/1.6 var(--mono); color: var(--dim);
+  margin: 0; white-space: pre-wrap; font: 11.5px/1.6 var(--mono); color: var(--dim);
   background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: 8px; padding: 10px 12px;
   max-height: 220px; overflow: auto;
 }
-.control-notes { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-.control-notes li { border-left: 2px solid var(--accent-line); padding: 2px 0 2px 12px; }
-.control-notes p { margin: 0; font-size: 12.5px; line-height: 1.55; overflow-wrap: anywhere; }
-.control-note-form { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; font-size: 12px; color: var(--dim); }
-.control-note-form textarea {
-  width: 100%; resize: vertical; min-height: 70px; padding: 8px 10px;
-  font: 12.5px/1.55 inherit; color: var(--text); background: var(--panel-2);
-  border: 1px solid var(--border-soft); border-radius: 8px;
-}
-.control-inline-action {
-  margin-left: 8px; padding: 2px 8px; font: 11.5px/1.4 inherit; cursor: pointer;
-  color: var(--accent); background: transparent; border: 1px solid var(--border-soft); border-radius: 6px;
-}
-.control-inline-action:hover { border-color: var(--accent-line); background: transparent; }
-.control-detail__actions { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
-.control-danger-action {
-  padding: 5px 10px; font-size: 12px; color: var(--err); background: transparent;
-  border: 1px solid color-mix(in srgb, var(--err) 40%, var(--border-soft)); border-radius: 7px; cursor: pointer;
-}
-.control-danger-action:hover:not(:disabled) { background: color-mix(in srgb, var(--err) 8%, transparent); }
-.control-danger-action:disabled { opacity: .55; cursor: progress; }
-.control-patch {
-  border: 1px solid var(--border-soft); border-radius: 10px; padding: 14px 16px;
-  background: var(--panel-2); min-width: 0;
-}
-.control-patch__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.control-patch__head h3 { margin: 0; font-size: 13px; }
-.control-patch__head .control-inline-action { margin-left: 0; }
 .control-patch__body {
-  margin: 8px 0 0; max-height: 360px; overflow: auto; white-space: pre;
+  margin: 0; max-height: 360px; overflow: auto; white-space: pre;
   font: 11.5px/1.6 var(--mono); color: var(--text);
   background: var(--panel); border: 1px solid var(--border-soft); border-radius: 8px; padding: 10px 12px;
-}
-.control-file {
-  position: relative; display: inline-flex; align-items: center; margin-top: 8px;
-  padding: 6px 10px; font-size: 12px; color: var(--text);
-  background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: 8px; cursor: pointer;
-}
-.control-file:hover { border-color: var(--accent-line); }
-.control-file:focus-within { outline: 2px solid var(--brand); outline-offset: 2px; }
-.control-file input {
-  position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;
-}
-.control-verify { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border-soft); }
-.control-verify__state { margin: 0 0 4px; font-size: 13px; font-weight: 600; color: var(--text); }
-.control-problems { margin: 8px 0 0; padding-left: 18px; font-size: 12px; line-height: 1.55; color: var(--dim); }
-.control-problem--warn { color: var(--warn); }
-.control-problem--fail { color: var(--err); }
-/* 凭证回合与复核。 */
-.control-turns { display: flex; flex-wrap: wrap; gap: 8px; }
-.control-turn {
-  display: flex; flex-direction: column; gap: 3px; min-width: 118px; padding: 8px 12px;
-  background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: 10px;
-  cursor: pointer; color: var(--text); font: 12.5px/1.3 inherit; text-align: left;
-}
-.control-turn.is-selected { border-color: var(--accent-line); }
-.control-checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-.control-check { display: flex; align-items: baseline; gap: 10px; min-height: 42px; padding: 8px 4px; font-size: 12.5px; color: var(--text); border-bottom: 1px dashed var(--border-soft); }
-.control-check:last-child { border-bottom: none; }
-.control-check > .control-dot { flex: none; min-width: 46px; white-space: nowrap; }
-.control-check__code { flex: none; width: 96px; color: var(--dim); font-size: 11px; }
-/* 凭证两栏：左证据/复核，右导出；窄屏回落单列。 */
-.control-proof-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.9fr);
-  gap: 24px;
-  align-items: start;
-}
-.control-proof-main { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
-.control-proof-side { min-width: 0; }
-@media (max-width: 1100px) {
-  .control-proof-grid { grid-template-columns: minmax(0, 1fr); }
-}
-@media (max-width: 880px) {
-  .control-lane { flex-wrap: wrap; }
-  .control-facts { grid-template-columns: 1fr; }
 }

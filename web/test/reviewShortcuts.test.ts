@@ -314,7 +314,8 @@ test('ChangesTab：c 在选中块的首个改动行开评论草稿，保存时�
   // 保存走真实输入 → 断言回传的锚点就是「第二块首个改动行 = 旧文件第 11 行」。
   const user = userEvent.setup();
   await user.type(textarea.el as HTMLElement, '这里要改');
-  const save = byTag(tree(), 'button').find((b) => allText(b) === '保存');
+  // antd Button 在无 ThemeProvider 的测试里给两字中文插空格（`保 存`）：去掉空白再比。
+  const save = byTag(tree(), 'button').find((b) => allText(b).replace(/\s/g, '') === '保存');
   assert.ok(save !== undefined, '草稿必须有保存按钮');
   fireEvent.click(save.el);
   await waitFor(() => {

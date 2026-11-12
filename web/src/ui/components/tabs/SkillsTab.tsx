@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useApp } from '../../context.ts';
 import { t } from '../../i18n/i18n.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
+import Input from 'antd/es/input';
 import Table from 'antd/es/table';
 import type { ColumnsType } from 'antd/es/table';
 import Tag from 'antd/es/tag';
@@ -73,10 +74,9 @@ export function SkillsTab(): React.ReactElement {
     <div className="act">
       <section className="act-card">
         <div className="pm-head">
-          <input
-            className="sp-input"
+          <Input
             value={query}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
+            onChange={(e) => setQuery(e.target.value)}
             placeholder={t('搜索技能')}
             aria-label={t('搜索技能')}
           />

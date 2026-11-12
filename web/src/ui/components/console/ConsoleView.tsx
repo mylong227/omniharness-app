@@ -29,6 +29,7 @@
 import * as React from 'react';
 // Menu 走子路径（不走 'antd' 桶文件）：本组件是 lazy 块，barrel 导入会把 menu 族钉死在
 // 首屏 vendor（见 vite.config.ts「分块改造」注释）；MenuProps 是纯类型导入，不进产物。
+import Button from 'antd/es/button';
 import Menu from 'antd/es/menu';
 import type { MenuProps } from 'antd';
 import { icon } from '../../models/Icon.ts';
@@ -252,20 +253,24 @@ function consoleNavAside(props: {
           <span className="csl-brand-name">OmniHarness</span>
           <span className="csl-brand-sub">{t('工作台控制台')}</span>
         </span>
-        <button
-          className="csl-nav-close"
-          type="button"
-          aria-label={t('关闭导航菜单')}
-          onClick={() => setNavOpen(false)}
-        >
-          {icon('x', { size: 14 })}
-        </button>
+        <span className="csl-nav-close">
+          <Button
+            type="text"
+            size="small"
+            icon={icon('x', { size: 14 })}
+            aria-label={t('关闭导航菜单')}
+            onClick={() => setNavOpen(false)}
+          />
+        </span>
       </div>
 
-      <button className="csl-back" type="button" onClick={onClose}>
-        {icon('arrow-left', { size: 14 })}
+      <Button
+        style={{ alignSelf: 'flex-start' }}
+        icon={icon('arrow-left', { size: 14 })}
+        onClick={onClose}
+      >
         {t('返回工作区')}
-      </button>
+      </Button>
 
       <nav className="csl-nav" aria-label={t('控制台导航')} ref={navRef}>
         <Menu
@@ -327,25 +332,22 @@ function consoleMobileBar(props: {
   const { entry, setNavOpen, onClose } = props;
   return (
     <div className="sp-top csl-mobilebar">
-      <button
-        className="iconbtn csl-menu"
-        type="button"
+      <Button
+        type="text"
+        className="csl-menu"
+        icon={icon('menu', { size: 16 })}
         aria-label={t('打开导航菜单')}
         onClick={() => setNavOpen((prev) => !prev)}
-      >
-        {icon('menu', { size: 16 })}
-      </button>
+      />
       <span className="csl-mobile-title">{t(entry.label)}</span>
       <span className="flex-spacer" aria-hidden="true" />
-      <button
-        className="iconbtn"
-        type="button"
+      <Button
+        type="text"
+        icon={icon('x', { size: 15 })}
         aria-label={t('关闭控制台')}
         title={t('关闭（Esc）')}
         onClick={onClose}
-      >
-        {icon('x', { size: 15 })}
-      </button>
+      />
     </div>
   );
 }

@@ -16,7 +16,12 @@ import {
   type CatalogStatus,
   type ProviderCatalogState,
 } from './useProviderCatalog.ts';
-import type { Config, ProviderPreset, ProviderProbeResult } from '../../../types/models.ts';
+import type { Config, ProviderPreset } from '../../../types/models.ts';
+import Typography from 'antd/es/typography';
+import Flex from 'antd/es/flex';
+import Collapse from 'antd/es/collapse';
+import Button from 'antd/es/button';
+import { StatusTag } from '../../kit/StatusTag.tsx';
 
 /** 目录提示条的入参。 */
 interface CatalogNoticeProps {
@@ -40,9 +45,9 @@ function CatalogNotice(props: CatalogNoticeProps): ReactElement | null {
     return (
       <div className="sp-load-error" role="alert">
         <span>{t('读取厂商目录失败：{msg}', { msg: props.error })}</span>
-        <button className="csl-btn" type="button" onClick={props.onRetry}>
+        <Button onClick={props.onRetry}>
           {t('重试')}
-        </button>
+        </Button>
       </div>
     );
   }
@@ -51,91 +56,41 @@ function CatalogNotice(props: CatalogNoticeProps): ReactElement | null {
     return (
       <div className="sp-load-error" role="alert">
         <span>{t('厂商目录为空：defaults/providers.json 可能缺失或不可读。')}</span>
-        <button className="csl-btn" type="button" onClick={props.onRetry}>
+        <Button onClick={props.onRetry}>
           {t('重试')}
-        </button>
+        </Button>
       </div>
     );
   }
   return <p className="csl-empty">{t('读取厂商目录…')}</p>;
 }
 
-/** 单个厂商折叠条的入参。 */
-interface ProviderEntryProps {
+/** 单个厂商折叠条标题行的入参（展开后的卡片体另走 ProviderCard）。 */
+interface ProviderHeadProps {
   /** 厂商预设。 */
   preset: ProviderPreset;
-  /** 是否展开。 */
-  isOpen: boolean;
   /** 是否为当前生效厂商。 */
   active: boolean;
   /** 已保存（打码）的 Key；未配置为 undefined。 */
   maskedKey?: string | undefined;
-  /** 该厂商的检测结果。 */
-  probe?: ProviderProbeResult | undefined;
-  /** Key 输入草稿。 */
-  draft: string;
-  /** 形如 `<id>:<action>` 的忙碌标记；空串表示空闲。 */
-  busy: string;
-  /** 卡片内当前选中的模型。 */
-  selectedModel?: string | undefined;
-  /** 展开 / 折叠。 */
-  onToggle: () => void;
-  /** Key 草稿变更。 */
-  onDraft: (value: string) => void;
-  /** 模型下拉变更。 */
-  onModelPick: (value: string) => void;
-  /** 保存 Key。 */
-  onSaveKey: () => void;
-  /** 连通检测。 */
-  onProbe: () => void;
-  /** 启用该厂商。 */
-  onEnable: () => void;
 }
 
 /**
- * 单个厂商折叠条：标题行（展开箭头 / 名称 / 已配置 / 当前 / 端点）+ 展开后的 Key 卡片。
+ * 单个厂商折叠条的标题行：名称 + 已配置/当前徽标 + 端点（展开箭头由 antd Collapse 给）。
  * @param props 组件入参
- * @returns 厂商折叠条节点
+ * @returns 标题行节点
  */
-function ProviderEntry(props: ProviderEntryProps): ReactElement {
-  const { preset, isOpen } = props;
+function ProviderHead(props: ProviderHeadProps): ReactElement {
+  const { preset } = props;
   return (
-    <div className="sp-card-wrap csl-provider">
-      <button
-        className="csl-provider-head"
-        type="button"
-        aria-expanded={isOpen ? 'true' : 'false'}
-        onClick={props.onToggle}
-      >
-        <span className="csl-caret" aria-hidden="true">
-          {isOpen ? '▾' : '▸'}
-        </span>
-        <span className="csl-provider-name">{preset.label}</span>
-        {props.maskedKey === undefined ? null : <span className="csl-tag">{t('已配置')}</span>}
-        {props.active ? <span className="csl-tag on">{t('当前')}</span> : null}
-        <span className="csl-provider-url" title={preset.baseUrl}>
-          {preset.baseUrl}
-        </span>
-      </button>
-      {isOpen ? (
-        <div className="csl-provider-body">
-          <ProviderCard
-            preset={preset}
-            maskedKey={props.maskedKey}
-            probe={props.probe}
-            draft={props.draft}
-            busy={props.busy}
-            active={props.active}
-            selectedModel={props.selectedModel}
-            onDraft={props.onDraft}
-            onModelPick={props.onModelPick}
-            onSaveKey={props.onSaveKey}
-            onProbe={props.onProbe}
-            onEnable={props.onEnable}
-          />
-        </div>
-      ) : null}
-    </div>
+    <Flex align="center" wrap gap={8} style={{ minWidth: 0 }}>
+      <Typography.Text strong>{preset.label}</Typography.Text>
+      {props.maskedKey === undefined ? null : <StatusTag status="ok">{t('已配置')}</StatusTag>}
+      {props.active ? <StatusTag status="info">{t('当前')}</StatusTag> : null}
+      <Typography.Text type="secondary" className="mono" style={{ fontSize: 11 }} title={preset.baseUrl}>
+        {preset.baseUrl}
+      </Typography.Text>
+    </Flex>
   );
 }
 
@@ -157,41 +112,65 @@ function ProviderEntries(props: ProviderEntriesProps): ReactElement {
   const activeAdapter = (cfg?.modelAdapter as string) ?? '';
   const activeBaseUrl = (cfg?.baseUrl as string) ?? '';
   const activeModel = cfg?.model ?? '';
+  /** 当前展开的厂商 id（生效 / 已配置 / 已检测默认展开）。 */
+  const openKeys = catalog.providers
+    .filter((preset) => {
+      const active = isActiveProvider(preset, activeAdapter, activeBaseUrl);
+      const auto =
+        active ||
+        catalog.maskedKeys[preset.id] !== undefined ||
+        catalog.probes[preset.id] !== undefined;
+      return catalog.expanded[preset.id] ?? auto;
+    })
+    .map((preset) => preset.id);
   return (
-    <>
-      {catalog.providers.map((preset) => {
+    <Collapse
+      ghost
+      size="small"
+      activeKey={openKeys}
+      onChange={(keys) => {
+        const next = new Set(Array.isArray(keys) ? keys : [keys]);
+        for (const preset of catalog.providers) {
+          const wasOpen = openKeys.includes(preset.id);
+          const isOpen = next.has(preset.id);
+          if (wasOpen !== isOpen) catalog.setExpandedOpen(preset.id, isOpen);
+        }
+      }}
+      items={catalog.providers.map((preset) => {
         const active = isActiveProvider(preset, activeAdapter, activeBaseUrl);
-        const auto =
-          active ||
-          catalog.maskedKeys[preset.id] !== undefined ||
-          catalog.probes[preset.id] !== undefined;
-        const isOpen = catalog.expanded[preset.id] ?? auto;
-        return (
-          <ProviderEntry
-            key={preset.id}
-            preset={preset}
-            isOpen={isOpen}
-            active={active}
-            maskedKey={catalog.maskedKeys[preset.id]}
-            probe={catalog.probes[preset.id]}
-            draft={catalog.drafts[preset.id] ?? ''}
-            busy={catalog.busyById[preset.id] ?? ''}
-            selectedModel={selectedModelFor(
-              preset,
-              catalog.probes[preset.id]?.models ?? [],
-              catalog.modelSel,
-              activeModel,
-            )}
-            onToggle={() => catalog.setExpandedOpen(preset.id, !isOpen)}
-            onDraft={(value) => catalog.setDraft(preset.id, value)}
-            onModelPick={(value) => catalog.setModelChoice(preset.id, value)}
-            onSaveKey={() => void catalog.saveKey(preset)}
-            onProbe={() => void catalog.probe(preset)}
-            onEnable={() => void catalog.enable(preset)}
-          />
-        );
+        return {
+          key: preset.id,
+          label: (
+            <ProviderHead
+              preset={preset}
+              active={active}
+              maskedKey={catalog.maskedKeys[preset.id]}
+            />
+          ),
+          children: (
+            <ProviderCard
+              preset={preset}
+              maskedKey={catalog.maskedKeys[preset.id]}
+              probe={catalog.probes[preset.id]}
+              draft={catalog.drafts[preset.id] ?? ''}
+              busy={catalog.busyById[preset.id] ?? ''}
+              active={active}
+              selectedModel={selectedModelFor(
+                preset,
+                catalog.probes[preset.id]?.models ?? [],
+                catalog.modelSel,
+                activeModel,
+              )}
+              onDraft={(value) => catalog.setDraft(preset.id, value)}
+              onModelPick={(value) => catalog.setModelChoice(preset.id, value)}
+              onSaveKey={() => void catalog.saveKey(preset)}
+              onProbe={() => void catalog.probe(preset)}
+              onEnable={() => void catalog.enable(preset)}
+            />
+          ),
+        };
       })}
-    </>
+    />
   );
 }
 
@@ -221,9 +200,9 @@ function ProviderCatalogCard(props: ProviderCatalogCardProps): ReactElement {
       }
       description={t('保存 Key → 检测（真实请求厂商端点）→ 启用。凭据由服务端打码存储，界面不回显原文。')}
       actions={
-        <button className="csl-btn" type="button" onClick={catalog.reloadProviders}>
+        <Button onClick={catalog.reloadProviders}>
           {t('刷新')}
-        </button>
+        </Button>
       }
     >
       <CatalogNotice

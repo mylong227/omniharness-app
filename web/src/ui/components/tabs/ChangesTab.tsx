@@ -19,6 +19,7 @@ import { useChangesReview } from './useChangesReview.ts';
 import type { ChangesReview } from './useChangesReview.ts';
 import { t } from '../../i18n/i18n.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
+import Button from 'antd/es/button';
 import Table from 'antd/es/table';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -113,9 +114,9 @@ function ChangesError(props: { error: string; onRetry: () => void }): ReactEleme
         'err',
       )}
       <div style={RETRY_BOX}>
-        <button className="btn" onClick={props.onRetry}>
+        <Button onClick={props.onRetry}>
           {t('重试')}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -139,19 +140,21 @@ function ChangesPaneHead(props: {
               })
             : t('本会话产生的变更（非 git 工作区）')}
         </span>
-        <button className="btn" onClick={props.onRefresh}>
+        <Button onClick={props.onRefresh}>
           {t('↻ 刷新')}
-        </button>
+        </Button>
       </div>
       <div className="review-hint">
         {t('键盘：j/k 选择 · a 接受 · r 拒绝 · c 评论 ·')}{' '}
-        <button
+        <Button
+          type="link"
+          size="small"
           className="rh-toggle"
           aria-expanded={props.help ? 'true' : 'false'}
           onClick={props.onToggleHelp}
         >
           {t('? 帮助')}
-        </button>
+        </Button>
       </div>
     </>
   );
@@ -176,9 +179,9 @@ function ReviewHelp(props: { onClose: () => void }): ReactElement {
           </li>
         ))}
       </ul>
-      <button className="btn" onClick={props.onClose}>
+      <Button onClick={props.onClose}>
         {t('关闭（Esc）')}
-      </button>
+      </Button>
     </div>
   );
 }

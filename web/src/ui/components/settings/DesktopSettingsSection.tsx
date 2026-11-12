@@ -7,6 +7,7 @@ import {
 } from '../../../core/desktop/DesktopBridge.ts';
 import { t } from '../../i18n/i18n.ts';
 import { ConsoleCard, ConsoleInfoRow, ConsoleRow, ConsoleSwitch } from '../console/ConsoleUI.tsx';
+import Button from 'antd/es/button';
 
 /** 更新状态的可读文案。 */
 function statusText(status: DesktopUpdateStatus | null): string {
@@ -119,33 +120,27 @@ function DesktopUpdateCard(props: {
       description={statusText(props.update)}
       actions={
         <>
-          <button
-            className="csl-btn"
-            type="button"
+          <Button
             disabled={props.busy !== null}
             onClick={() => void props.run('check', () => props.bridge.checkForUpdates())}
           >
             {t('检查更新')}
-          </button>
+          </Button>
           {props.update?.state === 'available' ? (
-            <button
-              className="csl-btn"
-              type="button"
+            <Button
               disabled={props.busy !== null}
               onClick={() => void props.run('download', () => props.bridge.downloadUpdate())}
             >
               {t('下载更新')}
-            </button>
+            </Button>
           ) : null}
           {props.update?.state === 'downloaded' ? (
-            <button
-              className="csl-btn csl-btn--primary"
-              type="button"
+            <Button type="primary"
               disabled={props.busy !== null}
               onClick={() => void props.run('install', () => props.bridge.installUpdate())}
             >
               {t('安装并重启')}
-            </button>
+            </Button>
           ) : null}
         </>
       }
@@ -170,26 +165,24 @@ function DesktopDiagnosticsCard(props: {
   return (
     <ConsoleCard title={t('诊断')} description={t('日志目录与运行时排障入口。')}>
       <ConsoleRow label={t('日志')}>
-        <button className="csl-btn" type="button" onClick={() => void props.bridge.openLogs()}>
+        <Button onClick={() => void props.bridge.openLogs()}>
           {t('打开日志目录')}
-        </button>
+        </Button>
       </ConsoleRow>
       {props.bridge.showDiagnostics === undefined ? null : (
         <ConsoleRow label={t('诊断信息')}>
-          <button className="csl-btn" type="button" onClick={() => void props.bridge.showDiagnostics?.()}>
+          <Button onClick={() => void props.bridge.showDiagnostics?.()}>
             {t('查看诊断信息')}
-          </button>
+          </Button>
         </ConsoleRow>
       )}
       <ConsoleRow label={t('重启 Harness')} hint={t('只重启后台服务，不关闭窗口。')}>
-        <button
-          className="csl-btn"
-          type="button"
+        <Button
           disabled={props.busy !== null}
           onClick={() => void props.run('restart', () => props.bridge.restartHarness())}
         >
           {t('重启 Harness')}
-        </button>
+        </Button>
       </ConsoleRow>
     </ConsoleCard>
   );

@@ -33,6 +33,7 @@ export const EN_TABS_C: Record<string, string> = {
   'copy': 'copy',
   'worktree': 'worktree',
   '子代理详情': 'Subagent details',
+  '子代理车道': 'Subagent lanes',
   '开始 {time}': 'started {time}',
   '结束 {time}': 'ended {time}',
   '隔离方式': 'Isolation',
@@ -156,6 +157,7 @@ export const EN_TABS_C: Record<string, string> = {
   '未证明': 'unproven',
   '证据包': 'Evidence bundle',
   '导入复核': 'Import and verify',
+  '导入复核结果': 'Import verification result',
   '选择本地证据包 JSON；只做离线结构复核，不信任包内签名，也不上传网络。':
     'Choose a local evidence bundle JSON; offline structural verification only. Signatures in the bundle are not trusted and nothing is uploaded.',
   '选择证据包…': 'Choose evidence bundle…',

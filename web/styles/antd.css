@@ -29,6 +29,22 @@
   font-family: inherit;
 }
 
+/* —— 原生控件兜底不得渗进 antd 的内部输入层（2026-11-11 实测）——
+   theme.css / base.css 给裸 `input` 的「代码底 + 描边 + padding」用的是
+   `input:not([type=checkbox]):not(...)` 这种 (0,3,1) 权重的选择器，会赢过普通类选择器，
+   落到 Select / Picker / InputNumber 内部的绝对定位输入层上：那是一层盖在选中值上的
+   不透明底（记忆页「重要度」下拉因此显示为空）。这是「第三方注入样式」的典型场景，
+   与 console.css 的 antd 覆盖同一口径，用 !important 收口。 */
+.ant-app .ant-select-input,
+.ant-app .ant-select-selection-search-input,
+.ant-app .ant-picker-input > input,
+.ant-app .ant-input-number-input,
+.ant-app .ant-otp-input {
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+}
+
 /* —— 正文色继承源（W1 实测教训）——
    antd 的 App 容器自带 `color: token.colorText`：它插在 body 与 UI 之间，一旦
    「React 主题状态」与「CSS 的 data-theme」分叉（判据/探针直接改 data-theme 时），

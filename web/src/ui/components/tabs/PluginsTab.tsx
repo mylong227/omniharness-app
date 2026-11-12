@@ -11,6 +11,7 @@ import { icon } from '../../models/Icon.ts';
 import type { PluginManifest, PluginSearchEntry } from '../../../types/models.ts';
 import { t } from '../../i18n/i18n.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
+import Input from 'antd/es/input';
 import Button from 'antd/es/button';
 import Tag from 'antd/es/tag';
 
@@ -237,18 +238,18 @@ export function PluginsTab(): ReactElement {
   return (
     <div>
       <div className="pm-head">
-        <input
-          type="text"
+        <Input
+          aria-label={t('搜索插件名 / 描述…')}
           placeholder={t('搜索插件名 / 描述…')}
           value={query}
-          onInput={onQueryInput}
+          onChange={(e) => onQueryInput(e)}
         />
-        <button className="ghost" disabled={busy === '__reload__'} onClick={() => void reload()}>
+        <Button type="text" disabled={busy === '__reload__'} onClick={() => void reload()}>
           {t('重新加载')}
-        </button>
-        <button className="ghost" onClick={() => void load(query)}>
+        </Button>
+        <Button type="text" onClick={() => void load(query)}>
           {t('刷新')}
-        </button>
+        </Button>
       </div>
       <div className="pm-section">
         <div className="pm-title">{t('已安装')}</div>

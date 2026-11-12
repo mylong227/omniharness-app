@@ -32,8 +32,10 @@ test('ControlTab：三模式 tab 有 ARIA 关系，未知 view 落回编队', ()
     ['编队', '上下文', '凭证'],
   );
   assert.equal(tabs[0]?.getAttribute('aria-selected'), 'true');
-  assert.equal(tabs[0]?.getAttribute('aria-controls'), 'control-panel-fleet');
-  assert.equal(document.querySelector('#control-panel-fleet')?.getAttribute('role'), 'tabpanel');
+  // 面板 id 由 antd Tabs 生成（不再是手写的 control-panel-fleet）；判据只认「指向真实 tabpanel」。
+  const controlsId = tabs[0]?.getAttribute('aria-controls') ?? '';
+  assert.notEqual(controlsId, '');
+  assert.equal(document.getElementById(controlsId)?.getAttribute('role'), 'tabpanel');
   assert.match(document.body.textContent ?? '', /先选择一个会话/u);
 });
 
@@ -61,7 +63,11 @@ test('ControlTab：点击与方向键都经 onNavigate 切 view（不复制第�
     </AppContext.Provider>,
   );
   fireEvent.click(screen.getByRole('tab', { name: '上下文' }));
-  fireEvent.keyDown(screen.getByRole('tab', { name: '上下文' }), { key: 'ArrowRight' });
+  fireEvent.keyDown(screen.getByRole('tab', { name: '上下文' }), {
+    key: 'ArrowRight',
+    code: 'ArrowRight',
+  });
   assert.deepEqual(picked, ['context', 'proof']);
-  assert.equal(screen.getByRole('tab', { name: '凭证' }).getAttribute('aria-selected'), 'true');
+  // 键盘切换后 antd 会给选中的 tab 补一段「Tab 3 of 3」播报文本，所以按序号取而不是按名字。
+  assert.equal(screen.getAllByRole('tab')[2]?.getAttribute('aria-selected'), 'true');
 });

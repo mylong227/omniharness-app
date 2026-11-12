@@ -3,6 +3,8 @@ import * as React from 'react';
 import { useApp } from '../../context.ts';
 import { t } from '../../i18n/i18n.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
+import InputNumber from 'antd/es/input-number';
+import Input from 'antd/es/input';
 import Table from 'antd/es/table';
 import type { ColumnsType } from 'antd/es/table';
 import Switch from 'antd/es/switch';
@@ -38,15 +40,15 @@ function AutomationForm(props: {
     <section className="act-card">
       <h3 className="act-title">{t('新建自动化')}</h3>
       <div className="auto-form">
-        <input
-          className="sp-input"
+        <Input
           value={props.name}
           onChange={(e) => props.onName(e.target.value)}
           placeholder={t('名称')}
           aria-label={t('自动化名称')}
         />
-        <textarea
-          className="sp-input auto-prompt"
+        <Input.TextArea
+          className="auto-prompt"
+          rows={3}
           value={props.prompt}
           onChange={(e) => props.onPrompt(e.target.value)}
           placeholder={t('触发时发送给 Agent 的提示词')}
@@ -54,24 +56,18 @@ function AutomationForm(props: {
         />
         <label className="act-status">
           {t('间隔（分钟，5–1440）')}
-          <input
-            className="sp-input"
-            type="number"
+          <InputNumber
             min={5}
             max={1440}
-            value={props.minutes}
-            onChange={(e) => props.onMinutes(e.target.value)}
+            value={props.minutes === '' ? null : Number(props.minutes)}
+            onChange={(value) => props.onMinutes(value === null ? '' : String(value))}
             aria-label={t('自动化间隔分钟')}
+            style={{ width: 140 }}
           />
         </label>
-        <button
-          className="ghost"
-          type="button"
-          disabled={props.busy || props.name.trim() === '' || props.prompt.trim() === ''}
-          onClick={props.onCreate}
-        >
+        <Button type="text" disabled={props.busy || props.name.trim() === '' || props.prompt.trim() === ''} onClick={props.onCreate}>
           {t('创建')}
-        </button>
+        </Button>
       </div>
     </section>
   );

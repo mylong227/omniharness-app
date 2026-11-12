@@ -12,6 +12,8 @@ import { emptyState } from '../../format.ts';
 import type { MemoryFact } from '../../../types/models.ts';
 import { t } from '../../i18n/i18n.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
+import Select from 'antd/es/select';
+import Input from 'antd/es/input';
 import Table from 'antd/es/table';
 import type { ColumnsType } from 'antd/es/table';
 import Button from 'antd/es/button';
@@ -100,12 +102,15 @@ function MemoryTable(props: { facts: MemoryFact[] } & RowActions): ReactElement 
   );
 }
 
-/** 表单引用集（非受控输入：编辑回填与读取都走 ref，避免受控态来回同步）。 */
-interface MemoryFormRefs {
-  text: React.RefObject<HTMLInputElement | null>;
-  topic: React.RefObject<HTMLInputElement | null>;
-  imp: React.RefObject<HTMLSelectElement | null>;
+/** 记忆表单的受控值（2026-11-11 迁 antd：不再往 DOM 写 value）。 */
+interface MemoryFormValues {
+  text: string;
+  topic: string;
+  imp: string;
 }
+
+/** 表单初值（重要度默认 3）。 */
+const EMPTY_FORM: MemoryFormValues = { text: '', topic: '', imp: '3' };
 
 /** useMemoryStore 的返回面（数据 + 数据操作）。 */
 interface MemoryStore {
@@ -181,10 +186,13 @@ interface MemoryFormOps {
  * @param reload 保存/删除成功后的数据重载（通常传 store.load）
  * @returns editingId 当前编辑的记忆 id（null=新增态）与四个操作
  */
-function useMemoryForm(refs: MemoryFormRefs, reload: () => Promise<void>): MemoryFormOps {
+function useMemoryForm(
+  values: MemoryFormValues,
+  setValues: React.Dispatch<React.SetStateAction<MemoryFormValues>>,
+  reload: () => Promise<void>,
+): MemoryFormOps {
   const { api, toast, dialog } = useApp();
   const [editingId, setEditingId] = React.useState<string | null>(null);
-  const { text: textRef, topic: topicRef, imp: impRef } = refs;
 
   /**
    * 进入编辑态：把该条记忆回填到表单。
@@ -192,28 +200,24 @@ function useMemoryForm(refs: MemoryFormRefs, reload: () => Promise<void>): Memor
    */
   const startEdit = (f: MemoryFact): void => {
     setEditingId(f.id);
-    if (textRef.current) textRef.current.value = f.text;
-    if (topicRef.current) topicRef.current.value = f.topic || '';
-    if (impRef.current) impRef.current.value = String(f.importance || 3);
+    setValues({ text: f.text, topic: f.topic || '', imp: String(f.importance || 3) });
   };
 
   /** 复位表单到新增态。 */
   const reset = (): void => {
     setEditingId(null);
-    if (textRef.current) textRef.current.value = '';
-    if (topicRef.current) topicRef.current.value = '';
-    if (impRef.current) impRef.current.value = '3';
+    setValues(EMPTY_FORM);
   };
 
   /** 保存：按 editingId 决定新增或更新。 */
   const save = async (): Promise<void> => {
-    const text = textRef.current ? textRef.current.value.trim() : '';
+    const text = values.text.trim();
     if (!text) {
       toast(t('请填写事实'), 'err');
       return;
     }
-    const topic = topicRef.current ? topicRef.current.value.trim() || undefined : undefined;
-    const importance = impRef.current ? parseInt(impRef.current.value, 10) || 3 : 3;
+    const topic = values.topic.trim() || undefined;
+    const importance = parseInt(values.imp, 10) || 3;
     try {
       if (editingId) await api.updateMemory({ id: editingId, text, topic, importance });
       else await api.addMemory({ text, topic, importance });
@@ -254,62 +258,60 @@ function useMemoryForm(refs: MemoryFormRefs, reload: () => Promise<void>): Memor
  * @returns 表单区块节点
  */
 function MemoryForm(props: {
-  refs: MemoryFormRefs;
+  values: MemoryFormValues;
+  onChange: (patch: Partial<MemoryFormValues>) => void;
   editingId: string | null;
   reset: () => void;
   save: () => Promise<void>;
 }): ReactElement {
-  const { refs, editingId, reset, save } = props;
+  const { values, onChange, editingId, reset, save } = props;
   return (
     <div className="pm-section">
       <div className="pm-title">{t('新增 / 编辑记忆')}</div>
       <div className="form">
         <label>
           {t('事实')}
-          <input
-            type="text"
-            ref={(el: HTMLInputElement | null) => {
-              refs.text.current = el;
-            }}
+          <Input
+            aria-label={t('事实')}
             placeholder={t('如：用户要求所有 TS 文件用 camelCase')}
+            value={values.text}
+            onChange={(e) => onChange({ text: e.target.value })}
           />
         </label>
         <label>
           {t('主题')}
-          <input
-            type="text"
-            ref={(el: HTMLInputElement | null) => {
-              refs.topic.current = el;
-            }}
+          <Input
+            aria-label={t('主题')}
             placeholder={t('编码规范 / 项目约定 / 环境')}
+            value={values.topic}
+            onChange={(e) => onChange({ topic: e.target.value })}
           />
         </label>
         <label>
           {t('重要度')}
-          <select
-            ref={(el: HTMLSelectElement | null) => {
-              refs.imp.current = el;
-            }}
-          >
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3" selected>
-              3
-            </option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-          </select>
+          <Select
+            aria-label={t('重要度')}
+            value={values.imp}
+            onChange={(next: string) => onChange({ imp: next })}
+            options={[
+              { value: '1', label: '1' },
+              { value: '2', label: '2' },
+              { value: '3', label: '3' },
+              { value: '4', label: '4' },
+              { value: '5', label: '5' },
+            ]}
+          />
         </label>
         <div className="pane-actions">
           <span className="flex-spacer"></span>
           {editingId ? (
-            <button className="btn" onClick={reset}>
+            <Button onClick={reset}>
               {t('取消编辑')}
-            </button>
+            </Button>
           ) : null}
-          <button className="btn primary" onClick={() => void save()}>
+          <Button type="primary" onClick={() => void save()}>
             {editingId ? t('保存修改') : t('保存')}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -324,29 +326,36 @@ function MemoryForm(props: {
 export function MemoryTab(props: MemoryTabProps): ReactElement {
   const { reloadKey } = props;
   const store = useMemoryStore(reloadKey);
-  const textRef = React.useRef<HTMLInputElement | null>(null);
-  const topicRef = React.useRef<HTMLInputElement | null>(null);
-  const impRef = React.useRef<HTMLSelectElement | null>(null);
-  const refs: MemoryFormRefs = { text: textRef, topic: topicRef, imp: impRef };
-  const form = useMemoryForm(refs, store.load);
+  const [values, setValues] = React.useState<MemoryFormValues>(EMPTY_FORM);
+  /** 合并式更新：三个字段各自改自己的，不互相覆盖。 */
+  const patchValues = React.useCallback((patch: Partial<MemoryFormValues>): void => {
+    setValues((prev) => ({ ...prev, ...patch }));
+  }, []);
+  const form = useMemoryForm(values, setValues, store.load);
 
   return (
     <div>
       <div className="pm-head">
-        <input
-          type="text"
+        <Input
+          aria-label={t('检索长期记忆（自然语言）…')}
           placeholder={t('检索长期记忆（自然语言）…')}
           value={store.query}
-          onInput={(e: React.SyntheticEvent) => store.setQuery((e.target as HTMLInputElement).value)}
+          onChange={(e) => store.setQuery(e.target.value)}
         />
-        <button className="ghost" onClick={() => void store.search()}>
+        <Button type="text" onClick={() => void store.search()}>
           {t('检索')}
-        </button>
-        <button className="ghost" onClick={() => void store.load()}>
+        </Button>
+        <Button type="text" onClick={() => void store.load()}>
           {t('刷新')}
-        </button>
+        </Button>
       </div>
-      <MemoryForm refs={refs} editingId={form.editingId} reset={form.reset} save={form.save} />
+      <MemoryForm
+        values={values}
+        onChange={patchValues}
+        editingId={form.editingId}
+        reset={form.reset}
+        save={form.save}
+      />
       <div className="pm-section">
         <div className="pm-title">{t('已存记忆（{count}）', { count: store.count })}</div>
         {store.facts.length === 0 ? (

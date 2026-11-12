@@ -39,11 +39,10 @@
 @media (max-width:880px) { .tabs { display:flex; } }
 .pane { display:none; }
 .pane.active { display:block; }
-.tool-item { display:flex; align-items:center; gap:8px; padding:6px 9px; border-radius:8px; cursor:pointer; font-size:13px; }
-.tool-item:hover { background:var(--panel-2); }
-.tool-item .dot { width:8px; height:8px; border-radius:50%; background:var(--warn); flex:none; }
-.tool-item.ok .dot { background:var(--ok); } .tool-item.err .dot { background:var(--err); }
-.tool-item .state { margin-left:auto; color:var(--dim); font-size:11px; }
+/* 工具行（antd Button type="text"）：表面/悬停/焦点归 antd，这里只留布局与状态列；
+   #toolList 提高特异性，压过 antd 单类（cssinjs 注入顺序无关）。 */
+#toolList .tool-item { display:flex; align-items:center; justify-content:flex-start; gap:8px; font-size:13px; text-align:left; }
+#toolList .tool-item .state { margin-left:auto; color:var(--dim); font-size:11px; }
 .metric-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
 .metric { border:1px solid var(--border-soft); }
 .kv { display:flex; justify-content:space-between; border-bottom:1px solid var(--border-soft); }

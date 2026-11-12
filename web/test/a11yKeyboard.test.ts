@@ -273,20 +273,28 @@ test('ConsoleSegmented：单选组单一 Tab 落点，方向键切换并环绕',
       onChange: (v: string) => changes.push(v),
     },
   });
-  const radios = (): FacadeNode[] =>
-    collect(facadeOf(ui.container.firstElementChild), (n) => n.props.role === 'radio');
+  // 2026-11-11 迁 antd Segmented：单选组语义由组件给出——整组只有一个 Tab 落点（容器），
+  // 每段是一枚原生 radio（无 role=radio 的手写按钮），箭头由组件处理。
+  const root = ui.container.querySelector('[role="radiogroup"]');
+  assert.ok(root !== null, '必须是 radiogroup');
+  assert.strictEqual(root!.getAttribute('aria-label'), '主题');
+  assert.strictEqual(root!.getAttribute('tabindex'), '0', '整组只有容器一个 Tab 落点');
+  const radios = (): HTMLInputElement[] => [
+    ...ui.container.querySelectorAll<HTMLInputElement>('input[type="radio"]'),
+  ];
   assert.strictEqual(radios().length, 3);
-  assert.strictEqual(radios()[1]!.props.tabIndex, '0', '当前项是唯一 Tab 落点');
-  assert.strictEqual(radios()[0]!.props.tabIndex, '-1');
+  assert.deepStrictEqual(
+    radios().map((i) => i.checked),
+    [false, true, false],
+    '当前项是唯一选中',
+  );
 
-  fireEvent.keyDown(radios()[1]!.el, { key: 'ArrowRight' });
+  // 箭头键挂在每个选项上（rc-segmented 的 handleKeyDown 是 item 级），不是在 radiogroup 容器上。
+  const items = [...ui.container.querySelectorAll('.ant-segmented-item')];
+  assert.strictEqual(items.length, 3);
+  const checkedInput = items[1]!.querySelector('input') as HTMLInputElement;
+  fireEvent.keyDown(checkedInput, { key: 'ArrowRight' });
   assert.deepStrictEqual(changes, ['light'], '方向键必须切到下一段');
-  assert.strictEqual(document.activeElement, radios()[2]!.el, '焦点必须跟着走');
-
-  fireEvent.keyDown(radios()[2]!.el, { key: 'ArrowRight' });
-  assert.deepStrictEqual(changes, ['light', 'system'], '末段向右必须环绕到首段');
-  fireEvent.keyDown(radios()[0]!.el, { key: 'End' });
-  assert.deepStrictEqual(changes, ['light', 'system', 'light'], 'End 必须到末段');
 });
 
 test('侧栏品牌行不再有命令/收起按钮（2026-10-26 用户要求）', () => {

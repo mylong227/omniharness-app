@@ -18,6 +18,8 @@ import { emptyNote, emptyState } from '../../format.ts';
 import type { CheckpointMeta } from '../../models/checkpoint.ts';
 import type { TimelineDay, TimelineEntry } from '../../models/CheckpointTimeline.ts';
 import { t } from '../../i18n/i18n.ts';
+import Input from 'antd/es/input';
+import Button from 'antd/es/button';
 
 export type { CheckpointMeta, TimelineEntry, TimelineDay };
 
@@ -54,7 +56,9 @@ function renderEntry(
   const snap = e.hasSnapshot ? t('含文件快照') : t('仅对话');
   return (
     <div key={e.meta.label} className={'cp-item' + (e.latest ? ' latest' : '')} role="listitem">
-      <button
+      <Button
+        type="text"
+        block
         className="cp-main"
         disabled={busy}
         aria-current={e.latest ? 'true' : undefined}
@@ -74,7 +78,7 @@ function renderEntry(
           <span className="cp-time">{e.relative}</span>
           {e.latest ? <span className="cp-latest">{t('当前最新')}</span> : null}
         </span>
-      </button>
+      </Button>
     </div>
   );
 }
@@ -121,20 +125,19 @@ function RollbackForm(props: {
 }): ReactElement {
   return (
     <div className="file-actions">
-      <input
-        className="cmdk-input"
+      <Input
         style={INPUT_STYLE}
         placeholder={t('检查点名称（留空自动生成）')}
         aria-label={t('检查点名称')}
         value={props.label}
-        onInput={(e: React.SyntheticEvent) => props.onLabel((e.target as HTMLInputElement).value)}
+        onChange={(e) => props.onLabel(e.target.value)}
       />
-      <button className="btn primary" disabled={props.busy} onClick={props.onCreate}>
+      <Button type="primary" disabled={props.busy} onClick={props.onCreate}>
         {t('⎘ 创建检查点')}
-      </button>
-      <button className="btn" onClick={props.onRefresh}>
+      </Button>
+      <Button onClick={props.onRefresh}>
         {t('↻ 刷新')}
-      </button>
+      </Button>
     </div>
   );
 }

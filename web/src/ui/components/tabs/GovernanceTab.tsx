@@ -27,6 +27,7 @@ import { icon } from '../../models/Icon.ts';
 import type { ReactElement } from 'react';
 import { t } from '../../i18n/i18n.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
+import Button from 'antd/es/button';
 import Table from 'antd/es/table';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -162,9 +163,9 @@ function GovernanceError(props: { message: string; onRetry: () => void }): React
   return (
     <div className="governance-tab">
       <p className="err">{t('读取治理数据失败：{msg}', { msg: props.message })}</p>
-      <button type="button" onClick={props.onRetry}>
+      <Button onClick={props.onRetry}>
         {t('重试')}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -209,9 +210,9 @@ export function GovernanceTab(): ReactElement {
       <div className="governance-tab">
         <p className="err">{data.reason || t('未提供原因')}</p>
         <p className="hint">{t('台账尚未产生时可忽略；若已产生过晋升，请检查工作区 .omniharness/evolution。')}</p>
-        <button type="button" onClick={() => void refresh()}>
+        <Button onClick={() => void refresh()}>
           {t('重试')}
-        </button>
+        </Button>
       </div>
     );
   }
@@ -239,9 +240,9 @@ export function GovernanceTab(): ReactElement {
             ? ''
             : t('（首个失败 #{seq}）', { seq: summary.firstFailureSeq })}
         </span>
-        <button type="button" onClick={() => void refresh()}>
+        <Button onClick={() => void refresh()}>
           {t('刷新')}
-        </button>
+        </Button>
       </header>
       <GovernanceRows rows={rows} />
       <RollbackTargets targets={rollbackTargets} />

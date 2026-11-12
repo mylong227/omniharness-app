@@ -24,6 +24,8 @@ import type { ReactElement } from 'react';
 import type { TraceReadResultLike } from '../../../types/models.ts';
 import { t } from '../../i18n/i18n.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
+import Input from 'antd/es/input';
+import Button from 'antd/es/button';
 import Table from 'antd/es/table';
 import type { ColumnsType } from 'antd/es/table';
 import Alert from 'antd/es/alert';
@@ -53,24 +55,24 @@ function TraceFilters(props: {
       <div className="detail-h">{t('过滤')}</div>
       <label>
         {t('类别')}
-        <input
-          type="text"
+        <Input
+          aria-label={t('类别')}
           value={props.kindFilter}
           placeholder={t('如 tool.call（留空＝全部）')}
-          onChange={(e: { target: { value: string } }) => props.onKind(e.target.value)}
+          onChange={(e) => props.onKind(e.target.value)}
         />
       </label>
       <label>
         {t('条数上限')}
-        <input
-          type="text"
+        <Input
+          aria-label={t('条数上限')}
           value={props.limit}
-          onChange={(e: { target: { value: string } }) => props.onLimit(e.target.value)}
+          onChange={(e) => props.onLimit(e.target.value)}
         />
       </label>
-      <button type="button" onClick={props.onRefresh}>
+      <Button onClick={props.onRefresh}>
         {t('查询')}
-      </button>
+      </Button>
       <span className="hint">
         {t('会话 {session} · 本次返回 {count} 条', { session: props.session, count: props.count })}
         {props.kindFilter === '' ? '' : t(' · 类别 {kind}', { kind: props.kindFilter })}
@@ -120,9 +122,9 @@ function TraceError(props: { message: string; onRetry: () => void }): ReactEleme
   return (
     <div className="trace-tab">
       <Alert type="error" showIcon message={t('读取 trace 失败：{msg}', { msg: props.message })} />
-      <button type="button" onClick={props.onRetry}>
+      <Button onClick={props.onRetry}>
         {t('重试')}
-      </button>
+      </Button>
     </div>
   );
 }

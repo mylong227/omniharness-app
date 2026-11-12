@@ -58,11 +58,12 @@ async function renderConsole(active: string, picked: string[], closed: () => voi
 test('控制台：左栏没有搜索框，打开时焦点落在当前导航项', async () => {
   // 2026-10-29：用户按截图要求删除「外观」页签（内容并入常规）⇒ 导航 24 → 23 项。
   // 2026-11-10：控制室进入「Agent 能力」组首位 ⇒ 导航 23 → 24 项。
+  // 2026-11-11：决策账本进入「数据与统计」组 ⇒ 导航 24 → 25 项。
   const ui = await renderConsole('model', [], () => {});
   try {
     await waitFor(() => {
-      if (ui.container.querySelectorAll('.sp-nav-item').length !== 24) {
-        throw new Error('左导航没有渲染 24 项');
+      if (ui.container.querySelectorAll('.sp-nav-item').length !== 25) {
+        throw new Error('左导航没有渲染 25 项');
       }
     });
     assert.strictEqual(

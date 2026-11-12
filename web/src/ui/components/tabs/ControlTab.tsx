@@ -6,10 +6,16 @@
  *
  * 深链口径（CR-03）：`#pane=control&view=fleet|context|proof`；view 变化经
  * `RouteBinding.navigate` 写 hash（幂等），未知 view 已在 Router 层落回 fleet。
+ *
+ * 2026-11-11 控制台 antd 化：tab 基座换成 antd `Tabs`（自带 WAI-ARIA tabs 关系与
+ * ←/→/Home/End 键控），不再自持 tabRefs；键盘激活分支保留（CR-02 要求选择跟随焦点，
+ * antd 默认只移焦点不激活）。
  */
 
 import * as React from 'react';
 import type { ReactElement } from 'react';
+// 子路径导入（不走 barrel，理由见 vite.config.ts「分块改造」注释）。
+import Tabs from 'antd/es/tabs';
 import { useApp } from '../../context.ts';
 import { t } from '../../i18n/i18n.ts';
 import { FleetMode } from './control/FleetMode.tsx';
@@ -45,91 +51,60 @@ export interface ControlTabProps {
   readonly onNavigate: (view: ControlView) => void;
 }
 
-/** 控制室面板：header + ARIA tabs + 三模式。 */
+/** 控制室面板：antd Tabs + 三模式。 */
 export function ControlTab(props: ControlTabProps): ReactElement {
   const { sessionId } = useApp();
   const threadId = props.threadId ?? sessionId ?? null;
   const current = normalizeView(props.view);
-  /** 每个 tab 的 DOM 引用：方向键切换后把焦点送到新 tab（WAI-ARIA selection follows focus）。 */
-  const tabRefs = React.useRef<Array<HTMLButtonElement | null>>([]);
 
   /**
-   * 选中某个 view 并移动键盘焦点。
-   * @param index 目标下标（已夹紧）。
-   */
-  const moveTo = React.useCallback(
-    (index: number): void => {
-      const next = Math.max(0, Math.min(index, VIEWS.length - 1));
-      const view = VIEWS[next];
-      if (view === undefined) return;
-      props.onNavigate(view.key);
-      window.requestAnimationFrame(() => tabRefs.current[next]?.focus());
-    },
-    [props.onNavigate],
-  );
-
-  /**
-   * tab 键盘导航（WAI-ARIA tabs：←/→/Home/End；选择跟随焦点）。
-   * @param e 键盘事件。
+   * tab 键控：antd Tabs 只把焦点移到下一枚 tab（手动激活口径），
+   * 而控制室的设计判据 CR-02 要求 ←/→/Home/End 直接切模式（选择跟随焦点）。
+   * 这里只接管落在 tablist 里的按键，面板内的输入框不受影响。
+   * @param event 键盘事件（从 tablist 冒泡上来）。
    */
   const onTabKeyDown = React.useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>): void => {
-      const selected = VIEWS.findIndex((view) => view.key === current);
-      const from = selected < 0 ? 0 : selected;
-      if (e.key === 'ArrowRight') moveTo(from + 1);
-      else if (e.key === 'ArrowLeft') moveTo(from - 1);
-      else if (e.key === 'Home') moveTo(0);
-      else if (e.key === 'End') moveTo(VIEWS.length - 1);
+    (event: React.KeyboardEvent<HTMLDivElement>): void => {
+      const list = event.currentTarget.querySelector('[role="tablist"]');
+      if (list === null || !list.contains(event.target as Node)) return;
+      const from = VIEWS.findIndex((view) => view.key === current);
+      const index = from < 0 ? 0 : from;
+      const key = event.key === '' ? event.code : event.key;
+      let next = -1;
+      if (key === 'ArrowRight') next = (index + 1) % VIEWS.length;
+      else if (key === 'ArrowLeft') next = (index - 1 + VIEWS.length) % VIEWS.length;
+      else if (key === 'Home') next = 0;
+      else if (key === 'End') next = VIEWS.length - 1;
       else return;
-      e.preventDefault();
+      event.preventDefault();
+      const view = VIEWS[next];
+      if (view !== undefined) props.onNavigate(view.key);
     },
-    [current, moveTo],
+    [current, props],
   );
 
   return (
-    <div className="control-tab">
-      <div
-        className="control-tabs"
-        role="tablist"
-        aria-label={t('控制室模式')}
-        onKeyDown={onTabKeyDown}
-      >
-        {VIEWS.map((view, index) => {
-          const selected = view.key === current;
-          return (
-            <button
-              key={view.key}
-              ref={(el) => {
-                tabRefs.current[index] = el;
-              }}
-              type="button"
-              role="tab"
-              id={`control-tab-${view.key}`}
-              aria-selected={selected}
-              aria-controls={`control-panel-${view.key}`}
-              tabIndex={selected ? 0 : -1}
-              className={`control-tab__btn${selected ? ' is-active' : ''}`}
-              onClick={() => props.onNavigate(view.key)}
-            >
-              {t(view.label)}
-            </button>
-          );
-        })}
-      </div>
-      {VIEWS.map((view) => (
-        <div
-          key={view.key}
-          role="tabpanel"
-          id={`control-panel-${view.key}`}
-          aria-labelledby={`control-tab-${view.key}`}
-          hidden={view.key !== current}
-          className="control-panel"
-        >
-          {view.key === 'fleet' ? <FleetMode threadId={threadId} active={current === 'fleet'} /> : null}
-          {view.key === 'context' ? <ContextMode threadId={threadId} active={current === 'context'} /> : null}
-          {view.key === 'proof' ? <ProofMode threadId={threadId} active={current === 'proof'} /> : null}
-        </div>
-      ))}
+    // 命名 region（2026-11-12 补回 2026-11-11 迁移丢掉的「控制室模式」可访问名）：
+    // rc-tabs 的 tablist 节点不收 restProps，aria-label 只能落到这里的外层 region 上。
+    <div role="region" aria-label={t('控制室模式')} onKeyDown={onTabKeyDown}>
+      <Tabs
+        activeKey={current}
+        onChange={(key) => props.onNavigate(normalizeView(key))}
+        items={VIEWS.map((view) => ({
+          key: view.key,
+          label: t(view.label),
+          // 三个模式都只在首次激活时挂载，之后保活（切走不卸载，与设计 CR-05 的缓存口径一致）；
+          // 各自的 `active` 仍决定是否发起 RPC。
+          children:
+            view.key === 'fleet' ? (
+              <FleetMode threadId={threadId} active={current === 'fleet'} />
+            ) : view.key === 'context' ? (
+              <ContextMode threadId={threadId} active={current === 'context'} />
+            ) : (
+              <ProofMode threadId={threadId} active={current === 'proof'} />
+            ),
+        }))}
+      />
     </div>
   );
 }

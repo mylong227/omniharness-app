@@ -13,9 +13,13 @@ import { t } from '../../i18n/i18n.ts';
 import type { SettingsField, SettingsModel } from '../../models/SettingsModel.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
 // 2026-10-30（W4 表单专项）：三个设置原语下沉到 antd——所有设置页经本文件拼装，换这里即全站生效。
-import Select from 'antd/es/select';
+import Card from 'antd/es/card';
+import Flex from 'antd/es/flex';
 import Input from 'antd/es/input';
+import Segmented from 'antd/es/segmented';
+import Select from 'antd/es/select';
 import Switch from 'antd/es/switch';
+import Typography from 'antd/es/typography';
 
 /** 下拉选项。 */
 export interface ConsoleOption {
@@ -44,35 +48,62 @@ export interface ConsoleCardProps {
 }
 
 /**
- * 一张设置卡片。
+ * 一张设置卡片（antd Card：标题 + 说明 + 行 + 脚注）。
+ * 标题用 Typography.Title（真标题语义）；说明与脚注走次要文本；
+ * 行间距交给 `.csl-row` 的栅格，antd 只负责卡片表面与头部。
  * @param props 组件入参
  * @returns 卡片节点
  */
 export function ConsoleCard(props: ConsoleCardProps): ReactElement {
   const { title, meta, description, actions, children, footer, className } = props;
   const hasHead =
-    title !== undefined || meta !== undefined || description !== undefined || actions !== undefined;
+    title !== undefined || meta !== undefined || description !== undefined;
   return (
-    <section className={'csl-card' + (className === undefined ? '' : ' ' + className)}>
-      {hasHead ? (
-        <div className="csl-card-head">
-          <div className="csl-card-head-main">
-            {title === undefined ? null : (
-              <div className="csl-card-title-row">
-                <h2 className="csl-card-title">{title}</h2>
-                {meta === undefined ? null : <span className="csl-card-meta">{meta}</span>}
-              </div>
-            )}
+    <Card
+      size="small"
+      className={className}
+      title={
+        hasHead ? (
+          <Flex vertical gap={2}>
+            <Flex align="baseline" wrap gap={8}>
+              {title === undefined ? null : (
+                // 真 h2（迁移前 `.csl-card-title` 的语义）：字号/行高继承卡头，视觉与 level 5 一致。
+                <Typography.Title
+                  level={2}
+                  style={{ margin: 0, fontSize: 'inherit', lineHeight: 'inherit' }}
+                >
+                  {title}
+                </Typography.Title>
+              )}
+              {meta === undefined ? null : (
+                <Typography.Text type="secondary" className="mono" style={{ fontSize: 11 }}>
+                  {meta}
+                </Typography.Text>
+              )}
+            </Flex>
             {description === undefined ? null : (
-              <p className="csl-card-desc">{description}</p>
+              <Typography.Text
+                type="secondary"
+                style={{ fontWeight: 400, fontSize: 12.5, lineHeight: 1.6 }}
+              >
+                {description}
+              </Typography.Text>
             )}
-          </div>
-          {actions === undefined ? null : <div className="csl-card-actions">{actions}</div>}
-        </div>
-      ) : null}
-      <div className="csl-card-body">{children}</div>
-      {footer === undefined ? null : <div className="csl-card-foot">{footer}</div>}
-    </section>
+          </Flex>
+        ) : undefined
+      }
+      extra={actions}
+    >
+      <Flex vertical>{children}</Flex>
+      {footer === undefined ? null : (
+        <Typography.Text
+          type="secondary"
+          style={{ display: 'block', marginTop: 12, fontSize: 11.5 }}
+        >
+          {footer}
+        </Typography.Text>
+      )}
+    </Card>
   );
 }
 
@@ -155,7 +186,7 @@ export interface ConsoleSelectProps {
 }
 
 /**
- * 带自绘箭头的原生下拉（原生 select 保证键盘与移动端行为，外观走 CSS）。
+ * 下拉选择（antd Select：键盘与移动端行为由组件保证，外观走主题 token）。
  * @param props 组件入参
  * @returns 下拉节点
  */
@@ -234,7 +265,7 @@ export interface ConsoleSwitchProps {
 }
 
 /**
- * 自绘开关（原生 checkbox 保证键盘与表单语义，外观走 CSS）。
+ * 开关（antd Switch：键盘与表单语义由组件保证，外观走主题 token）。
  * @param props 组件入参
  * @returns 开关节点
  */
@@ -274,66 +305,32 @@ export interface ConsoleSegmentedProps<V extends string> {
 }
 
 /**
- * 分段控件（radiogroup 语义，WAI-ARIA 单选组键盘模型）。
+ * 分段控件（antd Segmented：radiogroup 语义、方向键切换、选中态由组件自己维护）。
  * @param props 组件入参
  * @returns 分段控件节点
  */
 export function ConsoleSegmented<V extends string>(props: ConsoleSegmentedProps<V>): ReactElement {
   const { options, value, onChange, ariaLabel } = props;
-  /** 段按钮引用：方向键要把焦点送到下一段（整组只有一个 Tab 落点）。 */
-  const refs = React.useRef<Array<HTMLButtonElement | null>>([]);
-  const selectedIndex = options.findIndex((option) => option.value === value);
-
-  /**
-   * ←/→/↑/↓ 环绕、Home/End 到首尾；分段控件是"立即生效"的开关，方向键即选中。
-   * @param e 键盘事件
-   * @param index 当前段下标
-   * @returns 无
-   */
-  const onKeyDown = (e: React.KeyboardEvent, index: number): void => {
-    let next = index;
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (index + 1) % options.length;
-    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-      next = (index - 1 + options.length) % options.length;
-    } else if (e.key === 'Home') next = 0;
-    else if (e.key === 'End') next = options.length - 1;
-    else return;
-    e.preventDefault();
-    const target = options[next];
-    if (target === undefined) return;
-    if (target.value !== value) onChange(target.value);
-    refs.current[next]?.focus();
-  };
-
   return (
-    <div className="csl-seg" role="radiogroup" aria-label={ariaLabel}>
-      {options.map((option, index) => {
-        const on = option.value === value;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            ref={(el) => {
-              refs.current[index] = el;
-            }}
-            role="radio"
-            aria-checked={on ? 'true' : 'false'}
-            tabIndex={on || (selectedIndex < 0 && index === 0) ? 0 : -1}
-            className={'csl-seg-item' + (on ? ' on' : '')}
-            onClick={() => {
-              if (!on) onChange(option.value);
-            }}
-            onKeyDown={(e: React.KeyboardEvent) => onKeyDown(e, index)}
-          >
-            {option.icon === undefined ? null : icon(option.icon, { size: 13 })}
-            {option.label}
-          </button>
-        );
-      })}
-    </div>
+    <Segmented
+      aria-label={ariaLabel}
+      value={value}
+      onChange={(next) => onChange(next as V)}
+      options={options.map((option) => ({
+        value: option.value,
+        label:
+          option.icon === undefined ? (
+            option.label
+          ) : (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {icon(option.icon, { size: 13 })}
+              {option.label}
+            </span>
+          ),
+      }))}
+    />
   );
 }
-
 /** 键帽。 */
 export interface ConsoleKeycapProps {
   /** 按键组合（如 `Ctrl/Cmd+P`）。 */

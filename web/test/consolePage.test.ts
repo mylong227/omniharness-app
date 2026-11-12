@@ -127,16 +127,18 @@ test(
         return true;
       })()`);
       assert.ok(
-        await cdp.waitFor("!!document.querySelector('.csl-seg[aria-label=\\\"聊天模式\\\"]')", 4000),
+        await cdp.waitFor("!!document.querySelector('.ant-segmented[aria-label=\\\"聊天模式\\\"]')", 4000),
         '常规页没有渲染「聊天模式」分段控件',
       );
       const read = `(function(){
-        var seg = document.querySelector('.csl-seg[aria-label="聊天模式"]');
-        var items = [].slice.call(seg.querySelectorAll('button.csl-seg-item'));
+        var seg = document.querySelector('.ant-segmented[aria-label="聊天模式"]');
+        var items = [].slice.call(seg.querySelectorAll('.ant-segmented-item'));
         return {
           labels: items.map(function(b){ return (b.textContent || '').trim(); }),
-          on: items.filter(function(b){ return b.getAttribute('aria-checked') === 'true'; })
-            .map(function(b){ return (b.textContent || '').trim(); }),
+          // 选中态读 radio 的 checked（antd 的选中类名要等滑块动画落地，200ms 内可能还没挂上）。
+          on: [].slice.call(seg.querySelectorAll('.ant-segmented-item-input'))
+            .filter(function(i){ return i.checked; })
+            .map(function(i){ return (i.closest('.ant-segmented-item').textContent || '').trim(); }),
           stored: localStorage.getItem('omni-chat-mode')
         };
       })()`;
@@ -148,8 +150,8 @@ test(
       assert.deepStrictEqual(before.labels, ['队列模式', '插话模式']);
       assert.deepStrictEqual(before.on, ['队列模式'], '缺省应为队列模式');
       const clicked = await cdp.evaluate(`(function(){
-        var seg = document.querySelector('.csl-seg[aria-label="聊天模式"]');
-        var hit = [].slice.call(seg.querySelectorAll('button.csl-seg-item')).filter(function(b){
+        var seg = document.querySelector('.ant-segmented[aria-label="聊天模式"]');
+        var hit = [].slice.call(seg.querySelectorAll('.ant-segmented-item')).filter(function(b){
           return (b.textContent || '').trim() === '插话模式';
         })[0];
         if (!hit) return false;

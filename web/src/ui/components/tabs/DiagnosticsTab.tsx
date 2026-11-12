@@ -24,6 +24,7 @@ import type { ReactElement } from 'react';
 import type { DoctorReportLike } from '../../../types/models.ts';
 import { t } from '../../i18n/i18n.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
+import Button from 'antd/es/button';
 import Descriptions from 'antd/es/descriptions';
 import Table from 'antd/es/table';
 import type { ColumnsType } from 'antd/es/table';
@@ -160,9 +161,9 @@ export function DiagnosticsTab(): ReactElement {
     return (
       <div className="diagnostics-tab">
         <p className="err">{t('读取诊断数据失败：{msg}', { msg: error })}</p>
-        <button type="button" onClick={() => void refresh()}>
+        <Button onClick={() => void refresh()}>
           {t('重试')}
-        </button>
+        </Button>
       </div>
     );
   }
@@ -193,9 +194,9 @@ export function DiagnosticsTab(): ReactElement {
         ) : (
           <p className="hint">{t('暂无诊断数据。')}</p>
         )}
-        <button type="button" onClick={() => void refresh()}>
+        <Button onClick={() => void refresh()}>
           {t('重新体检')}
-        </button>
+        </Button>
       </div>
       <div className="diagnostics-foot">
         {icon('ruler', { size: 14 })} {t('只读视图（不修改任何配置）')}

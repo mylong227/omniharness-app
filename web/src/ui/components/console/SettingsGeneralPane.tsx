@@ -5,12 +5,13 @@
 // 一个箭头函数 107 行）。这里只做展示与回调透传，状态仍全部由 `SettingsSurface` /
 // 上层控制台持有；DOM 结构、class 名、aria 文案与 i18n 调用与抽出前逐字一致。
 
-import * as React from 'react';
 import { t, type Locale } from '../../i18n/i18n.ts';
 import type { ThemePreference } from '../../models/ThemePreference.ts';
 import type { ThemeScheme } from '../../theme/palette.ts';
 import type { ChatMode } from '../../models/ChatModePreference.ts';
 import { ConsoleCard, ConsoleInfoRow, ConsoleRow, ConsoleSegmented } from './ConsoleUI.tsx';
+import Slider from 'antd/es/slider';
+import Button from 'antd/es/button';
 
 /** 主题三态（跟随系统 → 深色 → 浅色）。 */
 const THEME_PREFS: readonly { key: ThemePreference; icon: 'monitor' | 'moon' | 'sun'; label: string }[] =
@@ -169,34 +170,30 @@ function PanelWidthCards(props: {
         label={t('会话栏宽度')}
         hint={t('范围 180–600 px，当前 {width} px', { width: props.leftWidth })}
       >
-        <input
-          className="csl-range"
-          type="range"
+        <Slider
           min={180}
           max={600}
           step={4}
-          aria-label={t('会话栏宽度')}
+          ariaLabelForHandle={t('会话栏宽度')}
           value={props.leftWidth}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            props.onLeftWidthChange(Number(e.target.value))
-          }
+          onChange={(value) => props.onLeftWidthChange(value)}
+          style={{ width: 190 }}
+          tooltip={{ formatter: (value) => `${String(value)} px` }}
         />
       </ConsoleRow>
       <ConsoleRow
         label={t('右侧面板宽度')}
         hint={t('范围 180–760 px，当前 {width} px', { width: props.rightWidth })}
       >
-        <input
-          className="csl-range"
-          type="range"
+        <Slider
           min={180}
           max={760}
           step={4}
-          aria-label={t('右侧面板宽度')}
+          ariaLabelForHandle={t('右侧面板宽度')}
           value={props.rightWidth}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            props.onRightWidthChange(Number(e.target.value))
-          }
+          onChange={(value) => props.onRightWidthChange(value)}
+          style={{ width: 190 }}
+          tooltip={{ formatter: (value) => `${String(value)} px` }}
         />
       </ConsoleRow>
     </ConsoleCard>
@@ -247,9 +244,9 @@ function ShortcutsLinkCard(props: { onNavigate: (key: string) => void }): ReactE
   return (
     <ConsoleCard>
       <ConsoleRow label={t('全局快捷键')} hint={t('命令面板、新建会话、左右栏开合、明暗切换。')}>
-        <button className="csl-btn" type="button" onClick={() => props.onNavigate('shortcuts')}>
+        <Button onClick={() => props.onNavigate('shortcuts')}>
           {t('查看全部')}
-        </button>
+        </Button>
       </ConsoleRow>
     </ConsoleCard>
   );

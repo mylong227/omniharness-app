@@ -9,6 +9,7 @@ import type { ApprovalRequest, QuestionRequest, ThreadEvent } from '../../../typ
 import type { ToolResultView } from '../../shared.ts';
 import { t } from '../../i18n/i18n.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
+import Button from 'antd/es/button';
 import Table from 'antd/es/table';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -198,12 +199,12 @@ export function ActivityTab(props: ActivityTabProps): React.ReactElement {
             : t('空闲')}
         </p>
         <div className="act-actions">
-          <button className="ghost" type="button" onClick={() => props.onOpenPane('trace')}>
+          <Button type="text" onClick={() => props.onOpenPane('trace')}>
             {t('查看 Trace')}
-          </button>
-          <button className="ghost" type="button" onClick={() => props.onOpenPane('tools')}>
+          </Button>
+          <Button type="text" onClick={() => props.onOpenPane('tools')}>
             {t('查看工具')}
-          </button>
+          </Button>
         </div>
       </section>
 
@@ -227,9 +228,9 @@ export function ActivityTab(props: ActivityTabProps): React.ReactElement {
           </p>
         )}
         <div className="act-actions">
-          <button className="ghost" type="button" onClick={() => props.onOpenPane('changes')}>
+          <Button type="text" onClick={() => props.onOpenPane('changes')}>
             {t('打开变更面板')}
-          </button>
+          </Button>
         </div>
       </section>
 

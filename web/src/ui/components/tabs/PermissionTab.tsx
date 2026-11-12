@@ -180,16 +180,16 @@ function RuleActions(props: {
 }): ReactElement {
   return (
     <div className="pane-actions">
-      <button type="button" className="btn" onClick={props.onAdd}>
+      <Button onClick={props.onAdd}>
         {t('新增规则')}
-      </button>
+      </Button>
       <span className="flex-spacer"></span>
-      <button type="button" className="btn" onClick={props.onReload}>
+      <Button onClick={props.onReload}>
         {t('重新载入')}
-      </button>
-      <button type="button" className="btn primary" disabled={!props.dirty} onClick={props.onSave}>
+      </Button>
+      <Button type="primary" disabled={!props.dirty} onClick={props.onSave}>
         {t('保存')}
-      </button>
+      </Button>
     </div>
   );
 }

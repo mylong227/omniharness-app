@@ -9,6 +9,7 @@ import { emptyState } from '../../format.ts';
 import { icon } from '../../models/Icon.ts';
 import type { Profile, ActivePlugins } from '../../../types/models.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
+import Input from 'antd/es/input';
 import Table from 'antd/es/table';
 import type { ColumnsType } from 'antd/es/table';
 import Button from 'antd/es/button';
@@ -290,28 +291,28 @@ function BundleForm(props: {
       <div className="form">
         <label>
           {t('配置集（留空=当前激活）')}
-          <input
-            type="text"
-            ref={(el: HTMLInputElement | null) => {
-              refs.bundleProfile.current = el;
+          <Input
+            aria-label={t('配置集（留空=当前激活）')}
+            ref={(el) => {
+              refs.bundleProfile.current = el?.input ?? null;
             }}
             placeholder={t('配置集 id 或名称')}
           />
         </label>
         <div className="row">
-          <button className="ghost" onClick={() => void pack()}>
+          <Button type="text" onClick={() => void pack()}>
             {t('打包 .zip')}
-          </button>
-          <button className="ghost" onClick={() => void unpack()}>
+          </Button>
+          <Button type="text" onClick={() => void unpack()}>
             {t('解包 .zip')}
-          </button>
+          </Button>
         </div>
         <label>
           {t('解包 zip 路径')}
-          <input
-            type="text"
-            ref={(el: HTMLInputElement | null) => {
-              refs.bundleZip.current = el;
+          <Input
+            aria-label={t('解包 zip 路径')}
+            ref={(el) => {
+              refs.bundleZip.current = el?.input ?? null;
             }}
             placeholder={t('.zip 绝对路径')}
           />
@@ -339,9 +340,9 @@ export function ProfilesTab(props: ProfilesTabProps): ReactElement {
   return (
     <div>
       <div className="pm-head">
-        <button className="ghost" onClick={() => void store.load()}>
+        <Button type="text" onClick={() => void store.load()}>
           {t('刷新')}
-        </button>
+        </Button>
         <span className="dim">
           {t('运行时插件（{count}）：', { count: store.active.plugins?.length || 0 })}
           {store.active.plugins?.length ? store.active.plugins.join(', ') : '—'}
@@ -367,13 +368,19 @@ export function ProfilesTab(props: ProfilesTabProps): ReactElement {
         <div className="form">
           <label>
             {t('名称')}
-            <input type="text" ref={nameRef} placeholder={t('如：minimal / web-dev')} />
+            <Input
+              aria-label={t('名称')}
+              ref={(el) => {
+                nameRef.current = el?.input ?? null;
+              }}
+              placeholder={t('如：minimal / web-dev')}
+            />
           </label>
           <div className="pane-actions">
             <span className="flex-spacer"></span>
-            <button className="btn primary" onClick={() => void actions.saveCurrent()}>
+            <Button type="primary" onClick={() => void actions.saveCurrent()}>
               {t('保存当前为配置集')}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

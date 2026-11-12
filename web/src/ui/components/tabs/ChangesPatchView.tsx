@@ -7,12 +7,13 @@
 // 块级键盘评审（j/k/a/r）的可见锚点：被选中的 `@@` 头挂 `.hunk-head.selected` 与 aria-current，
 // 与鼠标点击共用同一条选中通道（点块头即选中，键盘移动即高亮）。
 
-import * as React from 'react';
 import { parseDiffRows, type DiffRow } from '../../textUtils.ts';
 import { DiffHunkSplitter } from '../../models/DiffHunkSplitter.ts';
 import { icon } from '../../models/Icon.ts';
 import { emptyNote } from '../../format.ts';
 import { t } from '../../i18n/i18n.ts';
+import Input from 'antd/es/input';
+import Button from 'antd/es/button';
 
 /** 单文件变更行。 */
 export interface ChangeFile {
@@ -133,14 +134,15 @@ function renderRow(row: DiffRow, i: number, ctx: ReviewCtx): ReactElement {
       <span className="diff-sign">{sign}</span>
       <span className="diff-text">{row.text.slice(1)}</span>
       {ctx.isGit && line !== undefined ? (
-        <button
+        <Button
+          type="text"
+          size="small"
           className="line-cmt"
           title={t('添加行内评论')}
           aria-label={t('评论第 {line} 行', { line })}
+          icon={icon('message', { size: 12 })}
           onClick={() => ctx.onStartDraft({ path: ctx.f.path, side, line })}
-        >
-          {icon('message', { size: 12 })}
-        </button>
+        />
       ) : null}
     </div>
   );
@@ -159,14 +161,15 @@ function renderComment(c: DiffComment, ctx: ReviewCtx): ReactElement {
         {icon('message', { size: 12 })} {c.side === 'new' ? t('新') : t('旧')} L{c.line}
       </span>
       <span className="dc-text">{c.text}</span>
-      <button
+      <Button
+        type="text"
+        size="small"
         className="dc-del"
         title={t('删除评论')}
         aria-label={t('删除评论：{text}', { text: c.text.slice(0, 20) })}
+        icon={icon('x', { size: 12 })}
         onClick={() => ctx.onDeleteComment(c.id)}
-      >
-        ×
-      </button>
+      />
     </div>
   );
 }
@@ -180,25 +183,21 @@ function renderComment(c: DiffComment, ctx: ReviewCtx): ReactElement {
 function renderDraft(i: number, ctx: ReviewCtx): ReactElement {
   return (
     <div key={'d' + i} className="diff-draft">
-      <textarea
+      <Input.TextArea
         rows={2}
         autoFocus
         placeholder={t('评论此行（仅自己与团队可见，工作区级持久化）…')}
         aria-label={t('行内评论内容')}
         value={ctx.draftText}
-        onInput={(e: React.SyntheticEvent) => ctx.onDraftText((e.target as HTMLTextAreaElement).value)}
-      ></textarea>
+        onChange={(e) => ctx.onDraftText(e.target.value)}
+      />
       <div className="dd-actions">
-        <button
-          className="btn primary"
-          disabled={ctx.draftText.trim() === ''}
-          onClick={ctx.onSaveDraft}
-        >
+        <Button type="primary" disabled={ctx.draftText.trim() === ''} onClick={ctx.onSaveDraft}>
           {t('保存')}
-        </button>
-        <button className="btn" onClick={ctx.onCancelDraft}>
+        </Button>
+        <Button onClick={ctx.onCancelDraft}>
           {t('取消')}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -231,22 +230,27 @@ function renderHunkHead(
       <span className="hunk-header">{text}</span>
       {ctx.isGit && h ? (
         <span className="hunk-actions">
-          <button
+          <Button
+            size="small"
             className="hunk-btn"
             disabled={ctx.busyAct !== null}
             title={t('stage 该改动块（git apply --cached）')}
+            icon={icon('plus', { size: 12 })}
             onClick={() => ctx.onStageHunk(ctx.f.path, DiffHunkSplitter.text(h), isNewFile, idx)}
           >
-            {icon('plus', { size: 12 })} stage
-          </button>
-          <button
-            className="hunk-btn danger"
+            stage
+          </Button>
+          <Button
+            size="small"
+            danger
+            className="hunk-btn"
             disabled={ctx.busyAct !== null}
             title={t('丢弃该改动块（git apply -R，不可恢复）')}
+            icon={icon('undo', { size: 12 })}
             onClick={() => ctx.onRevertHunk(ctx.f.path, DiffHunkSplitter.text(h), idx)}
           >
-            {icon('undo', { size: 12 })} {t('丢弃')}
-          </button>
+            {t('丢弃')}
+          </Button>
         </span>
       ) : null}
     </div>
@@ -300,22 +304,27 @@ export function renderChangesPatch(ctx: ReviewCtx): ReactElement {
 
   const fileActions = ctx.isGit ? (
     <div className="file-actions">
-      <button
+      <Button
+        size="small"
         className="hunk-btn"
         disabled={ctx.busyAct !== null}
         title={t('stage 整个文件（git add）')}
+        icon={icon('plus', { size: 12 })}
         onClick={() => ctx.onStageFile(ctx.f.path)}
       >
-        {icon('plus', { size: 12 })} {t('stage 文件')}
-      </button>
-      <button
-        className="hunk-btn danger"
+        {t('stage 文件')}
+      </Button>
+      <Button
+        size="small"
+        danger
+        className="hunk-btn"
         disabled={ctx.busyAct !== null}
         title={t('丢弃整个文件的工作区改动（不可恢复）')}
+        icon={icon('undo', { size: 12 })}
         onClick={() => ctx.onRevertFile(ctx.f.path)}
       >
-        {icon('undo', { size: 12 })} {t('丢弃文件')}
-      </button>
+        {t('丢弃文件')}
+      </Button>
     </div>
   ) : null;
 
