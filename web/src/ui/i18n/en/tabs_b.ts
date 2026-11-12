@@ -304,4 +304,9 @@ export const EN_TABS_B: Record<string, string> = {
   '启停': 'Toggle',
   '描述': 'Description',
   '标签': 'Tags',
+  // 编排示例提示词（2026-11-12 配置化：GraphTab 载入示例时经 t() 消费）
+  '列出研究主题的三个子问题。': 'List three sub-questions of the research topic.',
+  '深入调研第一个子问题并给出要点。': 'Research the first sub-question in depth and outline key points.',
+  '深入调研第二个子问题并给出要点。': 'Research the second sub-question in depth and outline key points.',
+  '综合 a 与 b 的结论，输出最终报告。': 'Merge conclusions of a and b into the final report.',
 };

@@ -246,13 +246,17 @@
 .approval-change-perm .link:hover { text-decoration:underline; }
 
 /* ---- FolderPicker / FilePicker：内嵌文件夹与文件选择器（2026-10-29 浮层换 antd Modal） ---- */
-/* dialog 本体透明；卡片外观在 .fp-shell，尺寸由 Modal 的 width 决定。 */
+/* dialog 本体透明；卡片外观在 .fp-shell，尺寸由 Modal 的 width 决定。
+   antd 6 起可视面板是 .ant-modal-container（.ant-modal-content 已不存在，2026-11-12 修正）。 */
 .ant-modal.fp-modal { border: 0; background: transparent; box-shadow: none; padding-bottom: 0; }
-.fp-modal .ant-modal-content { padding: 0; background: transparent; box-shadow: none; border-radius: 0; }
+.fp-modal .ant-modal-container.ant-modal-container { padding: 0; background: transparent; box-shadow: none; border-radius: 0; }
 .fp-shell {
   display: flex; flex-direction: column;
   max-height: min(78vh, 720px);
-  background: var(--panel);
+  /* 磨砂浮层（2026-11-12）：与其他浮层同材质（半透 panel + blur），见 antd.css 缝合层。 */
+  background: var(--frost-fill);
+  backdrop-filter: var(--frost-blur);
+  -webkit-backdrop-filter: var(--frost-blur);
   border: 1px solid var(--border-strong);
   border-radius: 16px;
   box-shadow: var(--shadow-2);

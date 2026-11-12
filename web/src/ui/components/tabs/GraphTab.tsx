@@ -226,7 +226,8 @@ function useGraphDraft(): GraphDraft {
       SAMPLE.steps.map((s) => ({
         id: s.id,
         dep: GraphDefBuilder.depText(s.dependsOn),
-        prompt: s.prompt,
+        // 示例提示词是用户可见的种子内容，消费点走 i18n（键 = 中文原文，en 词条在 tabs_b）。
+        prompt: t(s.prompt),
       })),
     );
     toast(t('已载入示例（未保存，可点「保存」）'), 'info');

@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useApp } from '../../../context.ts';
+import { t } from '../../../i18n/i18n.ts';
 import type {
   ProofBundleViewLike,
   ProofExportResultLike,
@@ -146,7 +147,7 @@ export function useProof(threadId: string | null, active: boolean): UseProofResu
 
   const exportTurn = React.useCallback(async (): Promise<ProofExportResultLike | string> => {
     if (threadId === null || threadId === '' || selectedTurn === null) {
-      return '先选择一个回合，再导出证据包。';
+      return t('先选择一个回合，再导出证据包。');
     }
     try {
       const result = await api.proofExport(threadId, selectedTurn);

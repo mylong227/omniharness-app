@@ -183,4 +183,5 @@ export const EN_TABS_C: Record<string, string> = {
   '导出': 'Export',
   '构造中…': 'Building…',
   '证据包已下载：{name}': 'Evidence bundle downloaded: {name}',
+  '先选择一个回合，再导出证据包。': 'Pick a turn first, then export the evidence bundle.',
 };

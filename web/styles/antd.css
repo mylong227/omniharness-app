@@ -55,3 +55,79 @@
   color: inherit;
 }
 
+
+/* —— 磨砂补齐到 antd 基座（2026-11-12）：2026-10-31 的 iOS 磨砂口径原本只落在
+   原生控件（--btn-fill）与自写浮层（.modal/.dlg/.row-menu/.mp-menu/.toast）上；
+   控件与浮层换成 antd 后丢了这层材质。这里按同一口径补齐：
+   · 按钮.default 变体：半透明磨砂填充（--btn-fill），**不带 blur**（口径：blur 只给
+     内容会从底下滚过的表面；透明填充叠在卡上已有浮起感）；
+   · 浮层（Modal / Select 下拉 / Popover / Dropdown）：半透 panel + blur；
+     Tooltip 有意不磨砂——小面积深底气泡，实底对比最稳（colorBgSpotlight 口径）；
+   · 卡片仍是纸面（实心），纸与墨的意象不动；
+   · 弹层被 portal 到 body（不在 .ant-app 里），选择器一律双类压过 cssinjs 注入顺序；
+     按钮不限定 .ant-app 也是同一理由（审批弹窗里的按钮在 portal 里）。
+   @media / @supports 的 token 级回退见文件尾。 */
+.ant-btn.ant-btn-default:not(.ant-btn-dangerous):not(:disabled):not(.ant-btn-disabled) {
+  background: var(--btn-fill);
+  border-color: transparent;
+}
+.ant-btn.ant-btn-default:not(.ant-btn-dangerous):not(:disabled):not(.ant-btn-disabled):hover {
+  background: var(--btn-fill-hover);
+  border-color: transparent;
+}
+.ant-btn.ant-btn-default:not(.ant-btn-dangerous):not(:disabled):not(.ant-btn-disabled):active {
+  background: var(--btn-fill-hover);
+}
+/* antd 6 的可视面板是 .ant-modal-container（.ant-modal-content 已不存在）；
+   外层 .ant-modal 仍存在且携带使用方 className（cmdk-modal / fp-modal 落在它上）。
+   双类压过 cssinjs 注入顺序；.cmdk-modal/.fp-modal 的透明覆盖在更晚的表里同特异性胜出。 */
+.ant-modal .ant-modal-container.ant-modal-container {
+  background: var(--frost-fill);
+  backdrop-filter: var(--frost-blur);
+  -webkit-backdrop-filter: var(--frost-blur);
+}
+.ant-select-dropdown.ant-select-dropdown-placement-bottomLeft,
+.ant-select-dropdown.ant-select-dropdown-placement-topLeft {
+  background: var(--frost-fill);
+  backdrop-filter: var(--frost-blur-soft);
+  -webkit-backdrop-filter: var(--frost-blur-soft);
+}
+.ant-dropdown .ant-dropdown-menu.ant-dropdown-menu {
+  background: var(--frost-fill);
+  backdrop-filter: var(--frost-blur-soft);
+  -webkit-backdrop-filter: var(--frost-blur-soft);
+}
+.ant-popover.ant-popover {
+  /* antd 6 箭头读 tooltip 侧的箭头变量（共享 genArrowStyle），antd 5 的旧变量名已死。 */
+  --ant-tooltip-arrow-background-color: var(--frost-fill);
+}
+.ant-popover .ant-popover-container.ant-popover-container {
+  background: var(--frost-fill);
+  backdrop-filter: var(--frost-blur-soft);
+  -webkit-backdrop-filter: var(--frost-blur-soft);
+}
+
+/* —— 材质降级（token 级，一处收口，既有磨砂消费方一起受益）——
+   · 用户偏好降透明（prefers-reduced-transparency）→ 全部回实色，blur 关掉；
+   · 引擎不支持 backdrop-filter → 保留半透填充但关 blur（糊不了就别糊）。 */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --frost-fill-soft: var(--bg-elev);
+    --frost-fill: var(--panel);
+    --frost-blur: none;
+    --frost-blur-soft: none;
+    --btn-fill: var(--panel-2);
+    --btn-fill-hover: var(--panel-2);
+  }
+  /* antd 自带的遮罩模糊（blur(4px)）也一并降级。 */
+  .ant-modal-mask.ant-modal-mask.ant-modal-mask-blur {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --frost-blur: none;
+    --frost-blur-soft: none;
+  }
+}

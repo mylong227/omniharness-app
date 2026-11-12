@@ -3881,8 +3881,9 @@ button:hover,
    投影：命令面板属于「真的浮起来」的浮层，用 shadow-2（见 §8）。
    ========================================================================= */
 /* 2026-10-29（W2）：浮层改由 antd Modal 承担（遮罩/层级/动画/焦点），
-   `.cmdk` 只负责面板本体。Modal 的 content 要透明无内距，否则会在卡片外多一层白底。 */
-.cmdk-modal .ant-modal-content {
+   `.cmdk` 只负责面板本体。Modal 的可视面板要透明无内距，否则会在卡片外多一层白底。
+   antd 6 起可视面板是 .ant-modal-container（.ant-modal-content 已不存在，2026-11-12 修正）。 */
+.cmdk-modal .ant-modal-container.ant-modal-container {
   padding: 0;
   background: transparent;
   box-shadow: none;
@@ -3901,7 +3902,10 @@ button:hover,
   max-height: min(72vh, 680px);
   overflow: hidden;
   color: var(--text);
-  background: var(--panel);
+  /* 磨砂浮层（2026-11-12）：与其他浮层同材质，见 antd.css 缝合层口径。 */
+  background: var(--frost-fill);
+  backdrop-filter: var(--frost-blur);
+  -webkit-backdrop-filter: var(--frost-blur);
   border: 1px solid var(--border-soft);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-2);
@@ -4425,7 +4429,8 @@ button,
   border-radius: 50%;
   border: 1px solid var(--border-soft);
   background: var(--frost-fill);
-  backdrop-filter: blur(var(--frost-blur-soft));
+  /* --frost-blur-soft 本身是完整 filter 列表（blur+saturation），不能再套一层 blur()。 */
+  backdrop-filter: var(--frost-blur-soft);
   color: var(--text);
   cursor: pointer;
   z-index: 3;
