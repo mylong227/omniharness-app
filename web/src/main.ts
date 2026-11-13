@@ -28,6 +28,7 @@ import '../styles/resilience.css'; // 错误边界 / 无障碍
 import '../styles/shell.css'; // 三栏壳层
 import '../styles/minimal.css'; // 「纸与墨」设计体系：唯一视觉事实源
 import '../styles/console.css'; // 工作台控制台（设置中心）：分组导航 + 卡片式设置行
+import '../styles/decision.css'; // 决策账本：执行前决策列表 + 详情 + 复核
 import '../styles/highlight.css'; // **必须最后**：语法色要盖住前面的基线
 
 import { mountApp } from './ui/App.ts';

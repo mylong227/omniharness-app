@@ -789,3 +789,247 @@ export interface ProofFailureLike {
 
 /** `proof.turns` / `proof.build` / `proof.export` 的返回体。 */
 export type ProofResult<T> = T | ProofFailureLike;
+
+// ── 决策账本（2026-11-11，与服务端 services/decision 同形） ───────────────────
+
+/** 决策审计设置。 */
+export interface DecisionSettingsLike {
+  enabled: boolean;
+  principal?: string | undefined;
+}
+
+/** 审计状态。 */
+export interface DecisionAuditViewLike {
+  enabled: boolean;
+  configuredPrincipal?: string | undefined;
+  startedAt?: string | undefined;
+  closed: boolean;
+}
+
+/** 覆盖范围。 */
+export interface DecisionCoverageLike {
+  turnsTotal: number;
+  turnsRecorded: number;
+  firstRecordedTurn?: number | undefined;
+  partial: boolean;
+}
+
+/** 摘要计数。 */
+export interface DecisionCountsLike {
+  records: number;
+  decisions: number;
+  allow: number;
+  escalate: number;
+  deny: number;
+  conformal: number;
+}
+
+/** 最终去向。 */
+export type DecisionDispositionLike =
+  | 'allowed'
+  | 'allowed_by_conformal'
+  | 'allowed_by_approval'
+  | 'denied'
+  | 'denied_after_conformal'
+  | 'escalated_pending'
+  | 'approved_not_executed'
+  | 'unavailable';
+
+/** 依据分类。 */
+export type DecisionBasisLike = 'conformal' | 'human' | 'rule' | 'default' | 'unavailable' | 'unknown';
+
+/** 效果类。 */
+export type DecisionEffectClassLike = 'READ_ONLY' | 'STATE_MUTATING' | 'PRIVILEGED_ACTUATE';
+
+/** 决策结果。 */
+export type DecisionAuditResultLike = 'allow' | 'deny' | 'require_approval' | 'no_rule' | 'unavailable';
+
+/** 列表行。 */
+export interface DecisionRowLike {
+  recordId: string;
+  turnIndex: number;
+  displayIndex: number;
+  at: string;
+  toolName: string;
+  result: DecisionAuditResultLike;
+  disposition: DecisionDispositionLike;
+  basis: DecisionBasisLike;
+  effectClass?: DecisionEffectClassLike | undefined;
+  riskScore?: number | undefined;
+  threshold?: number | undefined;
+  authorizationId?: string | undefined;
+  principal?: string | undefined;
+}
+
+/** 回合摘要。 */
+export interface DecisionTurnSummaryLike {
+  turnIndex: number;
+  displayIndex: number;
+  startedAt: string;
+  endedAt: string;
+  decisions: number;
+}
+
+/** 单项复核。 */
+export interface DecisionCheckLike {
+  code: string;
+  status: 'pass' | 'warn' | 'fail';
+  detail: string;
+}
+
+/** 结构复核。 */
+export interface DecisionStructuralViewLike {
+  status: 'pass' | 'fail' | 'disabled' | 'empty' | 'not_run';
+  checks: readonly DecisionCheckLike[];
+  auditCount: number;
+  aatCount: number;
+  problems: readonly { code: string; detail: string }[];
+}
+
+/** 共形复核。 */
+export interface DecisionConformalViewLike {
+  status: 'pass' | 'fail' | 'not_applicable' | 'not_run';
+  checkedDecisions: number;
+  snapshots: number;
+  checks: readonly DecisionCheckLike[];
+  problems: readonly { code: string; detail: string }[];
+}
+
+/** 诚实边界。 */
+export interface DecisionBoundaryViewLike {
+  signed: false;
+  trustLevel: 'L0';
+  argsIncluded: false;
+  draft: 'AAT-09-subset';
+}
+
+/** `decision.session` 返回体。 */
+export interface DecisionSessionViewLike {
+  sessionId: string;
+  audit: DecisionAuditViewLike;
+  coverage: DecisionCoverageLike;
+  counts: DecisionCountsLike;
+  turns: readonly DecisionTurnSummaryLike[];
+  rows: readonly DecisionRowLike[];
+  structural: DecisionStructuralViewLike;
+  conformal: DecisionConformalViewLike;
+  boundary: DecisionBoundaryViewLike;
+  truncated: boolean;
+  generatedAt: string;
+}
+
+/** 审批轨迹。 */
+export interface DecisionApprovalViewLike {
+  at: string;
+  phase: 'request' | 'answer' | 'override';
+  result: 'pending' | 'approved' | 'rejected' | 'expired' | 'override';
+  by?: string | undefined;
+  reason?: string | undefined;
+}
+
+/** 策略快照。 */
+export interface DecisionPolicyViewLike {
+  snapshotHash: string;
+  rules: readonly { ruleId: string; ruleVersion: string; digest: string }[];
+}
+
+/** 共形证据。 */
+export interface DecisionConformalEvidenceLike {
+  alpha: number;
+  threshold: number;
+  riskScore: number;
+  effectClass: DecisionEffectClassLike;
+  calibrationDigest: string;
+  classDigest: string;
+  calibrationSnapshotId: string;
+  unitCount: number;
+  riskFeatures: {
+    toolName: string;
+    argKeys: number;
+    intentKind: string;
+    intentRisk: string;
+    mutating: boolean;
+  };
+  riskModelDigest: string;
+}
+
+/** `decision.detail` 返回体。 */
+export interface DecisionDetailViewLike {
+  row: DecisionRowLike;
+  decision: {
+    decisionId: string;
+    requestDigest: string;
+    policySnapshotHash: string;
+    result: DecisionAuditResultLike;
+    defaultApplied: 'allow' | 'deny';
+    failClosed: boolean;
+    evaluatorId: string;
+    authorizationId?: string | undefined;
+    validUntil?: string | undefined;
+    principal?: string | undefined;
+  };
+  policy?: DecisionPolicyViewLike | undefined;
+  approvals: readonly DecisionApprovalViewLike[];
+  authorization?: {
+    id: string;
+    validUntil?: string | undefined;
+    reused: boolean;
+  } | undefined;
+  conformal?: DecisionConformalEvidenceLike | undefined;
+  chain: {
+    recordId: string;
+    sequenceNumber: number;
+    prevHash: string | null;
+    hash: string;
+  };
+  toolCall?: {
+    at: string;
+    toolName: string;
+    parametersHash: string;
+  } | undefined;
+  toolResult?: {
+    at: string;
+    ok: boolean;
+    durationMs?: number | undefined;
+    error?: string | undefined;
+  } | undefined;
+  neighbors: {
+    previousRecordId?: string | undefined;
+    nextRecordId?: string | undefined;
+  };
+}
+
+/** `decision.export` 返回体。 */
+export interface DecisionExportResultLike {
+  filename: string;
+  content: string;
+  digest: string;
+  sessionHash: string;
+  size: number;
+  recordCount: number;
+}
+
+/** `decision.configure` 返回体。 */
+export interface DecisionConfigureResultLike {
+  ok: true;
+  settings: DecisionSettingsLike;
+}
+
+/** 决策账本判别失败。 */
+export interface DecisionFailureLike {
+  ok: false;
+  code:
+    | 'no_session'
+    | 'aat_unavailable'
+    | 'audit_chain_broken'
+    | 'record_not_found'
+    | 'export_too_large'
+    | 'export_blocked'
+    | 'confirm_required'
+    | 'config_write_failed';
+  message: string;
+}
+
+/** `decision.*` 返回体联合。 */
+export type DecisionResultLike<T> = T | DecisionFailureLike;
+

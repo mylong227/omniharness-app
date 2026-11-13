@@ -89,7 +89,9 @@ export type IconName =
   | 'chevron-down'
   | 'keyboard'
   // 控制室（编队 / 上下文 / 凭证）：仪表盘。
-  | 'gauge';
+  | 'gauge'
+  // 决策账本（2026-11-11）：账本 / 收据。
+  | 'ledger';
 
 /** 一个图标的几何：路径集合 + 需要的线条/圆点。 */
 interface IconShape {
@@ -305,6 +307,14 @@ const SHAPES: Readonly<Record<IconName, IconShape>> = {
   gauge: {
     paths: ['M5 19a9 9 0 1 1 14 0', 'M12 13l4-4'],
     circles: [[12, 13, 1.5]],
+  },
+  /* 决策账本：带锯齿底边的账本 + 两行记录（收据语义，不是「书」）。 */
+  ledger: {
+    paths: [
+      'M6 4h12a1 1 0 0 1 1 1v15l-3-2-3 2-3-2-3 2V5a1 1 0 0 1 1-1z',
+      'M9 9h6',
+      'M9 13h4',
+    ],
   },
 };
 

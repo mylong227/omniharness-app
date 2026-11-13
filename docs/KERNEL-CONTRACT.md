@@ -1,11 +1,18 @@
 # 本仓与内核（`@omniharness/kernel`）的契约
 
-> 实测日期 2026-11-10（alpha.16 对齐批次）。**结论**：应用消费 vendored `@omniharness/kernel@0.1.0-alpha.16`，
+> 实测日期 2026-11-11（alpha.17 对齐批次）。**结论**：应用消费 vendored `@omniharness/kernel@0.1.0-alpha.17`，
 > 全部内核导入收敛于 **`src/host/kernel/` 分域对接面**（19 个**自动生成**的域文件，
 > `npm run kernel:check` 第 7 条强制单点、第 8 条拒绝生成物漂移、第 9 条拒绝「已承诺能力的同名副本」）；
 > 内核切片清掉、app 仍需要的能力收留于 **`src/host/extensions/`**（app 自有扩展层，原 `kernel-compat/`，
 > M27 兼容层清零后更名；归属契约见[其 README](../src/host/extensions/README.md)）。
-> 后端 RPC 面由 **17 个域模块声明式注册**（104 方法，parity 快照钉住）。
+> 后端 RPC 面由 **18 个域模块声明式注册**（108 方法，parity 快照钉住）。
+>
+> **2026-11-11 内核同步（alpha.17）**：内核仓把 27 条复核闭环（P0 3 / P1 6 / P2 16 / P3 2，
+> 详见内核 `docs/AUDIT-2026-11-11-R2.md`）打成 `v0.1.0-alpha.17` 并 tag；本仓 vendor 重建自该 tag，
+> 依赖钉 `vendor/omniharness-kernel-0.1.0-alpha.17.tgz`（tarball integrity 也在 lock 里钉定）。
+> 端口签名有变化（`ToolGatePort.setApprovalObserver` 按会话、`TurnDiffTrackerPort` 全方法带
+> `sessionId`、`RbacPolicyOptions.toolCatalog` 支持提供器），本仓未直接使用这些 API，
+> `kernel:surface` 19 域零变化，`kernel:check` / 三份 typecheck / build 全绿。
 
 ## 1. 现在的依赖方向
 
@@ -18,7 +25,7 @@ web/ + desktop/ ──HTTP/SSE──▶ src/apps（宿主：CLI / RPC 域模块 
                                    ├─▶ src/host/extensions/        app 自有扩展层
                                    │      Laya 决策引擎 / CLI worker / doctor / 图存储 / web 广播 / …
                                    │
-                                   └─▶ @omniharness/kernel@0.1.0-alpha.16（vendored tarball）
+                                   └─▶ @omniharness/kernel@0.1.0-alpha.17（vendored tarball）
                                           ├─ dist/kernel/**        主循环 / 编排单源 / 工具 / 门禁 / 存储 / Jcs
                                           ├─ dist/contracts/**     端口 / 类型 / schema
                                           ├─ dist/protocols/**     ACP / MCP

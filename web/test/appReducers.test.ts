@@ -263,8 +263,8 @@ test('buildCommands：面板单源派生 + 27 条命令，run 闭包正确驱动
     openSettings: () => {},
   });
   // 面板入口改由 PanelRegistry 单源派生（手写 10 条清单曾让 9 个面板在命令面板里失踪）。
-  // 数量随 PANELS 走，此处对齐当前全集 = 20 面板 + 7 动作（2026-11-10 增加控制室）。
-  assert.strictEqual(cmds.length, 27, '20 面板 + 7 动作');
+  // 数量随 PANELS 走，此处对齐当前全集 = 21 面板 + 7 动作（2026-11-10 增加控制室；2026-11-11 增加决策账本）。
+  assert.strictEqual(cmds.length, 28, '21 面板 + 7 动作');
   const paneTools = cmds.find((c) => c.id === 'pane-tools')!;
   paneTools.run();
   assert.strictEqual(calls.pane, 'tools');

@@ -6,6 +6,12 @@
 ## [Unreleased]
 
 ### Added（新增）
+- **决策账本 v1（2026-11-11）**：控制台「数据与统计 / 审计之后」新增 1 个面板——
+  执行前决策、审批、授权、双链（原始 audit + AAT）与共形证据一屏可读；支持复核抽屉、
+  AAT + `.sha256` 导出与用户级审计开关。新增 `decision.session/detail/export/configure`
+  4 个 RPC（104 → 108），后端 `services/decision/*`，前端 React 19 + antd 6 面板
+  `DecisionTab`（390 宽单栏、无横向滚动；preview axe 0 violations）。设计与验收见
+  [decision-ledger/README.md](docs/design/decision-ledger/README.md)。
 - **右栏「工作台概览」首页（2026-11-10）**：没有打开文件 / 网页时，右栏不再留白，只放三块：
   项目名与路径（分支 / 未提交变更数作为一行轻量元信息）、本会话一句话摘要（回合 / 工具 /
   文件 / 上下文 / 有效时长）、前 4 条工作区变更 + 一个「全部变更」。长会话首屏只加载尾部
@@ -68,7 +74,44 @@
   `sidecar`/`url` 现场；`OMNI_SMOKE` 下缺 `--workspace` 直接退出码 2 并说明原因，不再弹框空转。
   回归判据 `desktop/scripts/test.mjs` 增 1 条（34 → 35 条）。
 
+- **UI 圆角感（2026-11-13）**：圆角阶梯整体提一档——`--r-xs/sm/md/lg` 6/8/10/14 →
+  8/10/12/18（`--r-xl` 18 → 22），theme.css 明暗别名同步；antd 控件经
+  `css-var-*` 作用域属性双写跟随同一阶梯（流内与 portal 弹层一致，药丸/圆点不变）；
+  fp-shell / 崩溃面板 / 自写模态等 16px 残项对齐 token。纸与墨观感不变，控件更柔和。
 ### Changed（变更）
+- **UI 打磨：焦点环统一与弹窗头部材质（2026-11-13）**：工作台/控制台全界面真机巡检后收两处瑕疵——
+  ① antd 6 的 genFocusStyle 给按钮/菜单项 3px 主色淡化环，与原生控件的双环
+  （2px brand + offset 2 + --ring 外晕）同屏观感分裂，统一到双环；② `.ant-modal-header`
+  自带实底，在磨砂弹窗上显出一条亮度不同的头带，改透明继承容器半透 blur。
+- **磨砂材质补齐到 antd 基座 + 文案配置化收尾（2026-11-13）**：把 2026-10-31 的 iOS 磨砂口径
+  补到 antd 控件与浮层——default 按钮 = 半透明磨砂填充（无边框、无 blur），Modal / Select
+  下拉 / Popover / Dropdown / 命令面板 / 文件选择卡 = 半透 panel + backdrop blur；卡片仍是纸面。
+  附 token 级降级：`prefers-reduced-transparency` 全部回实色并关 blur（含 antd 遮罩模糊），
+  不支持 backdrop-filter 的引擎关 blur 保留填充。顺带修正三处 antd 6 之后的死选择器
+  （`.ant-modal-content`→`.ant-modal-container` 等，命令面板/文件选择卡的透明覆盖由此恢复生效）
+  与 `.stream-jump-bottom` 的嵌套 blur() 笔误。文案配置化：`useProof` 导出前置提示与
+  GraphTab 示例提示词改走 i18n（新增 5 条 en 词条）。
+- **控制台 UI 统一迁到 antd 控件基座（2026-11-12）**：工作台控制台全量换 antd（`antd/es/*`
+  子路径导入）——设置原语（Select/Input/Switch/Segmented）、面板表格与表单、control 三模式
+  （Tabs/Collapse/Row/Col/Segmented）、收尾候选面（ToolsTab 行 → Button+Badge 并补
+  `toolsTab` 判据；ChangesPatchView hunk/行内评论按钮；RollbackTab 检查点条目按钮）。
+  行为、文案、i18n、无障碍判据与信息架构不变：kit `PanelSection` 补回 region+h3 地标语义、
+  设置卡标题保持真 h2（字号继承卡头，视觉不变）、控制室 tablist 经命名 region 恢复可访问名、
+  车道重复选中恢复 no-op；测试锚点 className（hunk-btn/cp-main/tool-item 等）全部保留。
+  被替代的自写控件样式已清（csl-select/input/switch 皮肤、行/钮表面），容器节奏层
+  （面板根 gap、列表卡壳、空态卡面）经真机取证后恢复；浅/深色真机渲染逐面核对。
+- **antd 分块合并（2026-11-11）**：删除异步 `panel-antd` 拆块，所有 antd / rc-component 收进
+  单一 `vendor-antd`。原拆法在真机 E2E 中触发 `panel-antd → vendor-antd → panel-antd` 循环
+  块，页面启动即 `ReferenceError: Cannot access 'Sr' before initialization`；合并后
+  `DecisionTab` 30 KB gzip 9.5 KB、e2e 恢复绿。`vendorFreePipeline` 判据同步改为
+  「panel-antd 必须为 0、Table 指纹在 vendor-antd」。
+- **内核同步至 0.1.0-alpha.17（2026-11-11）**：内核仓把 27 条复核闭环（P0 3 / P1 6 / P2 16 / P3 2）
+  打成 `v0.1.0-alpha.17` 并 tag；`vendor/omniharness-kernel-0.1.0-alpha.17.tgz` 重建自该 tag
+  （tarball integrity 同步进 lock）。含 MCP Host/Origin 来源校验、工作区信任闸分类补齐、
+  回滚后审计链自愈、会话隔离（审批观察者 / turn-diff）、取消边界、补丁行尾继承、晋升台账
+  seq 连续性等；端口签名变化见内核 CHANGELOG「Changed」。本仓 `kernel:surface` 19 域零变化，
+  `kernel:check` / 三份 typecheck / build 全绿。同步产出并实现新功能
+  [决策账本](docs/design/decision-ledger/README.md)（v1：1 面板 / 4 RPC）。
 - **同一面板去重（2026-11-10 第二轮）**：左栏「任务列表」头移除第二个「+ 添加项目」按钮，
   添加项目只保留项目切换器下拉里的唯一入口；会话行高 34 → 38px、纵向内边距 7 → 9px，
   组头也放宽 2px，长列表不再一行挨一行。

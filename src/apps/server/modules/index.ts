@@ -3,6 +3,7 @@ import { automationsModule } from './automations.ts';
 import { checkpointsModule } from './checkpoints.ts';
 import { configModule } from './config.ts';
 import { controlModule } from './control.ts';
+import { decisionModule } from './decision.ts';
 import { governanceModule } from './governance.ts';
 import { introspectModule } from './introspect.ts';
 import { graphsModule } from './graphs.ts';
@@ -38,6 +39,7 @@ export function coreModules(): readonly ServerModule[] {
     memoryModule(),
     checkpointsModule(),
     controlModule(),
+    decisionModule(),
     reviewModule(),
     observabilityModule(),
     vaultModule(),

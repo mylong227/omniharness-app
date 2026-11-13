@@ -40,47 +40,34 @@ export default defineConfig({
     // 1200 KB = 实测 + 约 15% 余量；越过它说明依赖膨胀，值得有人看一眼。
     chunkSizeWarningLimit: 1200,
     /**
-     * vendor 分块（沿用上游 W4 口径）：
+     * vendor 分块（2026-11-11 收敛）：
      *
-     *   · 默认：react 基座 → `vendor-react`；其余 npm 依赖 → `vendor-antd`（构造上完备，
-     *     避免第三方跟随包随导入方漂进面板块，产生 panel→vendor→panel 循环块）；
-     *   · 例外：面板级 antd 组件族与其同族 @rc-component 实现 → `panel-antd`
-     *     （可预测命名的异步共享块，只被异步面板可达 ⇒ 不进首屏）；
-     *   · 例外：katex / markdown-it / highlight.js 随 entry（历史口径，按 entry 桶记账预算）。
+     *   · react 基座 → `vendor-react`；
+     *   · 其余 npm 依赖 → `vendor-antd`（构造上完备，避免第三方跟随包随导入方漂进面板块）。
+     *   · katex / markdown-it / highlight.js 随 entry（历史口径，按 entry 桶记账预算）。
      *
-     * denylist 的准入纪律：一个族只有当「没有任何 vendor 侧（壳层/静态文件）可达的模块
-     * 导入它」时才能进 denylist——漏了只会落 vendor（闸红），错加了会让它落 entry。
+     * 历史口径曾把面板级 antd 组件族拆成异步 `panel-antd`；2026-11-11 实测该拆法产生
+     * `panel-antd → vendor-antd → panel-antd` 循环块，在真机 E2E 中触发
+     * `ReferenceError: Cannot access 'Sr' before initialization`（整页未挂载）。antd 组件族
+     * 与 rc-component 内部互相引用，不能按组件名硬切；正确性优先于省首屏的 70 KB gzip，
+     * 故合并回 `vendor-antd`。若未来要恢复异步块，必须先消除跨块反向边再拆。
      */
     rollupOptions: {
       output: {
         manualChunks(id: string) {
           if (/[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id))
             return 'vendor-react';
-          // 跨族共享的小件先行回收进 vendor（顺序在 denylist 之前）。
+          // 跨族共享的小件先行回收进 vendor。
           if (
             /[\\/]node_modules[\\/](?:antd[\\/](?:es|lib)[\\/](?:.*[\\/]style[\\/]|form[\\/](?:context|validateMessagesContext)\.js|tooltip[\\/]UniqueProvider[\\/]|table[\\/]TableMeasureRowContext\.js|(?:pagination|calendar|date-picker|time-picker)[\\/]locale[\\/]|locale[\\/])|@rc-component[\\/](?:picker|pagination)[\\/](?:es|lib)[\\/]locale[\\/])/.test(
               id,
             )
           )
             return 'vendor-antd';
-          // 面板级 antd 组件族 → 统一进可预测命名的异步共享块 panel-antd。
-          if (
-            /[\\/]node_modules[\\/]antd[\\/]es[\\/](alert|auto-complete|calendar|cascader|checkbox|date-picker|descriptions|dropdown|form|grid|row|col|image|input|input-number|layout|list|mentions|menu|pagination|popconfirm|popover|progress|qr-code|qrcode|radio|rate|result|segmented|select|slider|spin|statistic|steps|switch|table|time-picker|timeline|tooltip|tour|transfer|tree-select|upload)[\\/]/.test(
-              id,
-            )
-          )
-            return 'panel-antd';
-          // 同族 @rc-component 内部实现跟组件族一起走 panel-antd。
-          if (
-            /[\\/]node_modules[\\/]@rc-component[\\/](cascader|image|input|input-number|listy|mentions|mini-decimal|pagination|picker|progress|segmented|select|slider|steps|switch|table|tooltip|tour|tree-select|upload)[\\/]/.test(
-              id,
-            )
-          )
-            return 'panel-antd';
           // 历史口径三库随 entry。
           if (/[\\/]node_modules[\\/](katex|markdown-it|highlight\.js)[\\/]/.test(id))
             return undefined;
-          // 其余一切 npm 依赖一律 vendor（构造上完备，见上方纪律）。
+          // 其余一切 npm 依赖一律 vendor（构造上完备）。
           if (/[\\/]node_modules[\\/]/.test(id)) return 'vendor-antd';
           return undefined;
         },

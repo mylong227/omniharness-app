@@ -38,5 +38,5 @@ export { PortablePath } from '@omniharness/kernel/kernel/util/portablePath.js';
 export { QuantileSketch } from '@omniharness/kernel/kernel/util/quantileSketch.js';
 export { SecretRedactor } from '@omniharness/kernel/kernel/util/secretRedactor.js';
 export { Jcs } from '@omniharness/kernel/kernel/receipts/jcs.js';
-export { AuditBundles, EventMerkle, ExecutionCertificates, JoseReceiptSigner } from '@omniharness/kernel/receipts';
-export type { AuditBundle, AuditBundleVerdict, ExecutionCertificate, ReceiptSigner, SignedAuditBundle, SignedExecutionCertificate, TrustStore } from '@omniharness/kernel/receipts';
+export { AatExporter, AuditBundles, AuditRecorder, ConformalAatVerifier, EventMerkle, ExecutionCertificates, JoseReceiptSigner } from '@omniharness/kernel/receipts';
+export type { AatRecord, AuditApprovalRecord, AuditBundle, AuditBundleVerdict, AuditContextTaintRecord, AuditDecisionRecord, AuditEventPayload, AuditPolicySnapshotRecord, AuditRecord, ExecutionCertificate, ReceiptSigner, SignedAuditBundle, SignedExecutionCertificate, TrustStore } from '@omniharness/kernel/receipts';

@@ -37,6 +37,7 @@ export const PANEL_SCOPE: Readonly<Record<string, PanelScopeMeta>> = {
   plugins: { scope: 'global', hint: '已安装 / 可获取插件（全局；安装后刷新）。' },
   diagnostics: { scope: 'server', hint: '服务端进程与运行环境诊断（非会话数据）。' },
   audit: { scope: 'global', hint: '审计事件哈希链（全局、只追加）。' },
+  decision: { scope: 'session', hint: '本会话执行前决策、审批、授权与共形证据；切换会话整页跟随。' },
   trace: { scope: 'session', hint: '本会话的只读 trace（按事件序列读取）。' },
   permission: { scope: 'global', hint: '参数级权限规则（写进 omniharness.json，全局生效）。' },
   vault: { scope: 'global', hint: '凭据保险库（只列名字，写后不回读）。' },

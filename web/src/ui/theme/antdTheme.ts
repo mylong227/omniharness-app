@@ -99,6 +99,22 @@ function neutralTokens(p: Palette, dark: boolean): Record<string, string> {
   };
 }
 
+/** 语义色淡底/描边：antd 的 `color*Bg`/`color*Border` 是「向白混合」派生的，
+ *  深色主题下会退成接近白的药丸（实测 StatusTag 的「实测」在 dark 下是白底浅字）。
+ *  这里按纸与墨口径重算：语义色 12% 叠在当前主题的面板底上，Tag / Alert 的 preset 才跟主题走。 */
+function semanticTintTokens(p: Palette): Record<string, string> {
+  return {
+    colorSuccessBg: mixHex(p.panel, p.ok, 0.12),
+    colorSuccessBorder: mixHex(p.panel, p.ok, 0.34),
+    colorWarningBg: mixHex(p.panel, p.warn, 0.12),
+    colorWarningBorder: mixHex(p.panel, p.warn, 0.34),
+    colorErrorBg: mixHex(p.panel, p.err, 0.12),
+    colorErrorBorder: mixHex(p.panel, p.err, 0.34),
+    colorInfoBg: mixHex(p.panel, p.info, 0.12),
+    colorInfoBorder: mixHex(p.panel, p.info, 0.34),
+  };
+}
+
 /** dark 下语义族 hover/active 提亮/压暗档（浅色交给 antd 默认压暗方向，链接两主题都钉 info）。 */
 function semanticHoverTokens(p: Palette, dark: boolean): Record<string, string> {
   if (!dark) return { colorLink: p.info };
@@ -131,6 +147,7 @@ function seedTokens(p: Palette, dark: boolean): NonNullable<ThemeConfig['token']
     colorBgBase: p.bg,
     colorTextBase: p.text,
     ...neutralTokens(p, dark),
+    ...semanticTintTokens(p),
     ...semanticHoverTokens(p, dark),
 
     borderRadius: DENSITY.borderRadius,
@@ -177,6 +194,15 @@ function componentTokens(p: Palette): NonNullable<ThemeConfig['components']> {
     Tabs: {
       horizontalItemPadding: '10px 0',
       titleFontSize: 14,
+    },
+    Segmented: {
+      // 选中态必须一眼可辨（2026-10-31 用户口径：panel 底贴在 panel 卡上只差 2% 明度
+      // 等于没有选中效果）——沿用签名色淡底 + 同色文字，轨道用页面底。
+      itemSelectedBg: mixHex(p.panel, p.accent, 0.16),
+      itemSelectedColor: p.accent,
+      itemColor: p.dim,
+      itemHoverColor: p.text,
+      trackBg: p.bg,
     },
     Modal: {
       contentBg: p.panel,

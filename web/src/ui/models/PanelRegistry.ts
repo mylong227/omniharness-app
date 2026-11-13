@@ -4,7 +4,7 @@
 //
 // 面板清单原先有三处消费者：`RightPanel` 的标签条、`NavRail` 的导航竖条（`rail: true` 子集）、
 // 以及后来的「更多面板」菜单。壳层重构后前两者不复存在——右栏改为**代码查看器**（文件标签 +
-// 路径栏），功能面板收进 `PanelPicker` 入口；2026-10-26 起该入口打开「工作台控制台」，
+// 路径栏），功能面板入口 2026-10-26 起改为「工作台控制台」，
 // 面板与设置共用同一份左导航（见 `ConsoleRegistry.ts`）。本注册表仍是面板 key / 标签 / 图标的
 // 唯一事实源，`rail` 布尔位随 NavRail 一并移除（死数据不保留）。
 //
@@ -63,6 +63,8 @@ export const PANELS: readonly PanelEntry[] = [
   { key: 'diagnostics', label: '诊断', icon: 'ruler', description: 'daemon 运行态与环境体检报告' },
   // Web 交付（2026-10-11）：审计事件与只读 trace 自省——两条都是**已有 RPC 缺入口**。
   { key: 'audit', label: '审计', icon: 'shield-alert', description: '审计事件哈希链（只追加）' },
+  // 决策账本（2026-11-11）：本会话执行前决策 + 双链 + 共形证据（设计稿已实现）。
+  { key: 'decision', label: '决策账本', icon: 'ledger', description: '执行前决策、审批、授权与共形证据：回答「为什么允许」' },
   { key: 'trace', label: 'Trace', icon: 'search', description: '本会话的只读 trace 自省' },
   { key: 'permission', label: '权限', icon: 'shield', description: '参数级权限规则编辑器' },
   { key: 'vault', label: '凭据', icon: 'archive', description: '凭据保险库（只列名字，写后不回读）' },

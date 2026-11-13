@@ -118,6 +118,7 @@ test('navigate 写入 location.hash', () => {
 test('isValidPane 仅放行已知面板', () => {
   assert.strictEqual(isValidPane('profiles'), true);
   assert.strictEqual(isValidPane('vault'), true);
+  assert.strictEqual(isValidPane('decision'), true);
   // 设置已改为模态（2026-10-17）：它不再是面板，故不再是合法 pane。
   assert.strictEqual(isValidPane('settings'), false, 'settings 已移出面板注册表，不该再被放行');
   assert.strictEqual(isValidPane('bogus'), false);

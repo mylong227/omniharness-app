@@ -42,6 +42,9 @@ import { ContextCompactionService } from '../services/context/contextCompactionS
 import { ProofService } from '../services/proof/proofService.ts';
 import { ProofVerifier } from '../services/proof/proofVerifier.ts';
 import { ProofSignerService } from '../services/proof/proofSignerService.ts';
+import { DecisionLedgerService } from '../services/decision/decisionLedgerService.ts';
+import { DecisionSettingsStore } from '../services/decision/decisionSettingsStore.ts';
+import { DecisionSettingsService } from '../services/decision/decisionSettingsService.ts';
 import { TurnOrchestration } from './turnOrchestration.ts';
 import type { ToolDefinition } from '../../../host/kernel/contracts.ts';
 
@@ -141,6 +144,10 @@ export class ServerServices {
   readonly proofVerifier: ProofVerifier;
   /** 本机 Ed25519 签名器（密钥损坏时为 undefined，凭证降级为未签名）。 */
   readonly proofSigner: ProofSignerService | undefined;
+  /** 决策账本读模型（`decision.session/detail/export` 的后端）。 */
+  readonly decision: DecisionLedgerService;
+  /** 决策审计设置（用户级开关 + 主体；`decision.configure` 的后端）。 */
+  readonly decisionSettings: DecisionSettingsService;
 
   /** 回合/线程跨域编排（线程模块与自动化模块共享的「起一个回合」事实源）。 */
   readonly turns: TurnOrchestration;
@@ -217,6 +224,12 @@ export class ServerServices {
       messageOf: (error) => this.messageOf(error),
     });
     this.fleetControl = new FleetControlRegistry();
+    // 决策审计设置先于运行时装配：Agent 构造期读取它并把 auditRecords/auditPrincipal
+    // 烘焙进 ResolvedConfig；保存设置时再经 onChanged 失效 Agent。
+    this.decisionSettings = new DecisionSettingsService(new DecisionSettingsStore(), () => {
+      this.runtime.invalidateAgent();
+      this.runtime.invalidateGraph();
+    });
     this.runtime = new AgentRuntimeHost({
       baseConfig: () => this.options.config,
       skills: options.skills,
@@ -232,6 +245,7 @@ export class ServerServices {
         options.modelOverrideEnabled === false ? undefined : this.modelCatalog.resolveOverride(),
       workspaceRoot,
       fleetControl: this.fleetControl,
+      decisionAudit: () => this.decisionSettings.get(),
     });
     // ── 原 AppServerSurfaceHandlers ──
     this.windows = new ContextWindowCatalog(this.envWindow());
@@ -332,6 +346,10 @@ export class ServerServices {
       ...(this.proofSigner !== undefined ? { signer: this.proofSigner } : {}),
     });
     this.proofVerifier = new ProofVerifier(this.proofSigner?.trustStore);
+    this.decision = new DecisionLedgerService({
+      events: (threadId) => this.runtime.agent().eventsOf(threadId),
+      settings: () => this.decisionSettings.get(),
+    });
     // ── 编排（必须最后：以完整装配好的门面注入） ──
     this.turns = new TurnOrchestration(this);
   }

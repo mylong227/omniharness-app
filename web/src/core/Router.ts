@@ -36,6 +36,7 @@ const VALID_PANES: ReadonlySet<string> = new Set([
   'governance',
   'diagnostics',
   'audit',
+  'decision',
   'trace',
   'permission',
   'vault',

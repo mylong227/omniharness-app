@@ -894,4 +894,38 @@ export class ApiClient {
   ): Promise<import('../types/models.ts').ProofVerifyResultLike> {
     return this.rpc('proof.verify', { bundle });
   }
+
+  /** 决策账本会话视图（列表 + 摘要 + 结构/共形复核）。 */
+  public decisionSession(
+    threadId: string,
+  ): Promise<import('../types/models.ts').DecisionResultLike<import('../types/models.ts').DecisionSessionViewLike>> {
+    return this.rpc('decision.session', { threadId });
+  }
+
+  /** 单条决策详情。 */
+  public decisionDetail(
+    threadId: string,
+    recordId: string,
+  ): Promise<import('../types/models.ts').DecisionResultLike<import('../types/models.ts').DecisionDetailViewLike>> {
+    return this.rpc('decision.detail', { threadId, recordId });
+  }
+
+  /** 导出标准 AAT（JSON + sha256 由前端下载；确认由 UI 承担、RPC 再校验）。 */
+  public decisionExport(
+    threadId: string,
+  ): Promise<import('../types/models.ts').DecisionResultLike<import('../types/models.ts').DecisionExportResultLike>> {
+    return this.rpc('decision.export', { threadId, confirm: true });
+  }
+
+  /** 保存决策审计设置（用户级；开启前的回合不补造）。 */
+  public decisionConfigure(
+    enabled: boolean,
+    principal: string | undefined,
+  ): Promise<import('../types/models.ts').DecisionConfigureResultLike | import('../types/models.ts').DecisionFailureLike> {
+    return this.rpc('decision.configure', {
+      enabled,
+      ...(principal !== undefined ? { principal } : {}),
+      confirm: true,
+    });
+  }
 }

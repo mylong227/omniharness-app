@@ -91,6 +91,9 @@ const DiagnosticsTab = React.lazy(() =>
 const AuditTab = React.lazy(() =>
   import('./components/tabs/AuditTab.tsx').then((m) => ({ default: m.AuditTab })),
 );
+const DecisionTab = React.lazy(() =>
+  import('./components/tabs/DecisionTab.tsx').then((m) => ({ default: m.DecisionTab })),
+);
 const VaultTab = React.lazy(() =>
   import('./components/tabs/VaultTab.tsx').then((m) => ({ default: m.VaultTab })),
 );
@@ -113,7 +116,7 @@ const DetailTab = React.lazy(() =>
   import('./components/tabs/DetailTab.tsx').then((m) => ({ default: m.DetailTab })),
 );
 
-/** 空闲期预取上面 18 个按需块（面板 + 控制台，与 lazy 的 import 一一对应）。 */
+/** 空闲期预取上面 20 个按需块（面板 + 控制台，与 lazy 的 import 一一对应）。 */
 function prefetchLazyPanes(): void {
   const loaders: (() => Promise<unknown>)[] = [
     () => import('./components/console/ConsoleView.tsx'),
@@ -128,6 +131,7 @@ function prefetchLazyPanes(): void {
     () => import('./components/tabs/GovernanceTab.tsx'),
     () => import('./components/tabs/DiagnosticsTab.tsx'),
     () => import('./components/tabs/AuditTab.tsx'),
+    () => import('./components/tabs/DecisionTab.tsx'),
     () => import('./components/tabs/VaultTab.tsx'),
     () => import('./components/tabs/MetricsTab.tsx'),
     () => import('./components/tabs/ChangesTab.tsx'),
@@ -271,6 +275,9 @@ function renderPane(ctrl: AppController, s: AppState): ReactElement {
     case 'audit':
       // Web 交付：审计事件（哈希链）+ 只读 trace 自省。
       return React.createElement(AuditTab, null);
+    case 'decision':
+      // 决策账本（2026-11-11）：执行前决策 + 双链 + 共形证据；会话级只读。
+      return React.createElement(DecisionTab, { threadId: s.currentThreadId });
     case 'trace':
       return React.createElement(TraceTab, { sessionId: s.currentThreadId });
     case 'permission':

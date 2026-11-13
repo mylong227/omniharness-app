@@ -17,6 +17,7 @@ import type { ResolvedConfig } from '../../../host/kernel/contracts.ts';
 import type { SubagentPortsShape } from '../../../host/kernel/contracts.ts';
 import type { FleetControlRegistry } from '../services/fleet/fleetControlRegistry.ts';
 import { FleetToolPort } from '../services/fleet/fleetControlRegistry.ts';
+import type { DecisionSettings } from '../services/decision/decisionTypes.ts';
 
 /** Agent/图运行时宿主依赖。 */
 export interface AgentRuntimeDeps {
@@ -49,6 +50,8 @@ export interface AgentRuntimeDeps {
   readonly workspaceRoot: () => string;
   /** 子代理取消令牌表（工具端口包装注入）。 */
   readonly fleetControl: FleetControlRegistry;
+  /** 决策审计设置（用户级；每次构造 Agent 时实时读取）。 */
+  readonly decisionAudit: () => DecisionSettings;
 }
 
 /**
@@ -177,6 +180,25 @@ export class AgentRuntimeHost {
   }
 
   /**
+   * 把用户级决策审计设置烘焙进解析配置。
+   *
+   * 为什么在 Agent 构造时覆盖：`auditRecords` / `auditPrincipal` 是构造期字段；设置变更后
+   * 组合根会先失效 Agent，再走这里重建。关闭时必须显式写 `false`，否则会沿用启动配置。
+   * @param config 已解析配置（含端口）。
+   * @returns 带审计开关的配置副本。
+   */
+  private withDecisionAudit(config: ResolvedConfig): ResolvedConfig {
+    const audit = this.deps.decisionAudit();
+    const next: Record<string, unknown> = {
+      ...config,
+      auditRecords: audit.enabled,
+    };
+    if (audit.principal === undefined) delete next['auditPrincipal'];
+    else next['auditPrincipal'] = audit.principal;
+    return next as unknown as ResolvedConfig;
+  }
+
+  /**
    * 构建 Agent（覆盖事件端口；审批按需上行；UI 覆盖的模型配置实时生效）。
    * @returns 缓存的 Agent 实例（首次调用时按当前配置装配）。
    */
@@ -184,13 +206,13 @@ export class AgentRuntimeHost {
     if (this.agentCache === undefined) {
       const config = this.deps.baseConfig();
       const modelOverride = this.deps.modelOverride();
-      const serverConfig: ResolvedConfig = {
+      const serverConfig: ResolvedConfig = this.withDecisionAudit({
         ...config,
         ...(modelOverride !== undefined ? { model: modelOverride } : {}),
         events: this.deps.eventPort(),
         approvals: this.resolveApprovals(config),
         tools: new FleetToolPort(config.tools, this.deps.fleetControl),
-      };
+      });
       const supervisor = this.bypassSupervisorKernel(serverConfig);
       this.agentCache = new Agent(
         Runtime.createRuntime(
@@ -260,7 +282,7 @@ export class AgentRuntimeHost {
   public graphPorts(): SubagentPortsShape {
     if (this.portsCache === undefined) {
       const config = this.deps.baseConfig();
-      const serverConfig: ResolvedConfig = {
+      const serverConfig: ResolvedConfig = this.withDecisionAudit({
         ...config,
         events: this.deps.eventPort(),
         // 图运行的审批与普通回合同一档位裁决（resolveApprovals）：「完全访问」放行一切、
@@ -270,7 +292,7 @@ export class AgentRuntimeHost {
         // 无人应答）由上行审批的超时 deny 兜底，不会永久挂死。
         approvals: this.resolveApprovals(config),
         tools: new FleetToolPort(config.tools, this.deps.fleetControl),
-      };
+      });
       const supervisor = this.bypassSupervisorKernel(serverConfig);
       this.portsCache = SubagentPorts.portsOf(
         Runtime.createRuntime(

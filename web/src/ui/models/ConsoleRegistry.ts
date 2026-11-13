@@ -96,6 +96,7 @@ const DATA_PANEL_ORDER: readonly string[] = [
   'governance',
   'rollback',
   'audit',
+  'decision',
   'diagnostics',
   'trace',
   'detail',
