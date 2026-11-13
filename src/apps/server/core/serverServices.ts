@@ -13,6 +13,7 @@ import { ServerConfigStore } from '../services/serverConfigStore.ts';
 import { FsExplorer } from '../services/fsExplorer.ts';
 import { WorkspaceTree } from '../services/workspaceTree.ts';
 import { SessionArchive } from '../services/session/sessionArchive.ts';
+import { SessionContentSearch } from '../services/session/sessionContentSearch.ts';
 import { WorkspaceChanges } from '../services/workspaceChanges.ts';
 import { ModelCatalogService } from '../services/modelCatalogService.ts';
 import { PluginHost } from '../services/pluginHost.ts';
@@ -110,6 +111,8 @@ export class ServerServices {
   readonly agents: AgentCatalogService;
   /** 工作区 + 会话检索。 */
   readonly search: WorkspaceSearchService;
+  /** 会话内容搜索（search.all 的「对话内容」组后端）。 */
+  readonly contentSearch: SessionContentSearch;
 
   // ── 只读可观测（原 Observability 层） ─────────────────────────────────────────
   /** 只读 trace 自省服务：把会话事件流投影为冻结条目（`trace.read` RPC 的后端）。 */
@@ -269,9 +272,14 @@ export class ServerServices {
       graphs: () => this.runtime.graphStore().list(),
       plugins: () => this.installedPlugins(),
     });
+    this.contentSearch = new SessionContentSearch({
+      sessions: () => this.sessionList(),
+      eventsOf: (sessionId) => this.runtime.agent().eventsOf(sessionId),
+    });
     this.search = new WorkspaceSearchService({
       workspaceRoot,
       chats: () => this.sessionList(),
+      content: (query, limit) => this.contentSearch.searchOf(query, limit),
     });
     // ── 原 AppServerObservabilityHandlers ──
     this.trace = new SessionTraceService({

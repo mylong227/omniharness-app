@@ -400,6 +400,7 @@ test('SearchResults：listbox↔option 成套，aria-selected 唯一，结果条
   const groups = SearchHitGrouper.group(
     [{ kind: 'file', id: 'src/app.ts', label: 'app.ts', hint: 'src' }],
     [{ kind: 'chat', id: 's-1', label: 'app 图标', hint: '' }],
+    [],
     'app',
   );
   const { node } = renderFacade(SearchResults, {

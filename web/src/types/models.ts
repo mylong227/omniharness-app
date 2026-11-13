@@ -467,12 +467,14 @@ export interface AgentCatalogEntry {
   directive?: string;
 }
 
-/** 检索命中（文件或聊天）。 */
+/** 检索命中（文件 / 聊天标题 / 对话内容）。 */
 export interface SearchHit {
-  kind: 'file' | 'chat';
+  kind: 'file' | 'chat' | 'chat-text';
   id: string;
   label: string;
   hint: string;
+  /** chat-text：命中行数（其余类型无此字段）。 */
+  matchCount?: number;
 }
 
 /** 会话模式（目标 / 计划 / 绘图）。 */

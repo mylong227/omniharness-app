@@ -98,6 +98,7 @@ export function SessionPanelHead(props: SessionPanelHeadProps): ReactElement {
         selectedIndex={search.hitIndex}
         query={search.query}
         loading={search.searching}
+        messagesTruncated={search.messagesTruncated}
         onPick={search.openHit}
       />
     </>

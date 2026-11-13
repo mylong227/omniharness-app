@@ -99,7 +99,7 @@ test('SearchHitGrouper.sort：完全并列时用 id 兜底（总序，绝不出�
 });
 
 test('SearchHitGrouper.group：会话组在前、空组不产出、每组受 LIMIT 约束', () => {
-  const groups = SearchHitGrouper.group(FILES, CHATS, 'app');
+  const groups = SearchHitGrouper.group(FILES, CHATS, [], 'app');
   assert.deepStrictEqual(
     groups.map((g) => g.kind),
     ['chat', 'file'],
@@ -112,7 +112,7 @@ test('SearchHitGrouper.group：会话组在前、空组不产出、每组受 LIM
     groups[1].items.map((h) => h.id),
     ['src/app.ts', 'web/src/ui/App.tsx'],
   );
-  assert.deepStrictEqual(SearchHitGrouper.group([], [], 'app'), [], '空结果不产出空组');
+  assert.deepStrictEqual(SearchHitGrouper.group([], [], [], 'app'), [], '空结果不产出空组');
 
   const many: SearchHit[] = Array.from({ length: 30 }, (_, i) => ({
     kind: 'file',
@@ -120,7 +120,7 @@ test('SearchHitGrouper.group：会话组在前、空组不产出、每组受 LIM
     label: 'f' + String(i) + '.app',
     hint: '.',
   }));
-  const capped = SearchHitGrouper.group(many, [], 'app');
+  const capped = SearchHitGrouper.group(many, [], [], 'app');
   assert.strictEqual(capped[0].items.length, SearchHitGrouper.LIMIT);
 });
 
@@ -393,7 +393,7 @@ test('SessionPanel：有关键字即打 search.all，并把分组结果渲染成
 
 test('SearchResults：listbox/option 语义 + aria-selected + 命中高亮 + 条数播报', () => {
   const picked: unknown[] = [];
-  const groups = SearchHitGrouper.group(FILES, CHATS, 'app');
+  const groups = SearchHitGrouper.group(FILES, CHATS, [], 'app');
   const { node } = renderFacade(SearchResults, {
     props: {
       groups,
@@ -433,6 +433,53 @@ test('SearchResults：listbox/option 语义 + aria-selected + 命中高亮 + 条
   assert.deepStrictEqual(picked, [
     { kind: 'file', id: 'src/app.ts', label: 'app.ts', hint: 'src' },
   ]);
+});
+
+test('SearchResults：对话内容组（chat-text）——片段完整高亮 + N 处徽标 + 点击打开会话', () => {
+  const picked: unknown[] = [];
+  const messages: SearchHit[] = [
+    {
+      kind: 'chat-text',
+      id: 's-1',
+      label: '登录问题排查',
+      hint: '…关键字出现在第一行…',
+      matchCount: 3,
+    },
+    {
+      kind: 'chat-text',
+      id: 's-2',
+      label: '一次性会话',
+      hint: '…与关键字无关的片段也要如实渲染…',
+      matchCount: 1,
+    },
+  ];
+  const groups = SearchHitGrouper.group([], [], messages, '关键字');
+  assert.deepStrictEqual(
+    groups.map((g) => g.title),
+    ['对话内容'],
+    '无标题/文件命中时只有内容组',
+  );
+  const { node } = renderFacade(SearchResults, {
+    props: {
+      groups,
+      selectedIndex: 0,
+      query: '关键字',
+      loading: false,
+      onPick: (hit: unknown) => picked.push(hit),
+    },
+  });
+  const options = byTag(node, 'div').filter((n) => n.props.role === 'option');
+  assert.strictEqual(options.length, 2, '两条内容命中');
+  // 片段完整渲染（不吃 40 字符 hint 截断）+ 命中高亮。
+  const text = allText(node);
+  assert.match(text, /关键字出现在第一行/u);
+  assert.ok(byTag(node, 'mark').length >= 2, '命中段必须有 mark 高亮（mark 标签，class=sr-hit）');
+  // N 处徽标只在 matchCount > 1 的行出现。
+  assert.match(text, /3 处/u);
+  // 点击 → 回传 chat-text 命中（openHit 分派到 onSelect 打开会话）。
+  // 服务端口径排序：命中行数多者优先 → 第一行是 s-1（3 处命中）。
+  fireEvent.mouseDown(options[0]!.el);
+  assert.deepStrictEqual(picked, [messages[0]]);
 });
 
 test('SearchResults：无关键字整块不渲染（空间还给本地会话列表）', () => {

@@ -309,4 +309,8 @@ export const EN_TABS_B: Record<string, string> = {
   '深入调研第一个子问题并给出要点。': 'Research the first sub-question in depth and outline key points.',
   '深入调研第二个子问题并给出要点。': 'Research the second sub-question in depth and outline key points.',
   '综合 a 与 b 的结论，输出最终报告。': 'Merge conclusions of a and b into the final report.',
+  '对话内容': 'Conversation text',
+  '{n} 处': '{n} hits',
+  '会话、内容与文件搜索结果': 'Session, content and file search results',
+  '结果已截断（按最近会话优先扫描）': 'Results truncated (scanned newest sessions first)',
 };

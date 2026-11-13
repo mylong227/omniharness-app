@@ -1,16 +1,18 @@
 import { readdirSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 
-/** 搜索命中条目（文件或聊天）。 */
+/** 搜索命中条目（文件 / 聊天标题 / 对话内容）。 */
 export interface SearchHit {
-  /** 条目类型。 */
-  readonly kind: 'file' | 'chat';
-  /** 文件为工作区相对路径；聊天为会话 id。 */
+  /** 条目类型：chat-text = 会话事件内容命中（2026-11-14 会话全文搜索）。 */
+  readonly kind: 'file' | 'chat' | 'chat-text';
+  /** 文件为工作区相对路径；聊天 / chat-text 为会话 id。 */
   readonly id: string;
-  /** 展示名（文件取基名，聊天取会话标签）。 */
+  /** 展示名（文件取基名，聊天 / chat-text 取会话标签）。 */
   readonly label: string;
-  /** 补充信息（文件的目录前缀 / 聊天的更新时间），UI 以次要样式显示。 */
+  /** 补充信息（文件的目录前缀 / 聊天的更新时间 / chat-text 的命中片段），UI 以次要样式显示。 */
   readonly hint: string;
+  /** chat-text：命中行数（其余类型无此字段）。 */
+  readonly matchCount?: number;
 }
 
 /** 搜索依赖。 */
@@ -26,6 +28,17 @@ export interface WorkspaceSearchDeps {
       readonly updatedAt: string;
     }[]
   >;
+  /** 会话内容搜索（SessionContentSearch.searchOf 的转发；truncated = 触达扫描上限）。 */
+  readonly content: (query: string, limit: number) => Promise<{
+    readonly hits: readonly {
+      readonly sessionId: string;
+      readonly label: string;
+      readonly updatedAt: string;
+      readonly matchCount: number;
+      readonly snippet: string;
+    }[];
+    readonly truncated: boolean;
+  }>
 }
 
 /** 搜索上限（防御性：避免一次性把上万条路径推给 UI）。 */
@@ -73,18 +86,35 @@ export class WorkspaceSearchService {
    * 执行搜索。
    * @param query 查询词（空串返回空结果——空查询在 UI 侧应展示「最近项」而不是全量清单）
    * @param limit 每类命中上限（缺省 {@link MAX_HITS}）
-   * @returns `{ files, chats }`：文件按「基名命中优先、路径短优先」排序
+   * @returns `{ files, chats, messages }`：文件按「基名命中优先、路径短优先」排序；messages 为会话内容命中
    */
   public async search(
     query: string,
     limit: number = MAX_HITS,
-  ): Promise<{ files: SearchHit[]; chats: SearchHit[] }> {
+  ): Promise<{
+    files: SearchHit[];
+    chats: SearchHit[];
+    messages: SearchHit[];
+    messagesTruncated: boolean;
+  }> {
     const needle = query.trim().toLowerCase();
-    if (needle === '') return { files: [], chats: [] };
+    if (needle === '') {
+      return { files: [], chats: [], messages: [], messagesTruncated: false };
+    }
     const capped = Math.max(1, Math.min(limit, MAX_HITS));
+    const raw = await this.deps.content(needle, capped);
+    const messages = raw.hits.map((m) => ({
+      kind: 'chat-text' as const,
+      id: m.sessionId,
+      label: m.label,
+      hint: m.snippet,
+      matchCount: m.matchCount,
+    }));
     return {
       files: this.searchFiles(needle, capped),
       chats: await this.searchChats(needle, capped),
+      messages,
+      messagesTruncated: raw.truncated,
     };
   }
 

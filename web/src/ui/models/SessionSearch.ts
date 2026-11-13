@@ -18,6 +18,10 @@ export interface SearchAllResult {
   readonly files: SearchHit[];
   /** 会话命中。 */
   readonly chats: SearchHit[];
+  /** 会话内容命中（2026-11-14 会话全文搜索；旧服务端缺省为 undefined）。 */
+  readonly messages?: SearchHit[];
+  /** 内容命中触达扫描上限（服务端如实上报；旧服务端缺省为 undefined）。 */
+  readonly messagesTruncated?: boolean;
 }
 
 /** 定时器调度签名（默认 window.setTimeout；单测注入立即执行版以获得确定性）。 */
@@ -50,6 +54,8 @@ export class SessionSearch {
 
   /** 最新分组结果。 */
   private groups: SearchGroup[] = [];
+  /** 内容命中是否触达扫描上限（apply 时由返回体如实记录）。 */
+  private truncatedMessages = false;
 
   /** 分组结果的线性视图（选中索引基于它）。 */
   private flat: SearchHit[] = [];
@@ -95,6 +101,14 @@ export class SessionSearch {
    */
   public selectedIndex(): number {
     return this.index;
+  }
+
+  /**
+   * 取「内容命中触达扫描上限」标记（渲染「结果已截断」提示用）。
+   * @returns 上次成功搜索是否发生截断。
+   */
+  public isMessagesTruncated(): boolean {
+    return this.truncatedMessages;
   }
 
   /**
@@ -192,7 +206,8 @@ export class SessionSearch {
    * @returns 无
    */
   private apply(q: string, r: SearchAllResult): void {
-    this.groups = SearchHitGrouper.group(r.files ?? [], r.chats ?? [], q);
+    this.groups = SearchHitGrouper.group(r.files ?? [], r.chats ?? [], r.messages ?? [], q);
+    this.truncatedMessages = r.messagesTruncated === true;
     this.flat = SearchHitGrouper.flat(this.groups);
     this.index = this.flat.length > 0 ? 0 : -1;
     this.loading = false;

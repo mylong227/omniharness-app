@@ -825,7 +825,7 @@ export class ApiClient {
   public searchAll(
     query: string,
     limit?: number,
-  ): Promise<{ files: import('../types/models.ts').SearchHit[]; chats: import('../types/models.ts').SearchHit[] }> {
+  ): Promise<{ files: import('../types/models.ts').SearchHit[]; chats: import('../types/models.ts').SearchHit[]; messages?: import('../types/models.ts').SearchHit[] }> {
     return this.rpc('search.all', limit === undefined ? { query } : { query, limit });
   }
 

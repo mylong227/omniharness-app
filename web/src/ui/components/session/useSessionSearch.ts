@@ -21,8 +21,9 @@ interface SearchMirror {
   readonly groups: readonly SearchGroup[];
   /** 远端搜索是否在途。 */
   readonly searching: boolean;
-  /** 远端结果的选中序号（↑/↓ 与 Enter 共用）。 */
   readonly hitIndex: number;
+  /** 内容命中是否触达扫描上限。 */
+  readonly messagesTruncated: boolean;
   /** 更新关键字：同时更新渲染镜像与状态机。 */
   readonly setQuery: (value: string) => void;
 }
@@ -41,6 +42,7 @@ function useSearchMirror(api: ApiClient, scheduleSearch?: ScheduleFn): SearchMir
   const [groups, setGroups] = React.useState<readonly SearchGroup[]>([]);
   const [searching, setSearching] = React.useState<boolean>(false);
   const [hitIndex, setHitIndex] = React.useState<number>(-1);
+  const [messagesTruncated, setMessagesTruncated] = React.useState<boolean>(false);
   const searchRef = React.useRef<SessionSearch | null>(null);
   if (searchRef.current === null) {
     searchRef.current = new SessionSearch({
@@ -51,6 +53,7 @@ function useSearchMirror(api: ApiClient, scheduleSearch?: ScheduleFn): SearchMir
         setGroups(s.groupList());
         setSearching(s.isLoading());
         setHitIndex(s.selectedIndex());
+        setMessagesTruncated(s.isMessagesTruncated());
       },
       ...(scheduleSearch !== undefined ? { schedule: scheduleSearch } : {}),
     });
@@ -62,7 +65,7 @@ function useSearchMirror(api: ApiClient, scheduleSearch?: ScheduleFn): SearchMir
     setQueryState(value);
     machine.setQuery(value);
   };
-  return { machine, query, groups, searching, hitIndex, setQuery };
+  return { machine, query, groups, searching, hitIndex, messagesTruncated, setQuery };
 }
 
 /** useSessionSearch 的依赖。 */
@@ -87,6 +90,8 @@ export interface SessionSearchApi {
   readonly groups: readonly SearchGroup[];
   /** 远端搜索是否在途。 */
   readonly searching: boolean;
+  /** 内容命中是否触达扫描上限。 */
+  readonly messagesTruncated: boolean;
   /** 选中序号（combobox 的 aria-activedescendant 用它）。 */
   readonly hitIndex: number;
   /** 搜索框是否唤出（截图式侧栏不常驻）。 */
@@ -117,7 +122,7 @@ export function useSessionSearch(deps: SessionSearchDeps): SessionSearchApi {
 
   /** 打开一条远端命中：会话跳转 / 文件在右侧面板预览，并清空搜索回到上下文。 */
   const openHit = (hit: SearchHit): void => {
-    if (hit.kind === 'chat') deps.onSelect(hit.id);
+    if (hit.kind === 'chat' || hit.kind === 'chat-text') deps.onSelect(hit.id);
     else deps.onOpenFile(hit.id);
     mirror.setQuery('');
   };
@@ -167,6 +172,7 @@ export function useSessionSearch(deps: SessionSearchDeps): SessionSearchApi {
     groups: mirror.groups,
     searching: mirror.searching,
     hitIndex: mirror.hitIndex,
+    messagesTruncated: mirror.messagesTruncated,
     open,
     listOpen: mirror.query.trim() !== '',
     inputRef,
