@@ -793,7 +793,7 @@ export class AppController {
   }
 
   /**
-   * 设置当前激活面板（PanelPicker / RightPanel 复用；F8：同步写入 hash）。
+   * 设置当前激活面板（控制台导航与右栏面板复用；F8：同步写入 hash）。
    * @param key 面板标识
    * @returns 无
    */

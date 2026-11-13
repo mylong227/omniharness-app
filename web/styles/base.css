@@ -1389,14 +1389,6 @@ pre.json {
   color: var(--err);
   border-color: color-mix(in srgb, var(--err) 34%, var(--border-soft));
 }
-.btn-remove {
-  border-radius: 8px;
-  font-size: 11.5px;
-  padding: 4.5px 14px;
-}
-.btn-remove:hover {
-  background: color-mix(in srgb, var(--err) 10%, transparent);
-}
 .mem-imp {
   letter-spacing: 0.08em;
 }

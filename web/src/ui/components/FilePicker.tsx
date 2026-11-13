@@ -475,8 +475,8 @@ function FilePickerBody(props: {
   return (
     <>
       <div className="fp-treebar">
-        {/* 原生 input 而非 antd Input：`antd/es/input` 属于 panel-antd 异步块，
-            在选择器里静态引用会把该块拖回首屏（vendorFreePipeline 实测拦截）。 */}
+        {/* 原生 input 而非 antd Input：与相邻原生控件同口径的历史决定
+            （2026-11-11 分块合并后 antd 已全部在 vendor-antd，换 antd Input 不再有首屏代价）。 */}
         <input
           className="fp-filter"
           type="text"

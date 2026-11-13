@@ -11,13 +11,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import { act, cleanup, fireEvent, renderFacade, screen } from './rtlHarness.ts';
-import { allText, byTag, facadeOf, walk } from './domFacade.ts';
+import { allText, facadeOf, walk } from './domFacade.ts';
 import type { Facade, FacadeNode } from './domFacade.ts';
 
 const { AddMenu } = await import('../src/ui/components/AddMenu.tsx');
 const { PermissionPicker } = await import('../src/ui/components/PermissionPicker.tsx');
 const { FileTree } = await import('../src/ui/components/FileTree.tsx');
-const { PanelPicker } = await import('../src/ui/components/PanelPicker.tsx');
 const { Toast } = await import('../src/ui/components/Toast.tsx');
 const { WorkIndicator } = await import('../src/ui/components/WorkIndicator.tsx');
 const { ApprovalModal } = await import('../src/ui/components/ApprovalModal.tsx');
@@ -173,30 +172,8 @@ test('FileTree：目录/文件按树渲染，点目录展开、点文件回调�
   assert.deepStrictEqual(opened, ['src/a.ts'], '点击文件必须回传绝对路径');
 });
 
-test('PanelPicker：唯一触发器，点击打开面板模态（不再有下拉菜单）', async () => {
-  // 2026-10-19：面板选择从下拉菜单改为设置式模态（左导航 + 右内容），这里只钉触发器契约。
-  let opened = 0;
-  const ui = renderFacade(PanelPicker, {
-    props: {
-      onOpen: () => {
-        opened += 1;
-      },
-    },
-  });
-  const btns = byTag(ui.node, 'button');
-  assert.strictEqual(btns.length, 1, '只保留 1 个触发按钮');
-  assert.strictEqual(btns[0]!.props['aria-haspopup'], 'dialog');
-  assert.strictEqual(btns[0]!.props['aria-label'], '全部面板');
-  assert.strictEqual(collect(ui.node, (n) => n.props.role === 'menuitem').length, 0, '不得再渲染菜单项');
-  fireEvent.click(btns[0]!.el);
-  await act(async () => {
-    await Promise.resolve();
-  });
-  assert.strictEqual(opened, 1, '点击必须打开面板模态');
-});
-
 test('面板注册表：21 项齐全、key 唯一（「全部面板」菜单据此渲染，IA 缺口的机械判据）', async () => {
-  // 2026-10-07 壳层重构后，注册表是面板清单的唯一事实源：PanelPicker 菜单渲染 PANELS 全集，
+  // 2026-10-07 壳层重构后，注册表是面板清单的唯一事实源：控制台导航与面板入口都渲染 PANELS 全集，
   // Router 的合法 pane 集合与它对齐 ⇒ "任何面板都必须有入口"由本用例机械核对。
   // 2026-10-11：新增 `diagnostics`（Web 交付项：daemon 运行态 + doctor 报告）⇒ 12 → 13，
   // 且**逐条**比对 key 集合（只改数字等于放弃"清单齐全"这半条判据）。

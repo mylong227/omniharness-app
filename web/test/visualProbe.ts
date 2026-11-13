@@ -379,7 +379,7 @@ const STATES = [
   {
     key: 'settings',
     // 设置模态（2026-10-17）：从右栏面板改为左栏页脚按钮 + 居中模态。
-    // 入口选择器是页脚里 aria-label 为「打开设置」的那个图标按钮（不是 .pp-btn 菜单项）。
+    // 入口选择器是页脚里 aria-label 为「打开设置」的那个图标按钮。
     open: async (cdp: CdpSession) => {
       await cdp.click('button[aria-label="打开设置"]');
       return cdp.evaluate("!!document.querySelector('.sp')");
@@ -985,12 +985,6 @@ async function main() {
           return { w: Math.round(r.width), h: Math.round(r.height), x: Math.round(r.x), y: Math.round(r.y) };
         };
         return {
-          // 壳层重构后左栏竖条（.rail / .rail-btn / .rail-icon）已不存在，那几项**恒为 null**，
-          // 属于死数据（2026-10-08 清理）。现役的图标按钮是面板入口 .pp-btn——几何体检就量它，
-          // 它同样是「svg 作为 flex 子项被压扁」这类老问题的观测点。
-          panelPicker: pick('.pp-btn'),
-          panelPickerSvg: pick('.pp-btn svg'),
-          panelPickerSvgAttr: (function(){ var s=document.querySelector('.pp-btn svg'); return s ? { w: s.getAttribute('width'), h: s.getAttribute('height'), vb: s.getAttribute('viewBox'), paths: s.querySelectorAll('path,line,circle').length, stroke: getComputedStyle(s).stroke, sw: getComputedStyle(s).strokeWidth, display: getComputedStyle(s).display, flex: getComputedStyle(s).flex, cssW: getComputedStyle(s).width } : null; })(),
           left: pick('.col.left'), center: pick('.center'), stream: pick('.stream'),
           streamInner: pick('.stream-inner'), card: pick('.ev.assistant .card'),
           userCard: pick('.ev.user .card'), composer: pick('.composer'),

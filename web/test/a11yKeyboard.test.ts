@@ -17,7 +17,6 @@ import { allText, byTag, clsOf, facadeOf, walk } from './domFacade.ts';
 import type { Facade, FacadeNode } from './domFacade.ts';
 
 const { RightPanel } = await import('../src/ui/components/RightPanel.tsx');
-const { PanelPicker } = await import('../src/ui/components/PanelPicker.tsx');
 const { SidebarHeader } = await import('../src/ui/components/SidebarHeader.tsx');
 const { SidebarFooter } = await import('../src/ui/components/SidebarFooter.tsx');
 const { ChatHeader } = await import('../src/ui/components/ChatHeader.tsx');
@@ -303,7 +302,7 @@ test('侧栏品牌行不再有命令/收起按钮（2026-10-26 用户要求）',
 });
 
 test('侧栏壳组件：纯图标按钮都有 aria-label（不能只靠 title/emoji）', () => {
-  // 2026-10-07 壳层重构：NavRail / TopBar 收编为 SidebarHeader / SidebarFooter / PanelPicker。
+  // 2026-10-07 壳层重构：NavRail / TopBar 收编为 SidebarHeader / SidebarFooter（PanelPicker 已下线）。
   const trees = [
     renderFacade(SidebarFooter, {
       props: {
@@ -311,7 +310,6 @@ test('侧栏壳组件：纯图标按钮都有 aria-label（不能只靠 title/em
         onOpenSettings: () => {},
       },
     }).node,
-    renderFacade(PanelPicker, { props: { onOpen: () => {} } }).node,
     renderFacade(ChatHeader, {
       props: {
         title: 't',
@@ -510,7 +508,6 @@ test('汇总：跨组件渲染树的可访问性属性计数达到下限', () =>
         onOpenSettings: () => {},
       },
     }).node,
-    renderFacade(PanelPicker, { props: { activePane: 'tools', onPick: () => {} } }).node,
     renderFacade(ChatHeader, {
       props: {
         title: 't',
@@ -535,7 +532,7 @@ test('汇总：跨组件渲染树的可访问性属性计数达到下限', () =>
     nodes: all.length,
   };
   // 数字同时打印进输出，作为「实测覆盖率」证据留在日志里。
-  process.stdout.write('a11y 计数（5 棵渲染树）:' + JSON.stringify(numbered) + '\n');
+  process.stdout.write('a11y 计数（4 棵渲染树）:' + JSON.stringify(numbered) + '\n');
   // 2026-10-07 壳层重构后：右栏标签条 = 已打开文件（不再是常驻 12 项）；
   // 2026-10-19：功能面板改到设置式模态，右栏只剩文件标签 ⇒ 计数再收窄。
   // 属性「逐个显式给出」的契约由上面各用例分别钉住。

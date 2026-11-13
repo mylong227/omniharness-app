@@ -590,7 +590,6 @@
 .side-item,
 .session-search,
 .chat-tab,
-.pp-item {
   border-radius: var(--r-sm);
 }
 .session {
@@ -2504,7 +2503,6 @@
    于是「＋」自己被画成了带投影的面板（真机截图发现）。 */
 .dd-menu,
 .cmdk,
-.pp-menu,
 .ws-switch-menu,
 .addmenu-pop,
 .modal,
@@ -2522,7 +2520,6 @@
   -webkit-backdrop-filter: var(--frost-blur);
 }
 .dd-menu,
-.pp-menu,
 .ws-switch-menu,
 .addmenu-pop,
 .row-menu,
@@ -2531,7 +2528,6 @@
   padding: 5px;
 }
 .dd-item,
-.pp-item,
 .ws-switch-menu button,
 .row-menu button,
 .cmdk-item,
@@ -2542,7 +2538,6 @@
   border: 1px solid transparent;
 }
 .dd-item:hover,
-.pp-item:hover,
 .ws-switch-menu button:hover,
 .row-menu button:hover,
 .cmdk-item:hover,
@@ -2553,7 +2548,6 @@
 /* 菜单/列表里的「当前项」：极淡墨底 + 左缘墨标 + 标题加粗。
    不用整块实心墨：`.dd-item` 是 340px 宽、两行文字的容器，刷成墨块会压掉描述文字。
 
-   例外：「全部面板」菜单（`.pp-item`）**不标当前项**（2026-10-18 用户反馈）。
    右栏标签条本来就显示当前面板名，菜单第一行再叠淡墨底 + 左缘墨标，在深色主题里看起来
    像"输入框/选中框"（用户原话「不要这种前面这个中选择样式」）⇒ 这个菜单只区分 hover。 */
 .dd-item.active,
@@ -2793,7 +2787,6 @@ button:active,
 .new-chat:active,
 .side-item:active,
 .session-act:active,
-.pp-item:active,
 .chat-tab:active {
   transform: none;
   opacity: 0.86;
@@ -3179,11 +3172,6 @@ button:active,
 .sp-load-error .btn {
   flex: none;
 }
-.sp-card-wrap {
-  overflow: hidden;
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-md);
-}
 .sp-card {
   border-top: 1px solid var(--hairline);
   padding: 10px 12px 12px;
@@ -3521,7 +3509,6 @@ button:hover,
 .mem-imp {
   color: var(--warn);
 }
-.btn-remove:hover {
   border-color: var(--err);
   color: var(--err);
 }

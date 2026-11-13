@@ -29,7 +29,7 @@ export const EN_MISC: Record<string, string> = {
   '刚刚': 'Just now',
   // Resizer.tsx
   '拖拽调整宽度': 'Drag to resize',
-  // RightPanel.tsx（面板标签同 PanelPicker/PanelRegistry）
+  // RightPanel.tsx（面板标签同 PanelRegistry）
   '（点 × 回到文件）': ' (click × to return to files)',
   '关闭 {name}': 'Close {name}',
   ' 面板': ' panel',
@@ -76,8 +76,7 @@ export const EN_MISC: Record<string, string> = {
     'Can access the internet and any file on your computer without restriction',
   '拒绝一切工具调用（模型只对话，不产生任何副作用）':
     'Rejects all tool calls (the model only chats, with no side effects)',
-  // PanelPicker.tsx / RightPanel.tsx（PanelRegistry 面板标签）
-  '全部面板': 'All panels',
+  // RightPanel.tsx（PanelRegistry 面板标签）
   '工具': 'Tools',
   '变更': 'Changes',
   '文件': 'Files',

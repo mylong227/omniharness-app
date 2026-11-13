@@ -547,35 +547,6 @@
   padding: 6px 14px;
 }
 
-/* ---------- 「全部面板」菜单（12 个功能面板的收起入口） ---------- */
-.pp-wrap { position: relative; display: inline-flex; flex: none; }
-.pp-btn.active { color: var(--accent); }
-.pp-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 60;
-  min-width: 168px;
-  display: flex;
-  flex-direction: column;
-}
-.pp-title {
-  font-size: 10.5px;
-  letter-spacing: 0.6px;
-  color: var(--dim);
-  padding: 4px 8px 6px;
-}
-.pp-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12.5px;
-  padding: 6px 8px;
-  cursor: pointer;
-  text-align: left;
-}
-.pp-item .pp-ico { display: inline-flex; color: var(--dim); }
-
 /* ---------- 轨迹视图 ---------- */
 .trace {
   flex: 1;
@@ -868,7 +839,6 @@ body {
 .ws-switch-menu,
 .addmenu-pop,
 .mention-pop,
-.pp-menu,
 .row-menu,
 .cmdk {
   border-radius: 12px;
@@ -878,7 +848,6 @@ body {
 }
 .dd-item,
 .addmenu-item,
-.pp-item,
 .row-menu button,
 .ws-project {
   min-height: 28px;
@@ -1071,14 +1040,12 @@ body {
 .dd-menu,
 .addmenu-scroll,
 .cmdk-list,
-.pp-menu,
 .ws-switch-menu {
   scrollbar-width: none;
 }
 .dd-menu::-webkit-scrollbar,
 .addmenu-scroll::-webkit-scrollbar,
 .cmdk-list::-webkit-scrollbar,
-.pp-menu::-webkit-scrollbar,
 .ws-switch-menu::-webkit-scrollbar {
   width: 0;
   height: 0;

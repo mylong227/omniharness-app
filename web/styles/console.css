@@ -785,8 +785,7 @@
 }
 
 /* 表格（用量 / 审计 / 规则）：卡片边界 + 行分隔线 */
-.csl-scroll .usage-table,
-.csl-scroll .audit-table {
+.csl-scroll .usage-table {
   width: 100%;
   border: 1px solid var(--border-soft);
   border-radius: var(--r-lg);
@@ -796,8 +795,7 @@
   background: var(--panel);
   font-size: 12px;
 }
-.csl-scroll .usage-table th,
-.csl-scroll .audit-table th {
+.csl-scroll .usage-table th {
   padding: 9px 12px;
   background: transparent;
   border-bottom: 1px solid var(--hairline);
@@ -809,30 +807,25 @@
 .csl-scroll .usage-table td:first-child {
   text-align: left;
 }
-.csl-scroll .usage-table td,
-.csl-scroll .audit-table td {
+.csl-scroll .usage-table td {
   padding: 8px 12px;
   border-bottom: 1px solid var(--hairline);
   color: var(--dim);
 }
-.csl-scroll .usage-table tr:last-child td,
-.csl-scroll .audit-table tr:last-child td {
+.csl-scroll .usage-table tr:last-child td {
   border-bottom: 0;
 }
 /* 表格已经在一张卡片里时，不再套第二层描边 */
-.csl-scroll .act-card .usage-table,
-.csl-scroll .act-card .audit-table {
+.csl-scroll .act-card .usage-table {
   background: transparent;
   border: 0;
   border-radius: 0;
 }
-.csl-scroll .act-card .usage-table th,
-.csl-scroll .act-card .audit-table th {
+.csl-scroll .act-card .usage-table th {
   padding-left: 0;
   padding-right: 0;
 }
-.csl-scroll .act-card .usage-table td,
-.csl-scroll .act-card .audit-table td {
+.csl-scroll .act-card .usage-table td {
   padding-left: 0;
   padding-right: 0;
 }
