@@ -20,6 +20,7 @@ import Skeleton from 'antd/es/skeleton';
 import Space from 'antd/es/space';
 import Typography from 'antd/es/typography';
 import { t } from '../../../i18n/i18n.ts';
+import { contextRowLabelOf } from '../../../models/KernelTextOverrides.ts';
 import { useApp } from '../../../context.ts';
 import { icon } from '../../../models/Icon.ts';
 import { timeOf } from '../../../format.ts';
@@ -163,17 +164,17 @@ export function ContextMode(props: ContextModeProps): ReactElement {
           <div className="control-usage" role="img" aria-label={t('六类构成')}>
             {report.rows.map((row) => (
               <div
-                key={row.label}
+                key={row.key}
                 className={`control-usage__seg control-usage__seg--${row.key ?? 'other'}`}
                 style={{ flexGrow: Math.max(row.tokens, 0) }}
-                title={`${row.label} ${row.tokens.toLocaleString()}（${row.percent}%）`}
+                title={`${contextRowLabelOf(String(row.key), row.label)} ${row.tokens.toLocaleString()}（${row.percent}%）`}
               />
             ))}
           </div>
           <Space wrap size={16}>
             {report.rows.map((row) => (
-              <Typography.Text key={row.label} type="secondary">
-                {row.label} <span className="mono">{row.percent}%</span>
+              <Typography.Text key={row.key} type="secondary">
+                {contextRowLabelOf(String(row.key), row.label)} <span className="mono">{row.percent}%</span>
               </Typography.Text>
             ))}
           </Space>

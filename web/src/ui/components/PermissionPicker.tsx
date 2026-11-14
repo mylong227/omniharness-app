@@ -235,7 +235,7 @@ export function PermissionPicker(props: PermissionPickerProps): ReactElement {
   return (
     <PermissionTrigger
       tooltip={tip}
-      label={active.label}
+      label={t(active.label)}
       fullAccess={fullAccess}
       open={open}
       onToggle={toggle}

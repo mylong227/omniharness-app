@@ -25,7 +25,7 @@ import * as React from 'react';
 import { useApp } from '../../context.ts';
 import { icon } from '../../models/Icon.ts';
 import type { ReactElement } from 'react';
-import { t } from '../../i18n/i18n.ts';
+import { currentLocale, t } from '../../i18n/i18n.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
 import Button from 'antd/es/button';
 import Table from 'antd/es/table';
@@ -63,7 +63,14 @@ type GovernanceHistory =
         }[];
       };
     }
-  | { readonly available: false; readonly reason: string };
+  | {
+      readonly available: false;
+      readonly reason: string;
+      readonly code?: string;
+      readonly feature?: string;
+      readonly tier?: string;
+      readonly requiredTier?: string;
+    };
 
 /**
  * 晋升台账行列表（2026-10-29 W4：antd Table）。
@@ -208,7 +215,7 @@ export function GovernanceTab(): ReactElement {
     // 读不出来要**直说**：空列表会被误读成"没有晋升记录"。
     return (
       <div className="governance-tab">
-        <p className="err">{data.reason || t('未提供原因')}</p>
+        <p className="err">{entitlementReasonOf(data) || t('未提供原因')}</p>
         <p className="hint">{t('台账尚未产生时可忽略；若已产生过晋升，请检查工作区 .omniharness/evolution。')}</p>
         <Button onClick={() => void refresh()}>
           {t('重试')}
@@ -250,3 +257,30 @@ export function GovernanceTab(): ReactElement {
   );
 }
 
+
+
+/**
+ * 授权拒因的本地化重组（2026-11-14）：服务端拒因是**机读结构字段**（code/feature/
+ * tier/requiredTier）+ 中文 reason——中文 locale 直显原 reason，English 按结构字段
+ * 重组英文拒因；未知 code 回落服务端原文（fail-open）。
+ * @param data 拒绝分支数据
+ * @returns 本地化拒因
+ */
+function entitlementReasonOf(data: { reason: string; code?: string; feature?: string; tier?: string; requiredTier?: string }): string {
+  if (currentLocale() === 'en' && data.code !== undefined) {
+    const feature = data.feature ?? 'this feature';
+    const tier = data.tier ?? 'core';
+    const required = data.requiredTier ?? 'pro';
+    if (data.code === 'tier-too-low') {
+      return t('功能 {feature} 需要 {requiredTier} 档（当前 {tier}）；当前未持有有效授权', {
+        feature, requiredTier: required, tier,
+      });
+    }
+    if (data.code === 'no-license') {
+      return t('功能 {feature} 需要 {requiredTier} 档；当前未持有有效授权', {
+        feature, requiredTier: required,
+      });
+    }
+  }
+  return data.reason;
+}

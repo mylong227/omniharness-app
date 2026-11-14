@@ -6,6 +6,7 @@ import type { AgentCatalogEntry, PluginManifest, SearchHit } from '../../types/m
 // 不会把 Icon.ts 的运行时依赖（它现在 import react）拖进模型层，单测仍可在纯 node 下直接跑）。
 import type { IconName } from './Icon.ts';
 import { t } from '../i18n/i18n.ts';
+import { personaDescriptionOf, personaNameOf } from './KernelTextOverrides.ts';
 
 /**
  * 菜单图标名（= 图标集里的合法名字，见 models/Icon.ts）。
@@ -151,8 +152,8 @@ export class AddMenuModel {
       items: this.state.agents.map((agent) => ({
         id: 'agent:' + agent.id,
         icon: this.agentIcon(agent.kind),
-        label: agent.name,
-        hint: agent.description,
+        label: personaNameOf(String(agent.id), agent.name),
+        hint: personaDescriptionOf(String(agent.id), agent.description),
         active: false,
         disabled: false,
       })),

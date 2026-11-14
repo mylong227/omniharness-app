@@ -14,6 +14,7 @@ import { ContextUsageView } from '../models/ContextUsageView.ts';
 import { QuotaView } from '../models/QuotaView.ts';
 import { emptyNote } from '../format.ts';
 import { t } from '../i18n/i18n.ts';
+import { contextRowLabelOf, quotaPlanLabelOf } from '../models/KernelTextOverrides.ts';
 import { useCapacityReport } from './useCapacityReport.ts';
 import { useApp } from '../context.ts';
 import { usePopoverEffect } from './usePopoverEffect.ts';
@@ -105,7 +106,7 @@ function DockContextSection(props: DockContextSectionProps): ReactElement {
             {view.rows.map((row, index) => (
               <div className="cap-legend-item" key={row.key} title={row.title}>
                 <span className={'cap-dot cap-dot-' + String(index + 1)} aria-hidden="true" />
-                <span className="cap-legend-label">{row.label}</span>
+                <span className="cap-legend-label">{contextRowLabelOf(String(row.key), row.label)}</span>
                 <span className="cap-legend-pct">{row.percentText}</span>
               </div>
             ))}
@@ -177,7 +178,7 @@ function DockQuotaSection(props: DockQuotaSectionProps): ReactElement {
       )}
       <div className="cap-plan-note">
         <span className="cap-plan-name">
-          {t('档位 {name}', { name: status.plan.label })}
+          {t('档位 {name}', { name: quotaPlanLabelOf(String(status.plan.id), status.plan.label) })}
           {status.plan.multiplier !== 1 ? ` × ${status.plan.multiplier}` : ''}
         </span>
         <span className="cap-plan-why">

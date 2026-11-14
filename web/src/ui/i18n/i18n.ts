@@ -25,6 +25,11 @@ export function getLocale(): Locale {
 }
 
 /** 订阅语言变化（返回退订函数）。 */
+/** 当前语言（组件内做 locale 分支时用；切换经 setLocale 同步）。 */
+export function currentLocale(): Locale {
+  return current;
+}
+
 export function subscribeLocale(fn: () => void): () => void {
   listeners.add(fn);
   return () => {

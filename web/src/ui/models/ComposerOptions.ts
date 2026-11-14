@@ -43,16 +43,30 @@ const KNOWN_MODELS: readonly string[] = [
 /** 推理强度兜底档位：model.catalog 未下发 reasoningEffort 时使用。 */
 const REASONING_LEVELS: readonly string[] = ['minimal', 'low', 'medium', 'high', 'xhigh'];
 
-/** 推理档位中文标签：对服务端下发的未知档位（如 deepseek 的 none/max）也能给出合理标签。 */
-const REASONING_LABELS: Readonly<Record<string, string>> = {
-  none: t('无'),
-  minimal: t('极简'),
-  low: t('弱'),
-  medium: t('中'),
-  high: t('强'),
-  xhigh: t('极强'),
-  max: t('极致'),
+/**
+ * 推理档位中文标签键：**只存键不存译文**（2026-11-14 i18n 修正）。
+ * 旧实现模块顶层 `t('无')` 在模块加载时求值——locale 切到 English 后缓存仍是中文，
+ * 档位弹窗/触发按钮整个变回中文（用户实测截图）。消费点经 `tierLabelOf` 现场求值。
+ */
+const REASONING_LABEL_KEYS: Readonly<Record<string, string>> = {
+  none: '无',
+  minimal: '极简',
+  low: '弱',
+  medium: '中',
+  high: '强',
+  xhigh: '极强',
+  max: '极致',
 };
+
+/**
+ * 单档位标签：已知档位走 i18n 现场求值，未知档位原样返回（服务端新增档位不必改前端）。
+ * @param level 档位值
+ * @returns 展示标签
+ */
+function tierLabelOf(level: string): string {
+  const key = REASONING_LABEL_KEYS[level];
+  return key !== undefined ? t(key) : level;
+}
 
 /** 模型级档位表（model.catalog 下发的 `effortsByModel`）：模型 id → 该模型实际接受的档位。 */
 export type EffortsByModel = Readonly<Record<string, readonly string[]>>;
@@ -97,10 +111,10 @@ export class ComposerOptions {
     for (const v of pool) {
       if (seen.has(v)) continue;
       seen.add(v);
-      out.push({ value: v, label: REASONING_LABELS[v] ?? v });
+      out.push({ value: v, label: tierLabelOf(v) });
     }
     if (current !== '' && !seen.has(current)) {
-      out.unshift({ value: current, label: REASONING_LABELS[current] ?? current });
+      out.unshift({ value: current, label: tierLabelOf(current) });
     }
     return out;
   }
@@ -154,7 +168,7 @@ export class ComposerOptions {
     const unsupported = current !== undefined && current !== '' && !seen.has(current);
     if (unsupported && current !== undefined) unique.push(current);
     return unique.map((v) => {
-      const item: OptionItem = { value: v, label: REASONING_LABELS[v] ?? v };
+      const item: OptionItem = { value: v, label: tierLabelOf(v) };
       if (unsupported && v === current) item.unsupported = true;
       return item;
     });
@@ -166,7 +180,7 @@ export class ComposerOptions {
    * @returns 展示标签
    */
   public static reasoningLabel(level: string): string {
-    return REASONING_LABELS[level] ?? level;
+    return tierLabelOf(level);
   }
 
   /**

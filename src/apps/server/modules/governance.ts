@@ -49,14 +49,24 @@ function governanceView(
       readonly available: false;
       readonly reason: string;
       readonly code?: string | undefined;
+      readonly feature?: string | undefined;
+      readonly tier?: string | undefined;
+      readonly requiredTier?: string | undefined;
     } {
   // **F4 闸门（Pro）**：治理台是商业档能力（§6.1），无授权即不可用——但**拒因必须可读且可机读**，
   // 且**绝不**影响核心功能（台账本身照常写入；`audit verify` 等完整性工具永不上闸）。
-  const entitlement = (s.options.entitlements ?? FeatureEntitlements.core()).demand(
-    'governance-console',
-  );
+  const entitlements = s.options.entitlements ?? FeatureEntitlements.core();
+  const entitlement = entitlements.demand('governance-console');
   if (!entitlement.allowed) {
-    return { available: false, reason: entitlement.reason, code: entitlement.code };
+    return {
+      available: false,
+      reason: entitlement.reason,
+      code: entitlement.code,
+      // 机读字段（2026-11-14 i18n）：前端按结构字段本地化拒因，不再解析中文句子。
+      feature: 'governance-console',
+      tier: entitlements.tier,
+      ...(entitlement.requiredTier !== undefined ? { requiredTier: entitlement.requiredTier } : {}),
+    };
   }
   const dir = join(s.configStore.workspace(), LEDGER_DIR);
   try {
