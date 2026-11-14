@@ -7,13 +7,14 @@
 //     高度封顶），收尾后自动折叠成一行「总思考」。
 //   · 本轮中间的助手消息（「我先看看 / 让我读一下 / 事实核对完毕…」）同样是思考的步骤，
 //     标记为「说明」收进同一条轨迹；只有本轮最后一条（最终答复）留在对话里。
-//   · 每条思考是一行：左侧状态（运行中 = 旋转环，完成 = ✓）、一句话预览、字数 / 耗时；
+//   · 每条思考是一行：左侧状态（运行中 = 水感 Ω 裸字，完成 = ✓）、一句话预览、字数 / 耗时；
 //     点击就地展开全文，再点收起。运行中的那条预览跟随末三行，读到的永远是「此刻在想什么」。
 //   · 头部给出「思考中 + 当前动作」或「总思考 + 本轮做了什么」，尾部给步数、失败数与耗时。
 //
 // 数据面只有事件；组件只管状态（展开 / 滚动贴底 / 每秒时钟），不做任何事件改写。
 
 import * as React from 'react';
+import { BrandMark } from '../BrandMark.tsx';
 import { icon } from '../../models/Icon.ts';
 import { formatDuration } from '../../models/DurationFormat.ts';
 import { describeToolCall, processSummary } from '../../textUtils.ts';
@@ -177,7 +178,7 @@ export function ReasoningStep(props: ReasoningStepProps): React.ReactElement {
         onClick={() => setOpen((prev) => !prev)}
       >
         <span className="tt-state" aria-hidden="true">
-          {running === true ? <span className="tt-spinner" /> : icon('check', { size: 12 })}
+          {running === true ? <BrandMark bare /> : icon('check', { size: 12 })}
         </span>
         <span className="tt-step-label">{label ?? t('思考')}</span>
         {open ? null : (
@@ -224,7 +225,7 @@ function TrailHead(props: {
       onClick={onToggle}
     >
       <span className="tt-icon" aria-hidden="true">
-        {running ? <span className="tt-spinner" /> : icon('brain', { size: 14 })}
+        {running ? <BrandMark bare /> : icon('brain', { size: 14 })}
       </span>
       <span className="tt-title">{running ? t('思考中') : t('总思考')}</span>
       <span className="tt-sub" title={running ? action : summary}>
