@@ -151,6 +151,9 @@ export const EN_SETTINGS: Record<string, string> = {
   打开日志目录: 'Open log directory',
   '查看诊断信息': 'Show diagnostics',
   '重启 Harness': 'Restart Harness',
+  '选择…': 'Browse…',
+  '{name} 选择…': 'Browse for {name}',
+  '选择密钥文件': 'Choose key file',
   未设置: 'Not set',
 
   // 设置页内核能力补全（2026-11-14，docs/design/settings-completion §3）

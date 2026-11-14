@@ -101,6 +101,12 @@ export interface SettingsField {
    */
   group?: string;
   /**
+   * 路径选择入口（2026-11-14 用户口径：路径不要手输粘贴）：'dir' = 目录选择（FolderPicker），
+   * 'file' = 文件选择（FilePicker）。声明后行内渲染「选择…」按钮弹起统一资源选择面板，
+   * 手输通道保留。判据 pickerUniformity 钉住「路径字段必须有 browse」。
+   */
+  browse?: 'dir' | 'file';
+  /**
    * 落盘时把值写成"清除"（服务端约定 `null` = 显式清除）而不是 no-op。
    * 目前只有 `baseUrl` 需要：留空＝回落厂商默认端点。
    */
@@ -210,6 +216,7 @@ export const SETTINGS_FIELDS: readonly SettingsField[] = [
     kind: 'text',
     placeholder: '留空 = 内核默认目录',
     hint: '会话存档根目录；切换在重启后生效',
+    browse: 'dir',
     // 留空必须发 null（显式删除键）而不是空串：内核消费侧 `??` 不回落空串，
     // storageDir:'' 会让 jsonl 存储往 `mkdir('')` 里撞（review P1-1，与 baseUrl 同机制）。
     clearWhenEmpty: true,
@@ -300,6 +307,7 @@ export const SETTINGS_FIELDS: readonly SettingsField[] = [
     kind: 'text',
     placeholder: '留空 = 派生默认密钥',
     hint: '加密密钥文件路径（配合「长期记忆加密」使用）',
+    browse: 'file',
     // 留空发 null（显式删除键）：keyFile:'' 会让加密器打开空路径（review P1-1）。
     clearWhenEmpty: true,
     group: 'memory',

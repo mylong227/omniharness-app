@@ -14,7 +14,9 @@
 //
 // ① 源码级扫描：web/src 出现 `type="file"` 即红（新增选择入口时必须接统一面板，
 //    而不是顺手塞一个原生 input——那正是本次统一的成因）；
-//    desktop/src 的 `showOpenDialog/showSaveDialog` 仅允许出现在 ipc.ts pickDirectory。
+//    desktop/src 的 `showOpenDialog/showSaveDialog` 仅允许出现在 ipc.ts pickDirectory；
+//    ② 路径字段契约：SETTINGS_FIELDS 的文本字段凡是语义为路径（key 白名单）的必须
+//    声明 `browse`（dir/file）——防止新路径字段又退化成纯手输粘贴框。
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -24,6 +26,9 @@ import { fileURLToPath } from 'node:url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SRC = join(HERE, '..', 'src');
 const DESKTOP = join(HERE, '..', '..', 'desktop', 'src');
+
+/** 语义为路径的设置键（新增路径字段时同步此表 + 字段声明 browse）。 */
+const PATH_FIELDS: readonly string[] = ['storageDir', 'longTermMemoryKeyFile'];
 
 /** 递归收集 .ts/.tsx 文件（node_modules 不在本目录内，无需排除）。 */
 function walk(dir: string, out: string[] = []): string[] {
@@ -59,5 +64,17 @@ test('desktop/src 的原生目录/文件对话框仅限 pickDirectory 一处（�
     [],
     'desktop 出现新的原生对话框调用：' + offenders.join(', ') + '（应收敛到统一面板或显式豁免）',
   );
+});
+
+test('设置页路径字段必须声明 browse（dir/file）——路径不许只给手输粘贴框', async () => {
+  const { SETTINGS_FIELDS } = await import('../src/ui/models/SettingsModel.ts');
+  for (const key of PATH_FIELDS) {
+    const field = SETTINGS_FIELDS.find((f) => String(f.key) === key);
+    assert.ok(field !== undefined, `路径字段 ${key} 未在 SETTINGS_FIELDS 声明`);
+    assert.ok(
+      field.browse === 'dir' || field.browse === 'file',
+      `路径字段 ${key} 缺 browse 标记（会退化成纯手输粘贴框）`,
+    );
+  }
 });
 

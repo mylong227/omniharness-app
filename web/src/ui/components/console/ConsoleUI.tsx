@@ -10,6 +10,7 @@ import * as React from 'react';
 import { icon } from '../../models/Icon.ts';
 import type { IconName } from '../../models/Icon.ts';
 import { t } from '../../i18n/i18n.ts';
+import { PathBrowseControl } from './PathBrowseControl.tsx';
 import type { SettingsField, SettingsModel } from '../../models/SettingsModel.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
 // 2026-10-30（W4 表单专项）：三个设置原语下沉到 antd——所有设置页经本文件拼装，换这里即全站生效。
@@ -401,16 +402,31 @@ export function ConsoleSettingRow(props: {
   }
   return (
     <ConsoleRow label={label} hint={hint}>
-      <ConsoleInput
-        ariaLabel={label}
-        value={draft}
-        placeholder={field.placeholder === undefined ? undefined : t(field.placeholder)}
-        mono
-        onChange={setDraft}
-        onCommit={() => {
-          if (draft.trim() !== committed.trim()) void model.saveField(field, draft);
-        }}
-      />
+      {field.browse !== undefined ? (
+        <PathBrowseControl
+          browse={field.browse}
+          value={draft}
+          placeholder={field.placeholder === undefined ? undefined : t(field.placeholder)}
+          ariaLabel={label}
+          {...(field.key === 'longTermMemoryKeyFile' ? { pickerTitle: t('选择密钥文件') } : {})}
+          onDraft={setDraft}
+          onCommitDraft={() => {
+            if (draft.trim() !== committed.trim()) void model.saveField(field, draft);
+          }}
+          onCommit={(path) => void model.saveField(field, path)}
+        />
+      ) : (
+        <ConsoleInput
+          ariaLabel={label}
+          value={draft}
+          placeholder={field.placeholder === undefined ? undefined : t(field.placeholder)}
+          mono
+          onChange={setDraft}
+          onCommit={() => {
+            if (draft.trim() !== committed.trim()) void model.saveField(field, draft);
+          }}
+        />
+      )}
     </ConsoleRow>
   );
 }

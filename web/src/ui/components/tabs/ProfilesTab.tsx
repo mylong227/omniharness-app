@@ -13,7 +13,42 @@ import Input from 'antd/es/input';
 import Table from 'antd/es/table';
 import type { ColumnsType } from 'antd/es/table';
 import Button from 'antd/es/button';
+import { FilePicker } from '../FilePicker.tsx';
 import { t } from '../../i18n/i18n.ts';
+
+/**
+ * 「选择…」按钮（解包 zip 路径用）：弹起统一资源选择面板（FilePicker），选中后
+ * **回填输入框**（不自动解包——解包仍是显式按钮，保持两步确认）。
+ * @param props 选中回调
+ * @returns 按钮与弹层
+ */
+function ZipBrowseButton(props: { onPick: (path: string) => void }): ReactElement {
+  const { api } = useApp();
+  const [open, setOpen] = React.useState(false);
+  return (
+    <>
+      <Button
+        type="text"
+        size="small"
+        aria-label={t('选择 zip 文件…')}
+        onClick={() => setOpen(true)}
+      >
+        {t('选择…')}
+      </Button>
+      {open ? (
+        <FilePicker
+          api={api}
+          title={t('选择插件包（.zip）')}
+          onCancel={() => setOpen(false)}
+          onPick={(paths) => {
+            setOpen(false);
+            if (paths[0] !== undefined) props.onPick(paths[0]);
+          }}
+        />
+      ) : null}
+    </>
+  );
+}
 
 /** ProfilesTab 组件的入参。 */
 export interface ProfilesTabProps {
@@ -315,6 +350,13 @@ function BundleForm(props: {
               refs.bundleZip.current = el?.input ?? null;
             }}
             placeholder={t('.zip 绝对路径')}
+            suffix={
+              <ZipBrowseButton
+                onPick={(path) => {
+                  if (refs.bundleZip.current) refs.bundleZip.current.value = path;
+                }}
+              />
+            }
           />
         </label>
       </div>

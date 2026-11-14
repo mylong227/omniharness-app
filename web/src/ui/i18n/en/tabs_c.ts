@@ -156,6 +156,9 @@ export const EN_TABS_C: Record<string, string> = {
   '通过': 'pass',
   '未证明': 'unproven',
   '证据包': 'Evidence bundle',
+  '选择…': 'Browse…',
+  '选择 zip 文件…': 'Browse for zip file…',
+  '选择插件包（.zip）': 'Choose plugin bundle (.zip)',
   '导入复核': 'Import and verify',
   '导入复核结果': 'Import verification result',
   '从项目内或文件系统选择证据包 JSON；只做离线结构复核，不信任包内签名，也不上传网络。':
