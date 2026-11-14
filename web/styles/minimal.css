@@ -199,17 +199,65 @@
   --bm-h: 20px;
   border-radius: var(--r-sm);
   font-size: 10px;
-  /* 环溢出芯片边框 1px：overflow 保持 hidden 由环自身 inset 控制，不裁旋转 */
+  /* 星环溢出芯片（辉光/星尘越界）：不裁切；perspective 给 3D 倾斜一个近视深 */
   overflow: visible;
+  perspective: 46px;
 }
-.brand-mark--spin .bm-ring {
+/* 星云晕：居中径向雾（2D，不随环倾斜），叠在环后撑出空间深度 */
+.brand-mark--spin .bm-nebula {
+  position: absolute;
+  inset: -30%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--cosmos-1) 18%, transparent), transparent 70%);
+  pointer-events: none;
+}
+/* 交叉背环：与主环面正交的细淡环，转出陀螺仪式的轨道立体感（静态，不旋转） */
+.brand-mark--spin .bm-tilt {
+  position: absolute;
+  inset: -35%;
+  border-radius: 50%;
+  border: 0.8px solid color-mix(in srgb, var(--cosmos-1) 22%, transparent);
+  transform: rotateX(64deg) rotateY(90deg);
+  pointer-events: none;
+}
+/* 倾斜轨道容器：rotateX 把环面压成吸积盘的透视椭圆；preserve-3d 让面内旋转保持 3D */
+.brand-mark--spin .bm-orbit {
+  position: absolute;
+  inset: -60%;
+  transform: rotateX(64deg);
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+/* 旋转面：实线外环（带辉光）+ 虚线内环 + 星尘，整体绕面内 Z 轴匀速转 */
+.brand-mark--spin .bm-ring-face {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  color: color-mix(in srgb, var(--accent-2) 75%, transparent);
-  animation: bm-ring-spin 1.15s linear infinite;
+  overflow: visible;
+  transform-style: preserve-3d;
+  animation: bm-ring-rotate 1.7s linear infinite;
 }
+/* 主环：SVG 矢量描边（border 在 3D 光栅化下碎段）；辉光 drop-shadow 跟随描边 */
+.brand-mark--spin .bm-ring-major {
+  fill: none;
+  stroke: color-mix(in srgb, var(--cosmos-1) 58%, var(--brand-tile-ink));
+  stroke-width: 2.4;
+  filter: drop-shadow(0 0 1.6px color-mix(in srgb, var(--cosmos-2) 55%, transparent));
+}
+/* 盘面第二层：细淡青线（层次，非虚线——碎段是乱杂感主因） */
+.brand-mark--spin .bm-ring-minor {
+  fill: none;
+  stroke: color-mix(in srgb, var(--cosmos-2) 42%, transparent);
+  stroke-width: 1;
+}
+/* 星尘：暖白光点，随面转 = 轨道运动；错拍闪烁 */
+.brand-mark--spin .bm-star {
+  fill: var(--cosmos-3);
+  filter: drop-shadow(0 0 1.4px color-mix(in srgb, var(--cosmos-3) 80%, transparent));
+  animation: bm-star-blink 1.7s ease-in-out infinite;
+}
+
 .brand-mark--spin .bm-omega {
   position: absolute;
   inset: 0;
@@ -221,49 +269,54 @@
   text-shadow: 0 0 3px var(--panel);
   /* 环转动时 Ω 保持静置：不参与任何 transform/filter */
 }
-.brand-mark--spin.brand-mark--bare .bm-ring {
-  color: var(--accent-2);
+/* 裸字版（思考轨迹行内）：同套星环坐在透明底上，尺寸收小、色随 accent-2 */
+.brand-mark--spin
+.brand-mark--spin.brand-mark--bare .bm-orbit {
+  inset: -45%;
 }
-@keyframes bm-ring-spin {
+.brand-mark--spin.brand-mark--bare .bm-orbit {
+  inset: -45%;
+}
+.brand-mark--spin.brand-mark--bare .bm-ring-major {
+  stroke: color-mix(in srgb, var(--accent-2) 72%, transparent);
+  filter: drop-shadow(0 0 1.4px color-mix(in srgb, var(--accent-2) 40%, transparent));
+}
+.brand-mark--spin.brand-mark--bare .bm-ring-minor {
+  stroke: color-mix(in srgb, var(--cosmos-2) 36%, transparent);
+}
+
+@keyframes bm-ring-rotate {
   to {
-    transform: rotate(360deg);
+    transform: rotateZ(360deg);
   }
 }
+@keyframes bm-star-blink {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.brand-mark--spin .bm-omega {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  font-weight: 650;
+  text-shadow: 0 0 3px var(--panel);
+  /* 环转动时 Ω 保持静置：不参与任何 transform/filter */
+}
+
+
 .brand-mark--compact::after {
   content: none;
 }
-/* 工作态「水感 Ω」（2026-11-14 用户三轮反馈：要字母虚化、发散，像雨滴/流水）。
-   三层：
-   字符 = 流水青蓝渐变字（background-clip:text）色带往复盘流（流水感），
-          叠液态晃动——横向挤压 + 边缘 blur 呼吸，虚化直接落在字上；
-   水滴 = 5 颗小水滴从字形里持续发散出去，越漂越大越虚，直到消融（发散性雨滴感）；
-   光幕 = 芯片外一圈旋转的流水色锥渐变，blur 成虚化光幕。
-   流水是青蓝调的，这里用固定的青→蓝流水色带，不随主题 accent 变调。 */
 
-
-/* 发散水滴：一颗 keyframes 走天下，方向/大小/节拍靠每颗的 --dx/--dy 与时长错开；
-   出发时聚在字形上（不透明度峰值很快到来），随后越漂越大、越虚，opacity 归零消融。 */
-
-
-
-
-
-
-
-/* 裸字版（2026-11-14 用户：思考过程里的转圈环换成同款字母动画，不要底图）：
-   同一套水感 Ω 直接坐在行内，白芯片换成透明；盒子缩到 14px 行内尺寸，
-   光幕与水滴行程按比例收小，避免漫到邻行文字。 */
-.brand-mark--bare {
-  --bm-w: 14px;
-  --bm-h: 14px;
-  background: transparent;
-  border-color: transparent;
-  border-radius: 0;
-  /* 光幕与水滴都溢出盒子，必须放开裁切；标准款的扫光 ::after 在裸字上没有意义 */
-  overflow: visible;
-  font-size: 10px;
-  animation: brand-star-breathe 4.6s ease-in-out infinite;
-}
 
 
 
@@ -298,8 +351,6 @@
 
 
 
-/* 发散水滴：从字形出发，沿各自 --dx/--dy 漂散，放大 + 变虚 + 消融。
-   方向各异（下坠 × 2、上蒸 × 2、横溅 × 1）合成「发散性雨滴」的整体感。 */
 
 
 /* 字标：Omni 为主标题，HARNESS 同行后置的小号大写副标（2026-10-20 用户：
@@ -399,12 +450,13 @@
 @media (prefers-reduced-motion: reduce) {
   .brand-mark,
   .brand-mark::after,
-  .brand-mark--spin .bm-ring,
+  .brand-mark--spin .bm-ring-face,
+  .brand-mark--spin .bm-star,
   .side-wordmark-text,
   .side-wordmark-sheen {
     animation: none;
   }
-  /* 光幕与水滴是纯装饰：减动效时收起；Ω 保留静态流水字（不动的美，还是美的） */
+  /* 扫光是纯装饰：减动效时收起；星环保留静态倾斜形态（Ω 居中静置） */
   .side-wordmark-sheen {
     opacity: 0;
   }
@@ -1223,7 +1275,7 @@
     transform: translateY(-2px);
   }
 }
-/* 减少动态效果：停掉循环动画，但保留「运行中」的可读信号（静态水感 Ω + 圆点）。 */
+/* 减少动态效果：停掉循环动画，但保留「运行中」的可读信号（静态 Ω + 圆点）。 */
 @media (prefers-reduced-motion: reduce) {
   .tt-dots i,
   .thinking-trail.cluster-fresh .tt-head {
