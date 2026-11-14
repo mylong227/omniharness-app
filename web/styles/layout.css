@@ -153,7 +153,7 @@
 /* ---------- 会话分组（按工作区折叠 + 分页展开 + 隐藏滚动条） ---------- */
 #sessions { max-height:260px; overflow-y:auto; scrollbar-width:none; }
 #sessions::-webkit-scrollbar { display:none; }
-.ws-group { margin-bottom: 10px; }
+.ws-group { margin-bottom: 8px; }
 .ws-head {
   display:flex; align-items:center; gap:6px; padding:8px 8px; cursor:pointer; user-select:none;
 }
@@ -161,13 +161,14 @@
 .ws-head .ws-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; direction:rtl; text-align:left; }
 .ws-head .ws-count { font-size:11px; color:var(--dim); }
 /* 2026-11-14 第三轮（用户截图：会话每一条太挤）：列表改弹性列 + 行间距。
-   2026-11-14 第四轮（用户反馈「太开了」）：行距回调到 4px，并清掉 .session 历史上
-   叠加的 2px margin-bottom——让 gap 成为行距的唯一来源（实测净距由 7px 收到 4px）。 */
+   2026-11-14 第四轮（用户反馈「太开了」）：行距回调，并清掉 .session 历史上叠加的
+   2px margin-bottom——让 gap 成为行距的唯一来源。
+   2026-11-14 第五轮（用户：「间隙间距小一点」）：行距 4→2、组距 10→8、列表顶距 3→2。 */
 .ws-list {
-  margin-top: 3px;
+  margin-top: 2px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 .ws-list .session { margin-bottom: 0; }
 .ws-more {
