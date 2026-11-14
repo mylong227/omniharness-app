@@ -199,118 +199,67 @@
   --bm-h: 20px;
   border-radius: var(--r-sm);
   font-size: 10px;
-  /* 星环溢出芯片（辉光/星尘越界）：不裁切；perspective 给 3D 倾斜一个近视深 */
   overflow: visible;
-  perspective: 46px;
 }
-/* 星云晕：居中径向雾（2D，不随环倾斜），叠在环后撑出空间深度 */
-.brand-mark--spin .bm-nebula {
-  position: absolute;
-  inset: -30%;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, color-mix(in srgb, var(--cosmos-1) 18%, transparent), transparent 70%);
-  pointer-events: none;
-}
-/* 交叉背环：与主环面正交的细淡环，转出陀螺仪式的轨道立体感（静态，不旋转） */
-.brand-mark--spin .bm-tilt {
-  position: absolute;
-  inset: -35%;
-  border-radius: 50%;
-  border: 0.8px solid color-mix(in srgb, var(--cosmos-1) 22%, transparent);
-  transform: rotateX(64deg) rotateY(90deg);
-  pointer-events: none;
-}
-/* 倾斜轨道容器：rotateX 把环面压成吸积盘的透视椭圆；preserve-3d 让面内旋转保持 3D */
-.brand-mark--spin .bm-orbit {
-  position: absolute;
-  inset: -60%;
-  transform: rotateX(64deg);
-  transform-style: preserve-3d;
-  pointer-events: none;
-}
-/* 旋转面：实线外环（带辉光）+ 虚线内环 + 星尘，整体绕面内 Z 轴匀速转 */
-.brand-mark--spin .bm-ring-face {
+/* 月弧（2026-11-14 三轮收敛，用户口径「简洁好看」）：细底环 + 圆头亮弧匀速旋转，
+   Ω 居中静置。环收回芯片内；色随主题 accent-2（独立蓝青色组已退役）。
+   周长 2π×10≈62.8：亮弧 dasharray「17 45.8」≈ 27% 弧长。 */
+.brand-mark--spin .bm-arc {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  overflow: visible;
-  transform-style: preserve-3d;
-  animation: bm-ring-rotate 1.7s linear infinite;
+  animation: bm-arc-spin 1.6s linear infinite;
 }
-/* 主环：SVG 矢量描边（border 在 3D 光栅化下碎段）；辉光 drop-shadow 跟随描边 */
-.brand-mark--spin .bm-ring-major {
+.brand-mark--spin .bm-arc-track {
   fill: none;
-  stroke: color-mix(in srgb, var(--cosmos-1) 58%, var(--brand-tile-ink));
-  stroke-width: 2.4;
-  filter: drop-shadow(0 0 1.6px color-mix(in srgb, var(--cosmos-2) 55%, transparent));
+  stroke: color-mix(in srgb, var(--accent-2) 30%, transparent);
+  stroke-width: 2.2;
 }
-/* 盘面第二层：细淡青线（层次，非虚线——碎段是乱杂感主因） */
-.brand-mark--spin .bm-ring-minor {
+.brand-mark--spin .bm-arc-lead {
   fill: none;
-  stroke: color-mix(in srgb, var(--cosmos-2) 42%, transparent);
-  stroke-width: 1;
-}
-/* 星尘：暖白光点，随面转 = 轨道运动；错拍闪烁 */
-.brand-mark--spin .bm-star {
-  fill: var(--cosmos-3);
-  filter: drop-shadow(0 0 1.4px color-mix(in srgb, var(--cosmos-3) 80%, transparent));
-  animation: bm-star-blink 1.7s ease-in-out infinite;
+  stroke: var(--accent-2);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-dasharray: 17 45.8;
 }
 
-.brand-mark--spin .bm-omega {
-  position: absolute;
-  inset: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text);
-  font-weight: 650;
-  text-shadow: 0 0 3px var(--panel);
-  /* 环转动时 Ω 保持静置：不参与任何 transform/filter */
+/* 裸字版（思考轨迹行内）：同套月弧坐在透明底上，尺寸收小。 */
+.brand-mark--spin.brand-mark--bare {
+  --bm-w: 15px;
+  --bm-h: 15px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 8px;
 }
-/* 裸字版（思考轨迹行内）：同套星环坐在透明底上，尺寸收小、色随 accent-2 */
-.brand-mark--spin
-.brand-mark--spin.brand-mark--bare .bm-orbit {
-  inset: -45%;
+.brand-mark--spin.brand-mark--bare .bm-arc-track {
+  stroke: color-mix(in srgb, var(--accent-2) 24%, transparent);
+  stroke-width: 2.6;
 }
-.brand-mark--spin.brand-mark--bare .bm-orbit {
-  inset: -45%;
+.brand-mark--spin.brand-mark--bare .bm-arc-lead {
+  stroke-width: 2.6;
 }
-.brand-mark--spin.brand-mark--bare .bm-ring-major {
-  stroke: color-mix(in srgb, var(--accent-2) 72%, transparent);
-  filter: drop-shadow(0 0 1.4px color-mix(in srgb, var(--accent-2) 40%, transparent));
-}
-.brand-mark--spin.brand-mark--bare .bm-ring-minor {
-  stroke: color-mix(in srgb, var(--cosmos-2) 36%, transparent);
-}
-
-@keyframes bm-ring-rotate {
+@keyframes bm-arc-spin {
   to {
-    transform: rotateZ(360deg);
+    transform: rotate(360deg);
   }
 }
-@keyframes bm-star-blink {
-  0%,
-  100% {
-    opacity: 0.25;
-  }
-  50% {
-    opacity: 1;
-  }
-}
+/* 星云晕：居中径向雾（2D，不随环倾斜），叠在环后撑出空间深度 */
 
-.brand-mark--spin .bm-omega {
-  position: absolute;
-  inset: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text);
-  font-weight: 650;
-  text-shadow: 0 0 3px var(--panel);
-  /* 环转动时 Ω 保持静置：不参与任何 transform/filter */
-}
+/* 交叉背环：与主环面正交的细淡环，转出陀螺仪式的轨道立体感（静态，不旋转） */
+
+/* 倾斜轨道容器：rotateX 把环面压成吸积盘的透视椭圆；preserve-3d 让面内旋转保持 3D */
+
+/* 旋转面：实线外环（带辉光）+ 虚线内环 + 星尘，整体绕面内 Z 轴匀速转 */
+
+/* 主环：SVG 矢量描边（border 在 3D 光栅化下碎段）；辉光 drop-shadow 跟随描边 */
+
+/* 盘面第二层：细淡青线（层次，非虚线——碎段是乱杂感主因） */
+
+/* 星尘：暖白光点，随面转 = 轨道运动；错拍闪烁 */
+
+/* 裸字版（思考轨迹行内）：同套星环坐在透明底上，尺寸收小、色随 accent-2 */
 
 
 .brand-mark--compact::after {
@@ -450,8 +399,7 @@
 @media (prefers-reduced-motion: reduce) {
   .brand-mark,
   .brand-mark::after,
-  .brand-mark--spin .bm-ring-face,
-  .brand-mark--spin .bm-star,
+  .brand-mark--spin .bm-arc,
   .side-wordmark-text,
   .side-wordmark-sheen {
     animation: none;
