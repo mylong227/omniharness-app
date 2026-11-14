@@ -5,7 +5,9 @@
 //
 // 2026-11-11 控制台 antd 化：回合选择 `Segmented`（radiogroup 语义，替代迁移前的
 // listbox/option）、摘要/清单/导出 `PanelSection`、
-// 证据包导入用隐藏 `<input type=file>` + antd Button 触发、结论用 `StatusTag` 与 `Alert`；
+// 证据包导入 2026-11-14 起走**统一资源选择面板**（FilePicker：工作区树 + 「文件系统…」
+// 懒加载全盘，回传路径经 fs.read 取文本）——原生 `<input type=file>` 弃用（全项目
+// 资源选择统一口径，判据 pickerUniformity 钉死）；结论用 `StatusTag` 与 `Alert`；
 // 两栏布局用 `Row/Col`。
 
 import * as React from 'react';
@@ -23,6 +25,7 @@ import { useApp } from '../../../context.ts';
 import { t } from '../../../i18n/i18n.ts';
 import { timeOf } from '../../../format.ts';
 import { icon } from '../../../models/Icon.ts';
+import { FilePicker } from '../../FilePicker.tsx';
 import type {
   ProofBundleViewLike,
   ProofCheckLike,
@@ -157,8 +160,8 @@ export function ProofMode(props: ProofModeProps): ReactElement {
   const [verifyError, setVerifyError] = React.useState<string | null>(null);
   const [verifying, setVerifying] = React.useState(false);
   const [verifyName, setVerifyName] = React.useState('');
-  /** 原生文件选择器（按钮触发；input 保留 aria-label 供键盘与判据定位）。 */
-  const fileRef = React.useRef<HTMLInputElement | null>(null);
+  /** 资源选择面板（FilePicker）：证据包选择与全项目统一（2026-11-14，弃原生 input file）。 */
+  const [picking, setPicking] = React.useState(false);
 
   /** 下载导出包（前端下载，不上传）。 */
   const onExport = React.useCallback((): void => {
@@ -173,22 +176,37 @@ export function ProofMode(props: ProofModeProps): ReactElement {
   }, [proof, toast]);
 
   /**
-   * 读取本地证据包并调用离线复核；不读取任意路径、不上传。
-   * @param file 用户选中的文件。
+   * 读取选中的证据包并调用离线复核：FilePicker 回传**绝对路径**（工作区内或
+   * 「文件系统…」懒加载全盘），经 `attach.read` 取 base64（面向用户所选路径、
+   * 无工作区越界闸、JSON 在类型白名单）解码为 UTF-8 文本，复核在 proof.verify 完成。
+   * 2 MB 闸按文件真实字节数（attach.read 的 size）判定。
+   * @param path 用户在资源选择面板选中的证据包路径。
    */
   const onPickBundle = React.useCallback(
-    (file: File): void => {
+    (path: string): void => {
       setVerify(null);
       setVerifyError(null);
-      setVerifyName(file.name);
-      if (file.size > 2 * 1024 * 1024) {
-        setVerifyError(t('证据包超过 2 MB，无法导入。'));
-        return;
-      }
+      setVerifyName(path.split(/[\\/]/).pop() ?? path);
       setVerifying(true);
-      void file
-        .text()
-        .then((text) => {
+      void api
+        .attachRead([path])
+        .then((r) => {
+          if (r.errors.length > 0) {
+            setVerifyError(t('读取证据包失败：{msg}', { msg: r.errors[0]?.error ?? '' }));
+            return;
+          }
+          const picked = r.files[0];
+          if (picked === undefined) {
+            setVerifyError(t('读取证据包失败：{msg}', { msg: t('文件不存在') }));
+            return;
+          }
+          if (picked.size > 2 * 1024 * 1024) {
+            setVerifyError(t('证据包超过 2 MB，无法导入。'));
+            return;
+          }
+          // base64 → UTF-8 文本（证据包 JSON 常含中文，不能按 Latin-1 直解）。
+          const bytes = Uint8Array.from(atob(picked.data), (c) => c.charCodeAt(0));
+          const text = new TextDecoder().decode(bytes);
           let bundle: unknown;
           try {
             bundle = JSON.parse(text);
@@ -339,26 +357,14 @@ export function ProofMode(props: ProofModeProps): ReactElement {
       <PanelSection title={t('导入复核')}>
         <Flex vertical gap={10}>
           <Typography.Text type="secondary">
-            {t('选择本地证据包 JSON；只做离线结构复核，不信任包内签名，也不上传网络。')}
+            {t('从项目内或文件系统选择证据包 JSON；只做离线结构复核，不信任包内签名，也不上传网络。')}
           </Typography.Text>
           <Flex align="center" wrap gap={10}>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="application/json,.json"
-              aria-label={t('选择证据包文件')}
-              style={{ display: 'none' }}
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                event.target.value = '';
-                if (file !== undefined) onPickBundle(file);
-              }}
-            />
             <Button
               icon={icon('file', { size: 14 })}
               loading={verifying}
               disabled={verifying}
-              onClick={() => fileRef.current?.click()}
+              onClick={() => setPicking(true)}
             >
               {t('选择证据包…')}
             </Button>
@@ -414,6 +420,20 @@ export function ProofMode(props: ProofModeProps): ReactElement {
 
       {proof.building && bundle === null ? (
         <Skeleton active title={false} paragraph={{ rows: 4 }} />
+      ) : null}
+
+      {picking ? (
+        <FilePicker
+          api={api}
+          title={t('选择证据包')}
+          onCancel={() => setPicking(false)}
+          onPick={(paths) => {
+            setPicking(false);
+            // 单选语义：多勾了只取第一个（面板允许多选是组件通用行为，这里如实提示）。
+            if (paths.length > 1) toast(t('一次只导入一个证据包，已取第一个。'), 'info');
+            if (paths[0] !== undefined) onPickBundle(paths[0]);
+          }}
+        />
       ) : null}
     </Flex>
   );

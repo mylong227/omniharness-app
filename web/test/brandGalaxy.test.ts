@@ -6,7 +6,7 @@ import { test } from 'vitest';
 import { writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { openStubSession, stubHtmlCdp, type CdpSession } from './browserHarness.ts';
+import { openStubSession, type CdpSession } from './browserHarness.ts';
 
 const ARCHIVE = join(dirname(fileURLToPath(import.meta.url)), '..', 'archive');
 
@@ -55,7 +55,15 @@ for (const theme of ['light', 'dark'] as const) {
       await cdp.navigate((await cdp.evaluate('location.href')) as string);
       await cdp.waitFor("!!document.querySelector('.composer-input textarea')", 10000);
       await startBusy(cdp);
-      const galaxy = (await readGalaxy(cdp)) as { present: boolean; nebula: boolean; tilt: boolean; orbit: boolean; face: boolean; stars: number; omega: boolean };
+      const galaxy = (await readGalaxy(cdp)) as unknown as {
+        present: boolean;
+        nebula: boolean;
+        tilt: boolean;
+        orbit: boolean;
+        face: boolean;
+        stars: number;
+        omega: boolean;
+      };
       assert.strictEqual(galaxy.present, true, '工作态没有渲染星环');
       assert.ok(galaxy.nebula && galaxy.tilt && galaxy.orbit && galaxy.face, '星环结构链缺件');
       assert.strictEqual(galaxy.stars, 4, '星尘应为 4 颗');

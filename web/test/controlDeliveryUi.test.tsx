@@ -118,6 +118,12 @@ test('ProofMode：导入本地证据包后展示结构自洽与未验签口径',
           systemTurn: false,
         },
       ]),
+      listFs: () => Promise.resolve({ tree: [{ name: 'bundle.json', path: 'D:/workspace/bundle.json', type: 'file' }] }),
+      browseFs: () => Promise.resolve({ level: 'drives', roots: [], home: '' }),
+      attachRead: () => Promise.resolve({
+        files: [{ name: 'bundle.json', mediaType: 'application/json', data: Buffer.from('{\"version\":1,\"sessions\":[]}').toString('base64'), size: 24, kind: 'file' }],
+        errors: [],
+      }),
       proofVerify: () => Promise.resolve(verify),
     } as unknown as AppContextValue['api'],
     toast: () => {},
@@ -130,9 +136,20 @@ test('ProofMode：导入本地证据包后展示结构自洽与未验签口径',
       <ProofMode threadId="sess_test" active />
     </AppContext.Provider>,
   );
-  const file = new File(['{\"version\":1,\"sessions\":[]}'], 'bundle.json', { type: 'application/json' });
-  Object.defineProperty(file, 'text', { value: () => Promise.resolve('{\"version\":1,\"sessions\":[]}') });
-  fireEvent.change(screen.getByLabelText('选择证据包文件'), { target: { files: [file] } });
+  // 证据包选择走统一资源选择面板（FilePicker，2026-11-14 弃原生 input file）：
+  // 点「选择证据包…」→ 勾选 bundle.json → 「添加 1 个文件」→ attachRead → proofVerify。
+  fireEvent.click(screen.getByText('选择证据包…'));
+  await waitFor(() => assert.ok(document.querySelector('[role="treeitem"]')));
+  const node = Array.from(document.querySelectorAll('[role="treeitem"]')).find((el) =>
+    (el.textContent ?? '').includes('bundle.json'),
+  );
+  assert.ok(node !== undefined, '面板树里没有证据包节点');
+  fireEvent.click(node.querySelector('.ant-tree-checkbox') as HTMLElement);
+  const confirm = Array.from(document.querySelectorAll('.fp-actions button')).find((b) =>
+    (b.textContent ?? '').includes('添加 1 个文件'),
+  );
+  assert.ok(confirm instanceof HTMLElement);
+  fireEvent.click(confirm);
   await waitFor(() => {
     assert.ok(screen.getByText('结构自洽（未签名）'));
   });

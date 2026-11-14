@@ -6,7 +6,6 @@
 //   · 过滤：已加载树上的客户端过滤（无新增后端接口），过滤后勾选集不丢；
 //   · 刷新：重拉 fs.list，展开键与勾选键都是路径，天然稳定。
 //
-// 未纳入本期：工作区之外的「文件系统…」懒加载子树（P2）、右侧预览窗格（P3）。
 // 保留契约：`PickerModal` 的 Esc 关闭与焦点归还；页脚「0 选择禁用确认」；回传绝对路径数组。
 
 import * as React from 'react';
@@ -27,6 +26,8 @@ const DEPTH = 3;
 export interface FilePickerProps {
   /** ApiClient（fs.list 取整棵工作区树）。 */
   api: ApiClient;
+  /** 弹窗标题（缺省「选择附件文件」；凭证模式等复用场景给语义化标题）。 */
+  title?: string;
   /** 取消选择（关闭弹窗）。 */
   onCancel: () => void;
   /** 确认：传入选中文件的绝对路径列表（Composer 再调 attach.read 读 base64）。 */
@@ -378,11 +379,6 @@ function attachLazy(
 }
 
 /**
- * 选择器主体：过滤条 + 树 + 页脚。
- * @param props 数据态、过滤值、展开/勾选集与回调
- * @returns 主体节点
- */
-/**
  * 树 + 预览两栏。
  * @param props 数据态、选择态、懒加载子树、预览与回调
  * @returns 两栏节点
@@ -603,11 +599,6 @@ function PreviewPane(props: { preview: PreviewState; name: string }): ReactEleme
   );
 }
 
-/**
- * 文件选择器：工作区整树 → 勾选文件 → 确认回传绝对路径列表。
- * @param props 组件入参
- * @returns 文件选择弹窗节点
- */
 /** 选中与展开态（FilePicker 的逻辑段抽出）：过滤、懒文件集、展开联动、勾选预览与确认。 */
 function useFilePickerSelection(
   state: ReturnType<typeof useWorkspaceTree>,
@@ -713,7 +704,7 @@ export function FilePicker(props: FilePickerProps): ReactElement {
   );
 
   return (
-    <PickerModal title={t('选择附件文件')} onCancel={onCancel}>
+    <PickerModal title={props.title ?? t('选择附件文件')} onCancel={onCancel}>
       <div
         onCompositionStart={() => {
           composing.current = true;

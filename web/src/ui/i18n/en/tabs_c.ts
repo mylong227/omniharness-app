@@ -158,11 +158,14 @@ export const EN_TABS_C: Record<string, string> = {
   '证据包': 'Evidence bundle',
   '导入复核': 'Import and verify',
   '导入复核结果': 'Import verification result',
-  '选择本地证据包 JSON；只做离线结构复核，不信任包内签名，也不上传网络。':
-    'Choose a local evidence bundle JSON; offline structural verification only. Signatures in the bundle are not trusted and nothing is uploaded.',
+  '从项目内或文件系统选择证据包 JSON；只做离线结构复核，不信任包内签名，也不上传网络。':
+    'Choose an evidence bundle JSON from the project or the file system; offline structural verification only. Signatures in the bundle are not trusted and nothing is uploaded.',
+  '选择证据包': 'Choose evidence bundle',
   '选择证据包…': 'Choose evidence bundle…',
-  '选择证据包文件': 'Choose evidence bundle file',
   '正在复核证据包…': 'Verifying evidence bundle…',
+  '读取证据包失败：{msg}': 'Failed to read evidence bundle: {msg}',
+  '一次只导入一个证据包，已取第一个。': 'Only one bundle is imported at a time; the first one was used.',
+  '文件不存在': 'file not found',
   '证据包超过 2 MB，无法导入。': 'Evidence bundle exceeds 2 MB and cannot be imported.',
   '证据包不是合法 JSON。': 'Evidence bundle is not valid JSON.',
   '结构复核失败': 'Structural verification failed',
