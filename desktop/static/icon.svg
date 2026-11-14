@@ -1,5 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <rect x="24" y="24" width="464" height="464" rx="112" fill="#ffffff"/>
-  <rect x="24" y="24" width="464" height="464" rx="112" fill="none" stroke="#c9d0ea" stroke-width="6"/>
-  <text x="256" y="348" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="300" font-weight="600" fill="#3d4a86">Ω</text>
+  <!-- 项目标识：白瓷砖 + 靛墨 Ω + 淡靛描边（与 web 侧栏 .brand-mark、favicon 同一套配色）。
+       二进制产物 static/icon.png（512）与 static/icon.ico（16–256 多尺寸）以此为准；
+       icon.ico 的小尺寸帧按目标像素单独渲染（见 installer/README.md）。 -->
+  <rect x="18" y="18" width="476" height="476" rx="107" fill="#ffffff"/>
+  <rect x="18" y="18" width="476" height="476" rx="107" fill="none" stroke="#c9d0ea" stroke-width="7"/>
+  <text x="256" y="387" text-anchor="middle" font-family="Segoe UI, Segoe UI Semibold, Arial, sans-serif"
+        font-size="374" font-weight="600" fill="#3d4a86">Ω</text>
 </svg>

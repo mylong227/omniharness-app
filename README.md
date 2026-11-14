@@ -15,7 +15,7 @@
 | ---- | ---- | ---- |
 | `src/` | **后端宿主**：HTTP/SSE、JSON-RPC（108 方法，18 个域模块声明式注册）、会话存储、审批/沙箱、插件宿主、CLI、MCP/ACP/AG-UI | `src/apps` + `src/host/kernel/`（19 域对接面）+ `src/host/extensions/`（app 自有扩展层） |
 | `web/` | **前端**：React 19 工作台（会话/工具/计划/变更/设置/审计/插件…） | 268 个源文件 + 158 个判据文件 / 772 用例（后端 22 文件 56 用例另计，合计 180 文件 / 828 用例） |
-| `desktop/` | **桌面端**：Electron 主进程 + preload（窗口/托盘/菜单/更新/侧车监督） | 31 个源文件，35 条纯逻辑判据 |
+| `desktop/` | **桌面端**：Electron 主进程 + preload（窗口/托盘/菜单/更新/侧车监督） | 32 个源文件，38 条纯逻辑判据 |
 
 运行形态：
 
@@ -98,7 +98,7 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 | `npm run smoke` | **端到端**：真起 serve，验启动令牌、`/healthz` `/readyz` `/`、`/rpc config.get` |
 | `npm run serve` | 只起 backend serve（需先 `npm run build` + `build:web`） |
 | `npm run example:embed` | 跑可运行嵌入样例（需先 `npm run build`；见 examples/embed-demo.mjs） |
-| `npm run desktop:build` / `desktop:test` | 打包主进程 / 35 条纯逻辑判据 |
+| `npm run desktop:build` / `desktop:test` | 打包主进程 / 38 条纯逻辑判据 |
 | `npm run desktop:smoke` | **真实桌面 GUI 验收**：窗口 / 侧车 / UI origin / DOM 挂载，退出码即结论 |
 | `npm run desktop:stage` / `desktop:dist` | 打包资源（含 vendor）/ NSIS 安装包 |
 | `npm run verify` | kernel:check → typecheck → 判据 → 后端构建 → 前端构建 → 冒烟 → 桌面构建与判据 |

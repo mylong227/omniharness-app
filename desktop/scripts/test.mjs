@@ -2,7 +2,7 @@
 import { spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
 import { test } from 'node:test';
@@ -68,6 +68,7 @@ bundle('src/main/app/DeepLinkRouter.ts', 'deepLinks');
 bundle('src/main/app/HarnessRestartPolicy.ts', 'restartPolicy');
 bundle('src/main/app/WindowLifecycle.ts', 'windowLifecycle');
 bundle('src/main/app/SmokeHarness.ts', 'smokeHarness');
+bundle('src/main/app/AppIcon.ts', 'appIcon');
 // 托盘：用假 electron 打包，busy 态切换/去重/回退/复位都在 node 里可测（不启动 GUI）。
 bundle('src/main/tray.ts', 'tray', [], { electron: './scripts/fakeElectron.cjs' });
 // IPC 安全守卫纯逻辑（2026-11-08 审计）：electron 仅 type-only 导入，无需假替身即可打包。
@@ -86,6 +87,7 @@ const { DeepLinkRouter } = await import(pathToFileURL(join(out, 'deepLinks.cjs')
 const { HarnessRestartPolicy } = await import(pathToFileURL(join(out, 'restartPolicy.cjs')).href);
 const { WindowLifecycle } = await import(pathToFileURL(join(out, 'windowLifecycle.cjs')).href);
 const { SmokeHarness } = await import(pathToFileURL(join(out, 'smokeHarness.cjs')).href);
+const { resolveAppIconPath } = await import(pathToFileURL(join(out, 'appIcon.cjs')).href);
 const { TrayService } = await import(pathToFileURL(join(out, 'tray.cjs')).href);
 const { assertNotifyInput, trustRejection, assertRevealPathInside } = await import(
   pathToFileURL(join(out, 'ipcGuards.cjs')).href
@@ -500,7 +502,63 @@ test('品牌图标：PNG 为 512×512，ICO 为多尺寸 Windows 图标', () => 
   const ico = readFileSync(join(process.cwd(), 'static', 'icon.ico'));
   assert.equal(ico.readUInt16LE(0), 0);
   assert.equal(ico.readUInt16LE(2), 1);
-  assert.ok(ico.readUInt16LE(4) >= 7, 'ICO 必须包含多尺寸（16–256）');
+  const frameCount = ico.readUInt16LE(4);
+  assert.ok(frameCount >= 7, 'ICO 必须包含多尺寸（16–256）');
+  // 任务栏不加缩放地取帧：16/20/24/32/48/256 这几档必须在（缺一档系统就只能拉伸）。
+  const frames = [];
+  for (let index = 0; index < frameCount; index += 1) {
+    const width = ico.readUInt8(6 + index * 16);
+    frames.push(width === 0 ? 256 : width);
+  }
+  for (const size of [16, 20, 24, 32, 48, 256]) {
+    assert.ok(frames.includes(size), `ICO 缺少 ${String(size)}px 帧（实际：${frames.join('/')}）`);
+  }
+});
+
+test('窗口/任务栏图标：Windows 取多尺寸 ICO，其它平台取 512 PNG', () => {
+  // 任务栏图标按 DPI 从 ICO 取帧，交给一张 PNG 只会缩放出糊边——这条判据钉住选择。
+  assert.equal(basename(resolveAppIconPath('dist', 'win32')), 'icon.ico');
+  assert.equal(resolveAppIconPath('dist', 'win32'), join('dist', 'icon.ico'));
+  assert.equal(basename(resolveAppIconPath('dist', 'darwin')), 'icon.png');
+  assert.equal(basename(resolveAppIconPath('dist', 'linux')), 'icon.png');
+  const window = readFileSync(join(process.cwd(), 'src', 'main', 'window.ts'), 'utf8');
+  assert.match(
+    window,
+    /icon: resolveAppIconPath\(__dirname, process\.platform\)/u,
+    '主窗口必须经 AppIcon 选图标，不能硬编码 icon.png',
+  );
+});
+
+test('安装向导品牌素材：BMP 尺寸与位深符合 NSIS 要求，页面钩子齐全', () => {
+  const bmpHeader = (name) => {
+    const data = readFileSync(join(process.cwd(), 'installer', name));
+    assert.equal(data.subarray(0, 2).toString('ascii'), 'BM', `${name} 必须是 BMP`);
+    return {
+      width: data.readInt32LE(18),
+      height: data.readInt32LE(22),
+      bitsPerPixel: data.readUInt16LE(28),
+    };
+  };
+  // NSIS 的 MUI 侧栏 164×314、页眉 150×57，且只认 24 位 BMP（32 位带 alpha 会被拒）。
+  for (const name of ['installerSidebar.bmp', 'uninstallerSidebar.bmp']) {
+    assert.deepEqual(bmpHeader(name), { width: 164, height: 314, bitsPerPixel: 24 }, name);
+  }
+  assert.deepEqual(
+    bmpHeader('installerHeader.bmp'),
+    { width: 150, height: 57, bitsPerPixel: 24 },
+    'installerHeader.bmp',
+  );
+
+  const include = readFileSync(join(process.cwd(), 'installer', 'installer.nsh'), 'utf8');
+  for (const macro of ['customWelcomePage', 'customFinishPage', 'customUnWelcomePage']) {
+    assert.match(include, new RegExp(`!macro ${macro}\\b`, 'u'), `installer.nsh 缺少 ${macro}`);
+  }
+  assert.match(include, /LangString OMNI_WELCOME_TEXT 2052/u, '欢迎页必须有中文文案');
+
+  const config = readFileSync(join(process.cwd(), 'electron-builder.yml'), 'utf8');
+  for (const path of ['installer/installer.nsh', 'installer/installerSidebar.bmp', 'installer/installerHeader.bmp']) {
+    assert.ok(config.includes(path), `electron-builder.yml 必须引用 ${path}（否则退回默认 NSIS 外观）`);
+  }
 });
 
 test('托盘 busy 图标：256×256 PNG（与常规图标同目录，构建会随 static 一起拷贝）', () => {

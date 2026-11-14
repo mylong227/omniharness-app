@@ -17,7 +17,8 @@ desktop/
   src/main/ipcGuards.ts    # IPC 安全守卫纯逻辑（sender/frame/origin、notify、revealPath 白名单）
   static/icon.svg     # 项目 Ω 标志源文件
   static/icon.png     # 512×512 窗口/托盘图标
-  static/icon.ico     # 多尺寸 Windows 安装包/任务栏图标
+  static/icon.ico     # 多尺寸 Windows 应用/安装包/任务栏图标（16–256，每档单独渲染）
+  installer/          # 安装向导品牌素材（侧栏/页眉 BMP + installer.nsh 页面钩子）
   scripts/build.mjs   # esbuild → dist/main.cjs + dist/preload.cjs
   scripts/stageHarness.mjs # 打包用 Harness + node.exe + 生产依赖
   scripts/test.mjs    # 纯逻辑测试（node:test）
@@ -100,6 +101,35 @@ npm run dist    # NSIS 安装包（未配置签名）
 本机实测：`npm run stage`（完整生产依赖）+ `npx electron-builder --dir -c.win.signAndEditExecutable=false` 可产出
 `release/win-unpacked`（含 `resources/harness/node_modules`、`app.asar`、`node.exe`）；Electron 下载建议走
 `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/`。安装包/签名仍未验证。
+
+### 4.0 安装向导（2026-11-14 重做）
+
+向导外观与文案都在本仓，不依赖 electron-builder 的默认 NSIS 皮肤：
+
+- 品牌图：`installer/installerSidebar.bmp`（欢迎/完成页 164×314）、`installerHeader.bmp`
+  （内页页眉 150×57）、`installer/uninstallerSidebar.bmp`（卸载页）；配色与 `static/icon.svg`
+  同源，规格与重做说明见 [installer/README.md](installer/README.md)。
+- 页面：`installer/installer.nsh` 通过 `nsis.include` 钩子接管欢迎页、完成页、卸载欢迎页。
+  「为谁安装」页只在机器上已有「所有用户」安装时保留（让老用户原地升级、而不是装出第二份）；
+  全新安装直接按当前用户装进用户目录 —— 少一页、也没有 UAC。完成页只有「立即启动 /
+  打开安装目录」两个勾选项，文案中英各一份（`LangString 2052 / 1033`）。
+- 语言：只编 `en_US` + `zh_CN`（`installerLanguages`）。NSIS 按系统 UI 语言自动选，
+  未命中回落英文；不弹语言选择框。
+- 图标：安装包、卸载程序、应用 exe、窗口/任务栏共用 `static/icon.ico`。
+- 实机验收（2026-11-14）：完整走了一遍「欢迎页 → 目录页 → 写入 → 完成页」并静默卸载，
+  侧栏/页眉/完成页勾选项与卸载清理（目录、HKCU 键、快捷方式）均正常；欢迎页与进度页
+  截图见 [installer/README.md](installer/README.md)。
+
+只重打安装包（复用已有 `release/win-unpacked`，不重新 stage/压缩应用）：
+
+```powershell
+npm run installer        # electron-builder nsis 目标 + 生成安装包 .sha256
+```
+
+脚本内部等价于 `electron-builder --win nsis --x64 --prepackaged release/win-unpacked
+-c.win.signAndEditExecutable=false`：本机没有 `winCodeSign` 缓存（未做签名）时，那个
+`signAndEditExecutable=false` 是必需的，否则 electron-builder 会尝试联网下载签名工具；
+要签名的正式包走 `npm run dist`。
 
 ### 布局
 
@@ -230,7 +260,7 @@ cd desktop
 npm run typecheck
 npm test        # args / ready 契约 / 环境清洗 / 桌面偏好
 npm run verify:package  # 检查 release/win-unpacked 结构/裁剪/配置
-npm run installer       # 由 win-unpacked 生成 NSIS 安装包（需 makensis）
+npm run installer       # 由 release/win-unpacked 重打 NSIS 安装包（改向导外观后快速验证）
 ```
 
 已执行的集成验证（本机 Node 22.20）：
