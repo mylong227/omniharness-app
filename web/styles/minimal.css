@@ -194,15 +194,40 @@
   animation: brand-sheen 8.4s ease-in-out infinite;
   pointer-events: none;
 }
-.brand-mark--compact {
+.brand-mark--spin {
   --bm-w: 20px;
   --bm-h: 20px;
-  /* 极光光幕溢出芯片边界，不能再 overflow: hidden 裁切；perspective 给 Ω 自旋出纵深 */
+  border-radius: var(--r-sm);
+  font-size: 10px;
+  /* 环溢出芯片边框 1px：overflow 保持 hidden 由环自身 inset 控制，不裁旋转 */
   overflow: visible;
-  perspective: 80px;
-  border-radius: 7px / 5px;
-  font-size: 11px;
-  animation: brand-star-breathe 4.6s ease-in-out infinite;
+}
+.brand-mark--spin .bm-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: color-mix(in srgb, var(--accent-2) 75%, transparent);
+  animation: bm-ring-spin 1.15s linear infinite;
+}
+.brand-mark--spin .bm-omega {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  font-weight: 650;
+  text-shadow: 0 0 3px var(--panel);
+  /* 环转动时 Ω 保持静置：不参与任何 transform/filter */
+}
+.brand-mark--spin.brand-mark--bare .bm-ring {
+  color: var(--accent-2);
+}
+@keyframes bm-ring-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 .brand-mark--compact::after {
   content: none;
@@ -214,107 +239,17 @@
    水滴 = 5 颗小水滴从字形里持续发散出去，越漂越大越虚，直到消融（发散性雨滴感）；
    光幕 = 芯片外一圈旋转的流水色锥渐变，blur 成虚化光幕。
    流水是青蓝调的，这里用固定的青→蓝流水色带，不随主题 accent 变调。 */
-.brand-mark--water .bm-aurora {
-  position: absolute;
-  inset: -7px;
-  z-index: -1; /* 垫在白芯片之下：只露出芯片外的一圈光幕 */
-  border-radius: 50%;
-  background: conic-gradient(
-    from 0deg,
-    color-mix(in srgb, var(--water-2) 50%, transparent),
-    color-mix(in srgb, var(--water-3) 50%, transparent),
-    color-mix(in srgb, var(--water-4) 50%, transparent),
-    color-mix(in srgb, var(--water-5) 50%, transparent),
-    color-mix(in srgb, var(--water-1) 50%, transparent),
-    color-mix(in srgb, var(--water-2) 50%, transparent)
-  );
-  filter: blur(6px);
-  opacity: 0.55;
-  animation: bm-aurora-halo 11s linear infinite;
-  pointer-events: none;
-}
-.brand-mark--water .bm-omega {
-  display: inline-block;
-  background: linear-gradient(
-    110deg,
-    var(--water-1) 0%,
-    var(--water-2) 18%,
-    var(--water-3) 38%,
-    var(--water-4) 56%,
-    var(--water-5) 74%,
-    var(--water-1) 100%
-  );
-  background-size: 260% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation:
-    bm-stream-flow 6s ease-in-out infinite,
-    bm-omega-liquid 4.2s ease-in-out infinite;
-}
+
+
 /* 发散水滴：一颗 keyframes 走天下，方向/大小/节拍靠每颗的 --dx/--dy 与时长错开；
    出发时聚在字形上（不透明度峰值很快到来），随后越漂越大、越虚，opacity 归零消融。 */
-.brand-mark--water .bm-drops {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-.brand-mark--water .bm-drops i {
-  position: absolute;
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle at 35% 35%,
-    color-mix(in srgb, color-mix(in srgb, var(--water-1) 30%, white) 95%, transparent),
-    color-mix(in srgb, var(--water-3) 75%, transparent)
-  );
-  opacity: 0;
-  animation: bm-drop 3.4s cubic-bezier(0.25, 0.6, 0.55, 1) infinite;
-}
-.brand-mark--water .bm-drops i:nth-child(1) {
-  left: 7px;
-  top: 9px;
-  --dx: -9px;
-  --dy: 11px; /* 左下坠落 */
-  animation-duration: 3.2s;
-}
-.brand-mark--water .bm-drops i:nth-child(2) {
-  left: 12px;
-  top: 7px;
-  --dx: 10px;
-  --dy: 12px; /* 右下坠落 */
-  width: 2px;
-  height: 2px;
-  animation-duration: 3.9s;
-  animation-delay: -1.4s;
-}
-.brand-mark--water .bm-drops i:nth-child(3) {
-  left: 9px;
-  top: 6px;
-  --dx: -7px;
-  --dy: -10px; /* 左上蒸发散 */
-  animation-duration: 4.2s;
-  animation-delay: -2.3s;
-}
-.brand-mark--water .bm-drops i:nth-child(4) {
-  left: 12px;
-  top: 12px;
-  --dx: 8px;
-  --dy: -9px; /* 右上飞溅 */
-  width: 2px;
-  height: 2px;
-  animation-duration: 3.6s;
-  animation-delay: -0.8s;
-}
-.brand-mark--water .bm-drops i:nth-child(5) {
-  left: 10px;
-  top: 10px;
-  --dx: 12px;
-  --dy: 2px; /* 右侧横溅 */
-  animation-duration: 4.5s;
-  animation-delay: -3.1s;
-}
+
+
+
+
+
+
+
 /* 裸字版（2026-11-14 用户：思考过程里的转圈环换成同款字母动画，不要底图）：
    同一套水感 Ω 直接坐在行内，白芯片换成透明；盒子缩到 14px 行内尺寸，
    光幕与水滴行程按比例收小，避免漫到邻行文字。 */
@@ -329,43 +264,13 @@
   font-size: 10px;
   animation: brand-star-breathe 4.6s ease-in-out infinite;
 }
-.brand-mark--bare::after {
-  content: none;
-}
-.brand-mark--bare .bm-aurora {
-  inset: -5px;
-  filter: blur(4.5px);
-}
-.brand-mark--bare .bm-drops i:nth-child(1) {
-  left: 5px;
-  top: 7px;
-  --dx: -7px;
-  --dy: 9px;
-}
-.brand-mark--bare .bm-drops i:nth-child(2) {
-  left: 9px;
-  top: 5px;
-  --dx: 8px;
-  --dy: 10px;
-}
-.brand-mark--bare .bm-drops i:nth-child(3) {
-  left: 7px;
-  top: 4px;
-  --dx: -6px;
-  --dy: -8px;
-}
-.brand-mark--bare .bm-drops i:nth-child(4) {
-  left: 9px;
-  top: 9px;
-  --dx: 6px;
-  --dy: -7px;
-}
-.brand-mark--bare .bm-drops i:nth-child(5) {
-  left: 7px;
-  top: 7px;
-  --dx: 9px;
-  --dy: 1px;
-}
+
+
+
+
+
+
+
 @keyframes brand-breathe {
   0%,
   100% {
@@ -390,69 +295,13 @@
     opacity: 0;
   }
 }
-@keyframes brand-star-breathe {
-  0%,
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 transparent;
-  }
-  50% {
-    transform: scale(1.05);
-    box-shadow: 0 0 9px 1px color-mix(in srgb, var(--accent) 20%, transparent);
-  }
-}
-/* 流水色带在字形里往复盘流：260% 宽的色带窗口来回推，像水流在字面上过。 */
-@keyframes bm-stream-flow {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
-/* 液态晃动：字形被「水面张力」轻轻挤压 + 边缘 blur 呼吸——虚化落在字本身。 */
-@keyframes bm-omega-liquid {
-  0%,
-  100% {
-    transform: scale(1, 1);
-    filter: blur(0.2px);
-  }
-  33% {
-    transform: scale(1.045, 0.965);
-    filter: blur(0.65px);
-  }
-  66% {
-    transform: scale(0.97, 1.04);
-    filter: blur(0.4px);
-  }
-}
+
+
+
 /* 发散水滴：从字形出发，沿各自 --dx/--dy 漂散，放大 + 变虚 + 消融。
    方向各异（下坠 × 2、上蒸 × 2、横溅 × 1）合成「发散性雨滴」的整体感。 */
-@keyframes bm-drop {
-  0% {
-    transform: translate(0, 0) scale(0.6);
-    opacity: 0;
-    filter: blur(0.4px);
-  }
-  22% {
-    opacity: 0.8;
-  }
-  100% {
-    transform: translate(var(--dx), var(--dy)) scale(1.55);
-    opacity: 0;
-    filter: blur(2.2px);
-  }
-}
-/* 极光光幕整圈慢转。 */
-@keyframes bm-aurora-halo {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
+
+
 /* 字标：Omni 为主标题，HARNESS 同行后置的小号大写副标（2026-10-20 用户：
    「与标题一排放后面水平居中」——同一行、在主标题之后、垂直居中）。
    扫光仍只作用于主标题 Omni；副标只靠 3% 文本色淡底做极轻的分区。 */
@@ -550,18 +399,12 @@
 @media (prefers-reduced-motion: reduce) {
   .brand-mark,
   .brand-mark::after,
-  .bm-aurora,
-  .bm-omega,
-  .bm-drops i,
+  .brand-mark--spin .bm-ring,
   .side-wordmark-text,
   .side-wordmark-sheen {
     animation: none;
   }
   /* 光幕与水滴是纯装饰：减动效时收起；Ω 保留静态流水字（不动的美，还是美的） */
-  .bm-aurora,
-  .bm-drops i {
-    display: none;
-  }
   .side-wordmark-sheen {
     opacity: 0;
   }
@@ -1181,7 +1024,7 @@
 .tt-dots i:nth-child(3) {
   animation-delay: 0.4s;
 }
-/* 运行中的环已退役（2026-11-14 用户：换成同款水感 Ω，见 .brand-mark--bare）。 */
+/* 运行中状态图标 = .brand-mark--bare（旋转虚线环 + Ω），见 BrandMark.tsx。 */
 /* 轨迹筛选：长回合里把「思考 / 说明 / 工具 / 失败」分开看。
    只在步骤足够多时出现；失败片是红色信号，不是装饰。 */
 .tt-filterbar {
