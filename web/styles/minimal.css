@@ -658,10 +658,10 @@
   border-radius: var(--r-sm);
 }
 .session {
-  /* 2026-11-14 第三轮（用户截图：会话每一条太挤）：行高 38→42、纵向 9→10，
-     行间距由 .ws-list 的 flex gap 承担（5px）——目标是「列表能呼吸」，而不是又回到密集模式。 */
+  /* 2026-11-14 第三轮（用户截图：会话每一条太挤）：行高 38→42、纵向 9→10；
+     第四轮（用户反馈「太开了」）：行高回调到 40，行距交给 .ws-list 的 4px gap 独占。 */
   padding: 10px 12px;
-  min-height: 42px;
+  min-height: 40px;
   gap: 4px;
 }
 .session:hover,
