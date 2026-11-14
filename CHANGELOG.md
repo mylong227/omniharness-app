@@ -79,6 +79,13 @@
   `css-var-*` 作用域属性双写跟随同一阶梯（流内与 portal 弹层一致，药丸/圆点不变）；
   fp-shell / 崩溃面板 / 自写模态等 16px 残项对齐 token。纸与墨观感不变，控件更柔和。
 ### Changed（变更）
+- **内核升级到 `0.1.0-alpha.19`（2026-11-14）**：vendored tarball 重建自内核 tag
+  `v0.1.0-alpha.19`（内核 M55–M76：哨兵/缓存/成本信封/审计时间线/CapFlow/检索供给与语义召回/
+  上下文策略/缓存读数联动/改写/精排/注入面 enforce/VectorStorePort/eval:inject/路由质量对照/
+  SSE-Web 示例/残余台账）。`kernel:surface` 19 域零变化；`kernel:check` 九条复绿
+  （282 源文件 / 288 处包导入 / 原生内核实载），typecheck×3、web 198 文件 / 905 用例、
+  build/build:web、smoke 8 条、desktop 38 条全部通过；`package-lock.json` integrity 与
+  tarball 逐字节一致。
 - **UI 打磨：焦点环统一与弹窗头部材质（2026-11-13）**：工作台/控制台全界面真机巡检后收两处瑕疵——
   ① antd 6 的 genFocusStyle 给按钮/菜单项 3px 主色淡化环，与原生控件的双环
   （2px brand + offset 2 + --ring 外晕）同屏观感分裂，统一到双环；② `.ant-modal-header`

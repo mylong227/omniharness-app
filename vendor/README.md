@@ -4,7 +4,7 @@
 
 | 文件 | 说明 |
 | ---- | ---- |
-| `omniharness-kernel-0.1.0-alpha.18.tgz` | `@omniharness/kernel` 在 tag `v0.1.0-alpha.18` 的构建产物 + 应用 `native/omni_napi.node`（`NativeKernel` 从包根找它） |
+| `omniharness-kernel-0.1.0-alpha.19.tgz` | `@omniharness/kernel` 在 tag `v0.1.0-alpha.19` 的构建产物 + 应用 `native/omni_napi.node`（`NativeKernel` 从包根找它） |
 
 ## 重新生成
 
@@ -23,7 +23,12 @@ npm run kernel:check     # 9 条判据（含生成物不漂移 / 已承诺能力
 
 ## 版本史
 
-- **alpha.18**（当前）：内核 M48–M53 收敛发版（账本可靠性基建 DurableJsonlAppender + PathLock / 取消语义完整性 + CancellationClassifier 单一真源 / 协议边界加固 + 决策白名单 / 模型适配器收敛 ToolCallIdAllocator 单一真源 / 安全边界二轮 SSRF·注入收口 + 验证器诚实标记 + TSA 锚 nonce 回验 / 核心正确性收敛 语料签名单一真源·合并后配置复验·基元入参校验·账本补偿）。公共导出面不变；契约增量：锚新增 `nonce?`、问题码新增 `ANCHOR_NONCE_MISMATCH` / `COMMITMENT_UNVERIFIED`；`kernel:check` 九条判据复绿（19 域零变化）。
+- **alpha.19**（当前）：内核 M55–M76 批次（内核哨兵 / 确定性读缓存 / 回合成本信封 / 审计时间线 /
+  CapFlow / 检索供给与语义召回 / 上下文策略 / 缓存读数与命中率联动 / 查询改写 / 精排 /
+  注入面 enforce / VectorStorePort / eval:inject / 供给压力 / 干净检出 tsc / SSE-Web 示例 /
+  路由质量对照 / 残余台账）。公共导出面仍 60/60；本仓 19 域零变化，`kernel:check` 九条判据复绿
+  （282 源文件 / 288 处包导入 / 原生内核实载）。
+- **alpha.18**：内核 M48–M53 收敛发版（账本可靠性基建 DurableJsonlAppender + PathLock / 取消语义完整性 + CancellationClassifier 单一真源 / 协议边界加固 + 决策白名单 / 模型适配器收敛 ToolCallIdAllocator 单一真源 / 安全边界二轮 SSRF·注入收口 + 验证器诚实标记 + TSA 锚 nonce 回验 / 核心正确性收敛 语料签名单一真源·合并后配置复验·基元入参校验·账本补偿）。公共导出面不变；契约增量：锚新增 `nonce?`、问题码新增 `ANCHOR_NONCE_MISMATCH` / `COMMITMENT_UNVERIFIED`；`kernel:check` 九条判据复绿（19 域零变化）。
 - **alpha.17**：内核 27 条复核闭环发版（P0 3：MCP Host/Origin 来源校验、工作区信任闸
   分类补齐、回滚后审计链自愈；P1 6：会话隔离三件套 / 取消边界 / 补丁行尾与终止换行 / 晋升台账
   seq 连续性；P2 16 + P3 2，见内核 `docs/AUDIT-2026-11-11-R2.md`）。端口签名有变化但本仓未直接

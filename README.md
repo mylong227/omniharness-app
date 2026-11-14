@@ -1,7 +1,7 @@
 # OmniHarness App
 
 > **独立应用仓：完整后端宿主 + React 工作台 + Electron 桌面端。**
-> 内核是 [`@omniharness/kernel`](../omniharness-kernel) 的**固定发行物**（vendored tarball，当前 `0.1.0-alpha.17`），
+> 内核是 [`@omniharness/kernel`](../omniharness-kernel) 的**固定发行物**（vendored tarball，当前 `0.1.0-alpha.19`），
 > 应用经 `src/host/kernel/` **分域对接面**消费内核（全仓唯一的包导入点，门禁强制），
 > app 自有能力收留在 `src/host/extensions/`（原 `kernel-compat/`，M27 兼容层清零后更名）。
 > 2026-11-04 从 [OmniHarness](https://github.com/mylong227/OmniHarness) 切出并完成内核包迁移（M2），
@@ -123,17 +123,19 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 
 ```json
 "dependencies": {
-  "@omniharness/kernel": "file:vendor/omniharness-kernel-0.1.0-alpha.17.tgz"
+  "@omniharness/kernel": "file:vendor/omniharness-kernel-0.1.0-alpha.19.tgz"
 }
 ```
 
-> 2026-11-11 内核发版 `v0.1.0-alpha.17`（27 条复核闭环：MCP 来源校验 / 工作区信任闸 / 审计链自愈 /
-> 会话隔离 / 取消边界 等），vendor 重建自该 tag，tarball integrity 与 `package-lock.json` 已同步。
+> 2026-11-14 内核发版 `v0.1.0-alpha.19`（M55–M76：内核哨兵 / 缓存 / 成本信封 / 审计时间线 /
+> CapFlow / 检索供给与语义召回 / 上下文策略 / 缓存联动 / 改写与精排 / 注入面 enforce /
+> VectorStorePort / eval:inject / 路由质量对照 / SSE-Web 示例 / 残余台账），vendor 重建自该 tag，
+> tarball integrity 与 `package-lock.json` 已同步；本仓 19 域零变化。
 
 对接全景——谁在哪里、怎么连、哪条门禁在把守：
 
 ```text
-package.json 钉定 vendor/omniharness-kernel-0.1.0-alpha.17.tgz
+package.json 钉定 vendor/omniharness-kernel-0.1.0-alpha.19.tgz
       │  npm ci（lockfile integrity 钉死 tarball —— kernel:check 第 1/5 条）
       ▼
 @omniharness/kernel —— vendored 固定发行物（dist/** + native/omni_napi.node 随包）
@@ -199,10 +201,10 @@ src/host/kernel/<域>.ts —— 19 个自动生成的分域 re-export，无实�
 
 - 应用代码来自上游 `OmniHarness@main`（0.4.0）；本仓的仓库级解耦、内核包迁移（M2）、
   模块化重构与 M21–M30 影子清零迁移用 `git log` 可审。
-- 内核来自 `../omniharness-kernel` 的 `v0.1.0-alpha.17` tag；`vendor/*.tgz` 是它的发行物，
+- 内核来自 `../omniharness-kernel` 的 `v0.1.0-alpha.19` tag；`vendor/*.tgz` 是它的发行物，
   **不是**第二份源码。重建用 `npm run kernel:vendor`（tag 缺省自 package.json 解析）。
 - 上游的 `tests/`、`crates/`、`third-party/`、看板与审计脚本没有切过来：本仓的判据是
-  828 用例（web 772 + 后端 56）+ 桌面 36 条 + 冒烟 8 条 + 内核边界 9 条。
+  905 用例（web + 后端）+ 桌面 38 条 + 冒烟 8 条 + 内核边界 9 条。
 
 ## License
 
