@@ -355,12 +355,7 @@
 /* 厂商折叠条：antd Collapse 已给出分组边界，内部不再套第二层卡（设计 §2.4）。
    2026-11-11 起厂商折叠条由手写 button 换成 Collapse，原来 .csl-provider-body 的
    「拍平内部卡片」覆盖随之移到这里。 */
-.csl-scroll .ant-collapse .sp-card {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  padding: 0;
-}
+
 
 /* —— 设置行 —— */
 .csl-row {

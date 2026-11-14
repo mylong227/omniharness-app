@@ -3176,6 +3176,73 @@ button:active,
   line-height: 1.65;
   overflow-wrap: anywhere;
 }
+
+.sp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+.sp-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.sp-tile:hover {
+  background: var(--accent-soft);
+}
+.sp-tile.on {
+  border-color: var(--accent-line);
+}
+.sp-tile-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-sm);
+  background: var(--brand);
+  color: var(--brand-on);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+.sp-tile-name {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.sp-tile-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--fs-xs);
+  color: var(--dim);
+}
+.sp-tile-status.ok {
+  color: var(--text);
+}
+.sp-tile-status.err {
+  color: var(--err);
+}
+.sp-tile-glyph {
+  font-size: 10px;
+}
+.sp-tile-sub {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-xs);
+  color: var(--dim);
+}
 /* 活动面板：聚合状态/审批/变更/最近事件（Codex 式工作台入口）。 */
 .act {
   display: flex;
@@ -3270,46 +3337,16 @@ button:active,
 .sp-load-error .btn {
   flex: none;
 }
-.sp-card {
-  border-top: 1px solid var(--hairline);
-  padding: 10px 12px 12px;
-}
+
 /* 当前厂商：只给一层极淡的墨色底（4%）。
    2026-10-18：第一版用了 13%（--accent-soft），整张卡片看起来像被"选中"，过重——
    它只是"当前生效"，不是"你选中了它"，所以底要退到"能感觉出来"为止。 */
-.sp-card.on {
-  background: color-mix(in srgb, var(--accent) 4%, transparent);
-}
-.sp-card-head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.sp-card-name {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
-  font-size: var(--fs-list);
-}
-.sp-tag {
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: var(--fs-micro);
-}
-.sp-card-url {
-  color: var(--faint);
-  font-family: var(--mono);
-  font-size: var(--fs-micro);
-  overflow-wrap: anywhere;
-}
-.sp-card-state {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 6px;
-}
+
+
+
+
+
+
 .sp-dot {
   flex: none;
   width: 8px;
@@ -3327,10 +3364,7 @@ button:active,
   border-color: var(--err);
   box-shadow: inset 0 0 0 2px var(--err);
 }
-.sp-card-statetext {
-  color: var(--dim);
-  font-size: var(--fs-xs);
-}
+
 .sp-row {
   display: flex;
   align-items: center;

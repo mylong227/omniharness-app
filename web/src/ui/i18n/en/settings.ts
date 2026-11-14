@@ -1,4 +1,4 @@
-// en 词条分片：设置页（SettingsSurface、ProviderCard、SettingsModel；旧的 SettingsModal 已于 2026-10-28 删除）。键 = 中文原文（与 t() 的键逐字一致，含 {name} 占位符）。
+// en 词条分片：设置页（SettingsSurface、ProviderTile/ProviderEditor、SettingsModel）。键 = 中文原文（与 t() 的键逐字一致，含 {name} 占位符）。
 export const EN_SETTINGS: Record<string, string> = {
   // 「常规」页的界面偏好（2026-10-29 起外观页并入常规：语言 + 主题 + 两栏宽度同屏）
   主题: 'Theme',
@@ -93,7 +93,7 @@ export const EN_SETTINGS: Record<string, string> = {
   '应用配置集失败：{msg}': 'Failed to apply profile: {msg}',
   '、': ', ',
 
-  // 厂商卡片（ProviderCard）
+  // 厂商卡（ProviderTile/ProviderEditor）
   '● 当前使用': '● In use',
   '已保存 {key}，输入新值覆盖': 'Saved {key}; enter a new value to replace it',
   '输入 API Key': 'Enter API key',
@@ -154,6 +154,16 @@ export const EN_SETTINGS: Record<string, string> = {
   '选择…': 'Browse…',
   '{name} 选择…': 'Browse for {name}',
   '选择密钥文件': 'Choose key file',
+  '保存并检测': 'Save & probe',
+  '重新启用（切换模型）': 'Re-enable (switch model)',
+  '当前使用': 'In use',
+  '已配置': 'Configured',
+  '未配置': 'Not configured',
+  '检测失败': 'Probe failed',
+  'API Key': 'API Key',
+  '厂商列表': 'Providers',
+  '{name}，{status}，打开编辑': '{name}, {status}. Click to edit.',
+  '点厂商卡编辑 Key / 检测 / 启用；凭据由服务端打码存储，界面不回显原文。': 'Click a provider card to edit its key / probe / enable. Keys are stored masked server-side and never shown in full.',
   未设置: 'Not set',
 
   // 设置页内核能力补全（2026-11-14，docs/design/settings-completion §3）

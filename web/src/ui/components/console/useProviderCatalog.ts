@@ -20,6 +20,8 @@ export type CatalogStatus = 'idle' | 'loading' | 'ready' | 'error';
 export interface ProviderCatalogState {
   /** 厂商预设清单。 */
   providers: ProviderPreset[];
+  /** 当前生效厂商 id（model.catalog 的 active.id 单一真源；undefined = 目录未就绪）。 */
+  activeId: string | undefined;
   /** 已保存（打码）的 Key：厂商 id → 打码值。 */
   maskedKeys: Record<string, string>;
   /** Key 输入草稿（仅存在于内存，保存后清空）。 */
@@ -34,12 +36,12 @@ export interface ProviderCatalogState {
   catalogError: string;
   /** 形如 `<id>:<action>` 的忙碌标记。 */
   busyById: Record<string, string>;
-  /** 折叠状态：厂商 id → 是否展开（缺省时按自动规则）。 */
-  expanded: Record<string, boolean>;
+  /** 当前打开编辑抽屉的厂商 id（null = 关闭）。 */
+  editorOpenId: string | null;
+  /** 打开 / 关闭编辑抽屉。 */
+  setEditorOpen: (id: string | null) => void;
   /** 重新拉厂商目录与打码 Key。 */
   reloadProviders: () => void;
-  /** 展开 / 折叠某厂商。 */
-  setExpandedOpen: (id: string, open: boolean) => void;
   /** 修改某厂商的 Key 草稿。 */
   setDraft: (id: string, value: string) => void;
   /** 手选某厂商的模型。 */
@@ -69,18 +71,15 @@ export interface ProviderCatalogOptions {
 }
 
 /**
- * 厂商是否为当前生效厂商。
- * @param preset 厂商预设
- * @param adapter 当前适配器
- * @param baseUrl 当前自定义端点（空串＝未覆盖）
+ * 厂商是否为当前生效厂商——**单一真源**：`model.catalog` 下发的 `active.id`。
+ * 旧实现按「adapter 相同 && (baseUrl 为空或相等)」宽松匹配，openai 兼容适配器下
+ * 多家厂商（deepseek/moonshot/zhipu…）会同时命中「当前」（2026-11-14 重设计修掉）。
+ * @param presetId 厂商预设 id
+ * @param activeId 目录下发的当前生效厂商 id（undefined = 目录未就绪）
  * @returns 是否生效
  */
-export function isActiveProvider(
-  preset: ProviderPreset,
-  adapter: string,
-  baseUrl: string,
-): boolean {
-  return adapter === preset.adapter && (baseUrl === '' || baseUrl === preset.baseUrl);
+export function isActiveProvider(presetId: string, activeId: string | undefined): boolean {
+  return activeId !== undefined && presetId === activeId;
 }
 
 /**
@@ -114,6 +113,8 @@ interface BusyControls {
 interface CatalogLoad {
   /** 厂商预设清单。 */
   providers: ProviderPreset[];
+  /** 当前生效厂商 id（catalog 的 active.id；undefined = 无当前厂商）。 */
+  activeId: string | undefined;
   /** 已保存（打码）的 Key。 */
   maskedKeys: Record<string, string>;
   /** 目录装载态。 */
@@ -132,6 +133,7 @@ interface CatalogLoad {
  */
 function useCatalogLoad(api: AppContextValue['api'], tab: SettingsTabKey): CatalogLoad {
   const [providers, setProviders] = React.useState<ProviderPreset[]>([]);
+  const [activeId, setActiveId] = React.useState<string | undefined>(undefined);
   const [maskedKeys, setMaskedKeys] = React.useState<Record<string, string>>({});
   const [catalogStatus, setCatalogStatus] = React.useState<CatalogStatus>('idle');
   const [catalogError, setCatalogError] = React.useState('');
@@ -152,6 +154,7 @@ function useCatalogLoad(api: AppContextValue['api'], tab: SettingsTabKey): Catal
       .then((result) => {
         if (request !== catalogReqRef.current) return;
         setProviders(result.providers);
+        setActiveId(result.active?.id);
         setCatalogStatus('ready');
       })
       .catch((cause: unknown) => {
@@ -174,7 +177,7 @@ function useCatalogLoad(api: AppContextValue['api'], tab: SettingsTabKey): Catal
     if (tab === 'model') reloadProviders();
   }, [tab, reloadProviders]);
 
-  return { providers, maskedKeys, catalogStatus, catalogError, reloadProviders };
+  return { providers, activeId, maskedKeys, catalogStatus, catalogError, reloadProviders };
 }
 
 /**
@@ -220,6 +223,23 @@ function useModelSelection(): ModelSelection {
     setModelSel((prev) => ({ ...prev, [id]: value }));
   };
   return { modelSel, setModelChoice };
+}
+
+/** 编辑抽屉开合状态（重设计后总览网格点卡即开）。 */
+interface EditorOpen {
+  /** 当前打开的厂商 id；null = 关闭。 */
+  editorOpenId: string | null;
+  /** 打开 / 关闭。 */
+  setEditorOpen: (id: string | null) => void;
+}
+
+/**
+ * 编辑抽屉开合。
+ * @returns 状态与动作
+ */
+function useEditorOpen(): EditorOpen {
+  const [editorOpenId, setEditorOpen] = React.useState<string | null>(null);
+  return { editorOpenId, setEditorOpen };
 }
 
 /** Key 草稿 hook 的入参。 */
@@ -427,6 +447,7 @@ export function useProviderCatalog(options: ProviderCatalogOptions): ProviderCat
   const load = useCatalogLoad(options.api, options.tab);
   const busy = useProviderBusy();
   const selection = useModelSelection();
+  const editor = useEditorOpen();
   const drafts = useProviderDrafts({
     api: options.api,
     toast: options.toast,
@@ -457,13 +478,9 @@ export function useProviderCatalog(options: ProviderCatalogOptions): ProviderCat
     markBusy: busy.markBusy,
     clearBusy: busy.clearBusy,
   });
-  const [expanded, setExpanded] = React.useState<Record<string, boolean>>({});
-  const setExpandedOpen = (id: string, open: boolean): void => {
-    setExpanded((prev) => ({ ...prev, [id]: open }));
-  };
-
   return {
     providers: load.providers,
+    activeId: load.activeId,
     maskedKeys: load.maskedKeys,
     drafts: drafts.drafts,
     probes: probes.probes,
@@ -471,9 +488,9 @@ export function useProviderCatalog(options: ProviderCatalogOptions): ProviderCat
     catalogStatus: load.catalogStatus,
     catalogError: load.catalogError,
     busyById: busy.busyById,
-    expanded,
+    editorOpenId: editor.editorOpenId,
+    setEditorOpen: editor.setEditorOpen,
     reloadProviders: load.reloadProviders,
-    setExpandedOpen,
     setDraft: drafts.setDraft,
     setModelChoice: selection.setModelChoice,
     saveKey: drafts.saveKey,
