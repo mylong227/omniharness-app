@@ -1113,6 +1113,10 @@
   color: var(--text);
   font-size: 12px;
   line-height: 30px;
+  /* 选中值/占位符水平居中（2026-11-14 用户：窄控件文字贴左不美观）；
+     弹层选项列表不受影响，保持左对齐惯例。 */
+  justify-content: center;
+  text-align: center;
 }
 .csl-scroll .csl-select .ant-select-input {
   /* !important：antd v6 cssinjs 给搜索输入涂 colorBgContainer（晚注入的同位级联会赢过
