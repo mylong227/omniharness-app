@@ -97,6 +97,12 @@ export interface ProviderPreset {
    * 可由 omniharness.json 的 providerPresets 段按 id 整条覆盖）。
    */
   reasoningEffort?: string[];
+  /**
+   * 每模型推理档位（adaptive-reasoning，2026-11-14）：模型 id → 该模型实际接受的档位。
+   * 与厂商级语义不同：模型级 `[]` = 确证不接收 reasoning_effort（UI 隐藏进度条），
+   * 不回落兜底。缺字段（旧服务端）时 UI 回落厂商级 `reasoningEffort`。
+   */
+  effortsByModel?: Record<string, string[]>;
 }
 
 /** 单厂商探测结果（凭据已打码，仅状态）。 */

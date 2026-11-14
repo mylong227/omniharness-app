@@ -65,6 +65,18 @@ export class LayoutController {
         if (Array.isArray(parsed) && parsed.length > 0) this.host.patch({ modelOptions: parsed });
       }
       if (cachedLabel) this.host.patch({ providerLabel: cachedLabel });
+      // 每模型档位表与模型清单同缓存口径（adaptive-reasoning）：刷新后首屏（catalog RPC
+      // 返回前）没有它，deepseek-chat/gpt-4o 这类"确证不支持"的模型会先按厂商档画出假
+      // 进度条。只接受纯对象（形状不符就丢弃——缓存值可能被旧版本写成别的）。
+      const cachedEfforts = localStorage.getItem('omni-efforts-by-model');
+      if (cachedEfforts) {
+        const parsedEfforts = JSON.parse(cachedEfforts) as unknown;
+        const plain =
+          typeof parsedEfforts === 'object' &&
+          parsedEfforts !== null &&
+          !Array.isArray(parsedEfforts);
+        if (plain) this.host.patch({ effortsByModel: parsedEfforts as Record<string, string[]> });
+      }
       const cachedLeft = Number(localStorage.getItem('omni-left-width'));
       const cachedRight = Number(localStorage.getItem('omni-right-width'));
       if (cachedLeft >= 180 && cachedLeft <= 600) this.host.patch({ leftWidth: cachedLeft });

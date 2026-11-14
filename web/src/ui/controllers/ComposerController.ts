@@ -13,6 +13,7 @@ import type { ToolResultView } from '../shared.ts';
 import type { SessionController } from './SessionController.ts';
 import { MethodBinder } from './methodBinder.ts';
 import { EventFields } from '../models/EventFields.ts';
+import { ComposerOptions } from '../models/ComposerOptions.ts';
 import { t } from '../i18n/i18n.ts';
 import { desktopBridge, notifyDesktop } from '../../core/desktop/DesktopBridge.ts';
 import { ChatQueueController } from './ChatQueueController.ts';
@@ -478,9 +479,27 @@ export class ComposerController {
    * @returns 无
    */
   public async changeModel(v: string): Promise<void> {
-    this.host.patch({ model: v });
+    // 切模型即钳强度（adaptive-reasoning，2026-11-14）：同一厂商不同模型支持的档位不同，
+    // 已保存的档位可能越界——只画"该模型不支持"标记会让越界值一直留在配置里、每次请求
+    // 都带着（上游报错才暴露）。越界时钳到新模型最近的支持档，并**合并进同一次**
+    // config.update（不新增请求窗口）。档位源与 ModelPicker 同口径（effortsFor）。
+    //
+    // 模型级确证不支持（effortsByModel 命中且为空）时**不写 reasoning 字段**（review P0-2）：
+    // 空串不是合法配置值（内核枚举 fail-closed），且保留原值意味着切回支持模型时用户
+    // 之前选的档位原样恢复——不支持只是"当前模型不显示强度"，不是"删掉用户的偏好"。
+    const state = this.host.getState();
+    const modelEfforts = state.effortsByModel?.[v];
+    const unsupported = modelEfforts !== undefined && modelEfforts.length === 0;
+    const efforts = ComposerOptions.effortsFor(v, state.effortsByModel, state.reasoningOptions);
+    const clamped =
+      unsupported || efforts === undefined
+        ? state.reasoning // 确证不支持 / 档位源未知（旧服务端）：保留原值不钳制
+        : ComposerOptions.closestLevel(efforts, state.reasoning);
+    const patch: { model: string; reasoning?: string } = { model: v };
+    if (clamped !== state.reasoning) patch.reasoning = clamped;
+    this.host.patch(patch);
     try {
-      await this.services.api.updateConfig({ model: v });
+      await this.services.api.updateConfig(patch);
     } catch (e) {
       this.services.toast(t('切换模型失败：{msg}', { msg: (e as Error).message }), 'err');
     }

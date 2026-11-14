@@ -91,7 +91,7 @@ function stubHtml() {
     '  var EVENTS = []; window.__EVENTS__ = EVENTS;',
     '  var json = function(o){ return { ok:true, status:200, json:function(){ return Promise.resolve(o); }, text:function(){ return Promise.resolve(JSON.stringify(o)); } }; };',
     '  var results = {',
-    "    'model.catalog': { providers: [], active: { id:'mock', label:'Mock 厂商', defaultModel:'mock-e2e', model:'mock-e2e', models:['mock-e2e'], reasoningEffort:['low','high'] } },",
+    "    'model.catalog': { providers: [], active: { id:'mock', label:'Mock 厂商', defaultModel:'mock-e2e', model:'mock-e2e', models:['mock-e2e'], reasoningEffort:['low','high'], effortsByModel:{'mock-e2e':['low','high']} } },",
     "    'config.get': { modelAdapter:'mock', model:'mock-e2e', reasoning:'medium', approval:'ask' },",
     "    'sessions.list': { dir:'', sessions: [] },",
     "    'workspace.list': { current:'', workspaces: [] },",

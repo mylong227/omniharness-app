@@ -250,6 +250,8 @@ export class ApiClient {
       models: string[];
       /** 当前厂商合法 reasoning_effort 档位（#B6 扩展，2026-09-08）：undefined/[] 用 UI 兜底。 */
       reasoningEffort?: string[];
+      /** 每模型推理档位（adaptive-reasoning）：模型级 `[]` = 确证不支持；缺字段回落 reasoningEffort。 */
+      effortsByModel?: Record<string, string[]>;
     };
   }> {
     return this.rpc('model.catalog', {});

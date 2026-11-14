@@ -38,6 +38,8 @@ export interface ModelPickerProps {
   reasoning: string;
   /** 该厂商合法的强度档位（决定进度条有几段）。 */
   reasoningOptions?: readonly string[];
+  /** 每模型推理档位表（adaptive-reasoning）：优先于厂商档，模型级 [] = 确证不支持。 */
+  effortsByModel?: Record<string, string[]>;
   /** 厂商展示名（可选，用于标题后缀）。 */
   providerLabel?: string;
   /** 选中模型。 */
@@ -213,12 +215,35 @@ function ModelTrigger(props: {
 }
 
 /**
+ * 触发按钮上的两段文案。
+ *
+ * 强度只在"该**模型**确实有档位"且"当前值非空"时才显示（adaptive-reasoning 起按模型判定：
+ * hasLadder 已含"模型级确证不支持 ⇒ 隐藏"的分支）：本地/未知厂商的 `reasoningEffort`
+ * 可能是空数组（providers.json 里 Ollama 就是"空数组让 UI 显示无推理档位"），
+ * 那时显示一个空强度会让按钮读起来像坏了。模型名缺失（未接入）则回落到「模型」占位。
+ * @param model 当前模型值
+ * @param reasoning 当前强度值
+ * @param hasLadder 该模型是否渲染档位进度条
+ * @returns 触发按钮文案
+ */
+function triggerTexts(
+  model: string,
+  reasoning: string,
+  hasLadder: boolean,
+): { label: string; reasoningLabel: string } {
+  return {
+    label: model !== '' ? model : t('模型'),
+    reasoningLabel: reasoning !== '' && hasLadder ? ComposerOptions.reasoningLabel(reasoning) : '',
+  };
+}
+
+/**
  * 组合选择器：模型清单 + 推理强度进度条。
  * @param props 组件入参
  * @returns 弹窗节点
  */
 export function ModelPicker(props: ModelPickerProps): ReactElement {
-  const { model, modelOptions, reasoning, reasoningOptions, providerLabel, onModelChange, onReasoningChange } = props;
+  const { model, modelOptions, reasoning, reasoningOptions, effortsByModel, providerLabel, onModelChange, onReasoningChange } = props;
   const { open, setOpen, triggerRef, menu, toggle, stopBubble, onTriggerKeyDown } =
     usePopoverMenu(POPOVER_ID);
 
@@ -226,24 +251,23 @@ export function ModelPicker(props: ModelPickerProps): ReactElement {
   // （夹具 2 个、真实厂商 3–10 个），而筛选框让"打开弹窗"多出一次"要么忽略它、要么先输字"的
   // 决策成本，还占掉列表上方一整行高度。清单长到需要筛选时再加回来（那时它才有存在理由）。
   const models = ComposerOptions.models(model, modelOptions);
-  const ladder = ComposerOptions.ladder(reasoningOptions, reasoning);
+  // 档位源按**当前模型**解析（adaptive-reasoning，2026-11-14）：同一厂商不同模型支持的
+  // min→max 不同（deepseek-chat 不收 effort、o3 只有 low–high）。"确证不支持"的判定必须
+  // 看**模型级命中**（effortsByModel 里有这条且为空），不能看 effortsFor 的回落结果——
+  // 厂商级 []（anthropic/dashscope 预设）的旧语义是回落内置兜底 5 档，两级语义不相通，
+  // 把回落 [] 当确证不支持会把整个厂商的进度条藏掉（review P0-1）。
+  const modelEfforts = effortsByModel?.[model];
+  const noEfforts = modelEfforts !== undefined && modelEfforts.length === 0;
+  const efforts = ComposerOptions.effortsFor(model, effortsByModel, reasoningOptions);
+  const ladder = noEfforts ? [] : ComposerOptions.ladder(efforts, reasoning);
   const step = Math.max(0, ladder.findIndex((o) => o.value === reasoning));
   const currentLabel = ComposerOptions.reasoningLabel(reasoning);
   const hasLadder = ladder.length > 0;
+  const { label, reasoningLabel } = triggerTexts(model, reasoning, hasLadder);
   // 当前档位不属于该厂商的合法集合（换模型后常见）：此时它是"当前值"但不是"这一档强度"，
   // 进度条不能照常填满——否则读数虚高。见 OptionItem.unsupported 的注释。
   const currentUnsupported =
     reasoning !== '' && ladder.some((o) => o.value === reasoning && o.unsupported === true);
-  /**
-   * 触发按钮上的两段文案。
-   *
-   * 强度只在"该厂商确实有档位"且"当前值非空"时才显示：本地/未知厂商的 `reasoningEffort`
-   * 可能是空数组（providers.json 里 Ollama 就是"空数组让 UI 显示无推理档位"），
-   * 那时显示一个空强度会让按钮读起来像坏了。模型名缺失（未接入）则回落到「模型」占位。
-   */
-  const label = model !== '' ? model : t('模型');
-  const reasoningLabel =
-    reasoning !== '' && hasLadder ? ComposerOptions.reasoningLabel(reasoning) : '';
 
   return (
     <ModelTrigger

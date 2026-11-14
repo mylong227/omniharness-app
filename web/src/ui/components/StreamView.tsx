@@ -119,6 +119,8 @@ export interface StreamViewProps {
    * 旧的手写类型垫片给未知属性留了索引签名逃生舱，于是这件事在类型层完全看不见。
    */
   reasoningOptions?: string[];
+  /** 每模型推理档位表（adaptive-reasoning）：转发给 Composer → ModelPicker 按当前模型渲染。 */
+  effortsByModel?: Record<string, string[]>;
   permission: string;
   /** 当前会话 id（AddMenu / 上下文容量面板维度）。 */
   threadId?: string | null;

@@ -54,6 +54,9 @@ const REASONING_LABELS: Readonly<Record<string, string>> = {
   max: t('极致'),
 };
 
+/** 模型级档位表（model.catalog 下发的 `effortsByModel`）：模型 id → 该模型实际接受的档位。 */
+export type EffortsByModel = Readonly<Record<string, readonly string[]>>;
+
 /**
  * 档位的**标准强度序**（由弱到强）：仅用于「服务端未给顺序」或「顺序不可信」时把已知档位排好。
  * 为什么需要它：进度条形态的档位选择器把"档位"画成"填充比例"，顺序即读数；
@@ -164,5 +167,59 @@ export class ComposerOptions {
    */
   public static reasoningLabel(level: string): string {
     return REASONING_LABELS[level] ?? level;
+  }
+
+  /**
+   * 按模型解析档位集合（adaptive-reasoning，2026-11-14）：进度条与钳制的**档位源**。
+   *
+   * 优先级：模型级真值（含空数组）> 厂商级档位。两级语义刻意不相通：
+   *   - 模型级 `[]` = 服务端确证该模型不接收 effort ⇒ 调用方据此隐藏进度条；
+   *   - 厂商级 `[]`/undefined = 旧语义 ⇒ `ladder()` 回落内置兜底。
+   * 模型不在表里（服务端未下发该模型，或缓存清单滞后）→ 回落厂商档，不瞎猜。
+   * @param model 当前模型 id
+   * @param effortsByModel 服务端下发的模型级档位表（undefined = 旧服务端）
+   * @param providerEffort 厂商级档位（回落源）
+   * @returns 该模型的档位集合；两端都未知时为 undefined（走内置兜底）
+   */
+  public static effortsFor(
+    model: string,
+    effortsByModel?: EffortsByModel,
+    providerEffort?: readonly string[],
+  ): readonly string[] | undefined {
+    const hit = effortsByModel?.[model];
+    if (hit !== undefined) return hit;
+    return providerEffort;
+  }
+
+  /**
+   * 把当前值**钳制**到档位集合里最接近的档（adaptive-reasoning：切模型后越界值的自动落点）。
+   *
+   * 距离口径：按 `REASONING_ORDER` 的强度序数取 |距离| 最小者；**距离相同取更强一档**
+   * （用户设了高值的意图更可能是"要强"，钳向下会悄悄降级）。当前值自身强度未知
+   * （不在词表）时视为最强档处理——钳到集合里最强的一档。
+   * @param levels 合法档位集合（契约只保证是集合，不保证有序；空集合 = 该模型无档位）
+   * @param current 当前值（不在集合里的才有钳制的必要）
+   * @returns 钳制后的档位；`levels` 为空或当前值本就未设置（''）时返回 `''`
+   */
+  public static closestLevel(levels: readonly string[], current: string): string {
+    // '' 是"未设置/已清空"而不是"越界"：钳到最强档等于替用户悄悄开启推理（review P1-1）。
+    if (levels.length === 0 || current === '') return '';
+    const rank = (v: string): number => {
+      const i = REASONING_ORDER.indexOf(v);
+      // 未知档位排在词表末尾之后：参与"最强档"判定而不破坏已知档位的相对序。
+      return i >= 0 ? i : REASONING_ORDER.length;
+    };
+    const cur = rank(current);
+    let best = levels[0];
+    let bestDist = Number.MAX_SAFE_INTEGER;
+    for (const v of levels) {
+      const d = Math.abs(rank(v) - cur);
+      // 距离相等时取更强：仅当新档严格更近、或同距且更强时才替换 best。
+      if (d < bestDist || (d === bestDist && rank(v) > rank(best))) {
+        best = v;
+        bestDist = d;
+      }
+    }
+    return best;
   }
 }

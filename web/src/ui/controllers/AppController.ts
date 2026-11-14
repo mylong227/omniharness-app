@@ -74,6 +74,8 @@ export interface AppState {
   providerLabel: string;
   reasoning: string;
   reasoningOptions: string[] | undefined;
+  /** 每模型推理档位表（model.catalog 下发；undefined = 旧服务端，回落 reasoningOptions）。 */
+  effortsByModel: Record<string, string[]> | undefined;
   permission: string;
   events: ThreadEvent[];
   toolResults: Record<string, ToolResultView>;
@@ -598,10 +600,12 @@ export class AppController {
             modelOptions: active.models,
             providerLabel: active.label,
             reasoningOptions: active.reasoningEffort,
+            effortsByModel: active.effortsByModel,
           });
           try {
             localStorage.setItem('omni-model-options', JSON.stringify(active.models));
             localStorage.setItem('omni-provider-label', active.label);
+            localStorage.setItem('omni-efforts-by-model', JSON.stringify(active.effortsByModel ?? {}));
           } catch {
             /* 忽略 */
           }

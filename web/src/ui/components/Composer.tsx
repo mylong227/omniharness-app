@@ -53,6 +53,8 @@ export interface ComposerProps {
   reasoning: string;
   /** 当前厂商合法的 reasoning_effort 档位（三态语义见 ComposerOptions.reasoning / ladder）。 */
   reasoningOptions?: string[];
+  /** 每模型推理档位表（adaptive-reasoning）：ModelPicker 按当前模型取档位源。 */
+  effortsByModel?: Record<string, string[]>;
   permission: string;
   /** 当前会话 id（目标 / 计划 / 绘图模式按会话持久化；上下文容量报告维度）。 */
   threadId?: string | null;
@@ -142,6 +144,7 @@ function ComposerToolbar(p: ComposerToolbarProps): ReactElement {
           {...(c.modelOptions !== undefined ? { modelOptions: c.modelOptions } : {})}
           reasoning={c.reasoning}
           {...(c.reasoningOptions !== undefined ? { reasoningOptions: c.reasoningOptions } : {})}
+          {...(c.effortsByModel !== undefined ? { effortsByModel: c.effortsByModel } : {})}
           {...(c.providerLabel ? { providerLabel: c.providerLabel } : {})}
           onModelChange={c.onModelChange}
           onReasoningChange={c.onReasoningChange}

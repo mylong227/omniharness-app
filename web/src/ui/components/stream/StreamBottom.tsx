@@ -42,6 +42,7 @@ export function StreamBottom(props: StreamViewProps): React.ReactElement {
         providerLabel={props.providerLabel}
         reasoning={props.reasoning}
         reasoningOptions={props.reasoningOptions}
+        {...(props.effortsByModel !== undefined ? { effortsByModel: props.effortsByModel } : {})}
         permission={props.permission}
         threadId={props.threadId}
         seed={props.composerSeed ?? null}
