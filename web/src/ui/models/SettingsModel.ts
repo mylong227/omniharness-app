@@ -63,7 +63,7 @@ export const SETTINGS_TABS: readonly SettingsTabDef[] = [
   {
     key: 'runtime',
     label: '运行时',
-    hint: '适配器、工作区与沙箱执行环境',
+    hint: '适配器、沙箱、存储、步数与成本预算、模型熔断、长期记忆',
     icon: 'command',
   },
   {
@@ -77,7 +77,7 @@ export const SETTINGS_TABS: readonly SettingsTabDef[] = [
 ];
 
 /** 字段类型。 */
-export type SettingsFieldKind = 'select' | 'text' | 'switch';
+export type SettingsFieldKind = 'select' | 'text' | 'switch' | 'number';
 
 /** 一个设置字段（行）。 */
 export interface SettingsField {
@@ -96,6 +96,11 @@ export interface SettingsField {
   /** 一行说明。 */
   hint?: string;
   /**
+   * 同栏内的卡片分组（`fieldsOfGroup(tab, group)` 过滤；缺省进该栏的默认卡）。
+   * 2026-11-14 设置页补全后运行时栏一张卡装不下（存储/成本熔断/长期记忆各自成卡）。
+   */
+  group?: string;
+  /**
    * 落盘时把值写成"清除"（服务端约定 `null` = 显式清除）而不是 no-op。
    * 目前只有 `baseUrl` 需要：留空＝回落厂商默认端点。
    */
@@ -105,6 +110,18 @@ export interface SettingsField {
    * 需要额外输入的字段（如 API Key）用 `custom` 承载，见 MODEL_KEY_FIELDS。
    */
 }
+
+/**
+ * number 字段的前端取值范围（先挡明显非法值；内核 normalizeConfig 是最终裁决，
+ * 范围口径见 docs/design/settings-completion §3.1）。导出供判据对齐（settingsPane）。
+ */
+export const NUMBER_RANGES: Readonly<Record<string, { desc: string; check: (n: number) => boolean }>> = {
+  maxSteps: { desc: '≥ 0（0 为内核语义）', check: (n) => Number.isInteger(n) && n >= 0 },
+  costBudgetUsd: { desc: '> 0（USD）', check: (n) => Number.isFinite(n) && n > 0 },
+  costBudgetSoftRatio: { desc: '0 < r ≤ 1', check: (n) => Number.isFinite(n) && n > 0 && n <= 1 },
+  modelCircuitBreakerThreshold: { desc: '≥ 1 的整数', check: (n) => Number.isInteger(n) && n >= 1 },
+  modelCircuitBreakerOpenMs: { desc: '≥ 1000 的整数（毫秒）', check: (n) => Number.isInteger(n) && n >= 1000 },
+};
 
 /**
  * 设置表单全部字段（**单一事实源**）。
@@ -122,6 +139,14 @@ export const SETTINGS_FIELDS: readonly SettingsField[] = [
     hint: '留空则用厂商默认模型',
   },
   {
+    key: 'reasoning',
+    tab: 'model',
+    label: '默认推理强度',
+    kind: 'select',
+    options: ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'],
+    hint: '新会话的默认档位；输入区「模型与推理强度」弹窗可按会话覆盖（按模型自适应档位）',
+  },
+  {
     key: 'baseUrl',
     tab: 'model',
     label: '自定义 Base URL',
@@ -135,8 +160,10 @@ export const SETTINGS_FIELDS: readonly SettingsField[] = [
     tab: 'runtime',
     label: '模型适配器',
     kind: 'select',
-    options: ['mock', 'openai', 'anthropic', 'responses'],
+    // 内核 ENUM_VALUES.modelAdapter 共 6 值（2026-11-14 补全漂移：llamacpp/gemini 此前漏了）。
+    options: ['mock', 'openai', 'anthropic', 'responses', 'llamacpp', 'gemini'],
     hint: '切换适配器会同时刷新可用模型清单',
+    group: 'exec',
   },
   {
     key: 'sandbox',
@@ -156,14 +183,135 @@ export const SETTINGS_FIELDS: readonly SettingsField[] = [
       'container',
     ],
     hint: 'policy/restricted 只做进程内策略；windows-native 在 Windows 提供原生写隔离（需 omni-cli）；读/网络真隔离用 wsl-bwrap 或 container（需 Docker/Podman）',
+    group: 'exec',
+  },
+  {
+    key: 'elevatedSandbox',
+    tab: 'runtime',
+    label: '越权动作沙箱',
+    kind: 'select',
+    options: ['passthrough', 'policy', 'restricted'],
+    hint: '提权命令等越权动作被批准时的降级执行档；不得弱于基础沙箱（内核 fail-closed 拒绝更弱的组合）',
+    group: 'exec',
+  },
+  {
+    key: 'storageAdapter',
+    tab: 'runtime',
+    label: '会话存储',
+    kind: 'select',
+    options: ['memory', 'jsonl', 'sqlite'],
+    hint: '会话与事件的落盘方式；切换在重启后生效',
+    group: 'storage',
+  },
+  {
+    key: 'storageDir',
+    tab: 'runtime',
+    label: '存储目录',
+    kind: 'text',
+    placeholder: '留空 = 内核默认目录',
+    hint: '会话存档根目录；切换在重启后生效',
+    // 留空必须发 null（显式删除键）而不是空串：内核消费侧 `??` 不回落空串，
+    // storageDir:'' 会让 jsonl 存储往 `mkdir('')` 里撞（review P1-1，与 baseUrl 同机制）。
+    clearWhenEmpty: true,
+    group: 'storage',
+  },
+  {
+    key: 'maxSteps',
+    tab: 'runtime',
+    label: '单回合最大步数',
+    kind: 'number',
+    placeholder: '留空 = 内核默认',
+    hint: '一次任务内模型最多可连续执行的工具步数；0 为内核语义',
+    group: 'budget',
+  },
+  {
+    key: 'costBudgetUsd',
+    tab: 'runtime',
+    label: '成本预算（USD）',
+    kind: 'number',
+    placeholder: '留空 = 不设预算',
+    hint: '单任务累计 token 成本的硬上限（美元）；越限行为见下一行',
+    group: 'budget',
+  },
+  {
+    key: 'costBudgetSoftRatio',
+    tab: 'runtime',
+    label: '软阈值比例',
+    kind: 'number',
+    placeholder: '0 < r ≤ 1，如 0.8',
+    hint: '达到硬预算的该比例时提前提醒（如 0.8 = 用到 80% 提醒）',
+    group: 'budget',
+  },
+  {
+    key: 'costBudgetOnExceed',
+    tab: 'runtime',
+    label: '超预算行为',
+    kind: 'select',
+    options: ['fail', 'warn'],
+    hint: 'fail=中止回合 / warn=仅提示并继续',
+    group: 'budget',
+  },
+  {
+    key: 'modelCircuitBreaker',
+    tab: 'runtime',
+    label: '模型熔断',
+    kind: 'switch',
+    hint: '连续失败达到阈值后暂停调用该模型一段时间，避免对故障端点反复撞墙',
+    group: 'budget',
+  },
+  {
+    key: 'modelCircuitBreakerThreshold',
+    tab: 'runtime',
+    label: '熔断阈值（连续失败次数）',
+    kind: 'number',
+    placeholder: '如 5',
+    hint: '连续失败达到该次数即打开熔断',
+    group: 'budget',
+  },
+  {
+    key: 'modelCircuitBreakerOpenMs',
+    tab: 'runtime',
+    label: '熔断打开时长（ms）',
+    kind: 'number',
+    placeholder: '如 30000',
+    hint: '熔断打开后等待多久再放行下一次请求',
+    group: 'budget',
+  },
+  {
+    key: 'longTermMemoryEncryption',
+    tab: 'runtime',
+    label: '长期记忆加密',
+    kind: 'switch',
+    hint: '长期记忆落盘前加密；未配密钥文件时使用派生默认密钥',
+    group: 'memory',
+  },
+  {
+    key: 'longTermMemoryGovernance',
+    tab: 'runtime',
+    label: '长期记忆治理',
+    kind: 'switch',
+    hint: '按保留/清理策略自动整理长期记忆（去重、过期淘汰）',
+    group: 'memory',
+  },
+  {
+    key: 'longTermMemoryKeyFile',
+    tab: 'runtime',
+    label: '记忆密钥文件',
+    kind: 'text',
+    placeholder: '留空 = 派生默认密钥',
+    hint: '加密密钥文件路径（配合「长期记忆加密」使用）',
+    // 留空发 null（显式删除键）：keyFile:'' 会让加密器打开空路径（review P1-1）。
+    clearWhenEmpty: true,
+    group: 'memory',
   },
   {
     key: 'approval',
     tab: 'permission',
     label: '审批模式',
     kind: 'select',
-    options: ['auto', 'rules', 'ask'],
-    hint: 'auto 全自动 / rules 按规则 / ask 每次询问',
+    // 内核 ENUM_VALUES.approval 共 6 值（2026-11-14 补全漂移：deny/guardian/plan 此前漏了）。
+    options: ['auto', 'deny', 'rules', 'guardian', 'ask', 'plan'],
+    hint: 'auto 全自动 / rules 按规则 / ask 每次询问 / plan 只读规划（写类一律拒绝）/ guardian 守护裁决 / deny 全拒',
   },
   {
     key: 'escalation',
@@ -181,9 +329,6 @@ export const SETTINGS_FIELDS: readonly SettingsField[] = [
     hint: '开启后不再弹出审批确认；危险操作仍受沙箱与规则约束',
   },
 ];
-
-/** 主题取值。 */
-export type ThemeMode = 'dark' | 'light';
 
 /**
  * 改动后需要刷新厂商目录（`model.catalog`）的键：
@@ -394,10 +539,13 @@ export class SettingsModel {
   /**
    * 按字段落盘：把"界面里的值"翻成"配置补丁"。
    *
-   * 两处语义要注意：
+   * 三处语义要注意：
    *   · `clearWhenEmpty` 的字段（baseUrl）留空 ⇒ 发 `null`（**显式清除**）而不是 `undefined`
    *     （后者是 no-op，空串会被当成真实端点写坏 URL 拼装）；
-   *   · 文本字段一律 trim；`model` 清空时发 `undefined`（回落厂商默认）。
+   *   · 文本字段一律 trim；`model` 清空时发 `undefined`（回落厂商默认）；
+   *   · number 字段（2026-11-14 设置页补全）留空 = 显式清除覆盖（发 `null`），非空则
+   *     先过 `NUMBER_RANGES` 范围校验——非法值**不发请求**（内核 normalizeConfig 是最终
+   *     裁决，前端先挡明显的输错，避免"保存失败"提示往返一次）。
    * @param field 字段定义
    * @param raw 控件给出的原始值（字符串或布尔）
    * @returns 异步完成
@@ -405,6 +553,28 @@ export class SettingsModel {
   public async saveField(field: SettingsField, raw: string | boolean): Promise<void> {
     if (field.kind === 'switch') {
       await this.save({ [field.key]: raw === true });
+      return;
+    }
+    if (field.kind === 'number') {
+      const v = String(raw).trim();
+      if (v === '') {
+        await this.save({ [field.key]: null });
+        return;
+      }
+      const n = Number(v);
+      const spec = NUMBER_RANGES[String(field.key)];
+      if (spec === undefined) {
+        // 未登记范围的 number 字段：只要是个有限数就放行（保守，不发糊涂值）。
+        if (!Number.isFinite(n)) {
+          this.failInput(field, t('需为数字'));
+          return;
+        }
+      } else if (!spec.check(n)) {
+        // desc 必须过 t()：en 用户的提示要整句英文（review P1-3）。
+        this.failInput(field, t('取值范围：{range}', { range: t(spec.desc) }));
+        return;
+      }
+      await this.save({ [field.key]: n });
       return;
     }
     const v = String(raw).trim();
@@ -417,7 +587,28 @@ export class SettingsModel {
       await this.save(v ? { model: v } : { model: undefined });
       return;
     }
+    // clearWhenEmpty 通用化（2026-11-14 review P1-1）：声明了该标记的文本字段留空 =
+    // 显式清除覆盖（发 null，服务端删除键），而不是把空串原样落盘——内核消费侧
+    // （storageDir/keyFile 等）`??` 不回落空串，空串会让运行时往空路径里撞。
+    if (field.clearWhenEmpty === true) {
+      await this.save(v ? { [field.key]: v } : { [field.key]: null });
+      return;
+    }
     await this.save({ [field.key]: v });
+  }
+
+  /**
+   * number 字段的前端校验失败：不落盘，落 error 快照 + toast（与 save 失败同通道）。
+   * @param field 字段
+   * @param reason 范围说明
+   * @returns 无
+   */
+  private failInput(field: SettingsField, reason: string): void {
+    const msg = t('保存失败：{msg}', {
+      msg: t('「{name}」{reason}', { name: t(field.label), reason }),
+    });
+    this.set({ error: msg });
+    this.deps.toast(msg, 'err');
   }
 
   /**

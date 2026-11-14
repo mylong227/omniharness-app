@@ -103,3 +103,67 @@ test('valueOf 对未加载快照返回空串（不在 UI 上抛出 undefined）'
   assert.strictEqual(model.boolOf('autoApprove'), false, '未加载时开关应为 false');
   model.dispose();
 });
+
+test('设置页字段全集 === 内核可 UI 化标量键清单（settings-completion §1，防未来漂移）', () => {
+  // 内核 FileConfig 的标量可配键里，适合一行一项表单的全部清单。
+  // 不在此清单的：结构化子对象（limits/interjection/ssrfPolicy/…有专门面板或运维级，
+  // 见设计文档 §1.5）、凭据（厂商卡片管）、general/desktop 自定义渲染栏。
+  const EXPECTED = [
+    // 模型栏
+    'model', 'reasoning', 'baseUrl',
+    // 运行时·执行环境
+    'modelAdapter', 'sandbox', 'elevatedSandbox',
+    // 运行时·存储
+    'storageAdapter', 'storageDir',
+    // 运行时·步数与成本（含模型熔断）
+    'maxSteps', 'costBudgetUsd', 'costBudgetSoftRatio', 'costBudgetOnExceed',
+    'modelCircuitBreaker', 'modelCircuitBreakerThreshold', 'modelCircuitBreakerOpenMs',
+    // 运行时·长期记忆
+    'longTermMemoryEncryption', 'longTermMemoryGovernance', 'longTermMemoryKeyFile',
+    // 权限栏
+    'approval', 'escalation', 'autoApprove',
+  ];
+  const declared = SETTINGS_FIELDS.map((f) => String(f.key)).sort();
+  assert.deepEqual(declared, [...EXPECTED].sort(), '设置页字段与内核能力清单出现漂移——新增内核键或删键时同步本清单与设计文档');
+});
+
+test('枚举 options 与内核 ENUM_VALUES 完全一致（2026-11-14 修漂移：llamacpp/gemini/deny/guardian/plan）', async () => {
+  // 单一真源在内核 configFieldSpecs.ENUM_VALUES；前端 options 只是它的渲染镜像。
+  // 包 exports 不放行该子路径 → 用文件路径直取（内核 vendored dist，位置固定）。
+  const { createRequire } = await import('node:module');
+  const { dirname, join } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const req = createRequire(import.meta.url);
+  const specs = req(
+    join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'node_modules', '@omniharness', 'kernel', 'dist', 'kernel', 'config', 'configFieldSpecs.js'),
+  );
+  for (const f of SETTINGS_FIELDS) {
+    if (f.kind !== 'select') continue;
+    const kernel = specs.ENUM_VALUES[String(f.key)];
+    if (kernel === undefined) continue; // 非内核枚举键（无此约束）跳过
+    assert.deepEqual(
+      [...(f.options ?? [])].sort(),
+      [...kernel].sort(),
+      '字段 ' + String(f.key) + ' 的 options 与内核 ENUM_VALUES 漂移',
+    );
+  }
+});
+
+test('number 字段全部登记了前端范围校验（与 NUMBER_RANGES 真表对齐，防漏网放行）', async () => {
+  // NUMBER_RANGES 是 saveField 的校验表（模块导出）；漏登记的 number 字段会走
+  // "保守放行"分支把糊涂值发给服务端——这里把字段集与表键集直接对齐。
+  const { NUMBER_RANGES } = await import('../src/ui/models/SettingsModel.ts');
+  const fields = SETTINGS_FIELDS.filter((f) => f.kind === 'number').map((f) => String(f.key)).sort();
+  const ranges = Object.keys(NUMBER_RANGES).sort();
+  assert.deepEqual(fields, ranges, 'number 字段与 NUMBER_RANGES 登记表漂移');
+});
+
+test('runtime 栏字段必须声明 group（四卡全靠 fieldsOfGroup 过滤，无 group 会被静默吞掉）', () => {
+  for (const f of SETTINGS_FIELDS) {
+    if (f.tab !== 'runtime') continue;
+    assert.ok(
+      typeof f.group === 'string' && f.group !== '',
+      'runtime 字段 ' + String(f.key) + ' 缺 group（SettingsRuntimePane 渲染不到它）',
+    );
+  }
+});

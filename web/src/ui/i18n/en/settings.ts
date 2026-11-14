@@ -25,7 +25,7 @@ export const EN_SETTINGS: Record<string, string> = {
   模型: 'Model',
   '厂商接入、API Key、默认模型与自定义端点': 'Providers, API keys, default model and custom endpoint',
   运行时: 'Runtime',
-  '适配器、工作区与沙箱执行环境': 'Adapter, workspace and sandbox execution environment',
+  '适配器、沙箱、存储、步数与成本预算、模型熔断、长期记忆': 'Adapter, sandbox, storage, per-turn steps & cost budget, model circuit breaker, long-term memory',
   权限: 'Permissions',
   '审批模式、升级策略与免确认开关': 'Approval mode, escalation policy and confirmation toggle',
   外观: 'Appearance',
@@ -151,4 +151,69 @@ export const EN_SETTINGS: Record<string, string> = {
   打开日志目录: 'Open log directory',
   '查看诊断信息': 'Show diagnostics',
   '重启 Harness': 'Restart Harness',
+  未设置: 'Not set',
+
+  // 设置页内核能力补全（2026-11-14，docs/design/settings-completion §3）
+  '默认推理强度': 'Default reasoning effort',
+  '新会话的默认档位；输入区「模型与推理强度」弹窗可按会话覆盖（按模型自适应档位）':
+    'Default level for new sessions; the "Model & reasoning" popover overrides per session (adaptive per model)',
+  '越权动作沙箱': 'Elevated-action sandbox',
+  '提权命令等越权动作被批准时的降级执行档；不得弱于基础沙箱（内核 fail-closed 拒绝更弱的组合）':
+    'Fallback sandbox for approved elevated actions; must not be weaker than the base sandbox (the kernel rejects weaker combos)',
+  存储: 'Storage',
+  '会话与事件的落盘方式与位置；改动在重启后生效。':
+    'How and where sessions and events are persisted; changes apply after restart.',
+  '会话存储': 'Session storage',
+  '会话与事件的落盘方式；切换在重启后生效': 'How sessions and events are persisted; applies after restart',
+  '存储目录': 'Storage directory',
+  '留空 = 内核默认目录': 'Leave empty for the kernel default directory',
+  '会话存档根目录；切换在重启后生效': 'Root directory for session archives; applies after restart',
+  '步数与成本': 'Steps & budget',
+  '限制单回合的执行步数与 token 成本；熔断在模型连续失败时暂停调用。':
+    'Limits per-turn steps and token cost; the circuit breaker pauses a failing model.',
+  '单回合最大步数': 'Max steps per turn',
+  '留空 = 内核默认': 'Leave empty for kernel default',
+  '一次任务内模型最多可连续执行的工具步数；0 为内核语义':
+    'Tool steps a model may take consecutively within one task; 0 has kernel-level meaning',
+  '成本预算（USD）': 'Cost budget (USD)',
+  '留空 = 不设预算': 'Leave empty for no budget',
+  '单任务累计 token 成本的硬上限（美元）；越限行为见下一行':
+    'Hard cap on accumulated token cost per task (USD); behavior on exceed below',
+  '软阈值比例': 'Soft threshold ratio',
+  '0 < r ≤ 1，如 0.8': '0 < r ≤ 1, e.g. 0.8',
+  '达到硬预算的该比例时提前提醒（如 0.8 = 用到 80% 提醒）':
+    'Warn early when the budget reaches this ratio (0.8 = warn at 80%)',
+  '超预算行为': 'On budget exceeded',
+  'fail=中止回合 / warn=仅提示并继续': 'fail = abort the turn / warn = notify and continue',
+  '模型熔断': 'Model circuit breaker',
+  '连续失败达到阈值后暂停调用该模型一段时间，避免对故障端点反复撞墙':
+    'Pause a model after consecutive failures to stop hammering a broken endpoint',
+  '熔断阈值（连续失败次数）': 'Circuit breaker threshold (consecutive failures)',
+  '如 5': 'e.g. 5',
+  '连续失败达到该次数即打开熔断': 'Open the breaker after this many consecutive failures',
+  '熔断打开时长（ms）': 'Circuit breaker open duration (ms)',
+  '如 30000': 'e.g. 30000',
+  '熔断打开后等待多久再放行下一次请求': 'How long to wait before letting the next request through',
+  '长期记忆': 'Long-term memory',
+  '跨会话记忆的加密与治理；未配密钥文件时加密使用派生默认密钥。':
+    'Encryption and governance for cross-session memory; encryption falls back to a derived key without a key file.',
+  '长期记忆加密': 'Memory encryption',
+  '长期记忆落盘前加密；未配密钥文件时使用派生默认密钥':
+    'Encrypt memory before persisting; uses a derived default key without a key file',
+  '长期记忆治理': 'Memory governance',
+  '按保留/清理策略自动整理长期记忆（去重、过期淘汰）':
+    'Maintain long-term memory automatically (dedupe, expiry)',
+  '记忆密钥文件': 'Memory key file',
+  '留空 = 派生默认密钥': 'Leave empty for the derived default key',
+  '加密密钥文件路径（配合「长期记忆加密」使用）': 'Key file path for memory encryption',
+  '「{name}」{reason}': '"{name}" {reason}',
+  需为数字: 'must be a number',
+  '取值范围：{range}': 'allowed range: {range}',
+  '≥ 0（0 为内核语义）': '≥ 0 (0 has kernel-level meaning)',
+  '> 0（USD）': '> 0 (USD)',
+  '0 < r ≤ 1': '0 < r ≤ 1',
+  '≥ 1 的整数': 'integer ≥ 1',
+  '≥ 1000 的整数（毫秒）': 'integer ≥ 1000 (ms)',
+  'auto 全自动 / rules 按规则 / ask 每次询问 / plan 只读规划（写类一律拒绝）/ guardian 守护裁决 / deny 全拒':
+    'auto = fully automatic / rules = by rules / ask = confirm each time / plan = read-only planning (writes denied) / guardian = guardian verdict / deny = reject all',
 };

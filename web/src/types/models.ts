@@ -66,16 +66,42 @@ export interface ThreadGetResult {
 export interface Config {
   modelAdapter?: string;
   model?: string;
-  /** 推理强度（#B6）：minimal / low / medium / high / xhigh。 */
+  /** 推理强度（#B6）：none/minimal/low/medium/high/xhigh/max（内核枚举 7 档）。 */
   reasoning?: string;
   approval?: string;
   sandbox?: string;
+  /** 越权动作（提权命令等）的降级沙箱档：passthrough/policy/restricted。 */
+  elevatedSandbox?: string;
   escalation?: string;
   autoApprove?: boolean;
   /** 界面语言（zh/en）：设置「常规」页切换，随用户级 omniharness.json 持久化。 */
   locale?: string;
   /** 聊天模式（queue=任务中发送排队 / steer=插话；2026-10-31）。 */
   chatMode?: string;
+  /** 会话存储适配器：memory/jsonl/sqlite。 */
+  storageAdapter?: string;
+  /** 会话存储目录（留空 = 内核默认）。 */
+  storageDir?: string;
+  /** 单回合最大步数（0 = 内核语义，见 ZERO_ALLOWED_FIELDS）。 */
+  maxSteps?: number;
+  /** 成本预算（USD，硬上限；超限行为见 costBudgetOnExceed）。 */
+  costBudgetUsd?: number;
+  /** 软阈值比例（相对硬预算，0<r≤1），越过后提前提醒。 */
+  costBudgetSoftRatio?: number;
+  /** 超预算行为：fail=中止回合 / warn=仅提示。 */
+  costBudgetOnExceed?: string;
+  /** 模型熔断开关（连续失败达到阈值后暂停调用一段时间）。 */
+  modelCircuitBreaker?: boolean;
+  /** 熔断阈值（连续失败次数）。 */
+  modelCircuitBreakerThreshold?: number;
+  /** 熔断打开时长（ms）。 */
+  modelCircuitBreakerOpenMs?: number;
+  /** 长期记忆落盘加密。 */
+  longTermMemoryEncryption?: boolean;
+  /** 长期记忆治理（保留/清理策略）。 */
+  longTermMemoryGovernance?: boolean;
+  /** 加密密钥文件路径（缺省用派生默认密钥）。 */
+  longTermMemoryKeyFile?: string;
   workspace?: string;
   [key: string]: unknown;
 }

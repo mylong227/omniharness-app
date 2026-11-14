@@ -209,3 +209,60 @@ test('⑧ 首次装载失败：原因进快照（表单全空时必须可见）�
   assert.strictEqual(okDeps.model.valueOf('model'), 'gpt-4o', '成功装载后表单必须回填');
   okDeps.model.dispose();
 });
+
+// ---- 设置页内核能力补全（2026-11-14，docs/design/settings-completion §4）----
+
+test('⑨ number 字段：合法值翻译成数字落盘，留空发 null 显式清除覆盖', async () => {
+  const { model, calls } = makeDeps();
+  await model.load();
+  await model.saveField(field('costBudgetUsd'), ' 5 ');
+  await flush();
+  await model.saveField(field('maxSteps'), '');
+  await flush();
+  assert.deepEqual(calls.updates, [{ costBudgetUsd: 5 }, { maxSteps: null }]);
+  model.dispose();
+});
+
+test('⑩ number 字段越界/非法：不发请求，只提示错误', async () => {
+  const { model, calls } = makeDeps();
+  await model.load();
+  await model.saveField(field('costBudgetSoftRatio'), '1.5');
+  await flush();
+  await model.saveField(field('modelCircuitBreakerThreshold'), 'abc');
+  await flush();
+  assert.deepEqual(calls.updates, [], '非法输入不得触达 config.update');
+  assert.strictEqual(calls.toasts.length, 2);
+  assert.strictEqual(calls.toasts[0].k, 'err');
+  assert.ok(calls.toasts[0].m.includes('0 < r ≤ 1'), '软阈值提示带范围说明');
+  model.dispose();
+});
+
+test('⑪ 新开关与新下拉：switch 布尔落盘、select 原样落盘', async () => {
+  const { model, calls } = makeDeps();
+  await model.load();
+  await model.saveField(field('modelCircuitBreaker'), true);
+  await flush();
+  await model.saveField(field('storageAdapter'), 'sqlite');
+  await flush();
+  await model.saveField(field('reasoning'), 'xhigh');
+  await flush();
+  assert.deepEqual(calls.updates, [
+    { modelCircuitBreaker: true },
+    { storageAdapter: 'sqlite' },
+    { reasoning: 'xhigh' },
+  ]);
+  // reasoning 属于模型行为键：改动应刷新厂商目录（CATALOG_KEYS 语义之外也要一致？不——
+  // reasoning 不在 CATALOG_KEYS，目录只跟 model/modelAdapter 走）。
+  assert.strictEqual(calls.catalog, 0);
+  model.dispose();
+});
+test('⑫ text 字段 clearWhenEmpty：storageDir/keyFile 留空发 null（review P1-1）', async () => {
+  const { model, calls } = makeDeps();
+  await model.load();
+  await model.saveField(field('storageDir'), '   ');
+  await flush();
+  await model.saveField(field('longTermMemoryKeyFile'), '');
+  await flush();
+  assert.deepEqual(calls.updates, [{ storageDir: null }, { longTermMemoryKeyFile: null }], '空串不得原样落盘——内核消费侧不回落空串');
+  model.dispose();
+});

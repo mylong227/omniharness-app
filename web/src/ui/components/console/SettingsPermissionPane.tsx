@@ -1,7 +1,9 @@
-// 设置页「权限」栏：审批默认（三档全局默认字段）+ 参数级规则编辑器。
+// 设置页「权限」栏：审批默认（六档全局默认字段）+ 参数级规则编辑器。
 //
 // 2026-11-02 从 `SettingsSurface` 抽出（`check.mjs` 函数体行数铁律：原 `renderPermission`
 // 一个箭头函数 14 行；抽出的目的只是让容器保持薄组合，展示内容逐字未改）。
+// 2026-11-14 枚举补全（settings-completion）：审批模式从 3 档补齐为内核 6 档
+// （deny/guardian/plan 此前漏了），描述不再写死「三档」。
 
 import { t } from '../../i18n/i18n.ts';
 import type { SettingsModel } from '../../models/SettingsModel.ts';
@@ -25,7 +27,7 @@ export function SettingsPermissionPane(props: SettingsPermissionPaneProps): Reac
     <>
       <ConsoleCard
         title={t('审批默认')}
-        description={t('这三档是全局默认；按命令 / 参数逐个放行或拦截在下方规则表里编辑。')}
+        description={t('这些档位是全局默认；按命令 / 参数逐个放行或拦截在下方规则表里编辑。')}
       >
         {fieldsOf('permission').map((field) => (
           <ConsoleSettingRow key={String(field.key)} field={field} model={props.settings} />

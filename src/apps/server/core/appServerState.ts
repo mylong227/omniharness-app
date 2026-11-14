@@ -160,6 +160,19 @@ export const PERSISTABLE_KEYS: readonly string[] = [
   // 聊天模式（Web UI 设置「常规」栏，2026-10-31）：queue=任务中发送排队 / steer=插话。
   // 枚举校验（queue/steer）见 configError.ts 的 ENUM_VALUES.chatMode。
   'chatMode',
+  // 设置页内核能力补全（2026-11-14，docs/design/settings-completion §2）：成本预算三键 +
+  // 模型熔断三键 + 长期记忆三键。类型/枚举/范围校验全部由内核 normalizeConfig 承担
+  // （NUMBER_FIELDS / BOOLEAN_FIELDS / ENUM_VALUES，costBudgetSoftRatio ∈ (0,1]），
+  // 这里只开白名单；写非法值会被 persist() fail-closed 拒绝并回传错误。
+  'costBudgetUsd',
+  'costBudgetSoftRatio',
+  'costBudgetOnExceed',
+  'modelCircuitBreaker',
+  'modelCircuitBreakerThreshold',
+  'modelCircuitBreakerOpenMs',
+  'longTermMemoryEncryption',
+  'longTermMemoryGovernance',
+  'longTermMemoryKeyFile',
 ];
 
 /** 图运行中单节点状态。 */

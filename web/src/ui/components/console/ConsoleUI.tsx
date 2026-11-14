@@ -183,6 +183,8 @@ export interface ConsoleSelectProps {
   disabled?: boolean;
   /** 宽度（CSS 值，默认按内容）。 */
   width?: string;
+  /** 未设置（空值）时的占位文案；缺省「未设置」。 */
+  placeholder?: string;
 }
 
 /**
@@ -191,13 +193,15 @@ export interface ConsoleSelectProps {
  * @returns 下拉节点
  */
 export function ConsoleSelect(props: ConsoleSelectProps): ReactElement {
-  const { value, options, onChange, ariaLabel, disabled, width } = props;
+  const { value, options, onChange, ariaLabel, disabled, width, placeholder } = props;
   return (
     <Select
       className="csl-select"
       style={width === undefined ? undefined : { width }}
       aria-label={ariaLabel}
-      value={value}
+      // 空串是"未设置"（config 里没有这个键）：交给 placeholder 表达，而不是渲染成空白下拉。
+      value={value === '' ? undefined : value}
+      placeholder={placeholder ?? t('未设置')}
       disabled={disabled === true}
       options={options.map((option) => ({ value: option.value, label: option.label }))}
       onChange={(next: string) => onChange(next)}
@@ -348,10 +352,12 @@ export function ConsoleKeycap(props: ConsoleKeycapProps): ReactElement {
 }
 
 /**
- * 把一个设置字段渲染成控制台行（下拉 / 文本 / 开关）。
+ * 把一个设置字段渲染成控制台行（下拉 / 文本 / 开关 / 数字）。
  *
  * 文本字段用**本地草稿 + 失焦提交**：旧实现每敲一个字符就发一次 config.update，
  * 既慢又会把半截 URL 写进配置（用户还没输入完就已落盘）。下拉与开关仍然即时提交。
+ * 数字字段（2026-11-14 设置页补全）与文本同走"草稿 + 失焦提交"，翻译/范围校验
+ * 全在 `SettingsModel.saveField`（留空 = 显式清除覆盖）。
  * @param props 组件入参
  * @returns 行节点
  */

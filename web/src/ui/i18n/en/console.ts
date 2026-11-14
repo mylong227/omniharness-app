@@ -191,8 +191,8 @@ export const EN_CONSOLE: Record<string, string> = {
 
   // —— 权限 ——
   审批默认: 'Approval defaults',
-  '这三档是全局默认；按命令 / 参数逐个放行或拦截在下方规则表里编辑。':
-    'These three are global defaults; allow or block individual commands/arguments in the rule table below.',
+  '这些档位是全局默认；按命令 / 参数逐个放行或拦截在下方规则表里编辑。':
+    'These levels are global defaults; allow or block individual commands/arguments in the rule table below.',
 
   // —— 快捷键页 ——
   打开命令面板: 'Open command palette',
