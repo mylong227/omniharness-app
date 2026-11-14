@@ -654,15 +654,15 @@
 .task-card,
 .side-item,
 .session-search,
-.chat-tab,
+.chat-tab {
   border-radius: var(--r-sm);
 }
 .session {
-  /* 2026-11-10 第二轮：行高从 34 提到 38、纵向 7→9——左栏是使用频率最高的列表，
-     密集到「一行挨一行」会显得赶，留一点呼吸更接近日常 IM 的节奏。 */
-  padding: 9px 10px;
-  min-height: 38px;
-  gap: 2px;
+  /* 2026-11-14 第三轮（用户截图：会话每一条太挤）：行高 38→42、纵向 9→10，
+     行间距由 .ws-list 的 flex gap 承担（5px）——目标是「列表能呼吸」，而不是又回到密集模式。 */
+  padding: 10px 12px;
+  min-height: 42px;
+  gap: 4px;
 }
 .session:hover,
 .task-card:hover {
@@ -3589,6 +3589,7 @@ button:hover,
 .mem-imp {
   color: var(--warn);
 }
+.row-menu button.danger {
   border-color: var(--err);
   color: var(--err);
 }
