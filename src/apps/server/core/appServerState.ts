@@ -56,7 +56,11 @@ export interface AppServerOptions {
    * 缺省 undefined：测试/嵌入方不注入时，无 UI 覆盖即沿用 config.approvals 端口。
    */
   readonly startupApproval?: string | undefined;
-  /** 持久化目标配置文件路径（项目级 omniharness.json；缺省时按工作区推断并创建）。 */
+  /**
+   * 项目级配置读取路径（`--config` 显式指定或启动时向上查找结果；缺省时由配置存储按工作区推断）。
+   *
+   * 只读：写路径恒为用户级 `omniharness.json`（见 `ServerConfigStore.persist`）。
+   */
   readonly configPath?: string | undefined;
   /**
    * 启动时选中的配置 profile（`--profile`）。

@@ -142,7 +142,7 @@ export class CliIdentityDaemonCmds extends CliBuildConfig {
    * （`execCli.loadDefaults`），于是同一个仓库里「一次性运行用真模型、Web UI 用 mock」这种自相矛盾
    * 的表现会长期无人发现。回归见 `上游判据 serveConfigLayering.test.ts（本仓未随迁）`。
    * @param wsRoot 工作区根（项目级配置从这里向上查找）。
-   * @param configPath 项目级配置路径（`--config` 显式指定或 `find` 结果）。
+   * @param configPath 项目级配置路径（`--config` 显式指定或 `find` 结果；无项目级配置时**必须**为 undefined）。
    * @param profile `--profile` 指定的配置 profile 名（缺省 undefined＝不叠加 profile 层）。
    * @param userHomedir 用户级配置的家目录（缺省 `os.homedir()`；测试隔离注入用）。
    * @param trust 工作区信任选项（生产入口必传；缺省保持既有合并语义）。
@@ -150,14 +150,16 @@ export class CliIdentityDaemonCmds extends CliBuildConfig {
    */
   public static loadServeConfig(
     wsRoot: string,
-    configPath: string,
+    configPath?: string,
     profile?: string,
     userHomedir?: string,
     trust?: WorkspaceTrustOptions,
   ): FileConfig {
     return configFile.loadLayered({
       workspace: wsRoot,
-      configPath,
+      // 2026-11-14（M53 fail-closed 对接）：只有**显式 --config** 才把路径交给内核；
+      // 向上查找的结果可能本来就为空，传 undefined 让内核保留「缺失继续」的语义。
+      ...(configPath !== undefined ? { configPath } : {}),
       ...(profile !== undefined ? { profile } : {}),
       ...(userHomedir !== undefined ? { userHomedir } : {}),
       ...(trust !== undefined ? { trust } : {}),

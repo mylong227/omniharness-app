@@ -494,9 +494,12 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
     }
     const configPath = foundConfig ?? join(wsRoot, configFile.FILE_NAME);
     const serveTrust = ServeTrust.create(serveArgs);
+    // 2026-11-14（M53 对接）：传给 loadLayered 的必须是**用户显式**的 `--config`。
+    // 下面的 configPath 是给配置存储的项目级**读取**路径（可能只是「按工作区推断」的值，
+    // 文件不存在时存储层按无项目层处理）；把它当显式路径传进来会让合法启动 fail-closed。
     const loadedFile = CliServerCmds.loadServeConfig(
       wsRoot,
-      configPath,
+      foundConfig,
       this.flagValue(serveArgs, '--profile'),
       undefined,
       serveTrust.options,
