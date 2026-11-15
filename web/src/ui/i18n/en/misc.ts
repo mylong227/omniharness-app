@@ -49,6 +49,7 @@ export const EN_MISC: Record<string, string> = {
   '模型与推理强度 · {name}': 'Model & reasoning effort · {name}',
   '选择模型与推理强度': 'Select model and reasoning effort',
   '可用模型': 'Available models',
+  选择模型: 'Select a model',
   '当前': 'Current',
   '推理强度': 'Reasoning effort',
   ' · 该模型不支持': ' · not supported by this model',

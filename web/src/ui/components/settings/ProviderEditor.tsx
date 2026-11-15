@@ -59,6 +59,12 @@ type ProviderProbeResultProp = {
 export function ProviderEditor(props: ProviderEditorProps): ReactElement {
   const { preset, activeId, maskedKey, probe, draft, busy, selectedModel } = props;
   const models = probe?.ok === true ? probe.models : [];
+  // 选中值必须是「当前清单里的非空值」：历史 modelSel/当前配置可能指向已被移除的模型，
+  // 或残留空串；直接交给 antd Select 会显示成空白（用户截图「文字没有显示出来」）。
+  const currentModel =
+    selectedModel !== undefined && selectedModel !== '' && models.includes(selectedModel)
+      ? selectedModel
+      : models[0];
   const active = isActiveProvider(preset.id, activeId);
   const disabled = busy !== '';
   const failed = probe !== undefined && !probe.ok;
@@ -117,14 +123,15 @@ export function ProviderEditor(props: ProviderEditorProps): ReactElement {
           <Typography.Text>{t('可用模型')}</Typography.Text>
           <Select
             aria-label={t('{name} 可用模型', { name: preset.label })}
-            value={selectedModel ?? models[0]}
+            value={currentModel}
+            placeholder={t('选择模型')}
             onChange={(value: string) => props.onModelPick(value)}
             options={models.map((m) => ({ value: m, label: m }))}
             style={{ width: '100%' }}
           />
           <Button
             type="primary"
-            disabled={disabled || !selectedModel}
+            disabled={disabled || currentModel === undefined}
             loading={busy === `${preset.id}:enable`}
             onClick={() => void props.onEnable()}
           >

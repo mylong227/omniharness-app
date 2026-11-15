@@ -96,7 +96,11 @@ export function selectedModelFor(
   choices: Record<string, string>,
   activeModel: string,
 ): string | undefined {
-  return choices[preset.id] ?? (models.includes(activeModel) ? activeModel : models[0]);
+  // 手选值可能来自旧探测（模型已下线）或残留空串：只接受**当前清单内**的值，
+  // 否则回落到当前模型/清单首项，避免下拉空白与「启用一个不存在的模型」。
+  const picked = choices[preset.id];
+  if (picked !== undefined && picked !== '' && models.includes(picked)) return picked;
+  return models.includes(activeModel) ? activeModel : models[0];
 }
 
 /** 忙碌标记状态与动作。 */

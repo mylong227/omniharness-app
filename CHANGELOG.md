@@ -6,6 +6,10 @@
 ## [Unreleased]
 
 ### Added（新增）
+- **厂商编辑「可用模型」空白修复（2026-11-15，用户截图反馈）**：探测成功但手选模型
+  残留空串/已下线模型时，antd Select 拿不到匹配项显示为空白；现在统一回退到「当前
+  清单内的当前模型 → 清单首项」，并同步修正启用请求使用的模型，避免启用一个不存在的
+  模型。判据 `web/test/providerEditor.test.tsx`（2 条：展示回退 + `selectedModelFor`）。
 - **回合结果卡自动剔除「写过又删除」的临时文件（2026-11-15，用户截图反馈）**：
   结果卡挂载时通过新增的 `fs.exists` 只读 RPC 核对本轮 **created** 行；文件已不存在
   （临时脚本/探针在回合内自删）即自动从卡里摘掉，不再需要用户逐行点击才发现。
@@ -49,7 +53,7 @@
   「审计通过/有缺失」与触发信号，未记录审计仍如实告警。
   内核侧 `v0.1.0-alpha.21` tag 含 11 条新判据（压缩证据 4 / 父子树 3 / 配置段 4）；
   本仓验证：`kernel:check` 九条（284 源文件 / 290 导入）、typecheck×3、
-  web 209 文件 / 957 用例、build/build:web、smoke 9 条、desktop 41 条全过。
+  web 210 文件 / 959 用例、build/build:web、smoke 9 条、desktop 41 条全过。
 - **修复上下文三段配置通道断链（2026-11-15）**：alpha.19 批次里 `retrievalContext`/`semanticRecall`/
   `contextPolicy` 能经设置页落盘，但 `ArgParser.configDefaults` → `CliArgs` → `CliConfigSections`
   → `ConfigFactory.build` 从未映射 ⇒ CLI/serve 启动时内核收到 undefined、行为静默回落到 off。
@@ -386,6 +390,7 @@
 
 - 从上游 OmniHarness@0.4.0 切出独立应用仓（后端宿主 + React 工作台 + Electron 桌面端）。
 - 完成内核包迁移（M2）：消费 vendored `@omniharness/kernel@0.1.0-alpha.4`，删除 1163 个内嵌内核文件。
+
 
 
 
