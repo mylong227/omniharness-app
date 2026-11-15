@@ -96,6 +96,7 @@ function stubHtml() {
     "    'sessions.list': { dir:'', sessions: [] },",
     "    'workspace.list': { current:'', workspaces: [] },",
     "    'fs.list': { tree: [] },",
+    "    'fs.exists': { exists: true },",
     "    'approval.tiers': { tiers: [] },",
     "    'changes.list': { files: [] },",
     "    'usage.stats': { source:'live', dir:'', byModel:{}, total:{calls:0,prompt:0,completion:0,total:0}, sessions:[] },",

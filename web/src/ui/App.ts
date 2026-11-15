@@ -682,7 +682,6 @@ function renderBody(
     },
     // 桌面壳（win32 隐藏系统标题栏）的一体化标题条：非桌面/旧壳渲染 null，浏览器无感。
     React.createElement(TitlebarStrip, {
-      workspacePath,
       onQuickCapture: () => ctrl.focusComposer(),
     }),
     React.createElement(

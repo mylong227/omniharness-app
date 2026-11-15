@@ -12,6 +12,13 @@ const CHAT_HEADER = readFileSync('web/src/ui/components/ChatHeader.tsx', 'utf8')
 const STREAM_VIEW = readFileSync('web/src/ui/components/StreamView.tsx', 'utf8');
 const SESSION_VIEWS = readFileSync('web/src/ui/components/SessionViews.tsx', 'utf8');
 const APP = readFileSync('web/src/ui/App.ts', 'utf8');
+const TITLEBAR = readFileSync('web/src/ui/components/TitlebarStrip.tsx', 'utf8');
+
+test('桌面标题条不重复品牌/项目（只留窗口操作）', () => {
+  assert.doesNotMatch(TITLEBAR, /titlebar-brand|titlebar-workspace|titlebar-name/u);
+  assert.doesNotMatch(TITLEBAR, />\s*OmniHarness\s*</u);
+  assert.match(TITLEBAR, /onQuickCapture/u, '快速提问仍保留');
+});
 
 test('移动端顶栏有设置入口（桌面仍走左栏页脚，不重复占位）', () => {
   assert.match(CHAT_HEADER, /onOpenSettings\?: \(\) => void/u);
