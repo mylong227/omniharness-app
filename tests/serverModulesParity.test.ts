@@ -46,8 +46,8 @@ describe('RPC parity 快照（coreModules）', () => {
   const entries = collectMethods(coreModules());
   const methods = entries.map((e) => e.method).sort();
 
-  it('方法总数 == 109（108 + 内核健康桥；有意识地增减并同步 web ApiClient）', () => {
-    expect(methods.length).toBe(109);
+  it('方法总数 == 110（109 + fs.exists；有意识地增减并同步 web ApiClient）', () => {
+    expect(methods.length).toBe(110);
   });
 
   it('全量方法清单（按域前缀分组快照）', () => {
@@ -95,6 +95,7 @@ describe('RPC parity 快照（coreModules）', () => {
         "fleet.list",
         "fleet.patch",
         "fs.browse",
+        "fs.exists",
         "fs.list",
         "fs.mkdir",
         "fs.read",
@@ -201,3 +202,4 @@ describe('RPC parity 快照（coreModules）', () => {
     expect(byOwner.get('rpc.list')).toBe('introspect');
   });
 });
+

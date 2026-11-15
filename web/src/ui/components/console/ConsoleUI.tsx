@@ -11,7 +11,13 @@ import { icon } from '../../models/Icon.ts';
 import type { IconName } from '../../models/Icon.ts';
 import { t } from '../../i18n/i18n.ts';
 import { PathBrowseControl } from './PathBrowseControl.tsx';
-import type { SettingsField, SettingsModel } from '../../models/SettingsModel.ts';
+import {
+  defaultLabelOf,
+  fieldId,
+  optionLabelOf,
+  type SettingsField,
+  type SettingsModel,
+} from '../../models/SettingsModel.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
 // 2026-10-30（W4 表单专项）：三个设置原语下沉到 antd——所有设置页经本文件拼装，换这里即全站生效。
 import Card from 'antd/es/card';
@@ -118,6 +124,12 @@ export interface ConsoleRowProps {
   children?: React.ReactNode;
   /** 控件下方整宽内容（例如规则列表）。 */
   below?: React.ReactNode;
+  /** 是否刚保存过（行级「已保存」徽标；1.5s 后由模型消隐）。 */
+  saved?: boolean;
+  /** 是否需重启才能生效（常驻提示，来自 hint 里的「重启」语义）。 */
+  restart?: boolean;
+  /** 字段锚点（设置搜索定位用；格式见 `fieldId()`）。 */
+  dataFieldId?: string;
 }
 
 /**
@@ -126,11 +138,18 @@ export interface ConsoleRowProps {
  * @returns 行节点
  */
 export function ConsoleRow(props: ConsoleRowProps): ReactElement {
-  const { label, hint, children, below } = props;
+  const { label, hint, children, below, saved, restart, dataFieldId } = props;
   return (
-    <div className={'csl-row' + (children === undefined ? ' csl-row--info' : '')}>
+    <div
+      className={'csl-row' + (children === undefined ? ' csl-row--info' : '')}
+      {...(dataFieldId !== undefined ? { 'data-field-id': dataFieldId } : {})}
+    >
       <div className="csl-row-main">
-        <span className="csl-row-label">{label}</span>
+        <span className="csl-row-label">
+          {label}
+          {saved === true ? <span className="csl-row-saved">{t('已保存')}</span> : null}
+          {restart === true ? <span className="csl-row-restart">{t('需重启')}</span> : null}
+        </span>
         {hint === undefined ? null : <span className="csl-row-hint">{hint}</span>}
       </div>
       {children === undefined ? null : <div className="csl-row-control">{children}</div>}
@@ -369,6 +388,8 @@ export function ConsoleSettingRow(props: {
   const { field, model } = props;
   const label = t(field.label);
   const hint = field.hint === undefined ? undefined : t(field.hint);
+  const id = fieldId(field);
+  const saved = model.getSnapshot().savedField === id;
   // 传字段而不是 key：结构化段字段要按 path 取叶值（传 key 会拿到整段对象）。
   const committed = model.valueOf(field);
 
@@ -380,7 +401,7 @@ export function ConsoleSettingRow(props: {
 
   if (field.kind === 'switch') {
     return (
-      <ConsoleRow label={label} hint={hint}>
+      <ConsoleRow label={label} hint={hint} saved={saved} restart={hint?.includes('重启') === true} dataFieldId={id}>
         <ConsoleSwitch
           checked={model.boolOf(field)}
           label={label}
@@ -390,19 +411,26 @@ export function ConsoleSettingRow(props: {
     );
   }
   if (field.kind === 'select') {
+    const fallback = defaultLabelOf(field);
     return (
-      <ConsoleRow label={label} hint={hint}>
+      <ConsoleRow label={label} hint={hint} saved={saved} restart={hint?.includes('重启') === true} dataFieldId={id}>
         <ConsoleSelect
           ariaLabel={label}
           value={committed}
-          options={(field.options ?? []).map((option) => ({ value: option, label: option }))}
+          placeholder={
+            fallback === undefined ? undefined : t('未设置（默认：{value}）', { value: t(fallback) })
+          }
+          options={(field.options ?? []).map((option) => ({
+            value: option,
+            label: t(optionLabelOf(field, option)),
+          }))}
           onChange={(value) => void model.saveField(field, value)}
         />
       </ConsoleRow>
     );
   }
   return (
-    <ConsoleRow label={label} hint={hint}>
+    <ConsoleRow label={label} hint={hint} saved={saved} restart={hint?.includes('重启') === true} dataFieldId={id}>
       {field.browse !== undefined ? (
         <PathBrowseControl
           browse={field.browse}
@@ -431,3 +459,5 @@ export function ConsoleSettingRow(props: {
     </ConsoleRow>
   );
 }
+
+

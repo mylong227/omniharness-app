@@ -86,6 +86,35 @@ pre.json { border:1px solid var(--border-soft); padding:8px 10px; margin-top:7px
 .doc-fold--open .doc-fold__preview { max-height:none; overflow:visible; }
 .doc-fold--open .doc-fold__preview::after { content:none; }
 
+/* 事件详情入口（2026-11-15）：鼠标点卡片是捷径；这枚按钮给键盘/读屏用户一个真实落点。 */
+.ev.clickable { position: relative; }
+.ev-open {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--border-soft);
+  border-radius: 7px;
+  background: var(--panel);
+  color: var(--dim);
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.12s ease;
+}
+.ev:hover .ev-open,
+.ev:focus-within .ev-open,
+.ev-open:focus-visible {
+  opacity: 1;
+}
+.ev-open:hover { color: var(--text); border-color: var(--border-strong); }
+@media (hover: none) {
+  .ev-open { opacity: 0.7; }
+}
+
 /* ---- 压缩游标事件收纳（2026-10-13）：摘要默认一行，点击展开全文 ---- */
 .sysnote-fold { text-align:center; color:var(--dim); font-size:12px; }
 .sysnote-fold__summary { cursor:pointer; list-style:none; padding:4px; }

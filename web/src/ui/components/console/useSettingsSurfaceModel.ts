@@ -39,6 +39,7 @@ const EMPTY_SNAPSHOT: SettingsSnapshot = {
   profiles: [],
   activePlugins: '',
   savedHint: '',
+  savedField: '',
   saving: false,
   error: '',
   loadError: '',

@@ -501,6 +501,91 @@ export const SETTINGS_FIELDS: readonly SettingsField[] = [
 ];
 
 /**
+ * 下拉字段的显示名（机读值 → 人话）。键 = `fieldId`，值 = 选项映射。
+ *
+ * 为什么单独一张表：枚举机读值必须原样提交（内核校验），但中文界面直接显示
+ * `openai / policy / max` 等于让用户读代码。渲染层只查这张表，提交值不变。
+ */
+export const OPTION_LABELS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  modelAdapter: {
+    mock: 'Mock（测试）',
+    openai: 'OpenAI 兼容',
+    anthropic: 'Anthropic',
+    responses: 'OpenAI Responses',
+    llamacpp: 'llama.cpp',
+    gemini: 'Google Gemini',
+  },
+  sandbox: {
+    passthrough: '完全放行',
+    policy: '策略拦截',
+    restricted: '严格限制',
+    'windows-native': 'Windows 原生隔离',
+    landlock: 'Landlock',
+    seatbelt: 'Seatbelt',
+    bwrap: 'bwrap',
+    unshare: 'unshare',
+    'wsl-bwrap': 'WSL bwrap',
+    container: '容器',
+  },
+  elevatedSandbox: { passthrough: '完全放行', policy: '策略拦截', restricted: '严格限制' },
+  storageAdapter: { memory: '内存（重启丢）', jsonl: 'JSONL', sqlite: 'SQLite' },
+  costBudgetOnExceed: { fail: '中止回合', warn: '仅提示' },
+  approval: {
+    auto: '全部放行',
+    deny: '全部拒绝',
+    rules: '按规则',
+    guardian: '守护裁决',
+    ask: '每次询问',
+    plan: '只读规划',
+  },
+  escalation: { deny: '拒绝提权', ask: '询问', auto: '自动提权' },
+  reasoning: { none: '无', minimal: '最低', low: '低', medium: '中', high: '高', xhigh: '极高', max: '最高' },
+  'retrievalContext.mode': { off: '关闭', bm25: 'BM25 检索' },
+  'retrievalContext.rewriter': { off: '关闭', model: '模型' },
+  'retrievalContext.rerank': { off: '关闭', model: '模型' },
+  'semanticRecall.mode': { off: '关闭', on: '开启' },
+  'capflow.mode': { off: '关闭', shadow: '只留证（放行）', enforce: '生效（拒绝）' },
+};
+
+/**
+ * 未设置时**实际生效**的内核出厂值（仅展示；提交空值仍表示「用默认」）。
+ *
+ * 与 `CliDefaults` / 内核出厂值同步：只收 UI 可解释的少数键，不猜测未知默认。
+ */
+export const DEFAULT_LABELS: Readonly<Record<string, string>> = {
+  storageAdapter: 'JSONL',
+  sandbox: '策略拦截',
+  elevatedSandbox: '策略拦截',
+  approval: '按规则',
+  escalation: '拒绝提权',
+  costBudgetOnExceed: '中止回合',
+  'retrievalContext.mode': '关闭',
+  'retrievalContext.rewriter': '关闭',
+  'retrievalContext.rerank': '关闭',
+  'semanticRecall.mode': '关闭',
+  'capflow.mode': '关闭',
+};
+
+/**
+ * 取某个下拉值的显示名（未登记时回退机读值，保证不出现空白）。
+ * @param field 字段
+ * @param value 机读值
+ * @returns 显示名（中文原文，渲染时再过 `t()`）
+ */
+export function optionLabelOf(field: SettingsField, value: string): string {
+  return OPTION_LABELS[fieldId(field)]?.[value] ?? value;
+}
+
+/**
+ * 取字段未设置时的生效值显示名（未登记返回 undefined，占位回退「未设置」）。
+ * @param field 字段
+ * @returns 生效值文案或 undefined
+ */
+export function defaultLabelOf(field: SettingsField): string | undefined {
+  return DEFAULT_LABELS[fieldId(field)];
+}
+
+/**
  * 改动后需要刷新厂商目录（`model.catalog`）的键：
  * 模型下拉与厂商标题随之刷新，否则 UI 与生效配置会漂移一屏。
  */
@@ -521,6 +606,8 @@ export interface SettingsSnapshot {
   activePlugins: string;
   /** 「已保存」提示文案（空串＝不显示）。 */
   savedHint: string;
+  /** 最近一次保存成功的字段 id（`fieldId`；空串＝无）——行级「已保存」用小徽标。 */
+  savedField: string;
   /** 是否正在保存（用于按钮 disabled 与提示）。 */
   saving: boolean;
   /** 最近一次错误文案（空串＝无）。 */
@@ -575,6 +662,7 @@ export class SettingsModel {
     profiles: [],
     activePlugins: '',
     savedHint: '',
+    savedField: '',
     saving: false,
     error: '',
     loadError: '',
@@ -688,13 +776,14 @@ export class SettingsModel {
    * 失败语义（判据见 configWiring.test.ts 第 4 条）：**只提示错误，不重拉配置**——
    * 失败后重拉会把表单回填成服务端旧值，用户会以为"改动生效了但又变回去了"（假刷新）。
    * @param patch 配置补丁
+   * @param savedField 本次保存对应的字段 id（行级「已保存」徽标用；可缺省）
    * @returns 异步完成
    */
-  public async save(patch: Record<string, unknown>): Promise<void> {
+  public async save(patch: Record<string, unknown>, savedField?: string): Promise<void> {
     this.set({ saving: true, error: '' });
     try {
       await this.deps.updateConfig(patch);
-      this.flashSaved(t('已保存'));
+      this.flashSaved(t('已保存'), savedField);
       await this.reload();
       if (Object.keys(patch).some((k) => CATALOG_KEYS.includes(k))) this.deps.refreshModelCatalog?.();
     } catch (e) {
@@ -727,34 +816,35 @@ export class SettingsModel {
       await this.saveSectionField(field, raw);
       return;
     }
+    const id = fieldId(field);
     if (field.kind === 'switch') {
-      await this.save({ [field.key]: raw === true });
+      await this.save({ [field.key]: raw === true }, id);
       return;
     }
     if (field.kind === 'number') {
       const n = this.numberForSave(field, raw);
       if (n === 'invalid') return;
-      await this.save({ [field.key]: n === 'empty' ? null : n });
+      await this.save({ [field.key]: n === 'empty' ? null : n }, id);
       return;
     }
     const v = String(raw).trim();
     if (field.key === 'baseUrl') {
       this.set({ baseUrl: v });
-      await this.save(v ? { baseUrl: v } : { baseUrl: null });
+      await this.save(v ? { baseUrl: v } : { baseUrl: null }, id);
       return;
     }
     if (field.key === 'model') {
-      await this.save(v ? { model: v } : { model: undefined });
+      await this.save(v ? { model: v } : { model: undefined }, id);
       return;
     }
     // clearWhenEmpty 通用化（2026-11-14 review P1-1）：声明了该标记的文本字段留空 =
     // 显式清除覆盖（发 null，服务端删除键），而不是把空串原样落盘——内核消费侧
     // （storageDir/keyFile 等）`??` 不回落空串，空串会让运行时往空路径里撞。
     if (field.clearWhenEmpty === true) {
-      await this.save(v ? { [field.key]: v } : { [field.key]: null });
+      await this.save(v ? { [field.key]: v } : { [field.key]: null }, id);
       return;
     }
-    await this.save({ [field.key]: v });
+    await this.save({ [field.key]: v }, id);
   }
 
   /**
@@ -781,7 +871,7 @@ export class SettingsModel {
       value = v === '' ? undefined : v;
     }
     const next = SettingsModel.withPath(this.sectionOf(String(field.key)), path, value);
-    await this.save({ [field.key]: Object.keys(next).length === 0 ? null : next });
+    await this.save({ [field.key]: Object.keys(next).length === 0 ? null : next }, fieldId(field));
   }
 
   /**
@@ -944,15 +1034,16 @@ export class SettingsModel {
   /**
    * 闪现「已保存」并在 SAVED_HINT_MS 后自动消隐（重入时重置计时）。
    * @param text 提示文案
+   * @param field 本次保存的字段 id（行级徽标；可缺省）
    * @returns 无
    */
-  private flashSaved(text: string): void {
+  private flashSaved(text: string, field?: string): void {
     if (this.disposed) return;
-    this.set({ savedHint: text });
+    this.set({ savedHint: text, savedField: field ?? '' });
     if (this.hintTimer !== null) clearTimeout(this.hintTimer);
     this.hintTimer = setTimeout(() => {
       this.hintTimer = null;
-      this.set({ savedHint: '' });
+      this.set({ savedHint: '', savedField: '' });
     }, SAVED_HINT_MS);
   }
 

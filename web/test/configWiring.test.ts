@@ -103,6 +103,11 @@ test('① 适配器改动：落盘后重拉配置并刷新厂商目录', async (
   assert.strictEqual(calls.getConfig, 2, '首拉 1 次 + 保存后重拉 1 次');
   assert.strictEqual(calls.catalog, 1, '命中 modelAdapter 必须刷新厂商目录（模型下拉即时同步）');
   assert.strictEqual(model.valueOf('modelAdapter'), 'anthropic', '重拉结果必须落回快照');
+  assert.strictEqual(
+    model.getSnapshot().savedField,
+    'modelAdapter',
+    '保存成功后必须记下字段 id，供行级「已保存」徽标使用',
+  );
   model.dispose();
 });
 

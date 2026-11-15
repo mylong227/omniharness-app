@@ -25,6 +25,8 @@ export interface TurnSummaryCardProps {
   events: readonly ThreadEvent[];
   /** 在右侧面板打开文件；返回 false 表示文件已不存在，行会被移除。 */
   onOpenFile?: (path: string) => Promise<boolean> | boolean | void;
+  /** 只检查文件是否存在（不打开文件）；用于自动过滤「写过又删除」的临时产物。 */
+  onCheckFile?: (path: string) => Promise<boolean> | boolean;
 }
 
 /** 展示顺序：修改在前、新建在后（用户口径），组内按路径稳定排序。 */
@@ -332,11 +334,45 @@ function countsOf(files: readonly TurnSummaryFile[]): {
  * @returns 结果卡节点；本轮没有任何文件时返回 null
  */
 export function TurnSummaryCard(props: TurnSummaryCardProps): ReactElement | null {
-  const { events, onOpenFile } = props;
+  const { events, onOpenFile, onCheckFile } = props;
   const summary = React.useMemo(() => buildTurnSummary(events), [events]);
   const rawDiff = React.useMemo(() => rawDiffOf(events), [events]);
   // 旧 turn_diff 可能仍列着生成后又被删除的临时文件；打开失败（false）时把它从卡里摘掉。
   const [missing, setMissing] = React.useState<ReadonlySet<string>>(() => new Set());
+
+  // 主动核对「本轮新建」行：临时脚本/探针常在本轮内被删除，写回执或未净化的
+  // turn_diff 却仍证明「写过」；挂载时查一次存在性，不存在就自动从卡里摘掉，
+  // 用户不必逐行点击才发现。只查 created 组——修改组的行即使后来被删，
+  // 仍是本轮发生过的事实，保留可点开核对。
+  React.useEffect(() => {
+    if (onCheckFile === undefined) return;
+    const targets = summary.files.filter((f) => f.group === 'created').map((f) => f.path);
+    if (targets.length === 0) return;
+    let cancelled = false;
+    void (async () => {
+      const checked = await Promise.all(
+        targets.map(async (path) => {
+          try {
+            return { path, exists: await Promise.resolve(onCheckFile(path)) };
+          } catch {
+            // fail-open：查询失败不摘行（宁可多列，也不误删真实交付物）。
+            return { path, exists: true };
+          }
+        }),
+      );
+      if (cancelled) return;
+      const gone = checked.filter((item) => !item.exists).map((item) => item.path);
+      if (gone.length === 0) return;
+      setMissing((prev) => {
+        const next = new Set(prev);
+        for (const path of gone) next.add(path);
+        return next;
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [summary, onCheckFile]);
   const visibleFiles = summary.files.filter((f) => !missing.has(f.path));
   const openFile = async (path: string): Promise<boolean> => {
     let ok: boolean | void;

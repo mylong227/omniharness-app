@@ -553,8 +553,10 @@ function streamViewElement(
     composerSeed: s.composerSeed,
     // 队列模式：排队消息坞（空队列时组件自身不渲染任何东西）。
     queue: chatQueueViewOf(ctrl, s),
+    onOpenSettings: () => ctrl.settings.open('general'),
     onEventClick: ctrl.sessions.showDetail,
     onOpenFile: ctrl.files.openFile,
+    onCheckFile: ctrl.files.exists,
     // 助手消息里的回环 URL（dev server 地址）可一键进右栏网页标签。
     onOpenUrl: ctrl.browser.open,
     onSend: ctrl.composer.send,

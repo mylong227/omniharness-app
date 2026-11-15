@@ -172,7 +172,8 @@ test('真机：审批模式下拉含内核全部 6 档（deny/guardian/plan 补�
         return (o.textContent || '').trim();
       });
     })()`)) as string[];
-    for (const need of ['auto', 'deny', 'rules', 'guardian', 'ask', 'plan']) {
+    // 2026-11-15：下拉显示名已本地化（机读值 auto/deny/... 仍原样提交）。
+    for (const need of ['全部放行', '全部拒绝', '按规则', '守护裁决', '每次询问', '只读规划']) {
       assert.ok(opts.includes(need), `审批模式下拉缺「${need}」档`);
     }
   } finally {

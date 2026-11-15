@@ -43,6 +43,22 @@ export class WorkspaceTree {
   }
 
   /**
+   * 判断工作区内某个路径当前是否是存在的普通文件（只读、无副作用）。
+   *
+   * 用途：回合结果卡的 artifact-only 行来自写工具回执；若文件在本轮后续被删除
+   * （临时脚本/探针），回执仍会把它算成「新建」。这里给 UI 一个不打开文件就能核对
+   * 是否仍存在的最小读接口。
+   * @param params `{ path: string }`（工作区相对路径）
+   * @returns `{ exists: boolean }`；越界/目录/不存在均为 false（fail-closed）
+   */
+  public exists(params: Record<string, unknown>): unknown {
+    const rel = typeof params['path'] === 'string' ? params['path'] : '';
+    if (rel === '') return { exists: false };
+    const r = SafeFs.safeStat(this.workspaceRoot(), rel);
+    return { exists: r.ok && r.isFile };
+  }
+
+  /**
    * 读取工作区内文件内容（供 UI DiffBlock/代码视图；防目录穿越 + 二进制/超长截断）。
    * @param params `{ path?: string; maxBytes?: number }`，maxBytes 缺省 200000
    * @returns `{ path, size, isBinary, truncated, content }`

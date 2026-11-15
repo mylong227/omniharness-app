@@ -90,6 +90,23 @@ export class FileController {
   }
 
   /**
+   * 只检查文件是否存在（不打开、不提示）。
+   *
+   * 回合结果卡用它自动筛掉「写回执说新建、随后又被删除」的临时产物。
+   * **失败打开（fail-open）**：网络/服务异常时返回 true（保留行），宁可多列一行，
+   * 也不把真实交付物误删。
+   * @param path 工作区相对路径
+   * @returns 存在为 true；服务端明确不存在为 false；异常为 true
+   */
+  public async exists(path: string): Promise<boolean> {
+    try {
+      return await this.services.api.fileExists(path);
+    } catch {
+      return true;
+    }
+  }
+
+  /**
    * 切换到已打开文件中的某一个（代码查看器标签页点击；不重新读盘）。
    * @param title 文件路径（即 FileView.title）
    * @returns 无

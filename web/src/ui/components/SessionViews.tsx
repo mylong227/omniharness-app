@@ -418,16 +418,18 @@ export function renderGroupsView(ctx: ListCtx, now: number = Date.now()): ReactE
         const rest = g.items.length - shown.length;
         return (
           <div className="ws-group" key={g.key}>
-            <div
+            <button
+              type="button"
               className="ws-head"
               title={g.key === '__early__' ? t('升级前的历史会话未记录所属项目') : g.key}
+              aria-expanded={!isCollapsed}
               onClick={() => ctx.onToggleGroup(g.key, isCollapsed)}
             >
               <span className="ws-caret">{isCollapsed ? '▸' : '▾'}</span>
               <span>{icon(g.key === WorkspacePath.normalize(ctx.wsPath) ? 'check' : g.key === PINNED_KEY ? 'pin' : 'folder', { size: 12 })}</span>
               <span className="ws-name">{t(g.name)}</span>
               <span className="ws-count">{g.items.length}</span>
-            </div>
+            </button>
             {isCollapsed ? null : (
               <div className="ws-list">
                 {shown.map((s) => (
@@ -503,11 +505,16 @@ export function renderTimeGroupsView(ctx: ListCtx, now: number = Date.now()): Re
         const rest = g.items.length - shown.length;
         return (
           <div className="ws-group" key={key}>
-            <div className="ws-head" onClick={() => ctx.onToggleGroup(key, isCollapsed)}>
+            <button
+              type="button"
+              className="ws-head"
+              aria-expanded={!isCollapsed}
+              onClick={() => ctx.onToggleGroup(key, isCollapsed)}
+            >
               <span className="ws-caret">{isCollapsed ? '▸' : '▾'}</span>
               <span className="ws-name">{t(g.name)}</span>
               <span className="ws-count">{g.items.length}</span>
-            </div>
+            </button>
             {isCollapsed ? null : (
               <div className="ws-list">
                 {shown.map((s) => (

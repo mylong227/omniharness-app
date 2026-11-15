@@ -149,6 +149,9 @@ function injectedBody() {
     "    'sessions.list': { dir:'', sessions: [] },",
     "    'workspace.list': { current:'', workspaces: [] },",
     "    'fs.list': { tree: [] },",
+    // 回合结果卡挂载时会核对 created 行是否仍存在；夹具里的文件都是"假写入"，
+    // 默认视为存在，否则所有结果卡用例都会被自动过滤成空卡。
+    "    'fs.exists': { exists: true },",
     "    'approval.tiers': { tiers: [] },",
     "    'changes.list': { files: [] },",
     "    'usage.stats': { source:'live', dir:'', byModel:{}, total:{calls:0,prompt:0,completion:0,total:0}, sessions:[] },",

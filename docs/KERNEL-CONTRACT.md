@@ -5,7 +5,7 @@
 > `npm run kernel:check` 第 7 条强制单点、第 8 条拒绝生成物漂移、第 9 条拒绝「已承诺能力的同名副本」）；
 > 内核切片清掉、app 仍需要的能力收留于 **`src/host/extensions/`**（app 自有扩展层，原 `kernel-compat/`，
 > M27 兼容层清零后更名；归属契约见[其 README](../src/host/extensions/README.md)）。
-> 后端 RPC 面由 **18 个域模块声明式注册**（109 方法，parity 快照钉住；2026-11-15 增 `kernel.health`）。
+> 后端 RPC 面由 **18 个域模块声明式注册**（110 方法，parity 快照钉住；2026-11-15 增 `kernel.health` 与 `fs.exists`）。
 >
 > **2026-11-15 内核同步（alpha.22）**：应用侧深度适配三项落进内核——`FileConfig` 的
 > `toolCache`/`capflow` 文件面、子代理父子树 `SubagentTree` 注入、压缩 `audit`/`signals`
@@ -150,4 +150,5 @@ M22–M31 的每一轮内核升级都走的这条回路，常态业务代码零�
 | `npm run web:test` | ✅ 180 文件 / 828 用例（web 772 + 后端 56；含 parity/守卫/家具/golden/影子扫描） |
 | `npm run desktop:build` + `desktop:test` | ✅ 36/36 |
 | 嵌入 API 实测 | ✅ `createOmniHarness` 启动 / healthz 200 / RPC 往返 / 优雅关闭（tests/embedApi.test.ts 常规跑） |
+
 

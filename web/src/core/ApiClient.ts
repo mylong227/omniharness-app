@@ -627,6 +627,18 @@ export class ApiClient {
     return this.rpc('fs.read', { path });
   }
 
+  /**
+   * 判断工作区文件当前是否存在（只读，不读取正文）。
+   *
+   * 回合结果卡用它过滤「本轮写过、随后又被删除」的临时产物（写回执不能证明文件还在）。
+   * @param path 工作区相对路径
+   * @returns 存在的普通文件为 true；越界/目录/不存在为 false
+   */
+  public async fileExists(path: string): Promise<boolean> {
+    const r = await this.rpc<{ exists?: boolean }>('fs.exists', { path });
+    return r.exists === true;
+  }
+
   // ---- 插件 / 技能 ----
   public listPlugins(): Promise<PluginManifest[]> {
     return this.rpc('plugins.list', {});

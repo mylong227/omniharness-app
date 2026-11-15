@@ -27,6 +27,8 @@
 // 可断言信号：根节点 data-virtual / data-rendered-count / data-total-count / data-event-count。
 
 import * as React from 'react';
+import { icon } from '../models/Icon.ts';
+import { t } from '../i18n/i18n.ts';
 import { ChatHeader } from './ChatHeader.tsx';
 import type { ChatViewKind } from './ChatHeader.tsx';
 import { TraceView } from './TraceView.tsx';
@@ -84,9 +86,13 @@ export interface StreamViewProps {
   composerSeed?: ComposerSeed | null;
   /** 队列模式的排队消息坞（2026-10-31）：空队列时 Composer 不渲染任何东西。 */
   queue?: ChatQueueView;
+  /** 打开设置（移动端顶栏入口；桌面走左栏页脚）。 */
+  onOpenSettings?: () => void;
   onEventClick: (ev: ThreadEvent) => void;
   /** 点击助手回复中的文件路径链接时，在右侧文件面板打开（而不是跳外链）。 */
   onOpenFile?: (path: string) => Promise<boolean> | boolean | void;
+  /** 只查文件是否存在（回合结果卡过滤已删除的临时产物）。 */
+  onCheckFile?: (path: string) => Promise<boolean> | boolean;
   /**
    * 在右栏网页标签打开一个地址（助手消息里的本地 dev server URL / 预览链接）。
    * 只对回环地址显示入口（见 ExternalLinkCards）。
@@ -220,6 +226,19 @@ function renderEventNode(ev: ThreadEvent, ctx: EventCtx): React.ReactElement | n
   const node = (inner: React.ReactElement): React.ReactElement => (
     <div className={'ev clickable ' + ev.type} key={ev.id} onClick={() => ctx.onEventClick(ev)}>
       {inner}
+      {/* 卡片点击是鼠标捷径；键盘用户需要一个真实按钮才能打开详情（2026-11-15 可达性）。 */}
+      <button
+        type="button"
+        className="ev-open"
+        aria-label={t('查看事件详情')}
+        title={t('查看事件详情')}
+        onClick={(e: React.MouseEvent) => {
+          e.stopPropagation();
+          ctx.onEventClick(ev);
+        }}
+      >
+        {icon('ellipsis', { size: 14 })}
+      </button>
     </div>
   );
 
@@ -319,6 +338,7 @@ function renderBlockNode(b: DisplayBlock, ctx: EventCtx): React.ReactElement | n
         key={b.key}
         events={b.events}
         onOpenFile={ctx.onOpenFile}
+        onCheckFile={ctx.onCheckFile}
       />
     );
   }
@@ -622,6 +642,7 @@ function buildEventCtx(props: StreamViewProps, model: StreamModel, clusterFresh:
     toolResults: props.toolResults,
     onEventClick: props.onEventClick,
     onOpenFile: props.onOpenFile,
+    onCheckFile: props.onCheckFile,
     onOpenUrl: props.onOpenUrl,
     busy: props.busy,
     lastUserId: model.lastUserId,
@@ -685,6 +706,7 @@ export function StreamView(props: StreamViewProps): React.ReactElement {
         view={view}
         onView={setView}
         onToggleLeft={props.onToggleLeft}
+        onOpenSettings={props.onOpenSettings}
         onToggleRight={props.onToggleRight}
         rightCollapsed={props.rightCollapsed}
         focusMode={props.focusMode}

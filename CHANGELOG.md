@@ -6,6 +6,22 @@
 ## [Unreleased]
 
 ### Added（新增）
+- **回合结果卡自动剔除「写过又删除」的临时文件（2026-11-15，用户截图反馈）**：
+  结果卡挂载时通过新增的 `fs.exists` 只读 RPC 核对本轮 **created** 行；文件已不存在
+  （临时脚本/探针在回合内自删）即自动从卡里摘掉，不再需要用户逐行点击才发现。
+  查询失败 fail-open（保留行，绝不误删真实交付物）；`fs.exists` 走
+  `SafeFs.safeStat`，越界/目录/不存在一律 false。判据
+  `web/test/turnSummaryFilter.test.tsx`（2 条）、`tests/workspaceTreeExists.test.ts`。
+- **体验打磨第二批（2026-11-15，基于全量 UX 审计）**：
+  ① **配置可读性**：设置下拉显示名表（`openai`→「OpenAI 兼容」、`policy`→「策略拦截」、
+  `max`→「最高」…，机读值不变），未设置项回显已知出厂值「未设置（默认：JSONL/策略拦截…）」；
+  ② **轨迹检索**：读/写/命令/搜索/失败/进行中筛选 chips + 文本搜索 + 轮次分隔，过滤算术下沉
+  `TraceFilter`（`web/test/traceFilter.test.ts` 4 条）；
+  ③ **设置搜索/跳转**：左栏字段级搜索（索引与 `SETTINGS_FIELDS` 同源），选中后切分栏、滚到行并高亮；
+  ④ **键盘可达**：会话时间分组头改 `button`（`aria-expanded`）、事件卡新增 `ev-open` 详情按钮、
+  移动端顶栏新增设置入口；⑤ **保存反馈**：保存成功后字段行级「已保存」徽标；
+  ⑥ 模型芯片 `title` 改为完整「模型 · 厂商」。
+  判据：`settingsPane`（显示名/默认值）、`configWiring`（savedField）、`traceFilter`、`uxPolish`。
 - **聊天流收纳审计与未知事件（2026-11-15，用户截图反馈）**：每轮 `audit` 事件不再逐条
   渲染成 JSON 卡，统一收进末尾**一条默认折叠**的「审计记录 × N」摘要（展开看逐条
   heartbeat/approval/decision 负载）；未知事件兜底也从常开 JSON 改为默认折叠。
@@ -30,7 +46,7 @@
   「审计通过/有缺失」与触发信号，未记录审计仍如实告警。
   内核侧 `v0.1.0-alpha.21` tag 含 11 条新判据（压缩证据 4 / 父子树 3 / 配置段 4）；
   本仓验证：`kernel:check` 九条（284 源文件 / 290 导入）、typecheck×3、
-  web 204 文件 / 941 用例、build/build:web、smoke 9 条、desktop 41 条全过。
+  web 208 文件 / 955 用例、build/build:web、smoke 9 条、desktop 41 条全过。
 - **修复上下文三段配置通道断链（2026-11-15）**：alpha.19 批次里 `retrievalContext`/`semanticRecall`/
   `contextPolicy` 能经设置页落盘，但 `ArgParser.configDefaults` → `CliArgs` → `CliConfigSections`
   → `ConfigFactory.build` 从未映射 ⇒ CLI/serve 启动时内核收到 undefined、行为静默回落到 off。
@@ -367,3 +383,4 @@
 
 - 从上游 OmniHarness@0.4.0 切出独立应用仓（后端宿主 + React 工作台 + Electron 桌面端）。
 - 完成内核包迁移（M2）：消费 vendored `@omniharness/kernel@0.1.0-alpha.4`，删除 1163 个内嵌内核文件。
+

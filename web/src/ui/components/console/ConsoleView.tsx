@@ -45,6 +45,12 @@ import {
 } from '../../models/ConsoleRegistry.ts';
 import { panelScopeOf } from '../../models/PanelScope.ts';
 import { SettingsSurface, type SettingsSurfaceProps } from './SettingsSurface.tsx';
+import {
+  SETTINGS_FIELDS,
+  SETTINGS_TABS,
+  fieldId,
+  type SettingsTabKey,
+} from '../../models/SettingsModel.ts';
 import { BrandMark } from '../BrandMark.tsx';
 
 /** 关闭键。 */
@@ -229,6 +235,137 @@ function useConsoleFocus(
 }
 
 /**
+ * 自定义渲染的设置项（不进 `SETTINGS_FIELDS`，但用户会搜）：
+ * 只负责把搜索落到分栏；没有字段锚点（id 空串）时不强行滚动。
+ */
+const SETTING_SEARCH_EXTRA: readonly {
+  readonly id: string;
+  readonly label: string;
+  readonly hint: string;
+  readonly tab: SettingsTabKey;
+}[] = [
+  { id: '', label: '界面语言', hint: '中文 / English', tab: 'general' },
+  { id: '', label: '主题模式', hint: '跟随系统 / 深色 / 浅色', tab: 'general' },
+  { id: '', label: '主题色', hint: '靛墨 / 苔青 / 绛紫 / 琥珀 / 玫红 / 石墨', tab: 'general' },
+  { id: '', label: '会话栏宽度', hint: '左栏宽度（拖动分隔条同源）', tab: 'general' },
+  { id: '', label: '右侧面板宽度', hint: '右栏宽度（拖动分隔条同源）', tab: 'general' },
+  { id: '', label: '厂商接入', hint: '厂商 Key / 端点 / 当前使用', tab: 'model' },
+  { id: '', label: '桌面桥', hint: '托盘 / 开机启动 / 更新', tab: 'desktop' },
+  { id: '', label: '键盘快捷键', hint: '快捷键一览', tab: 'shortcuts' },
+];
+
+/** 设置搜索索引（字段 + 自定义项；字段有 `data-field-id` 锚点）。 */
+const SETTING_SEARCH_INDEX = [
+  ...SETTINGS_FIELDS.map((field) => ({
+    id: fieldId(field),
+    label: field.label,
+    hint: field.hint ?? '',
+    tab: field.tab,
+    tabLabel: SETTINGS_TABS.find((tab) => tab.key === field.tab)?.label ?? field.tab,
+  })),
+  ...SETTING_SEARCH_EXTRA.map((item) => ({
+    ...item,
+    tabLabel: SETTINGS_TABS.find((tab) => tab.key === item.tab)?.label ?? item.tab,
+  })),
+];
+
+/**
+ * 设置搜索：按字段名/说明检索并跳转，跳转后滚动到行并短暂高亮。
+ *
+ * 为什么不搜导航项：导航只有 13 项，肉眼可扫；真正难找的是「运行时 → 成本预算」
+ * 这种三级位置。字段索引与 `SETTINGS_FIELDS` 同源，新增字段自动可搜。
+ * @param props pick 切换控制台条目；contentRef 右侧滚动容器
+ * @returns 搜索框与结果列表
+ */
+function SettingsSearchBox(props: {
+  pick: (key: string) => void;
+  contentRef: React.RefObject<HTMLDivElement | null>;
+}): ReactElement {
+  const { pick, contentRef } = props;
+  const [query, setQuery] = React.useState('');
+  const q = query.trim().toLowerCase();
+  const hits =
+    q === ''
+      ? []
+      : SETTING_SEARCH_INDEX.filter((item) => {
+          // 中英双语命中：原文 + 当前语言的译文（英文界面输入 cost 也能搜到「成本预算」）。
+          const hay = [
+            item.label,
+            item.hint,
+            item.tabLabel,
+            t(item.label),
+            t(item.hint),
+            t(item.tabLabel),
+          ]
+            .join(' ')
+            .toLowerCase();
+          return hay.includes(q);
+        }).slice(0, 8);
+  /**
+   * 跳转并定位字段行。
+   * @param tab 目标分栏
+   * @param id 字段 id
+   * @returns 无
+   */
+  const jump = (tab: SettingsTabKey, id: string): void => {
+    pick(tab);
+    setQuery('');
+    if (id === '') return;
+    // 两帧后内容已挂载：滚到行 + 高亮（纯视觉，不改表单状态）。
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = contentRef.current?.querySelector<HTMLElement>(
+          `[data-field-id="${CSS.escape(id)}"]`,
+        );
+        if (el === null || el === undefined) return;
+        el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        el.classList.add('csl-row--flash');
+        window.setTimeout(() => el.classList.remove('csl-row--flash'), 1600);
+      });
+    });
+  };
+  return (
+    <div className="csl-search">
+      <input
+        type="search"
+        className="csl-search-input"
+        placeholder={t('搜索设置项…')}
+        aria-label={t('搜索设置项')}
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+          if (e.key === 'Enter' && hits[0] !== undefined) {
+            e.preventDefault();
+            jump(hits[0].tab, hits[0].id);
+          } else if (e.key === 'Escape') {
+            setQuery('');
+          }
+        }}
+      />
+      {q === '' ? null : (
+        <div className="csl-search-results">
+          {hits.length === 0 ? (
+            <div className="csl-search-empty">{t('没有匹配的设置项')}</div>
+          ) : (
+            hits.map((hit) => (
+              <button
+                key={hit.tab + ':' + hit.id + ':' + hit.label}
+                type="button"
+                className="csl-search-hit"
+                onClick={() => jump(hit.tab, hit.id)}
+              >
+                <span className="csl-search-hit-label">{t(hit.label)}</span>
+                <span className="csl-search-hit-tab">{t(hit.tabLabel)}</span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * 左栏导航侧栏：品牌、返回、菜单与工作区/连接页脚。
  * @param props entry 当前条目；navItems 菜单项；navRef 导航容器；pick 选条目；onClose 关控制台；
  *   setNavOpen 收起移动端抽屉；workspacePath 工作区路径；connState 连接三态
@@ -243,8 +380,10 @@ function consoleNavAside(props: {
   setNavOpen: (next: boolean) => void;
   workspacePath: string;
   connState: 'open' | 'connecting' | 'closed';
+  contentRef: React.RefObject<HTMLDivElement | null>;
 }): ReactElement {
-  const { entry, navItems, navRef, pick, onClose, setNavOpen, workspacePath, connState } = props;
+  const { entry, navItems, navRef, pick, onClose, setNavOpen, workspacePath, connState, contentRef } =
+    props;
   return (
     <aside className="sp-nav csl-rail">
       <div className="csl-brand">
@@ -271,6 +410,8 @@ function consoleNavAside(props: {
       >
         {t('返回工作区')}
       </Button>
+
+      <SettingsSearchBox pick={pick} contentRef={contentRef} />
 
       <nav className="csl-nav" aria-label={t('控制台导航')} ref={navRef}>
         <Menu
@@ -453,6 +594,7 @@ function consoleShell(props: ConsoleShellProps): ReactElement {
         setNavOpen: (next: boolean) => setNavOpen(next),
         workspacePath,
         connState,
+        contentRef,
       })}
 
       <div className="csl-main">

@@ -13,7 +13,7 @@
 
 | 目录 | 内容 | 规模 |
 | ---- | ---- | ---- |
-| `src/` | **后端宿主**：HTTP/SSE、JSON-RPC（109 方法，18 个域模块声明式注册）、会话存储、审批/沙箱、插件宿主、CLI、MCP/ACP/AG-UI | `src/apps` + `src/host/kernel/`（19 域对接面）+ `src/host/extensions/`（app 自有扩展层） |
+| `src/` | **后端宿主**：HTTP/SSE、JSON-RPC（110 方法，18 个域模块声明式注册）、会话存储、审批/沙箱、插件宿主、CLI、MCP/ACP/AG-UI | `src/apps` + `src/host/kernel/`（19 域对接面）+ `src/host/extensions/`（app 自有扩展层） |
 | `web/` | **前端**：React 19 工作台（会话/工具/计划/变更/设置/审计/插件…） | 268 个源文件 + 158 个判据文件 / 772 用例（后端 22 文件 56 用例另计，合计 180 文件 / 828 用例） |
 | `desktop/` | **桌面端**：Electron 主进程 + preload（窗口/托盘/菜单/更新/侧车监督） | 32 个源文件，38 条纯逻辑判据 |
 
@@ -24,7 +24,7 @@ Electron main（受信） ──spawn──▶ node dist/src/apps/cli/exec.js se
         │                              │  HTTP+SSE 127.0.0.1:<port>（Bearer + HttpOnly Cookie）
         └── BrowserWindow ──load──▶ http://127.0.0.1:<port>/?token=…
                                        ├─ GET  /            → web/dist（Vite 产物）
-                                       ├─ POST /rpc         → JSON-RPC 2.0（109 个方法）
+                                       ├─ POST /rpc         → JSON-RPC 2.0（110 个方法）
                                        ├─ GET  /events      → SSE 事件流
                                        ├─ GET  /files       → 工作区文件
                                        └─ GET  /healthz     → 运行时自述（含 previewPort）
@@ -144,7 +144,7 @@ package.json 钉定 vendor/omniharness-kernel-0.1.0-alpha.22.tgz
 src/host/kernel/<域>.ts —— 19 个自动生成的分域 re-export，无实现
       │  （kernel:surface 生成，第 8 条拒绝漂移、第 9 条拒绝已承诺能力的同名副本；
       │   分域而非单文件桶，避免 CLI 冷启动 ~700ms 税）
-      ├─▶ src/apps/**             宿主：18 个 RPC 域模块（109 方法）+ CLI + 嵌入 API
+      ├─▶ src/apps/**             宿主：18 个 RPC 域模块（110 方法）+ CLI + 嵌入 API
       └─▶ src/host/extensions/**  app 自有扩展层：Laya 决策引擎 / CLI worker / doctor /
                                  图存储 / web 广播…（同样禁止直接 import 内核包名）
 ```
@@ -160,7 +160,7 @@ src/host/kernel/<域>.ts —— 19 个自动生成的分域 re-export，无实�
   共 5 件迁回对接面后，内核**已承诺**能力的同名副本为 **0**（门禁第 9 条把守）。
   归属契约见[其 README](src/host/extensions/README.md)：
   app 自有、随 app 演进、不得反向要求内核兼容。
-- **109 个 RPC 方法**由 `src/apps/server/modules/` 的 18 个域模块声明式注册
+- **110 个 RPC 方法**由 `src/apps/server/modules/` 的 18 个域模块声明式注册
   （parity 快照 `tests/serverModulesParity.test.ts` 钉住全表）；stdio 与 serve 两条组合根
   共用 `composedServerCore()` 不变量核心（历史「serve 漏接 doctor」缺陷类已结构性消灭）。
 - **原生内核随包**：内核 tarball 包含 `native/omni_napi.node`（`kernel:vendor` 注入），
@@ -195,7 +195,7 @@ src/host/kernel/<域>.ts —— 19 个自动生成的分域 re-export，无实�
 | 端到端 `npm run smoke` | ✅ 7/7（banner token、`/healthz`、`/readyz`、`/` HTML、`/rpc config.get`、`sessions.list`、原生内核实载） |
 | 桌面 `desktop:build` + `desktop:test` | ✅ 35/35（含 ipcGuards 三组 + CSP 哈希门禁） |
 | 嵌入 API 实测 | ✅ `createOmniHarness` 启动 / healthz 200 / RPC 往返 / 优雅关闭（另有自动判据 tests/embedApi.test.ts） |
-| `rpc.list` 自描述 | ✅ 一次调用返回 104~109 个方法 → 归属模块/插件（打包/嵌入形态少 5 个市场方法属正常） |
+| `rpc.list` 自描述 | ✅ 一次调用返回 105~110 个方法 → 归属模块/插件（打包/嵌入形态少 5 个市场方法属正常） |
 
 ## 8. 与上游 / 内核仓的关系
 
@@ -209,4 +209,6 @@ src/host/kernel/<域>.ts —— 19 个自动生成的分域 re-export，无实�
 ## License
 
 Apache-2.0。见 [LICENSE](LICENSE) 与 [NOTICE](NOTICE)。
+
+
 

@@ -10,8 +10,52 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 
-const { SETTINGS_FIELDS, SETTINGS_TABS, CATALOG_KEYS, SettingsModel, NUMBER_RANGES, fieldId } =
-  await import('../src/ui/models/SettingsModel.ts');
+const {
+  SETTINGS_FIELDS,
+  SETTINGS_TABS,
+  CATALOG_KEYS,
+  SettingsModel,
+  NUMBER_RANGES,
+  fieldId,
+  OPTION_LABELS,
+  DEFAULT_LABELS,
+  optionLabelOf,
+  defaultLabelOf,
+} = await import('../src/ui/models/SettingsModel.ts');
+
+test('每个下拉字段都有显示名表，且机读值不被改掉（2026-11-15 配置可读性）', () => {
+  for (const f of SETTINGS_FIELDS) {
+    if (f.kind !== 'select') continue;
+    const id = fieldId(f);
+    const labels = OPTION_LABELS[id];
+    assert.ok(labels !== undefined, `下拉 ${id} 缺 OPTION_LABELS`);
+    for (const option of f.options ?? []) {
+      assert.ok(
+        Object.prototype.hasOwnProperty.call(labels, option),
+        `下拉 ${id} 的取值 ${option} 缺显示名`,
+      );
+      assert.equal(optionLabelOf(f, option), labels[option], '显示名查询必须与表一致');
+    }
+  }
+});
+
+test('未设置时的生效值只登记已知出厂默认（沙箱/存储/审批等）', () => {
+  const field = (key: string) => SETTINGS_FIELDS.find((f) => f.key === key)!;
+  assert.equal(defaultLabelOf(field('storageAdapter')), 'JSONL');
+  assert.equal(defaultLabelOf(field('sandbox')), '策略拦截');
+  assert.equal(defaultLabelOf(field('approval')), '按规则');
+  assert.equal(defaultLabelOf(field('escalation')), '拒绝提权');
+  assert.equal(DEFAULT_LABELS['modelAdapter'], undefined, '适配器默认随启动参数，不能硬编码');
+});
+
+test('枚举显示名会翻译常见机读值（面板截图里的 openai / policy / max）', () => {
+  const byId = (id: string) => SETTINGS_FIELDS.find((f) => fieldId(f) === id)!;
+  assert.equal(optionLabelOf(byId('modelAdapter'), 'openai'), 'OpenAI 兼容');
+  assert.equal(optionLabelOf(byId('sandbox'), 'policy'), '策略拦截');
+  assert.equal(optionLabelOf(byId('reasoning'), 'max'), '最高');
+  assert.equal(optionLabelOf(byId('capflow.mode'), 'shadow'), '只留证（放行）');
+  assert.equal(optionLabelOf(byId('modelAdapter'), 'unknown'), 'unknown', '未登记回退机读值');
+});
 
 test('每个字段都归属一个已声明的分栏（不留孤儿字段）', () => {
   const keys = new Set(SETTINGS_TABS.map((t) => t.key));

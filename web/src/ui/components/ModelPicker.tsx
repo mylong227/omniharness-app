@@ -185,11 +185,7 @@ function ModelTrigger(props: {
   return (
     <div
       className="mp"
-      title={
-        providerLabel !== undefined && providerLabel !== ''
-          ? t('模型与推理强度 · {name}', { name: providerLabel })
-          : t('模型与推理强度')
-      }
+      title={`${label}${providerLabel !== undefined && providerLabel !== '' ? ' · ' + providerLabel : ''}`}
       role="button"
       aria-haspopup="listbox"
       aria-expanded={open ? 'true' : 'false'}

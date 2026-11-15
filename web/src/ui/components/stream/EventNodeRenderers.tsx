@@ -19,6 +19,8 @@ export interface EventCtx {
   toolResults: Record<string, ToolResultView>;
   onEventClick: (ev: ThreadEvent) => void;
   onOpenFile?: (path: string) => Promise<boolean> | boolean | void;
+  /** 只查文件是否存在（结果卡过滤已删除的临时产物；不打开文件）。 */
+  onCheckFile?: (path: string) => Promise<boolean> | boolean;
   /** 在右栏网页标签打开本地地址（缺省时不渲染该入口）。 */
   onOpenUrl?: (url: string) => void;
   busy?: boolean;
