@@ -56,9 +56,7 @@ export function TitlebarStrip(props: TitlebarStripProps): ReactElement | null {
             aria-label={`${t('快速提问')} ${kbd}`}
             onClick={props.onQuickCapture}
           >
-            {icon('plus', { size: 13 })}
-            <span className="tb-quick-label">{t('快速提问')}</span>
-            <kbd className="tb-quick-kbd">{kbd}</kbd>
+            {icon('plus', { size: 14 })}
           </button>
         )}
         {canControl ? (

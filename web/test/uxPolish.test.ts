@@ -17,6 +17,7 @@ const TITLEBAR = readFileSync('web/src/ui/components/TitlebarStrip.tsx', 'utf8')
 test('桌面标题条不重复品牌/项目（只留窗口操作）', () => {
   assert.doesNotMatch(TITLEBAR, /titlebar-brand|titlebar-workspace|titlebar-name/u);
   assert.doesNotMatch(TITLEBAR, />\s*OmniHarness\s*</u);
+  assert.doesNotMatch(TITLEBAR, /tb-quick-label|tb-quick-kbd/u, '快速提问收成图标，不再占一行文字');
   assert.match(TITLEBAR, /onQuickCapture/u, '快速提问仍保留');
 });
 

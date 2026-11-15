@@ -25,6 +25,9 @@ import {
 import type { ThreadEvent } from '../../types/models.ts';
 import type { LiveInput, ToolResultView } from '../shared.ts';
 
+/** 轨迹一次最多渲染的行数（长会话防千行 DOM；筛选条件变化时复位）。 */
+const TRACE_RENDER_LIMIT = 300;
+
 /** TraceView 组件的入参。 */
 export interface TraceViewProps {
   /** 会话事件（从中筛 tool_call）。 */
@@ -210,6 +213,10 @@ export function TraceView(props: TraceViewProps): ReactElement {
   const rows = React.useMemo(() => collectRows(events, toolResults), [events, toolResults]);
   const counts = React.useMemo(() => traceFilterCounts(rows), [rows]);
   const shown = React.useMemo(() => filterTraceRows(rows, filter, query), [rows, filter, query]);
+  // 长会话防一次性挂上千行 DOM：先渲染 300 行，剩余手动展开；筛选条件变化时复位。
+  const [limit, setLimit] = React.useState(TRACE_RENDER_LIMIT);
+  React.useEffect(() => setLimit(TRACE_RENDER_LIMIT), [filter, query]);
+  const visible = shown.length > limit ? shown.slice(0, limit) : shown;
   const running = rows.filter((r) => !r.done).length;
   const filtered = filter !== 'all' || query.trim() !== '';
   return (
@@ -242,7 +249,7 @@ export function TraceView(props: TraceViewProps): ReactElement {
           <div className="trace-empty">{t('没有匹配的工具调用。')}</div>
         ) : (
           <div className="trace-list">
-            <TraceRows rows={shown} showTurns={!filtered} />
+            <TraceRows rows={visible} showTurns={!filtered} />
             {liveInputs.map((li) => (
               <div className="tr-row" key={li.id}>
                 <span className="tr-ico" aria-hidden="true">
@@ -263,6 +270,15 @@ export function TraceView(props: TraceViewProps): ReactElement {
                 <span className="tr-time" aria-hidden="true"></span>
               </div>
             ))}
+            {shown.length > limit ? (
+              <button
+                type="button"
+                className="tr-more"
+                onClick={() => setLimit((prev) => prev + TRACE_RENDER_LIMIT)}
+              >
+                {t('显示剩余 {n} 条', { n: shown.length - limit })}
+              </button>
+            ) : null}
           </div>
         )}
       </div>

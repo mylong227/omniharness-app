@@ -110,6 +110,7 @@ export const EN_TABS_C: Record<string, string> = {
   搜索轨迹: 'Search trace',
   ' · 显示 {count} 条': ' · {count} shown',
   '没有匹配的工具调用。': 'No matching tool calls.',
+  '显示剩余 {n} 条': 'Show remaining {n}',
   点击展开: 'Click to expand',
   '未记录审计': 'no audit recorded',
   审计通过: 'audit passed',
