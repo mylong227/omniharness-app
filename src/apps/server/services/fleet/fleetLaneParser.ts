@@ -6,8 +6,9 @@ import type { FleetNode, FleetStatus } from './fleetSnapshot.ts';
  *
  * ## 为什么解析事件流而不是调内核编排器
  *
- * alpha.16 的 serve 路径里 `SubagentOrchestrator` 在内核 `configToolRegistry` 内部装配，
- * 应用层拿不到实例（无 childrenOf / fleet 查询口）。但派生的**可观测事实全部落回父事件流**：
+ * 内核 alpha.19 已导出 `SubagentOrchestrator`（`./kernel/subagent/subagentOrchestrator.js`），
+ * 但本应用的 serve 组合根尚未持有其实例（接线是独立改造）；当前实现仍按事件流解析。
+ * 派生的**可观测事实全部落回父事件流**：
  *  - `tool_call(name='subagent')`：派生发生（含任务原文）——此时子代理可能仍在跑；
  *  - `tool_result`：结果回传，output 首行是内核 `subagentTool.head.text.1` 渲染的
  *    `[子智能体 <id>] <步数> 步 / <毫秒>ms<状态后缀>`，writes 块带 patch 去向与诚实标记。

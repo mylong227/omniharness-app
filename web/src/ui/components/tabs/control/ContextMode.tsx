@@ -12,6 +12,7 @@ import type { ReactElement } from 'react';
 import Alert from 'antd/es/alert';
 import Button from 'antd/es/button';
 import Collapse from 'antd/es/collapse';
+import Descriptions from 'antd/es/descriptions';
 import Divider from 'antd/es/divider';
 import Flex from 'antd/es/flex';
 import Input from 'antd/es/input';
@@ -24,7 +25,12 @@ import { contextRowLabelOf } from '../../../models/KernelTextOverrides.ts';
 import { useApp } from '../../../context.ts';
 import { icon } from '../../../models/Icon.ts';
 import { timeOf } from '../../../format.ts';
-import type { CompactionMarkLike, ContextStudioSnapshotLike } from '../../../../types/models.ts';
+import type {
+  CompactionMarkLike,
+  ContextCacheStat,
+  ContextStudioSnapshotLike,
+  KernelContextViewLike,
+} from '../../../../types/models.ts';
 import { EmptyState } from '../../../kit/EmptyState.tsx';
 import { PanelSection } from '../../../kit/PanelSection.tsx';
 import { StatusTag } from '../../../kit/StatusTag.tsx';
@@ -50,7 +56,100 @@ function sourceStatusKind(source: ContextStudioSnapshotLike['report']['source'])
   return 'warn';
 }
 
-/** 上下文模式：构成 / 河流切点 / 压缩记录。 */
+/**
+ * 内核上下文是否至少有一项开着（决定徽标是「按配置启用」还是「全部关闭」）。
+ * @param kernel 内核上下文视图
+ * @returns 是否有任一开关生效
+ */
+function kernelEnabled(kernel: KernelContextViewLike): boolean {
+  const retrieval = kernel.retrievalContext;
+  const policy = kernel.contextPolicy;
+  return (
+    retrieval.mode !== 'off' ||
+    retrieval.rewriter !== 'off' ||
+    retrieval.rerank !== 'off' ||
+    kernel.semanticRecall.requested ||
+    policy.shapersAggressive ||
+    policy.compactionForce ||
+    policy.cacheGuardFloor !== undefined
+  );
+}
+
+/**
+ * 内核上下文徽标语义：语义召回降档 = 警告（不是正常），有开关 = 成功，全关 = 中性。
+ * @param kernel 内核上下文视图
+ * @returns StatusTag 语义档
+ */
+function kernelStatusKind(kernel: KernelContextViewLike): StatusKind {
+  if (kernel.semanticRecall.degraded) return 'warn';
+  return kernelEnabled(kernel) ? 'ok' : 'neutral';
+}
+
+/**
+ * 内核上下文徽标文案（与 {@link kernelStatusKind} 同源，避免色与字互相矛盾）。
+ * @param kernel 内核上下文视图
+ * @returns 徽标文案
+ */
+function kernelStatusLabel(kernel: KernelContextViewLike): string {
+  if (kernel.semanticRecall.degraded) return t('降档运行');
+  return kernelEnabled(kernel) ? t('按配置启用') : t('全部关闭');
+}
+
+/**
+ * 布尔开关 → 「开 / 关」。
+ * @param value 开关值
+ * @returns 文案
+ */
+function onOffText(value: boolean): string {
+  return value ? t('已启用') : t('未启用');
+}
+
+/**
+ * 模型开关 → 「未启用 / 模型」。
+ * @param mode 开关值
+ * @returns 文案
+ */
+function modeText(mode: 'off' | 'model'): string {
+  return mode === 'off' ? t('未启用') : t('模型');
+}
+
+/**
+ * 检索供给一行：未启用，或 BM25 + 单步预算（未配置时如实说「内核默认」）。
+ * @param retrieval 检索视图
+ * @returns 文案
+ */
+function retrievalText(retrieval: KernelContextViewLike['retrievalContext']): string {
+  if (retrieval.mode === 'off') return t('未启用');
+  const snippets =
+    retrieval.maxSnippets === undefined ? t('内核默认') : String(retrieval.maxSnippets);
+  const tokens = retrieval.maxTokens === undefined ? t('内核默认') : String(retrieval.maxTokens);
+  return t('BM25 · 单步 ≤{n} 条 / ≤{k} token', { n: snippets, k: tokens });
+}
+
+/**
+ * 语义召回一行：降档必须显式说出（不能读成「未启用」）。
+ * @param recall 语义召回视图
+ * @returns 文案
+ */
+function semanticRecallText(recall: KernelContextViewLike['semanticRecall']): string {
+  if (recall.degraded) return t('已请求，嵌入不可用（BM25 降档）');
+  if (recall.active) return t('启用（嵌入在位）');
+  return t('未启用');
+}
+
+/**
+ * 缓存守卫一行：未设下限 = 未启用；设了则带当前命中率（未上报显示「未上报」）。
+ * @param floor 命中率下限
+ * @param cache 会话缓存统计
+ * @returns 文案
+ */
+function cacheGuardText(floor: number | undefined, cache: ContextCacheStat): string {
+  if (floor === undefined) return t('未启用');
+  const rate = cache.hitRate === undefined ? t('未上报') : `${String(cache.hitRate)}%`;
+  return t('命中率下限 {floor} · 当前 {rate}', { floor: String(floor), rate });
+}
+
+/** 上下文模式：本轮构成 / 内核上下文策略 / 压缩记录 / 交接便签。 */
 export function ContextMode(props: ContextModeProps): ReactElement {
   const { snapshot, loading, error, refresh } = useContextStudio(props.threadId, props.active);
   const { api, dialog, toast } = useApp();
@@ -195,6 +294,63 @@ export function ContextMode(props: ContextModeProps): ReactElement {
         </Flex>
       </PanelSection>
 
+      <PanelSection
+        title={t('内核上下文策略')}
+        extra={
+          <StatusTag status={kernelStatusKind(snapshot.kernel)}>
+            {kernelStatusLabel(snapshot.kernel)}
+          </StatusTag>
+        }
+      >
+        <Flex vertical gap={10}>
+          <Descriptions
+            className="control-kernel-context"
+            size="small"
+            column={1}
+            colon={false}
+            items={[
+              {
+                key: 'retrieval',
+                label: t('检索供给'),
+                children: retrievalText(snapshot.kernel.retrievalContext),
+              },
+              {
+                key: 'rewrite',
+                label: t('查询改写 / 精排'),
+                children: t('改写 {rewrite} · 精排 {rerank}', {
+                  rewrite: modeText(snapshot.kernel.retrievalContext.rewriter),
+                  rerank: modeText(snapshot.kernel.retrievalContext.rerank),
+                }),
+              },
+              {
+                key: 'semantic',
+                label: t('语义召回'),
+                children: semanticRecallText(snapshot.kernel.semanticRecall),
+              },
+              {
+                key: 'ladder',
+                label: t('降档阶梯'),
+                children: t('激进裁剪 {a} · 强制压缩 {b}', {
+                  a: onOffText(snapshot.kernel.contextPolicy.shapersAggressive),
+                  b: onOffText(snapshot.kernel.contextPolicy.compactionForce),
+                }),
+              },
+              {
+                key: 'guard',
+                label: t('缓存守卫'),
+                children: cacheGuardText(
+                  snapshot.kernel.contextPolicy.cacheGuardFloor,
+                  report.cache,
+                ),
+              },
+            ]}
+          />
+          <Typography.Text type="secondary">
+            {t('以上是内核 alpha.19 上下文三段的生效值；入口在「设置 → 运行时 → 上下文与检索」。')}
+          </Typography.Text>
+        </Flex>
+      </PanelSection>
+
       <PanelSection title={t('压缩切点')}>
         {snapshot.compactions.length === 0 ? (
           <Typography.Text type="secondary">
@@ -284,7 +440,31 @@ interface CompactionLabelProps {
   readonly mark: CompactionMarkLike;
 }
 
-/** 一条压缩记录的标题行：轮次 / 时间 / 折叠范围 + 审计徽标。 */
+/**
+ * 压缩审计徽标语义：无证据 = 警告（不是通过）；有证据按 `ok` 分通过/有缺失。
+ * @param mark 压缩记录
+ * @returns StatusTag 语义档
+ */
+function auditStatusKind(mark: CompactionMarkLike): StatusKind {
+  if (mark.audit === undefined) return 'warn';
+  return mark.audit.ok ? 'ok' : 'warn';
+}
+
+/**
+ * 压缩审计徽标文案（与 {@link auditStatusKind} 同源）。
+ * @param mark 压缩记录
+ * @returns 文案
+ */
+function auditStatusText(mark: CompactionMarkLike): string {
+  if (mark.audit === undefined) return t('未记录审计');
+  return mark.audit.ok ? t('审计通过') : t('审计有缺失');
+}
+
+/**
+ * 一条压缩记录的标题行：轮次 / 时间 / 折叠范围 + 审计徽标。
+ * @param props 压缩记录
+ * @returns 标题节点
+ */
 function CompactionLabel(props: CompactionLabelProps): ReactElement {
   const { mark } = props;
   return (
@@ -293,19 +473,55 @@ function CompactionLabel(props: CompactionLabelProps): ReactElement {
         {t('第 {n} 轮后', { n: mark.turnIndex + 1 })} · {timeOf(Date.parse(mark.at))} ·{' '}
         <span className="mono">{t('折叠 {n} 条', { n: mark.compactedUpTo })}</span>
       </Typography.Text>
-      {mark.auditRecorded ? null : <StatusTag status="warn">{t('未记录审计')}</StatusTag>}
+      <StatusTag status={auditStatusKind(mark)}>{auditStatusText(mark)}</StatusTag>
     </Flex>
   );
 }
 
-/** 一条压缩记录的展开体：前缀指纹 + 摘要正文。 */
+/**
+ * 一条压缩记录的展开体：前缀指纹 + 摘要正文 + alpha.21 压缩证据（审计/信号）。
+ * @param props 压缩记录
+ * @returns 展开体节点
+ */
 function CompactionBody(props: CompactionLabelProps): ReactElement {
+  const { mark } = props;
   return (
     <Flex vertical gap={8}>
       <Typography.Text type="secondary" className="mono">
-        {t('前缀指纹 {hash}', { hash: props.mark.headHash })}
+        {t('前缀指纹 {hash}', { hash: mark.headHash })}
       </Typography.Text>
-      <pre className="control-summary">{props.mark.summary}</pre>
+      {mark.audit === undefined ? null : (
+        <Flex vertical gap={2}>
+          <Typography.Text type="secondary">
+            {t('审计核对：{files} 个文件 / {commands} 条命令 / {todos} 项待办', {
+              files: String(mark.audit.checked.editedFiles),
+              commands: String(mark.audit.checked.commands),
+              todos: String(mark.audit.checked.openTodos),
+            })}
+          </Typography.Text>
+          {mark.audit.missing.length === 0 ? (
+            <Typography.Text type="secondary">{t('关键状态全部在场。')}</Typography.Text>
+          ) : (
+            mark.audit.missing.map((item) => (
+              <Typography.Text key={item} type="danger">
+                · {item}
+              </Typography.Text>
+            ))
+          )}
+        </Flex>
+      )}
+      {mark.signals === undefined ? null : (
+        <Typography.Text type="secondary">
+          {t('触发信号：预算 {ratio} · 轮数 {turns} · 工具占比 {share} · 重复率 {rep}；组合规则{combined}', {
+            ratio: String(mark.signals.budgetRatio),
+            turns: String(mark.signals.turns),
+            share: String(mark.signals.toolResultShare),
+            rep: String(mark.signals.repetitionRate),
+            combined: mark.signals.combinedWouldTrigger ? t('建议触发') : t('不建议触发'),
+          })}
+        </Typography.Text>
+      )}
+      <pre className="control-summary">{mark.summary}</pre>
     </Flex>
   );
 }

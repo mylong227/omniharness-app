@@ -1,5 +1,6 @@
 import { ContextWindowCatalog } from '../../../host/kernel/context.ts';
-import type { ResolvedConfig } from '../../../host/kernel/contracts.ts';
+import { SubagentTree } from '../../../host/kernel/core.ts';
+import type { ResolvedConfig, SubagentTreePort } from '../../../host/kernel/contracts.ts';
 import { ConfigFactory } from '../../../host/kernel/config.ts';
 import type { DecisionEngine } from '../../../host/kernel/contracts.ts';
 import { DecisionEngineResolver } from '../../../host/extensions/kernel/config/decisionEngineResolver.ts';
@@ -19,6 +20,8 @@ import { ModelCatalogService } from '../services/modelCatalogService.ts';
 import { PluginHost } from '../services/pluginHost.ts';
 import { ServerEventBridge } from './serverEventBridge.ts';
 import { AgentRuntimeHost } from './agentRuntimeHost.ts';
+import { KernelHealthBridge } from '../services/kernelHealthBridge.ts';
+import { KernelContextViewBuilder } from '../services/context/kernelContextView.ts';
 import { ApprovalTierCatalog } from '../services/approvalTierCatalog.ts';
 import { AgentCatalogService } from '../services/agentCatalogService.ts';
 import { ContextUsageService } from '../services/contextUsageService.ts';
@@ -94,6 +97,9 @@ export class ServerServices {
   /** Agent 与图运行时宿主。 */
   readonly runtime: AgentRuntimeHost;
 
+  /** 子代理父子树（alpha.21；与内核编排器共享同一实例，编队只读查询侧）。 */
+  readonly subagentTree: SubagentTreePort;
+
   // ── 工作台界面协作者（原 Surface 层） ─────────────────────────────────────────
   /** 上下文窗口目录（`context.usage` 报告内的窗口口径单一来源）。 */
   readonly windows: ContextWindowCatalog;
@@ -154,6 +160,9 @@ export class ServerServices {
 
   /** 回合/线程跨域编排（线程模块与自动化模块共享的「起一个回合」事实源）。 */
   readonly turns: TurnOrchestration;
+
+  /** 内核健康桥（`kernel.health` 的后端：只读聚合，见 services/kernelHealthBridge）。 */
+  readonly kernelHealth: KernelHealthBridge;
 
   /**
    * 内置 RPC 台账（方法 → 域模块名）。AppServer 注册完模块后赋值（模块构造期不可见，
@@ -233,8 +242,14 @@ export class ServerServices {
       this.runtime.invalidateAgent();
       this.runtime.invalidateGraph();
     });
+    // 子代理父子树：同一实例既交给内核编排器写入，也供编队只读查询。
+    // serve 组合根在 buildConfig 前创建并注入；嵌入/单测未注入时自建（编队退化为事件流）。
+    this.subagentTree = options.subagentTree ?? new SubagentTree();
     this.runtime = new AgentRuntimeHost({
-      baseConfig: () => this.options.config,
+      subagentTree: this.subagentTree,
+      // 运行时配置用**实时覆盖**：`config.update` 落盘后 options.config 是启动快照，
+      // 上下文三段/防火墙若不覆盖，界面显示「已保存」而内核仍按旧值跑（假生效）。
+      baseConfig: () => this.liveRuntimeConfig(),
       skills: options.skills,
       eventPort: () => this.events.eventPort(),
       approvalUplink: options.approvalUplink === true,
@@ -249,6 +264,13 @@ export class ServerServices {
       workspaceRoot,
       fleetControl: this.fleetControl,
       decisionAudit: () => this.decisionSettings.get(),
+    });
+    // 健康桥在运行时与插件栈之后装配：两者都是实时读取器，构造顺序不影响读数。
+    this.kernelHealth = new KernelHealthBridge({
+      config: () => this.options.config,
+      probe: () => this.runtime.healthProbe(),
+      runningSessions: () => this.runtime.runningSessionIds(),
+      pluginNames: () => this.plugins.manager?.names() ?? [],
     });
     // ── 原 AppServerSurfaceHandlers ──
     this.windows = new ContextWindowCatalog(this.envWindow());
@@ -313,13 +335,20 @@ export class ServerServices {
     this.fleet = new FleetRegistry({
       events: (threadId) => this.runtime.agent().eventsOf(threadId),
       workspaceRoot,
+      childOfCall: (callId) => this.subagentTree.childOfCall(callId),
     });
     this.fleetPatch = new FleetPatchReader({ workspaceRoot });
     this.fleetPatchApplier = new FleetPatchApplier({ workspaceRoot, reader: this.fleetPatch });
+    // 内核上下文读模型：与健康桥 context 分区同源（semanticRecall 口径只解析一处）。
+    const kernelContext = new KernelContextViewBuilder({
+      config: () => this.options.config,
+      probe: () => this.runtime.healthProbe(),
+    });
     this.contextStudio = new ContextStudioService({
       usage: (threadId) => this.contextUsage.usage(threadId),
       events: (threadId) => this.runtime.agent().eventsOf(threadId),
       ...(options.config.scratchpad !== undefined ? { scratchpad: options.config.scratchpad } : {}),
+      kernel: () => kernelContext.build(),
     });
     this.contextCompaction = new ContextCompactionService({
       events: (threadId) => this.runtime.agent().eventsOf(threadId),
@@ -360,6 +389,33 @@ export class ServerServices {
     });
     // ── 编排（必须最后：以完整装配好的门面注入） ──
     this.turns = new TurnOrchestration(this);
+  }
+
+  /**
+   * 运行时配置（启动快照 + 可热更新的声明段）。
+   *
+   * 存在理由（2026-11-15）：`options.config` 是 `ConfigFactory.build` 的启动快照；设置页
+   * 经 `config.update` 落盘后只更新了 `configStore.overrides`，Agent 重建仍拿旧快照 ⇒
+   * 「已保存」但内核按旧值跑。这里把**每次读 `runtime.config` 的声明段**（上下文三段 +
+   * capflow）覆盖为文件层最新值；`toolCache` 不在其中——它在装配期包裹工具端口，
+   * 只能重启生效（设置页 hint 已写明）。
+   * @returns 供 Agent/图运行时装配的解析配置（端口复用启动快照）
+   */
+  private liveRuntimeConfig(): ResolvedConfig {
+    try {
+      const file = this.configStore.fileConfig();
+      return {
+        ...this.options.config,
+        retrievalContext: file.retrievalContext,
+        semanticRecall: file.semanticRecall,
+        contextPolicy: file.contextPolicy,
+        capflow: file.capflow,
+      } as ResolvedConfig;
+    } catch {
+      // 配置读取失败（典型：DPAPI 密文跨用户/跨机，或文件被改坏）不能让运行时装配与
+      // 关停冲刷崩掉；退回启动快照，配置保存的即时生效让位于可用性。
+      return this.options.config;
+    }
   }
 
   // ── 跨域操作（原 AppServerBase 方法） ─────────────────────────────────────────

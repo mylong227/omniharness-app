@@ -10,9 +10,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 
-const { SETTINGS_FIELDS, SETTINGS_TABS, CATALOG_KEYS, SettingsModel } = await import(
-  '../src/ui/models/SettingsModel.ts'
-);
+const { SETTINGS_FIELDS, SETTINGS_TABS, CATALOG_KEYS, SettingsModel, NUMBER_RANGES, fieldId } =
+  await import('../src/ui/models/SettingsModel.ts');
 
 test('每个字段都归属一个已声明的分栏（不留孤儿字段）', () => {
   const keys = new Set(SETTINGS_TABS.map((t) => t.key));
@@ -36,12 +35,12 @@ test('每个分栏要么有声明字段，要么是「自定义渲染」分栏�
   }
 });
 
-test('同一个配置键只出现在一个字段里（否则两处编辑会互相覆盖）', () => {
+test('同一个字段 id 只出现一次（同一结构段可拆多行，但路径不得重复）', () => {
   const seen = new Map();
   for (const f of SETTINGS_FIELDS) {
-    const k = String(f.key);
-    assert.ok(!seen.has(k), `配置键 ${k} 被声明了两次（字段会互相打架）`);
-    seen.set(k, f);
+    const id = fieldId(f);
+    assert.ok(!seen.has(id), `字段 ${id} 被声明了两次（字段会互相打架）`);
+    seen.set(id, f);
   }
 });
 
@@ -98,7 +97,7 @@ test('valueOf 对未加载快照返回空串（不在 UI 上抛出 undefined）'
     toast: () => {},
   });
   for (const f of SETTINGS_FIELDS) {
-    assert.strictEqual(model.valueOf(f.key), '', `未加载时 ${String(f.key)} 应为空串`);
+    assert.strictEqual(model.valueOf(f), '', `未加载时 ${fieldId(f)} 应为空串`);
   }
   assert.strictEqual(model.boolOf('autoApprove'), false, '未加载时开关应为 false');
   model.dispose();
@@ -120,10 +119,18 @@ test('设置页字段全集 === 内核可 UI 化标量键清单（settings-compl
     'modelCircuitBreaker', 'modelCircuitBreakerThreshold', 'modelCircuitBreakerOpenMs',
     // 运行时·长期记忆
     'longTermMemoryEncryption', 'longTermMemoryGovernance', 'longTermMemoryKeyFile',
+    // 运行时·上下文与检索（alpha.19 三段，按段内路径逐行）
+    'retrievalContext.mode', 'retrievalContext.rewriter', 'retrievalContext.rerank',
+    'retrievalContext.maxSnippets', 'retrievalContext.maxTokens',
+    'semanticRecall.mode',
+    'contextPolicy.degradeLadder.shapersAggressive', 'contextPolicy.degradeLadder.compactionForce',
+    'contextPolicy.cacheGuard.hitRateFloor',
+    // 运行时·缓存与防火墙（alpha.21）
+    'toolCache.enabled', 'toolCache.maxEntries', 'capflow.mode', 'capflow.policyPath',
     // 权限栏
     'approval', 'escalation', 'autoApprove',
   ];
-  const declared = SETTINGS_FIELDS.map((f) => String(f.key)).sort();
+  const declared = SETTINGS_FIELDS.map((f) => fieldId(f)).sort();
   assert.deepEqual(declared, [...EXPECTED].sort(), '设置页字段与内核能力清单出现漂移——新增内核键或删键时同步本清单与设计文档');
 });
 
@@ -149,21 +156,36 @@ test('枚举 options 与内核 ENUM_VALUES 完全一致（2026-11-14 修漂移�
   }
 });
 
-test('number 字段全部登记了前端范围校验（与 NUMBER_RANGES 真表对齐，防漏网放行）', async () => {
+test('number 字段全部登记了前端范围校验（与 NUMBER_RANGES 真表对齐，防漏网放行）', () => {
   // NUMBER_RANGES 是 saveField 的校验表（模块导出）；漏登记的 number 字段会走
   // "保守放行"分支把糊涂值发给服务端——这里把字段集与表键集直接对齐。
-  const { NUMBER_RANGES } = await import('../src/ui/models/SettingsModel.ts');
-  const fields = SETTINGS_FIELDS.filter((f) => f.kind === 'number').map((f) => String(f.key)).sort();
+  // 结构化段字段用 fieldId 当表键（同一段可有多行数字）。
+  const fields = SETTINGS_FIELDS.filter((f) => f.kind === 'number').map(fieldId).sort();
   const ranges = Object.keys(NUMBER_RANGES).sort();
   assert.deepEqual(fields, ranges, 'number 字段与 NUMBER_RANGES 登记表漂移');
 });
 
-test('runtime 栏字段必须声明 group（四卡全靠 fieldsOfGroup 过滤，无 group 会被静默吞掉）', () => {
+test('上下文与检索卡：alpha.19 三段共 9 行齐全（漏一行 = 该配置项在 UI 上不存在）', () => {
+  const ids = SETTINGS_FIELDS.filter((f) => f.tab === 'runtime' && f.group === 'context').map(fieldId);
+  assert.deepEqual(ids, [
+    'retrievalContext.mode',
+    'retrievalContext.rewriter',
+    'retrievalContext.rerank',
+    'retrievalContext.maxSnippets',
+    'retrievalContext.maxTokens',
+    'semanticRecall.mode',
+    'contextPolicy.degradeLadder.shapersAggressive',
+    'contextPolicy.degradeLadder.compactionForce',
+    'contextPolicy.cacheGuard.hitRateFloor',
+  ]);
+});
+
+test('runtime 栏字段必须声明 group（六卡全靠 fieldsOfGroup 过滤，无 group 会被静默吞掉）', () => {
   for (const f of SETTINGS_FIELDS) {
     if (f.tab !== 'runtime') continue;
     assert.ok(
       typeof f.group === 'string' && f.group !== '',
-      'runtime 字段 ' + String(f.key) + ' 缺 group（SettingsRuntimePane 渲染不到它）',
+      'runtime 字段 ' + fieldId(f) + ' 缺 group（SettingsRuntimePane 渲染不到它）',
     );
   }
 });

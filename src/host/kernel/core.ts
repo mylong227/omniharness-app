@@ -18,3 +18,4 @@ export { StepRunner } from '@omniharness/kernel/kernel/core/stepRunner.js';
 export { ToolGate } from '@omniharness/kernel/kernel/core/toolGate.js';
 export { TurnRunner } from '@omniharness/kernel/kernel/core/turnRunner.js';
 export { InterjectionClassifier } from '@omniharness/kernel/kernel/core/steering/interjectionClassifier.js';
+export { SubagentTree } from '@omniharness/kernel/kernel/subagent/subagentTree.js';

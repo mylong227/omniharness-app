@@ -4,7 +4,7 @@
 
 | 文件 | 说明 |
 | ---- | ---- |
-| `omniharness-kernel-0.1.0-alpha.19.tgz` | `@omniharness/kernel` 在 tag `v0.1.0-alpha.19` 的构建产物 + 应用 `native/omni_napi.node`（`NativeKernel` 从包根找它） |
+| `omniharness-kernel-0.1.0-alpha.22.tgz` | `@omniharness/kernel` 在 tag `v0.1.0-alpha.22` 的构建产物 + 应用 `native/omni_napi.node`（`NativeKernel` 从包根找它） |
 
 ## 重新生成
 
@@ -23,7 +23,15 @@ npm run kernel:check     # 9 条判据（含生成物不漂移 / 已承诺能力
 
 ## 版本史
 
-- **alpha.19**（当前）：内核 M55–M76 批次（内核哨兵 / 确定性读缓存 / 回合成本信封 / 审计时间线 /
+- **alpha.22**（当前）：应用侧深度适配三项——`FileConfig` 增 `toolCache`/`capflow` 文件面；
+  `SubagentTreePort`/`SubagentTree` + `OmniHarnessConfig.subagentTree` 注入（编排器写父子/调用映射）；
+  `CompactionState` 增 `audit`/`signals` 并以 ` evidence=<base64url-json>` 持久化（旧游标兼容）。
+  alpha.22 另含信任闸分类修复（`capflow` 权威键 / `toolCache` 安全键）。公共根导出面仍 60/60；
+  本仓 19 域新增 `SubagentTree` 一个消费符号，`kernel:check` 九条复绿
+  （284 源文件 / 290 处包导入 / 原生内核实载）。
+- **alpha.20**：alpha.19 后的收尾基线（上帝类拆分 / 文档账实 / 发布自检 / 路由对照可判分 / 回环
+  端口修复）；公共导出面 60/60，行为面等价（本仓跳过该基线直接 vendor alpha.22）。
+- **alpha.19**：内核 M55–M76 批次（内核哨兵 / 确定性读缓存 / 回合成本信封 / 审计时间线 /
   CapFlow / 检索供给与语义召回 / 上下文策略 / 缓存读数与命中率联动 / 查询改写 / 精排 /
   注入面 enforce / VectorStorePort / eval:inject / 供给压力 / 干净检出 tsc / SSE-Web 示例 /
   路由质量对照 / 残余台账）。公共导出面仍 60/60；本仓 19 域零变化，`kernel:check` 九条判据复绿
@@ -55,3 +63,4 @@ npm run kernel:check     # 9 条判据（含生成物不漂移 / 已承诺能力
 - ~~alpha.4~~：曾因内核切片删除 app 所需能力而钉定（「最后一个完整面」）；alpha.6 迁移时
   app 侧以自有扩展层接住了被删能力，遂升级。完整迁移总账见
   [docs/KERNEL-CONTRACT.md](../docs/KERNEL-CONTRACT.md)。
+

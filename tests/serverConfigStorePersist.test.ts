@@ -89,5 +89,80 @@ test('内核校验拒绝的越界值不落盘（fail-closed，错误回传 UI）
   }
 });
 
+test('上下文三段：整段落盘 + 重读回得来；按段替换（删嵌套键不会被深合并复活）', async () => {
+  const { store, file, home } = storeOf();
+  try {
+    await store.update({
+      retrievalContext: { mode: 'bm25', maxSnippets: 8, maxTokens: 600 },
+      semanticRecall: { mode: 'on' },
+      contextPolicy: { degradeLadder: { shapersAggressive: true } },
+    });
+    const saved = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>;
+    assert.deepEqual(saved['retrievalContext'], { mode: 'bm25', maxSnippets: 8, maxTokens: 600 });
+    assert.deepEqual(saved['semanticRecall'], { mode: 'on' });
+    assert.deepEqual(saved['contextPolicy'], { degradeLadder: { shapersAggressive: true } });
+
+    // UI 提交的是"当前段 + 本次修改"：清掉 maxSnippets 后只剩 mode，文件里不得残留旧值。
+    await store.update({ retrievalContext: { mode: 'bm25' } });
+    const replaced = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>;
+    assert.deepEqual(replaced['retrievalContext'], { mode: 'bm25' }, '按段替换必须删掉嵌套旧键');
+    // config.get 回填的是同一份（否则 UI 会显示已删掉的旧值）。
+    const live = store.get() as Record<string, unknown>;
+    assert.deepEqual(live['retrievalContext'], { mode: 'bm25' });
+    assert.deepEqual(live['contextPolicy'], { degradeLadder: { shapersAggressive: true } });
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test('alpha.21 读缓存/防火墙：整段落盘 + 按段替换 + 非法拒绝', async () => {
+  const { store, file, home } = storeOf();
+  try {
+    await store.update({
+      toolCache: { enabled: true, maxEntries: 16 },
+      capflow: { mode: 'shadow', policyPath: 'C:/policies/capflow.json' },
+    });
+    const saved = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>;
+    assert.deepEqual(saved['toolCache'], { enabled: true, maxEntries: 16 });
+    assert.deepEqual(saved['capflow'], { mode: 'shadow', policyPath: 'C:/policies/capflow.json' });
+    const live = store.get() as Record<string, unknown>;
+    assert.deepEqual(live['toolCache'], { enabled: true, maxEntries: 16 });
+
+    await assert.rejects(
+      () => store.update({ capflow: { mode: 'block' } } as never),
+      /capflow/,
+      '未知模式必须被内核段校验器拒绝',
+    );
+    await assert.rejects(
+      () => store.update({ toolCache: { maxEntries: 0 } } as never),
+      /toolCache/,
+      'LRU 上限必须为正整数',
+    );
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test('上下文三段：非法枚举/越界不落盘（fail-closed）', async () => {
+  const { store, file, home } = storeOf();
+  try {
+    await assert.rejects(
+      () => store.update({ retrievalContext: { mode: 'semantic' } } as never),
+      /retrievalContext/,
+      '未知枚举必须被内核段校验器拒绝',
+    );
+    await assert.rejects(
+      () => store.update({ contextPolicy: { cacheGuard: { hitRateFloor: 2 } } } as never),
+      /contextPolicy|hitRateFloor/,
+      '命中率下限越界必须被拒绝',
+    );
+    const written = existsSync(file) ? (JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>) : {};
+    assert.strictEqual('retrievalContext' in written, false);
+    assert.strictEqual('contextPolicy' in written, false);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
 // NOOP_PRESET 仅防 TS 未用参数告警（enableProvider 探针在别的判据里验）。
 void NOOP_PRESET;

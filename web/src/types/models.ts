@@ -13,7 +13,9 @@ export type EventType =
   | 'todo'
   | 'turn_diff'
   | 'model'
-  | 'session_meta';
+  | 'session_meta'
+  /** 审计记录（心跳/审批/决策；聊天流默认收进折叠块，审计面板仍逐条可查）。 */
+  | 'audit';
 
 export interface ThreadEvent {
   id: string;
@@ -102,8 +104,55 @@ export interface Config {
   longTermMemoryGovernance?: boolean;
   /** 加密密钥文件路径（缺省用派生默认密钥）。 */
   longTermMemoryKeyFile?: string;
+  /** 检索供给段（内核 alpha.19 M60；缺省 off）。 */
+  retrievalContext?: RetrievalContextConfig;
+  /** 语义召回段（内核 alpha.19 M61；缺省 off）。 */
+  semanticRecall?: SemanticRecallConfig;
+  /** 上下文工程策略段（内核 alpha.19 M63/M65；缺省全关）。 */
+  contextPolicy?: ContextPolicyConfig;
   workspace?: string;
   [key: string]: unknown;
+}
+
+/**
+ * 检索供给配置（内核 `FileConfig.retrievalContext`，与内核契约逐字段对齐）。
+ *
+ * 形态与 `ContextPolicyConfig` 一样是**结构化段**：设置页按字段拆行编辑，但每次提交
+ * 整段（服务端按段替换，见 `SECTION_REPLACE_KEYS`）。
+ */
+export interface RetrievalContextConfig {
+  /** off = 关闭（缺省）；bm25 = 每步按预算注入会话历史检索片段。 */
+  mode?: 'off' | 'bm25';
+  /** 单步最多注入条数（正整数；内核出厂 4）。 */
+  maxSnippets?: number;
+  /** 单步注入 token 上限（正整数；内核出厂 600）。 */
+  maxTokens?: number;
+  /** 查询改写器：model = 每步经模型改写为自足查询（缺省 off）。 */
+  rewriter?: 'off' | 'model';
+  /** 检索精排器：model = 候选经模型语义精排（缺省 off）。 */
+  rerank?: 'off' | 'model';
+}
+
+/** 语义召回配置（内核 `FileConfig.semanticRecall`）。 */
+export interface SemanticRecallConfig {
+  /** off = 纯 BM25（缺省）；on = 装配本地嵌入并走混合检索。 */
+  mode?: 'off' | 'on';
+}
+
+/** 上下文工程策略（内核 `FileConfig.contextPolicy`，M63 降档阶梯 + M65 缓存守卫）。 */
+export interface ContextPolicyConfig {
+  /** 软预算越档时各轴逐级收紧（缺省两级全 false = 当前行为）。 */
+  degradeLadder?: {
+    /** 第 2 级：旧轮激进裁剪随降档启用。 */
+    shapersAggressive?: boolean;
+    /** 第 3 级：强制压缩随降档启用。 */
+    compactionForce?: boolean;
+  };
+  /** prompt cache 命中率门限（跌破只告警不阻断；缺省无门限 = off）。 */
+  cacheGuard?: {
+    /** 累计命中率下限（0 < r ≤ 1；留空 = 关闭）。 */
+    hitRateFloor?: number;
+  };
 }
 
 /** 厂商预设（服务端 model.catalog 下发，与后端单一来源同步）。 */
@@ -565,6 +614,25 @@ export type AuditQueryResult =
   | { ok: true; events: AuditEventLike[] }
   | { ok: false; reason: string };
 
+/** 内核健康桥状态（与服务端 `KernelHealthBridge` 同词表：absent ≠ degraded）。 */
+export type KernelHealthStatus = 'ok' | 'degraded' | 'absent';
+
+/** 内核健康桥单分区（服务端 `KernelHealthSection` 同形）。 */
+export interface KernelHealthSectionLike {
+  name: string;
+  status: KernelHealthStatus;
+  problems: { code: string; detail: string }[];
+  detail?: Record<string, unknown>;
+}
+
+/** `kernel.health` 的返回体（服务端 `KernelHealthSnapshot` 同形）。 */
+export interface KernelHealthSnapshotLike {
+  generatedAt: string;
+  uptimeMs: number;
+  sections: KernelHealthSectionLike[];
+  summary: string;
+}
+
 /** 一条只读 trace 条目（服务端 `TraceEntry` 同形）。 */
 export interface TraceEntryLike {
   seq: number;
@@ -639,13 +707,52 @@ export interface CompactionMarkLike {
   compactedUpTo: number;
   headHash: string;
   summary: string;
+  /** 是否有持久化审计证据（alpha.21 起压缩证据随游标落盘；旧游标为 false）。 */
   auditRecorded: boolean;
+  /** 状态审计证据（有证据才有）。 */
+  audit?: {
+    ok: boolean;
+    missing: readonly string[];
+    checked: { editedFiles: number; commands: number; openTodos: number };
+  };
+  /** 触发信号证据（有证据才有）。 */
+  signals?: {
+    budgetRatio: number;
+    turns: number;
+    toolResultShare: number;
+    repetitionRate: number;
+    combinedWouldTrigger: boolean;
+  };
+}
+
+/** 内核上下文策略视图（服务端 `KernelContextView` 同形，alpha.19 三段的生效快照）。 */
+export interface KernelContextViewLike {
+  retrievalContext: {
+    mode: 'off' | 'bm25';
+    rewriter: 'off' | 'model';
+    rerank: 'off' | 'model';
+    maxSnippets?: number;
+    maxTokens?: number;
+  };
+  semanticRecall: {
+    requested: boolean;
+    active: boolean;
+    /** 请求了但嵌入不在位（BM25 降档）；UI 必须渲染成降级而不是关闭。 */
+    degraded: boolean;
+  };
+  contextPolicy: {
+    shapersAggressive: boolean;
+    compactionForce: boolean;
+    cacheGuardFloor?: number;
+  };
 }
 
 /** 上下文工作室快照（`context.studio` 返回体；report 与 `context.usage` 同一类型）。 */
 export interface ContextStudioSnapshotLike {
   threadId: string;
   report: ContextUsageReport;
+  /** 内核上下文策略（检索供给 / 语义召回 / 降档阶梯 + 缓存守卫）。 */
+  kernel: KernelContextViewLike;
   compactions: readonly CompactionMarkLike[];
   handoff: readonly HandoffNoteLike[];
   handoffAvailable: boolean;

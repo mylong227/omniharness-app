@@ -61,3 +61,4 @@ export type { TraceEntry } from '@omniharness/kernel/contracts/ports/telemetry/t
 export type { TraceFilter } from '@omniharness/kernel/contracts/ports/telemetry/traceIntrospection/traceFilter.js';
 export type { TraceReadRequest } from '@omniharness/kernel/contracts/ports/telemetry/traceIntrospection/traceReadRequest.js';
 export type { TraceReadResult } from '@omniharness/kernel/contracts/ports/telemetry/traceIntrospection/traceReadResult.js';
+export type { SubagentTreePort } from '@omniharness/kernel/contracts/ports/subagent/subagentTreePort.js';

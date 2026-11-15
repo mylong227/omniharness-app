@@ -67,9 +67,39 @@
 - `pluginProfile`：面板只承载**运行时应用**（plugins.ts），落盘默认档仍走 CLI
   `profile use`——UI 只读展示生效值，不提供落盘入口（review P2-7 补记）。
 
-## 2. 服务端增量（`PERSISTABLE_KEYS` 扩 9 键）
+### 1.6 alpha.19 上下文三段（2026-11-15 追加）
 
-`appServerState.ts` 的清单追加 §1.3 的 9 个键。校验零新增——内核
+| 键（段内路径） | 类型/约束 | 归属 |
+| --- | --- | --- |
+| retrievalContext.mode | enum off/bm25 | 运行时·上下文与检索 |
+| retrievalContext.rewriter | enum off/model | 运行时·上下文与检索 |
+| retrievalContext.rerank | enum off/model | 运行时·上下文与检索 |
+| retrievalContext.maxSnippets | number 正整数（内核出厂 4） | 运行时·上下文与检索 |
+| retrievalContext.maxTokens | number 正整数（内核出厂 600） | 运行时·上下文与检索 |
+| semanticRecall.mode | enum off/on | 运行时·上下文与检索 |
+| contextPolicy.degradeLadder.shapersAggressive | bool | 运行时·上下文与检索 |
+| contextPolicy.degradeLadder.compactionForce | bool | 运行时·上下文与检索 |
+| contextPolicy.cacheGuard.hitRateFloor | number 0<r≤1（留空=关闭） | 运行时·上下文与检索 |
+
+三段是**结构化对象**：`PERSISTABLE_KEYS` 收的是段名（3 个键），UI 每行只编辑一个叶，
+提交时由 `SettingsModel` 合并成**完整段**；服务端对 `SECTION_REPLACE_KEYS` 按段替换
+（深合并无法表达「删除嵌套键」——`cacheGuard.hitRateFloor` 的清空会静默失效）。
+
+### 1.7 alpha.21 缓存与防火墙（2026-11-15 追加）
+
+| 键（段内路径） | 类型/约束 | 归属 |
+| --- | --- | --- |
+| toolCache.enabled | bool | 运行时·缓存与防火墙 |
+| toolCache.maxEntries | number 正整数 | 运行时·缓存与防火墙 |
+| capflow.mode | enum off/shadow/enforce | 运行时·缓存与防火墙 |
+| capflow.policyPath | string（非空；留空=随包默认） | 运行时·缓存与防火墙 |
+
+两段在 alpha.21 前只有编程入口（`FileConfig` 无键、UI 无入口）；alpha.21 内核补齐文件面后，
+本仓按 §1.6 同一套「整段提交 + 按段替换」语义接入。
+
+## 2. 服务端增量（`PERSISTABLE_KEYS` 扩 9 键 + alpha.19 三段 3 键 + alpha.21 两段 2 键）
+
+`appServerState.ts` 的清单追加 §1.3 的 9 个键与 §1.6 的 3 个段名。校验零新增——内核
 `ConfigError.mergeConfigs → normalizeConfig` 已带完整类型/枚举/范围校验
 （BOOLEAN_FIELDS / NUMBER_FIELDS / ENUM_VALUES + ZERO_ALLOWED），服务端只是把
 "允许 UI 覆盖"的白名单打开；写非法值会被 `persist()` fail-closed 拒绝并回传错误。
@@ -85,13 +115,16 @@
 - number 的范围校验表（前端侧）：`maxSteps ≥ 0`（0 有语义）；`costBudgetUsd > 0`；
   `costBudgetSoftRatio ∈ (0,1]`；`modelCircuitBreakerThreshold ≥ 1`；
   `modelCircuitBreakerOpenMs ≥ 1000`。
+- alpha.19（2026-11-15）：`SettingsField` 加可选 `path?: readonly string[]`（段内路径），
+  导出 `fieldId(field)` = `段名.路径`——同段多行时 React key、`NUMBER_RANGES` 与测试
+  断言一律按 fieldId 去重；`valueOf`/`boolOf` 接受字段定义（按 path 取叶值）。
 
 ### 3.2 分栏与卡片
 
 **模型栏**（「默认模型与端点」卡追加一行）：
 - `reasoning`：7 档 select（none…max），hint 说明与输入区强度弹窗同源。
 
-**运行时栏**（重排为四张卡）：
+**运行时栏**（alpha.21 起为六张卡）：
 1. 「适配器与执行环境」（group `exec`）：modelAdapter（options 补全）/ sandbox /
    elevatedSandbox——hint：越权动作（提权命令）的降级沙箱档；
 2. 「存储」（group `storage`）：storageAdapter / storageDir（切换/清空在重启后生效）；
@@ -99,7 +132,12 @@
    costBudgetOnExceed / modelCircuitBreaker / modelCircuitBreakerThreshold /
    modelCircuitBreakerOpenMs——熔断三件套在开关关闭时**仍渲染但弱化**（不隐藏，
    保持"能配就能看到"）；hint 给清零/清除语义；
-4. 「长期记忆」（group `memory`）：longTermMemoryEncryption / longTermMemoryGovernance /
+4. 「上下文与检索」（group `context`，2026-11-15）：retrievalContext 五项 /
+   semanticRecall.mode / contextPolicy 三项——三段缺省全关；数字留空 = 删除嵌套键、
+   删空整段 = 显式清除段（服务端按段替换，见 §1.6）；
+5. 「缓存与防火墙」（group `guard`，alpha.21）：`toolCache.enabled` / `toolCache.maxEntries` /
+   `capflow.mode` / `capflow.policyPath`——缺省全关（off），策略文件留空用随包默认；
+6. 「长期记忆」（group `memory`）：longTermMemoryEncryption / longTermMemoryGovernance /
    longTermMemoryKeyFile——加密开启但未配 keyFile 时 hint 提示将用派生默认密钥（内核口径）。
 
 **权限栏**：approval options 补全 6 值；卡片描述补 `plan`（只读规划）/`guardian` 说明。
@@ -113,10 +151,10 @@
 
 | 层 | 判据 |
 | --- | --- |
-| 契约钉死 | `web/test/settingsPane.test.ts` 增：SETTINGS_FIELDS 的键集 === 本文档 §1.2+§1.3 清单（防未来漂移）；枚举 options 与内核 ENUM_VALUES 一致（llamacpp/gemini/deny/guardian/plan） |
-| 读写闭环 | `web/test/configWiring.test.ts` 增：每个新字段 saveField → updateConfig patch 形状（number 翻译、空串=null 清除、非法数字拒绝不落盘） |
-| 服务端 | `tests/serverConfigStore` 类判据增：9 个新键经 config.update 落盘 + 非法值被拒 |
-| 真机 | CDP：设置页四卡渲染齐全、新开关逐个切换 → config.update 调用记录；明暗截图存档 |
+| 契约钉死 | `web/test/settingsPane.test.ts` 增：SETTINGS_FIELDS 的 **fieldId** 集 === 本文档 §1.2+§1.3+§1.6 清单（防未来漂移）；枚举 options 与内核 ENUM_VALUES 一致（llamacpp/gemini/deny/guardian/plan）；number 字段与 `NUMBER_RANGES` 按 fieldId 对齐 |
+| 读写闭环 | `web/test/configWiring.test.ts` 增：每个新字段 saveField → updateConfig patch 形状（number 翻译、空串=null 清除、非法数字拒绝不落盘）；结构化段提交**完整段**、清空叶键不丢同段其它键 |
+| 服务端 | `tests/serverConfigStorePersist.test.ts`：14 个新键（9 标量 + 5 段名）经 config.update 落盘 + 非法值被拒；三段按段替换（删嵌套键不被深合并复活） |
+| 真机 | CDP：设置页五卡渲染齐全、新开关逐个切换 → config.update 调用记录；明暗截图存档 |
 | 全量 | 三端 typecheck + 全部套件 |
 
 ## 5. 死代码清理（用户要求，review 后执行）

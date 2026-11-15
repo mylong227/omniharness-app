@@ -98,7 +98,18 @@ export const EN_TABS_C: Record<string, string> = {
     'Not compacted yet. When the session nears its window budget, the kernel folds earlier history into a summary; cuts will appear here.',
   '第 {n} 轮后': 'after turn {n}',
   '折叠 {n} 条': 'folded {n} messages',
+  '审计记录 × {n}': 'Audit records × {n}',
+  点击展开: 'Click to expand',
   '未记录审计': 'no audit recorded',
+  审计通过: 'audit passed',
+  审计有缺失: 'audit missing items',
+  '审计核对：{files} 个文件 / {commands} 条命令 / {todos} 项待办':
+    'Audit checked: {files} files / {commands} commands / {todos} open todos',
+  '关键状态全部在场。': 'All critical state is present.',
+  '触发信号：预算 {ratio} · 轮数 {turns} · 工具占比 {share} · 重复率 {rep}；组合规则{combined}':
+    'Trigger signals: budget {ratio} · turns {turns} · tool share {share} · repetition {rep}; combined rule {combined}',
+  建议触发: 'would trigger',
+  不建议触发: 'would not trigger',
   '前缀指纹 {hash}': 'prefix fingerprint {hash}',
   '立即压缩': 'Compact now',
   '压缩中…': 'Compacting…',
@@ -124,6 +135,24 @@ export const EN_TABS_C: Record<string, string> = {
   '便签通道未接线（内核 ScratchpadPort 在当前 serve 路径没有注入点），v1 暂无便签；接线后这里显示跨压缩存活的交接内容。':
     'Notes channel not wired (the kernel ScratchpadPort has no injection point in the current serve path); v1 shows none. Once wired, cross-compaction handoffs appear here.',
   '上下文报告读取失败：{msg}': 'Failed to read context report: {msg}',
+  // 内核上下文策略（alpha.19 三段：检索供给 / 语义召回 / 降档阶梯 + 缓存守卫）
+  内核上下文策略: 'Kernel context strategy',
+  降档运行: 'Degraded',
+  按配置启用: 'Enabled per config',
+  全部关闭: 'All off',
+  未启用: 'Not enabled',
+  内核默认: 'kernel default',
+  'BM25 · 单步 ≤{n} 条 / ≤{k} token': 'BM25 · ≤{n} snippets / ≤{k} tokens per step',
+  '已请求，嵌入不可用（BM25 降档）': 'Requested, embeddings unavailable (BM25 fallback)',
+  '启用（嵌入在位）': 'Enabled (embedding present)',
+  '查询改写 / 精排': 'Query rewriting / rerank',
+  降档阶梯: 'Degrade ladder',
+  缓存守卫: 'Cache guard',
+  '改写 {rewrite} · 精排 {rerank}': 'Rewrite {rewrite} · rerank {rerank}',
+  '激进裁剪 {a} · 强制压缩 {b}': 'Aggressive shaping {a} · forced compaction {b}',
+  '命中率下限 {floor} · 当前 {rate}': 'Hit-rate floor {floor} · now {rate}',
+  '以上是内核 alpha.19 上下文三段的生效值；入口在「设置 → 运行时 → 上下文与检索」。':
+    'Effective values of the alpha.19 context sections; edit them in Settings → Runtime → Context & retrieval.',
   // 凭证模式
   '先选择一个会话，再生成凭证。': 'Select a session first to build proof.',
   '回合': 'Turns',

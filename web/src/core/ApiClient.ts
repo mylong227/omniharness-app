@@ -298,6 +298,16 @@ export class ApiClient {
   }
 
   /**
+   * 内核健康快照（只读，2026-11-15 alpha.19 哨兵桥）。
+   *
+   * 服务端聚合**本进程实际可观测**的分区；未装配的分区如实报 `absent`（不是故障）。
+   * @returns 七分区健康报告（含人读 summary）
+   */
+  public kernelHealth(): Promise<import('../types/models.ts').KernelHealthSnapshotLike> {
+    return this.rpc('kernel.health', {});
+  }
+
+  /**
    * 审计事件查询（只读，2026-10-11 Web 交付）。
    *
    * 返回体是**判别联合**：`ok:false` 表示服务端**未接线 audit sink**，面板必须如实显示"未接线"，

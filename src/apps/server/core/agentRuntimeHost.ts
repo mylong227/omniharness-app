@@ -13,11 +13,12 @@ import { AUTO_ALLOW, DENY_ALL, RULES_DEFAULT } from './appServerState.ts';
 import { PlanApproval } from '../../../host/kernel/adapters-approval.ts';
 import { AskApproval } from '../../../host/kernel/adapters-approval.ts';
 import { ServerNoopSupervisor } from './serverNoopSupervisor.ts';
-import type { ResolvedConfig } from '../../../host/kernel/contracts.ts';
-import type { SubagentPortsShape } from '../../../host/kernel/contracts.ts';
+import type { OmniHarnessRuntime, ResolvedConfig } from '../../../host/kernel/contracts.ts';
+import type { SubagentPortsShape, SubagentTreePort } from '../../../host/kernel/contracts.ts';
 import type { FleetControlRegistry } from '../services/fleet/fleetControlRegistry.ts';
 import { FleetToolPort } from '../services/fleet/fleetControlRegistry.ts';
 import type { DecisionSettings } from '../services/decision/decisionTypes.ts';
+import type { RuntimeHealthProbe } from '../services/kernelHealthBridge.ts';
 
 /** Agent/图运行时宿主依赖。 */
 export interface AgentRuntimeDeps {
@@ -52,6 +53,11 @@ export interface AgentRuntimeDeps {
   readonly fleetControl: FleetControlRegistry;
   /** 决策审计设置（用户级；每次构造 Agent 时实时读取）。 */
   readonly decisionAudit: () => DecisionSettings;
+  /**
+   * 子代理父子树（alpha.21）：注入内核编排器，`fleet.list` 据此在运行中即可拿到子会话 id。
+   * 与服务端持有的是同一实例（只读查询侧）。
+   */
+  readonly subagentTree: SubagentTreePort;
 }
 
 /**
@@ -66,6 +72,13 @@ export class AgentRuntimeHost {
   private readonly deps: AgentRuntimeDeps;
   /** Agent 缓存（invalidateAgent 失效）。 */
   private agentCache?: Agent | undefined;
+  /**
+   * 与 `agentCache` 同一份运行时（健康桥读取沙箱名 / 嵌入端口 / 预算读数用）。
+   *
+   * 为什么不从 Agent 反取：内核 `Agent.runtime` 是私有字段；在装配点留存同一引用，
+   * 读到的就是主循环实际使用的那一份运行时，不需要另建。
+   */
+  private runtimeCache?: OmniHarnessRuntime | undefined;
   /**
    * 已被缓存失效但仍可能有在跑回合的 Agent（用于「停止」不失效）。
    *
@@ -212,14 +225,14 @@ export class AgentRuntimeHost {
         events: this.deps.eventPort(),
         approvals: this.resolveApprovals(config),
         tools: new FleetToolPort(config.tools, this.deps.fleetControl),
+        subagentTree: this.deps.subagentTree,
       });
       const supervisor = this.bypassSupervisorKernel(serverConfig);
-      this.agentCache = new Agent(
-        Runtime.createRuntime(
-          supervisor !== undefined ? { ...serverConfig, supervisor } : serverConfig,
-        ),
-        this.deps.skills,
+      const runtime = Runtime.createRuntime(
+        supervisor !== undefined ? { ...serverConfig, supervisor } : serverConfig,
       );
+      this.runtimeCache = runtime;
+      this.agentCache = new Agent(runtime, this.deps.skills);
     }
     return this.agentCache;
   }
@@ -239,6 +252,41 @@ export class AgentRuntimeHost {
       }
     }
     this.agentCache = undefined;
+    this.runtimeCache = undefined;
+  }
+
+  /**
+   * 在跑会话 id（当前 Agent ∪ 全部退役 Agent；只读，不构造 Agent）。
+   *
+   * 为什么不直接 `agent()`：健康探针是只读观测，构造 Agent 会连带装配运行时与插件栈，
+   * 使「看一眼健康」变成副作用。没有在跑实例时返回空表就是事实。
+   * @returns 去重后的在跑会话 id
+   */
+  public runningSessionIds(): string[] {
+    const ids = new Set<string>();
+    for (const agent of [
+      ...(this.agentCache !== undefined ? [this.agentCache] : []),
+      ...this.retiredAgents,
+    ]) {
+      for (const id of agent.runningSessionIds()) ids.add(id);
+    }
+    return [...ids];
+  }
+
+  /**
+   * 运行时健康探针（沙箱名 / 嵌入端口 / 预算读数）；运行时尚未装配时 undefined。
+   * @returns 探针实值或 undefined
+   */
+  public healthProbe(): RuntimeHealthProbe | undefined {
+    const runtime = this.runtimeCache;
+    if (runtime === undefined) return undefined;
+    const budget = runtime.budgetDegrade;
+    return {
+      sandboxName: runtime.sandbox.name,
+      semanticRecallActive: runtime.embedding !== undefined,
+      spentUsd: budget?.spentUsd,
+      limitUsd: budget?.limitUsd,
+    };
   }
 
   /**
@@ -292,6 +340,7 @@ export class AgentRuntimeHost {
         // 无人应答）由上行审批的超时 deny 兜底，不会永久挂死。
         approvals: this.resolveApprovals(config),
         tools: new FleetToolPort(config.tools, this.deps.fleetControl),
+        subagentTree: this.deps.subagentTree,
       });
       const supervisor = this.bypassSupervisorKernel(serverConfig);
       this.portsCache = SubagentPorts.portsOf(

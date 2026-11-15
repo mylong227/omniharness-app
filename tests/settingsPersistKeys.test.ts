@@ -31,6 +31,13 @@ const NEW_KEYS = [
   'longTermMemoryEncryption',
   'longTermMemoryGovernance',
   'longTermMemoryKeyFile',
+  // alpha.19 上下文三段（结构化对象；2026-11-15 补入口）。
+  'retrievalContext',
+  'semanticRecall',
+  'contextPolicy',
+  // alpha.21：读缓存 / 能力防火墙（内核文件面补齐）。
+  'toolCache',
+  'capflow',
 ];
 
 test('PERSISTABLE_KEYS 覆盖设置页新增的全部内核键（漏一个 UI 就写不进配置文件）', () => {
@@ -51,9 +58,31 @@ test('白名单键全部在内核字段规格的类型白名单里（不会被 n
       // 特殊动作参数与结构化段（有各自 validator / 特殊路径，不走标量白名单）；
       // elevatedSandbox 例外地是**一等枚举**（ENUM_VALUES 里有），列在这里只因
       // 早期内核版本未进标量白名单——内核若已把它收进 ENUM 分支，本行兜底无害。
-      ['apiKey', 'providerKeys', 'autoApprove', 'permission', 'ssrfPolicy', 'limits', 'elevatedSandbox', 'longTermMemoryKeyFile', 'modelRouter', 'providerKeysDpapi'].includes(key);
+      ['apiKey', 'providerKeys', 'autoApprove', 'permission', 'ssrfPolicy', 'limits', 'elevatedSandbox', 'longTermMemoryKeyFile', 'modelRouter', 'providerKeysDpapi', 'retrievalContext', 'semanticRecall', 'contextPolicy', 'toolCache', 'capflow'].includes(key);
     assert.ok(known, `PERSISTABLE_KEYS 里的 ${key} 不是内核已登记的配置键`);
   }
+});
+
+test('上下文三段：内核段校验器是最终裁决（合法通过 / 非法枚举与越界拒绝）', () => {
+  assert.doesNotThrow(
+    () =>
+      ConfigError.mergeConfigs({}, {
+        retrievalContext: { mode: 'bm25', maxSnippets: 4, maxTokens: 600 },
+        semanticRecall: { mode: 'on' },
+        contextPolicy: { degradeLadder: { compactionForce: true }, cacheGuard: { hitRateFloor: 0.5 } },
+      } as never),
+    '合法段必须通过（否则设置页保存会被 fail-closed 误拒）',
+  );
+  assert.throws(
+    () => ConfigError.mergeConfigs({}, { retrievalContext: { mode: 'semantic' } } as never),
+    ConfigError,
+    '未知 mode 必须拒绝',
+  );
+  assert.throws(
+    () => ConfigError.mergeConfigs({}, { contextPolicy: { cacheGuard: { hitRateFloor: 2 } } } as never),
+    ConfigError,
+    '命中率下限必须落在 (0,1]',
+  );
 });
 
 test('内核校验是最终裁决：costBudgetSoftRatio 越界（>1）被 mergeConfigs 拒绝', () => {

@@ -25,7 +25,25 @@ export const EN_SETTINGS: Record<string, string> = {
   模型: 'Model',
   '厂商接入、API Key、默认模型与自定义端点': 'Providers, API keys, default model and custom endpoint',
   运行时: 'Runtime',
-  '适配器、沙箱、存储、步数与成本预算、模型熔断、长期记忆': 'Adapter, sandbox, storage, per-turn steps & cost budget, model circuit breaker, long-term memory',
+  '适配器、沙箱、存储、步数与成本预算、模型熔断、上下文与检索、缓存与防火墙、长期记忆':
+    'Adapter, sandbox, storage, per-turn steps & cost budget, model circuit breaker, context & retrieval, cache & firewall, long-term memory',
+  // 缓存与防火墙（alpha.21）
+  缓存与防火墙: 'Cache & firewall',
+  '确定性读缓存与能力数据流防火墙；缺省全关，开启后按段生效。':
+    'Deterministic read cache and capability data-flow firewall; both off by default, applied per section when enabled.',
+  读缓存: 'Read cache',
+  '白名单纯读工具按（工具 + 入参 + 工作区写代次）记忆命中；任何写提交全量失效；缺省关，切换在重启后生效':
+    'Read-only whitelisted tools are memoized by (tool + args + workspace write generation); any write invalidates all; off by default, toggling applies after restart',
+  缓存条目上限: 'Cache entry limit',
+  'LRU 上限（正整数）；到达上限淘汰最旧条目':
+    'LRU cap (positive integer); the oldest entry is evicted at the cap',
+  能力防火墙: 'Capability firewall',
+  'off=不跑 / shadow=留证放行 / enforce=命中即拒绝（外部与注入内容 → 写类工具）':
+    'off = disabled / shadow = log and allow / enforce = deny on match (external & injected content → mutating tools)',
+  防火墙策略文件: 'Firewall policy file',
+  '留空 = 随包默认策略': 'Leave empty for the bundled default policy',
+  '自定义 JSON 策略文件；不合 Schema 时启动即拒绝（fail-closed）':
+    'Custom JSON policy file; an invalid schema rejects at startup (fail-closed)',
   权限: 'Permissions',
   '审批模式、升级策略与免确认开关': 'Approval mode, escalation policy and confirmation toggle',
   外观: 'Appearance',
@@ -239,6 +257,40 @@ export const EN_SETTINGS: Record<string, string> = {
   '记忆密钥文件': 'Memory key file',
   '留空 = 派生默认密钥': 'Leave empty for the derived default key',
   '加密密钥文件路径（配合「长期记忆加密」使用）': 'Key file path for memory encryption',
+  // 上下文与检索（内核 alpha.19 三段）
+  '上下文与检索': 'Context & retrieval',
+  '推入式检索、语义召回与预算降档阶梯；全部缺省关闭，改动在下一回合生效。':
+    'Push-style retrieval, semantic recall and budget-degrade ladder; all off by default, changes apply next turn.',
+  检索供给: 'Retrieval supply',
+  'bm25=每步按预算把会话历史检索片段推入上下文；缺省 off（显式开启才生效）':
+    'bm25 = push retrieved conversation snippets into context each step within budget; default off (must be enabled explicitly)',
+  查询改写: 'Query rewriting',
+  'model=每步经模型把多轮查询改写为自足查询（补指代/省略）；缺省 off':
+    'model = rewrite multi-turn queries into self-contained ones via the model (resolves references/ellipsis); default off',
+  检索精排: 'Rerank',
+  'model=候选片段经模型语义精排再进预算裁剪；预算降档时自动跳过；缺省 off':
+    'model = semantically rerank candidates before budget trimming; skipped while degraded; default off',
+  单步注入条数: 'Snippets per step',
+  '留空 = 内核默认 4': 'Leave empty for kernel default 4',
+  '每次上下文组装最多注入的片段数（正整数）':
+    'Maximum snippets injected per context assembly (positive integer)',
+  '注入 token 上限': 'Injection token limit',
+  '留空 = 内核默认 600': 'Leave empty for kernel default 600',
+  '单步注入片段的 token 预算上限（正整数）':
+    'Token budget for injected snippets per step (positive integer)',
+  语义召回: 'Semantic recall',
+  'on=装配本地嵌入模型，检索走 BM25 ∪ 语义混合；嵌入不可用时降级为 BM25 并在诊断中如实标注':
+    'on = load the local embedding model and use hybrid BM25 ∪ semantic retrieval; falls back to BM25 and reports it when embeddings are unavailable',
+  降档激进裁剪: 'Aggressive shaping on degrade',
+  '软预算越档时启用旧轮激进裁剪（缺省关 = 维持既有行为）':
+    'Enable aggressive pruning of older turns when the soft budget is exceeded (default off = current behavior)',
+  降档强制压缩: 'Force compaction on degrade',
+  '软预算越档时强制压缩上下文（缺省关 = 维持既有行为）':
+    'Force context compaction when the soft budget is exceeded (default off = current behavior)',
+  缓存命中率下限: 'Cache hit-rate floor',
+  '留空 = 不告警': 'Leave empty to disable alerts',
+  'prompt cache 累计命中率低于该值时告警（0 < r ≤ 1；只告警不阻断）':
+    'Alert when the cumulative prompt-cache hit rate drops below this value (0 < r ≤ 1; alert only, never blocks)',
   '「{name}」{reason}': '"{name}" {reason}',
   需为数字: 'must be a number',
   '取值范围：{range}': 'allowed range: {range}',

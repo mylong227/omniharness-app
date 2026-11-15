@@ -12,7 +12,7 @@ import type { AuditSink } from '../services/auditSink.ts';
 import type { DoctorOptions, DoctorReport } from '../../../host/extensions/contracts/ports/observability/doctorReport.ts';
 import type { VaultPort } from '../../../host/kernel/contracts.ts';
 import type { GraphNodeStatus } from '../../../host/kernel/autonomy.ts';
-import type { ResolvedConfig } from '../../../host/kernel/contracts.ts';
+import type { ResolvedConfig, SubagentTreePort } from '../../../host/kernel/contracts.ts';
 import type { ServerEventBridge } from './serverEventBridge.ts';
 
 /** AppServer 选项。 */
@@ -71,6 +71,12 @@ export interface AppServerOptions {
   readonly profile?: string | undefined;
   /** 工作区根（检查点文件快照还原用；缺省回退 process.cwd()）。 */
   readonly workspaceRoot?: string | undefined;
+  /**
+   * 子代理父子树（alpha.21）：必须与 `ConfigFactory.build` 期注入的是**同一实例**
+   * （内核编排器在构造 subagent 工具时捕获它）；serve 组合根在 buildConfig 前创建并透传。
+   * 缺省 = 服务端自建（嵌入/单测无编队需求时零影响）。
+   */
+  readonly subagentTree?: SubagentTreePort | undefined;
   /**
    * 是否允许模型目录覆盖启动模型（读落盘 omniharness.json / UI 覆盖 / 环境凭据构造真适配器）。
    * 缺省 true（serve 模式依赖此行为热切换真模型）；嵌入方与单测注入 mock 模型时
@@ -134,6 +140,26 @@ export const RULES_DEFAULT: ApprovalPort = new RuleApproval({
 });
 
 /**
+ * 结构化配置段：`config.update` 提交整段，落盘按段**替换**而不是深合并。
+ *
+ * 为什么单独列：`ConfigError.mergeConfigs` 对普通对象做递归合并，逐字段补丁无法表达
+ * 「删除嵌套键」（例如把 `contextPolicy.cacheGuard.hitRateFloor` 清空——null 会被
+ * 段校验器拒绝）。UI 每次都提交由当前配置合并出的**完整段**，故按段替换即可让
+ * 「留空=关闭」真正落到文件；未列入此表的键仍是既有的深合并语义（向后兼容）。
+ *
+ * 只收 alpha.19 新增的这三段：更早的结构化键（permission 等）已有消费者按深合并工作，
+ * 不在此轮改变其语义。
+ */
+export const SECTION_REPLACE_KEYS: readonly string[] = [
+  'retrievalContext',
+  'semanticRecall',
+  'contextPolicy',
+  // alpha.21：读缓存 / 能力防火墙（内核文件面补齐；UI 整段提交、按段替换）。
+  'toolCache',
+  'capflow',
+];
+
+/**
  * config.update 允许持久化到配置文件的字段。
  * 写路径**恒为用户级** ~/.omniharness/omniharness.json（2026-10-13 用户口径："都固定保存到该目录下"
  * ——曾因落项目级、重启换工作区而「设置被重置」），与手改用户级文件等价；
@@ -177,6 +203,10 @@ export const PERSISTABLE_KEYS: readonly string[] = [
   'longTermMemoryEncryption',
   'longTermMemoryGovernance',
   'longTermMemoryKeyFile',
+  // 内核 alpha.19 上下文三段的 UI 入口（2026-11-15，settings-completion §1.3 扩展）：
+  // 检索供给 / 语义召回 / 上下文工程策略。三段都是**结构化对象**，落盘语义见
+  // {@link SECTION_REPLACE_KEYS}；类型/枚举/区间校验仍由内核 normalizeConfig 承担。
+  ...SECTION_REPLACE_KEYS,
 ];
 
 /** 图运行中单节点状态。 */

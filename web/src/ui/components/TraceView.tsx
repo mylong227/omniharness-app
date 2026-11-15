@@ -109,50 +109,56 @@ export function TraceView(props: TraceViewProps): ReactElement {
       aria-label={t('工具调用轨迹')}
       aria-hidden={hidden === true ? 'true' : undefined}
     >
-      <div className="trace-head" aria-hidden="true">
-        {t('共 {count} 次工具调用', { count: rows.length })}
-        {running > 0 ? t(' · {count} 次进行中', { count: running }) : ''}
-      </div>
-      {rows.length === 0 && liveInputs.length === 0 ? (
-        <div className="trace-empty">{t('本轮还没有工具调用。发起任务后，读取 / 编辑 / 命令会按顺序出现在这里。')}</div>
-      ) : (
-        <div className="trace-list">
-          {rows.map((r) => (
-            <div className="tr-row" key={r.key}>
-              <span className="tr-ico" aria-hidden="true">
-                {icon(iconOfTool(r.name), { size: 14 })}
-              </span>
-              <span className="tr-act" title={r.action}>
-                {r.action}
-              </span>
-              <span className={r.done ? 'tr-st ok' : 'tr-st run'}>{r.done ? t('完成') : t('进行中')}</span>
-              <span className="tr-time" aria-hidden="true">
-                {r.time}
-              </span>
-            </div>
-          ))}
-          {liveInputs.map((li) => (
-            <div className="tr-row" key={li.id}>
-              <span className="tr-ico" aria-hidden="true">
-                {icon('wrench', { size: 14 })}
-              </span>
-              <span className="tr-act">
-                {(() => {
-                  let args: unknown = {};
-                  try {
-                    args = JSON.parse(li.partial);
-                  } catch {
-                    args = {};
-                  }
-                  return describeToolCall(li.name, args);
-                })()}
-              </span>
-              <span className="tr-st run">{t('进行中')}</span>
-              <span className="tr-time" aria-hidden="true"></span>
-            </div>
-          ))}
+      {/* 与对话流共用同一条 800px 居中正文列（`.stream-inner` 同宽），否则轨迹会贴着
+          中栏左缘、行尾状态/时间被拉到极右，整屏两条内容轴对不齐。 */}
+      <div className="trace-inner">
+        <div className="trace-head" aria-hidden="true">
+          {t('共 {count} 次工具调用', { count: rows.length })}
+          {running > 0 ? t(' · {count} 次进行中', { count: running }) : ''}
         </div>
-      )}
+        {rows.length === 0 && liveInputs.length === 0 ? (
+          <div className="trace-empty">{t('本轮还没有工具调用。发起任务后，读取 / 编辑 / 命令会按顺序出现在这里。')}</div>
+        ) : (
+          <div className="trace-list">
+            {rows.map((r) => (
+              <div className="tr-row" key={r.key}>
+                <span className="tr-ico" aria-hidden="true">
+                  {icon(iconOfTool(r.name), { size: 14 })}
+                </span>
+                <span className="tr-act" title={r.action}>
+                  {r.action}
+                </span>
+                <span className={r.done ? 'tr-st ok' : 'tr-st run'}>
+                  {r.done ? t('完成') : t('进行中')}
+                </span>
+                <span className="tr-time" aria-hidden="true">
+                  {r.time}
+                </span>
+              </div>
+            ))}
+            {liveInputs.map((li) => (
+              <div className="tr-row" key={li.id}>
+                <span className="tr-ico" aria-hidden="true">
+                  {icon('wrench', { size: 14 })}
+                </span>
+                <span className="tr-act">
+                  {(() => {
+                    let args: unknown = {};
+                    try {
+                      args = JSON.parse(li.partial);
+                    } catch {
+                      args = {};
+                    }
+                    return describeToolCall(li.name, args);
+                  })()}
+                </span>
+                <span className="tr-st run">{t('进行中')}</span>
+                <span className="tr-time" aria-hidden="true"></span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

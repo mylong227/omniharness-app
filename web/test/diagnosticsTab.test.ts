@@ -62,14 +62,39 @@ async function renderSeeded(responses: Record<string, unknown>) {
   return ui.node;
 }
 
+/** 健康快照桩（哨兵桥：七分区；absent 与 degraded 都必须如实呈现）。 */
+function health(over: Record<string, unknown> = {}) {
+  return {
+    generatedAt: '2026-11-15T00:00:00.000Z',
+    uptimeMs: 1234,
+    summary: 'ok',
+    sections: [
+      { name: 'receipts', status: 'absent', problems: [], detail: { reason: '无内核全局回执链' } },
+      { name: 'telemetry', status: 'absent', problems: [] },
+      { name: 'budget', status: 'ok', problems: [], detail: { limitUsd: 5, spentUsd: 1 } },
+      { name: 'sessions', status: 'ok', problems: [], detail: { running: [] } },
+      { name: 'plugins', status: 'ok', problems: [], detail: { count: 0 } },
+      { name: 'sandbox', status: 'ok', problems: [], detail: { name: 'policy' } },
+      {
+        name: 'context',
+        status: 'absent',
+        problems: [],
+        detail: { semanticRecall: { requested: false, active: false } },
+      },
+    ],
+    ...over,
+  };
+}
+
 /**
  * 以给定状态渲染并取文本。
  * @param daemon daemon 状态（形状由被测组件的 useState 槽位决定）
  * @param doctor doctor 响应
+ * @param snapshot 健康快照（缺省给正常桩）
  * @returns 面板文本
  */
-async function textWith(daemon: unknown, doctor: unknown) {
-  const ui = await renderSeeded({ daemonStatus: daemon, doctorReport: doctor });
+async function textWith(daemon: unknown, doctor: unknown, snapshot: unknown = health()) {
+  const ui = await renderSeeded({ daemonStatus: daemon, doctorReport: doctor, kernelHealth: snapshot });
   return facadeAllText(ui);
 }
 
@@ -77,6 +102,7 @@ test('① ApiClient 的方法名与 RPC 名一致（改错名字 ⇒ 面板永�
   const source = readFileSync('web/src/core/ApiClient.ts', 'utf8');
   assert.match(source, /this\.rpc\('daemon\.status'/u, 'daemonStatus 必须调 daemon.status');
   assert.match(source, /this\.rpc\('doctor\.report'/u, 'doctorReport 必须调 doctor.report');
+  assert.match(source, /this\.rpc\('kernel\.health'/u, 'kernelHealth 必须调 kernel.health');
   // 正对照：把方法名换掉必须被本检查的谓词识别（防"只要文件里有这串就算过"）。
   const mutated = source.replace("this.rpc('doctor.report'", "this.rpc('doctor.reportTypo'");
   assert.notStrictEqual(mutated, source, '正对照变异未命中 ⇒ 判据锚点漂了');
@@ -133,7 +159,34 @@ test('⑤ 无不合格项时才显示"无不合格项"（正对照，防判据�
   assert.match(text, /无不合格项/u, '真的没问题时必须如实说没问题（否则②的"未接线不显示"就无从区分）');
 });
 
-test('⑥ 入口已注册：PANELS 含 diagnostics，Router 认可 #pane=diagnostics', async () => {
+test('⑥ 健康分区：degraded 与 absent 都必须如实呈现（absent 不得读成正常）', async () => {
+  const text = await textWith({ running: false }, { ok: true, report: report() }, health({
+    summary: 'degraded(budget:BUDGET_EXCEEDED)',
+    sections: [
+      { name: 'receipts', status: 'absent', problems: [], detail: { reason: '无内核全局回执链' } },
+      {
+        name: 'budget',
+        status: 'degraded',
+        problems: [{ code: 'BUDGET_EXCEEDED', detail: 'limit=5' }],
+        detail: { limitUsd: 5, spentUsd: 5 },
+      },
+      { name: 'telemetry', status: 'ok', problems: [], detail: { chainOk: true, count: 3 } },
+    ],
+  }));
+  assert.match(text, /degraded\(budget:BUDGET_EXCEEDED\)/u, '摘要必须原样呈现');
+  assert.match(text, /BUDGET_EXCEEDED/u, '问题码必须可见（不折叠成"有问题"）');
+  assert.match(text, /无内核全局回执链/u, 'absent 必须带出原因');
+  assert.match(text, /未配置/u, 'absent 必须读作「未配置」');
+  assert.match(text, /降级/u, 'degraded 必须读作「降级」');
+});
+
+test('⑦ 健康快照读取失败：显式说"未读到"，不得渲染成正常', async () => {
+  const text = await textWith({ running: false }, { ok: true, report: report() }, {});
+  assert.match(text, /未读到健康报告/u);
+  assert.doesNotMatch(text, /健康摘要/u, '没有报告时不得给出摘要（否则等于假装读到了）');
+});
+
+test('⑧ 入口已注册：PANELS 含 diagnostics，Router 认可 #pane=diagnostics', async () => {
   assert.ok(
     PANELS.some((p) => p.key === 'diagnostics'),
     'PANELS 必须含 diagnostics（否则面板选择器里看不到该入口）',

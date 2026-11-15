@@ -398,7 +398,18 @@ export interface TurnSummaryBlock {
   readonly key: string;
   readonly events: readonly ThreadEvent[];
 }
-export type DisplayBlock = SingleBlock | ProcessBlock | TurnSummaryBlock;
+/**
+ * 审计记录折叠块（2026-11-15 用户截图：audit 事件逐条平铺成 JSON 卡，整屏重复且打断阅读）。
+ *
+ * 每轮把本轮所有 `audit` 事件收成**一条**默认折叠的摘要行；展开才显示逐条 JSON。
+ * 审计的完整事实仍在「审计 / 决策账本」面板，聊天流不承担逐条展示。
+ */
+export interface AuditBlock {
+  readonly kind: 'audit_group';
+  readonly key: string;
+  readonly events: readonly ThreadEvent[];
+}
+export type DisplayBlock = SingleBlock | ProcessBlock | TurnSummaryBlock | AuditBlock;
 
 /** 收集「已被调用卡内联结果」的工具调用 id 集合（tool_result 隐藏判据的单一来源）。 */
 export function collectToolCallIds(events: readonly ThreadEvent[]): ReadonlySet<string> {
@@ -535,6 +546,7 @@ function isNarrationAssistant(
  *  - **过程旁白**（本轮中间的 assistant 消息）同样收进轨迹：它们是「我打算做什么」的思考步骤，
  *    平铺会占满一屏；本轮最后一条助手消息（最终答复）仍留在对话里；
  *  - 非过程事件（user / assistant 最终答复 / system / todo / plan / question）保持原顺序；
+ *  - `audit` 事件本轮统一收成末尾**一条默认折叠**的 `audit_group`（不逐条占聊天流）；
  *  - `turn_diff` 收口成结果卡，事件切片交给结果卡汇总生成 / 修改文件；
  *  - 没有 turn_diff、但确实产出了文件的**已收尾**回合也补一张结果卡——产物只能出现在卡里，
  *    绝不再散落在过程行里（旧版内联产物卡的口子就此关闭）。
@@ -552,6 +564,7 @@ export function buildDisplayBlocks(events: readonly ThreadEvent[], busy: boolean
     const hasUser = segment.some((ev) => ev.type === 'user');
     const process: ThreadEvent[] = [];
     const singles: { ev: ThreadEvent; pos: number }[] = [];
+    const audit: ThreadEvent[] = [];
     let lastProcessPos = -1;
     let diffKey = '';
     for (let si = 0; si < segment.length; si += 1) {
@@ -570,6 +583,12 @@ export function buildDisplayBlocks(events: readonly ThreadEvent[], busy: boolean
       if (PROCESS_TYPES.has(ev.type)) {
         process.push(ev);
         lastProcessPos = si;
+        continue;
+      }
+      // 审计记录是内部事实（心跳/审批/决策逐条 JSON），不逐条占据聊天流：
+      // 本轮统一收进末尾的一条折叠块（2026-11-15 用户截图反馈）。
+      if (ev.type === 'audit') {
+        audit.push(ev);
         continue;
       }
       if (!isRenderedEvent(ev, callIds)) continue;
@@ -594,6 +613,9 @@ export function buildDisplayBlocks(events: readonly ThreadEvent[], busy: boolean
       if (i === insertAt && processBlock !== null) blocks.push(processBlock);
       if (i === singles.length) break;
       blocks.push({ kind: 'single', event: singles[i]!.ev } as SingleBlock);
+    }
+    if (audit.length > 0) {
+      blocks.push({ kind: 'audit_group', key: 'audit:' + audit[0]!.id, events: audit } as AuditBlock);
     }
     if (diffKey !== '') {
       blocks.push({ kind: 'turn_summary', key: diffKey, events: segment } as TurnSummaryBlock);

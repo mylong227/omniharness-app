@@ -369,7 +369,8 @@ export function ConsoleSettingRow(props: {
   const { field, model } = props;
   const label = t(field.label);
   const hint = field.hint === undefined ? undefined : t(field.hint);
-  const committed = model.valueOf(field.key);
+  // 传字段而不是 key：结构化段字段要按 path 取叶值（传 key 会拿到整段对象）。
+  const committed = model.valueOf(field);
 
   // 文本草稿：外部值变化（装载 / 保存后重拉）时同步进来。
   const [draft, setDraft] = React.useState(committed);
@@ -381,7 +382,7 @@ export function ConsoleSettingRow(props: {
     return (
       <ConsoleRow label={label} hint={hint}>
         <ConsoleSwitch
-          checked={model.boolOf(field.key)}
+          checked={model.boolOf(field)}
           label={label}
           onChange={(checked) => void model.saveField(field, checked)}
         />

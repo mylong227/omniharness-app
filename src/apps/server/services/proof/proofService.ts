@@ -28,7 +28,7 @@ const DIFF_FILE_PATTERN = /^diff --git a\/(.+?) b\/(.+)$/gm;
 /**
  * 凭证服务（`proof.*` RPC 后端）：把某一回合做成**离线可复核**的证据。
  *
- * ## 内核能力接线（alpha.16）
+ * ## 内核能力接线（alpha.19）
  *
  *  - 证书：`ExecutionCertificates.build({ events, tools })`（未签名；签名是 v3 + trust store）；
  *  - 根：`EventMerkle.build(events).root`（复核时重算比对）；

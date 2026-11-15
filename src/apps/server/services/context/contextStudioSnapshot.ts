@@ -1,4 +1,6 @@
 import type { ContextUsageReport } from '../contextUsageService.ts';
+import type { KernelContextView } from './kernelContextView.ts';
+import type { CompactionAuditLike, CompactionSignalsLike } from '../../../../host/extensions/kernel/context/compactionMarkerReader.ts';
 
 /**
  * 上下文工作室快照（`context.studio` RPC 的返回体，设计 §5.2）。
@@ -6,8 +8,9 @@ import type { ContextUsageReport } from '../contextUsageService.ts';
  * 诚实边界（设计 §1.6 / §5.6，实现口径）：
  *  - 压缩记录从**事件流**的 `OMNI_COMPACTION_V1` system 事件解码（内核 `stepContextBuilder`
  *    在压缩落游标时写入）——这是本应用唯一持久化的事实源；
- *  - `stateAudit` / `signals` 是内核压缩时的 shadow 返回值，alpha.16 **不落事件流**，
- *    因此历史压缩记录一律 `auditRecorded: false`（UI 显示「未记录审计」，绝不显示「全部通过」）；
+ *  - alpha.21 起内核把 `stateAudit` / `signals` 随游标持久化（header `evidence=`）；
+ *    有证据的压缩记录 `auditRecorded: true`，旧游标仍为 false（UI 显示「未记录审计」，
+ *    绝不把「没证据」显示成「审计通过」）；
  *  - 交接便签：内核 `ScratchpadPort` 在 serve 路径没有注入点 ⇒ v1 无数据，
  *    `handoff` 恒空 + `handoffAvailable: false`（UI 显示「未接线」，不伪造便签）。
  */
@@ -24,16 +27,12 @@ export interface CompactionMark {
   readonly headHash: string;
   /** 摘要正文（可折叠预览）。 */
   readonly summary: string;
-  /** 是否有持久化的状态审计（alpha.16 恒 false：审计不落事件流）。 */
+  /** 是否有持久化的状态审计（alpha.21 起压缩证据随游标落盘；旧游标为 false）。 */
   readonly auditRecorded: boolean;
-  /** 状态审计（有 sidecar 的记录才有；当前版本恒 undefined）。 */
-  readonly stateAudit?: {
-    readonly ok: boolean;
-    readonly checked: { readonly editedFiles: number; readonly commands: number; readonly openTodos: number };
-    readonly missing: readonly string[];
-  };
-  /** 触发信号（同上，当前版本恒 undefined）。 */
-  readonly signals?: { readonly budgetRatio: number; readonly rounds: number; readonly toolResultShare: number };
+  /** 状态审计证据（有证据才有；缺省 = 旧游标，UI 如实显示「未记录审计」）。 */
+  readonly audit?: CompactionAuditLike;
+  /** 触发信号证据（同上）。 */
+  readonly signals?: CompactionSignalsLike;
 }
 
 /** 一条交接便签（v1 恒无数据：scratchpad 未接线）。 */
@@ -54,6 +53,13 @@ export interface HandoffNote {
 export interface ContextStudioSnapshot {
   /** 会话 id。 */
   readonly threadId: string;
+  /**
+   * 内核上下文策略（alpha.19：检索供给 / 语义召回 / 降档阶梯 + 缓存守卫）。
+   *
+   * 与健康桥的 context 分区同一读模型（`KernelContextViewBuilder`），不在 UI 侧重解析
+   * 配置；`degraded` 必须渲染成降级，不得与「关闭」混为一谈。
+   */
+  readonly kernel: KernelContextView;
   /** 六类构成与缓存报告（与 `context.usage` 同源，实测/估算标注透传）。 */
   readonly report: ContextUsageReport;
   /** 压缩记录（按时间升序）。 */

@@ -96,6 +96,59 @@ pre.json { border:1px solid var(--border-soft); padding:8px 10px; margin-top:7px
   background:var(--panel); border:1px dashed var(--border-soft); border-radius:8px;
   padding:8px 12px; max-height:280px; overflow:auto; color:var(--dim);
 }
+/* ---- 审计记录收纳（2026-11-15）：每轮一条默认收起的摘要，展开才看逐条 JSON ---- */
+.audit-fold {
+  margin: 2px 0;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: var(--panel);
+}
+.audit-fold__summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 11.5px;
+  color: var(--dim);
+}
+.audit-fold__summary::-webkit-details-marker { display: none; }
+.audit-fold__summary:hover { color: var(--text); }
+.audit-fold__icon { display: inline-flex; }
+.audit-fold__kinds {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  opacity: 0.85;
+}
+.audit-fold__hint { margin-left: auto; flex: none; font-size: 10.5px; opacity: 0.7; }
+.audit-fold__body {
+  border-top: 1px solid var(--border-soft);
+  padding: 8px 10px;
+  max-height: min(40vh, 360px);
+  overflow: auto;
+}
+.audit-record + .audit-record {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-soft);
+}
+.audit-record__head { display: flex; gap: 8px; font-size: 10.5px; color: var(--dim); }
+.audit-record__kind { font-family: var(--mono); }
+.audit-record__json {
+  margin: 4px 0 0;
+  font-size: 10.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--text);
+}
+.unknown-fold__json { margin: 0; font-size: 10.5px; white-space: pre-wrap; word-break: break-all; }
 .todo-item { display:flex; gap:8px; align-items:center; }
 .todo-dot { border-radius:50%; background:var(--dim); }
 .diff { font-family:var(--mono); overflow:auto; max-height:320px; }

@@ -256,6 +256,11 @@ export class CliBuildConfig extends CliCredentialBuild {
       readonly events?: EventPort;
       /** 常驻服务专用：缺 Key 时用占位模型继续启动（见 {@link BuildModelOptions}）。 */
       readonly allowUnconfiguredModel?: boolean;
+      /**
+       * 子代理父子树（alpha.21）：必须在 `ConfigFactory.build` **之前**注入——
+       * 内核在构造 subagent 工具时把编排器与树绑定；构建后再塞进 ResolvedConfig 无效。
+       */
+      readonly subagentTree?: import('../../host/kernel/contracts.ts').SubagentTreePort;
     } = {},
   ): Promise<ResolvedConfig> {
     if (args.native && !new NativeKernel().available()) {
@@ -275,6 +280,7 @@ export class CliBuildConfig extends CliCredentialBuild {
       // `userResponder`（`registerAgentTools`），所以必须在**这里**注入；漏了它，Web 端就只剩
       // 「只读提问卡」，用户看得见问题却没有提交入口（2026-10-08 用户报障）。
       ...(overrides.userResponder !== undefined ? { userResponder: overrides.userResponder } : {}),
+      ...(overrides.subagentTree !== undefined ? { subagentTree: overrides.subagentTree } : {}),
       ssrfPolicy: args.ssrfPolicy, // 配置文件 → CLI → 组合根；不在此透传则 A2A 拿不到策略表
       // 0 = 不限（缺省）。这个默认值历史上被抬过两次（16→32→48）来救「探索烧满、写入没跑」，
       // 但根因是**拿步数当终止条件**；现改为按任务完成/预算/行为护栏终止（2026-10-15）。

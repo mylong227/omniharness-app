@@ -36,6 +36,8 @@ export function observabilityModule(): ServerModule {
       // T4.5：只读 trace 自省 RPC（agent 自查「我刚做了什么」，无写方法，不可借道改历史）。
       ctx.rpc('trace.read', async (params) => readTraceRpc(s, params));
       ctx.rpc('audit.query', (params) => Promise.resolve(queryAuditRpc(s, params)));
+      // 内核健康桥（2026-11-15，alpha.19 哨兵对接）：只读聚合，absent ≠ degraded。
+      ctx.rpc('kernel.health', () => Promise.resolve(s.kernelHealth.report()));
     },
   };
 }

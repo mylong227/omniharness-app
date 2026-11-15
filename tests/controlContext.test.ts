@@ -61,6 +61,59 @@ test('ContextStudioService：解码 OMNI_COMPACTION_V1 游标并如实标记未�
   assert.equal(snapshot.compactions[0]?.turnIndex, 0);
   assert.equal(snapshot.compactions[0]?.auditRecorded, false);
   assert.equal(snapshot.handoffAvailable, false);
+  // 未注入内核读模型的服务（嵌入方/单测）如实给全关视图，不伪造开启态。
+  assert.equal(snapshot.kernel.retrievalContext.mode, 'off');
+  assert.equal(snapshot.kernel.semanticRecall.degraded, false);
+});
+
+test('ContextStudioService：注入内核读模型后快照带出生效值（与健康桥同源）', async () => {
+  const service = new ContextStudioService({
+    usage: () => Promise.resolve(REPORT),
+    events: () => Promise.resolve([]),
+    kernel: () => ({
+      retrievalContext: {
+        mode: 'bm25',
+        rewriter: 'off',
+        rerank: 'off',
+        maxSnippets: 4,
+        maxTokens: 600,
+      },
+      semanticRecall: { requested: true, active: false, degraded: true },
+      contextPolicy: {
+        shapersAggressive: false,
+        compactionForce: false,
+        cacheGuardFloor: 0.5,
+      },
+    }),
+  });
+  const snapshot = await service.snapshotOf('sess_test');
+  assert.equal(snapshot.kernel.retrievalContext.mode, 'bm25');
+  assert.equal(snapshot.kernel.retrievalContext.maxSnippets, 4);
+  assert.equal(snapshot.kernel.semanticRecall.degraded, true);
+  assert.equal(snapshot.kernel.contextPolicy.cacheGuardFloor, 0.5);
+});
+
+test('ContextStudioService：alpha.21 压缩证据随游标解码，auditRecorded 如实为 true', async () => {
+  const evidence = Buffer.from(
+    JSON.stringify({
+      audit: { ok: false, missing: ['缺 a.ts'], checked: { editedFiles: 1, commands: 0, openTodos: 0 } },
+      signals: {
+        budgetRatio: 0.8,
+        turns: 2,
+        toolResultShare: 0.5,
+        repetitionRate: 0,
+        combinedWouldTrigger: true,
+      },
+    }),
+    'utf8',
+  ).toString('base64url');
+  const marker = `OMNI_COMPACTION_V1 upTo=5 hash=abc evidence=${evidence}\n摘要`;
+  const snapshot = await serviceOf([event(0, 'system', { content: marker })]).snapshotOf('sess_test');
+  const mark = snapshot.compactions[0];
+  assert.equal(mark?.auditRecorded, true);
+  assert.equal(mark?.audit?.ok, false);
+  assert.deepEqual(mark?.audit?.checked, { editedFiles: 1, commands: 0, openTodos: 0 });
+  assert.equal(mark?.signals?.combinedWouldTrigger, true);
 });
 
 test('ContextStudioService：坏 marker 不当作压缩记录，避免“坏数据=无压缩”混淆', async () => {

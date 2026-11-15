@@ -89,6 +89,19 @@ test('FleetLaneParser：非 subagent 调用不产生车道', () => {
   assert.equal(nodes.length, 0);
 });
 
+test('FleetRegistry：运行中车道从共享父子树补子会话 id（alpha.21）', async () => {
+  const registry = new FleetRegistry({
+    events: () =>
+      Promise.resolve([event(0, 'tool_call', { callId: 'c1', name: 'subagent', args: { task: '还在跑' } })]),
+    workspaceRoot: () => 'D:/work',
+    childOfCall: (callId) => (callId === 'c1' ? 'sess_child_live' : undefined),
+  });
+  const snapshot = await registry.snapshotOf('sess_parent');
+  assert.equal(snapshot.nodes.length, 1);
+  assert.equal(snapshot.nodes[0]?.status, 'running');
+  assert.equal(snapshot.nodes[0]?.childSessionId, 'sess_child_live', '启动即登记，不必等 tool_result');
+});
+
 test('FleetRegistry：事件流不可读返回快照级错误，不伪装成空编队', async () => {
   const registry = new FleetRegistry({
     events: () => Promise.reject(new Error('archive broken')),

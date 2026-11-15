@@ -288,19 +288,24 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
     metrics: Metrics;
     events: ServerEventBridge;
     config: ResolvedConfig;
+    subagentTree: import('../../host/kernel/contracts.ts').SubagentTreePort;
   }> {
     const bridge = new HttpBridgeTransport(auth);
     const metrics = new Metrics();
     const { ServerEventBridge } = await import('../server/core/serverEventBridge.ts');
     const events = new ServerEventBridge({ transport: bridge, metrics, audit });
+    // 父子树必须在 buildConfig 之前创建：内核在构造 subagent 工具时就绑定它。
+    const { SubagentTree } = await import('../../host/kernel/core.ts');
+    const subagentTree = new SubagentTree();
     const config = await this.buildConfig(args, {
       userResponder: events.questionPort(),
       events: events.eventPort(),
       // 常驻服务（桌面端侧车的唯一入口）必须能在「尚未配置 API Key」时正常起来：
       // 否则侧车就绪前退出 ⇒ 主进程弹启动失败并退出，用户连设置页都进不去（2026-11-08 用户报障）。
       allowUnconfiguredModel: true,
+      subagentTree,
     });
-    return { bridge, metrics, events, config };
+    return { bridge, metrics, events, config, subagentTree };
   }
   /**
    * 按命名插件集 profile 收敛运行时插件集（serve 启动后的一步；G-E 5.1）。
@@ -421,7 +426,7 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
       }
       const audit = this.createAudit(serveArgs);
       const upstream = await this.buildServeUpstream(args, auth, audit);
-      const { bridge, metrics, events, config } = upstream;
+      const { bridge, metrics, events, config, subagentTree } = upstream;
       const displayConfig = CliServerCmds.displayConfigOf(loadedFile, args, wsRoot);
       const pluginsDir = this.flagValue(serveArgs, '--dir') ?? join(OmniHome.dir(), 'plugins');
       // #B3 web：serve 模式下，把工具参数增量实时广播给 Web UI（WebLiveView 经 bridge 推送），
@@ -441,6 +446,7 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
           metrics,
           audit,
           displayConfig,
+          subagentTree,
         }),
       );
       // 启动优化（D1，2026-10-25）：插件加载 + Profile 应用不再挡在 HTTP listen 之前，
@@ -536,12 +542,15 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
     readonly metrics: Metrics;
     readonly audit: AuditSink | undefined;
     readonly displayConfig: Record<string, string>;
+    /** 子代理父子树（alpha.21）：与 buildConfig 期注入的是同一实例。 */
+    readonly subagentTree: import('../../host/kernel/contracts.ts').SubagentTreePort;
   }): Promise<AppServerOptions> {
     const { args, serveArgs, wsRoot, configPath, pluginsDir } = deps;
     const serveProfile = this.flagValue(serveArgs, '--profile');
     return {
       config: deps.config,
       transport: deps.bridge,
+      subagentTree: deps.subagentTree,
       // 复用同一份上行桥：`question.respond` 的处理器挂在同一个实例上，否则（各自新建）
       // 客户端作答会送到一张**没有登记过请求**的挂起表里，答案静默丢失。
       eventBridge: deps.events,

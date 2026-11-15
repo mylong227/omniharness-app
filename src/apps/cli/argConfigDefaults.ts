@@ -50,6 +50,25 @@ export class ArgConfigDefaults {
     if (file.modelRouter !== undefined) {
       result.modelRouter = file.modelRouter;
     }
+    // 上下文三段（alpha.19）：**不映射 = CLI/serve 通道丢配置**。2026-11-15 实测发现
+    // 设置页能落盘、内核却收不到（configDefaults 从未映射），行为静默回落到 off。
+    // 与 media/capability/rbac/decisionEngine 同一条接线纪律。
+    if (file.retrievalContext !== undefined) {
+      result.retrievalContext = file.retrievalContext;
+    }
+    if (file.semanticRecall !== undefined) {
+      result.semanticRecall = file.semanticRecall;
+    }
+    if (file.contextPolicy !== undefined) {
+      result.contextPolicy = file.contextPolicy;
+    }
+    // alpha.21 文件面补齐的两段：读缓存 / 能力防火墙（整段透传，未配置 = 零行为）。
+    if (file.toolCache !== undefined) {
+      result.toolCache = file.toolCache;
+    }
+    if (file.capflow !== undefined) {
+      result.capflow = file.capflow;
+    }
   }
 
   /**

@@ -9,7 +9,8 @@
  *   4. `GET /?token=…` → 200 + HTML 含 `id="root"`（说明静态托管指到 `web/dist`）；
  *   5. `POST /rpc config.get`（Bearer）→ JSON-RPC `result` 对象（说明 RPC 分发与会话装配可用）；
  *   6. `POST /rpc sessions.list`（Bearer）→ `result.sessions` 是数组（会话存储/工作区作用域可用）；
- *   7. `@omniharness/kernel` 的 `NativeKernel.available()` 为真且 `ping()` 通过（原生内核随包可加载）。
+ *   7. `POST /rpc kernel.health`（Bearer）→ `result.sections` 是七分区数组（健康桥已接线）；
+ *   8. `@omniharness/kernel` 的 `NativeKernel.available()` 为真且 `ping()` 通过（原生内核随包可加载）。
  *
  * 用法：`npm run smoke`（可选 `--keep` 保留工作区目录便于排查）。
  * 退出码：0 全过 / 1 断言失败 / 2 启动超时。
@@ -119,6 +120,22 @@ try {
     sessionsRpc.status === 200 &&
       Array.isArray(sessionsBody?.result?.sessions),
     `HTTP ${String(sessionsRpc.status)} count=${String(sessionsBody?.result?.sessions?.length ?? '?')}`,
+  );
+
+  const healthRpc = await fetch(`${origin}/rpc`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${uiUrl.token}` },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 3, method: 'kernel.health', params: {} }),
+  });
+  const healthBodyJson = await healthRpc.json().catch(() => ({}));
+  const sections = healthBodyJson?.result?.sections;
+  check(
+    'POST /rpc kernel.health 有七分区',
+    healthRpc.status === 200 &&
+      Array.isArray(sections) &&
+      sections.length === 7 &&
+      typeof healthBodyJson?.result?.summary === 'string',
+    `HTTP ${String(healthRpc.status)} sections=${String(Array.isArray(sections) ? sections.length : '?')}`,
   );
 
   const { NativeKernel } = await import('@omniharness/kernel/kernel/native/nativeKernel.js');

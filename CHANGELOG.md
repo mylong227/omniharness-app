@@ -6,6 +6,60 @@
 ## [Unreleased]
 
 ### Added（新增）
+- **聊天流收纳审计与未知事件（2026-11-15，用户截图反馈）**：每轮 `audit` 事件不再逐条
+  渲染成 JSON 卡，统一收进末尾**一条默认折叠**的「审计记录 × N」摘要（展开看逐条
+  heartbeat/approval/decision 负载）；未知事件兜底也从常开 JSON 改为默认折叠。
+  判据 `web/test/auditFold.test.ts`（3 条：单块聚合/默认收起/负载保留）。
+- **轨迹视图版式与对话同轴（2026-11-15，用户截图反馈）**：`.trace` 内层新增
+  `.trace-inner`，与 `.stream-inner` 共用 800px 居中正文列（专注模式 920px），外层内边距
+  对齐 `.stream` 的 22/28/10——此前轨迹贴中栏左缘、状态/时间被甩到极右，与下方对话卡
+  形成两条错位内容轴。同时状态徽标定宽居中、时间列等宽右对齐。判据
+  `web/test/traceLayout.test.ts`（5 条，含「只改 CSS 不包容器 = 假对齐」与窄窗同步）。
+- **内核升级 alpha.22 + 深度适配三项（2026-11-15）**：vendored kernel 升到
+  `v0.1.0-alpha.22`（alpha.20 收尾基线 + alpha.21 三项 + 信任闸分类修复并入）。三项能力落地：
+  ① **缓存与防火墙**：`FileConfig` 新增 `toolCache`/`capflow` 文件面（内核），设置页运行时栏新增
+  「缓存与防火墙」卡（读缓存开关/条目上限、能力防火墙 off/shadow/enforce、策略文件选择），
+  段名进 `PERSISTABLE_KEYS`/`SECTION_REPLACE_KEYS`；
+  另：设置保存后 `capflow` 与上下文三段经 `liveRuntimeConfig` 覆盖启动快照，**下一回合生效**
+  （`toolCache` 在装配期包裹工具端口，只能重启生效，hint 已写明）；
+  ② **编队实时子会话**：内核 `SubagentTree` 共享父子树（编排器在子代理启动时写 `父→子` 与
+  `callId→子`），serve 组合根在 `buildConfig` **之前**创建并注入，`fleet.list` 运行中车道
+  立刻带出 `childSessionId`（不必等 `tool_result`）；
+  ③ **压缩证据**：内核把 `stateAudit`/`signals` 以 ` evidence=<base64url-json>` 随
+  `OMNI_COMPACTION_V1` 游标持久化（旧游标兼容、坏证据 fail-soft），上下文面板显示
+  「审计通过/有缺失」与触发信号，未记录审计仍如实告警。
+  内核侧 `v0.1.0-alpha.21` tag 含 11 条新判据（压缩证据 4 / 父子树 3 / 配置段 4）；
+  本仓验证：`kernel:check` 九条（284 源文件 / 290 导入）、typecheck×3、
+  web 204 文件 / 941 用例、build/build:web、smoke 9 条、desktop 41 条全过。
+- **修复上下文三段配置通道断链（2026-11-15）**：alpha.19 批次里 `retrievalContext`/`semanticRecall`/
+  `contextPolicy` 能经设置页落盘，但 `ArgParser.configDefaults` → `CliArgs` → `CliConfigSections`
+  → `ConfigFactory.build` 从未映射 ⇒ CLI/serve 启动时内核收到 undefined、行为静默回落到 off。
+  现已全链透传并以 `tests/configSectionWiring.test.ts` 钉住（I5a 同型判据）。
+- **上下文工作室补内核上下文策略（2026-11-15）**：`context.studio` 增 `kernel` 字段
+  （`KernelContextViewBuilder`：检索供给 mode/改写/精排/预算、语义召回 requested/active/degraded、
+  降档两级、缓存守卫下限），与 `kernel.health` 的 context 分区**同一读模型**（`semanticRecallRequested`
+  收敛到一处）。控制室「上下文」新增「内核上下文策略」卡：BM25 单步预算、改写/精排、
+  语义召回（请求了但嵌入不在位 = 「降档运行」而不是「未启用」）、降档阶梯、缓存守卫（下限 +
+  当前命中率）。内容口径修正：context studio / extensions / proof / fleet 里过时的
+  「alpha.16」事实改为当前内核事实（含「SubagentOrchestrator 已导出、编队接线待排期」）。
+  设计审计与对齐矩阵见 [kernel-ui-alignment/README.md](docs/design/kernel-ui-alignment/README.md)。
+  判据 `tests/kernelContextView.test.ts`（默认全关/配置映射/降档）、`tests/controlContext.test.ts`
+  （快照带出生效值）、`web/test/contextMode.test.ts`（三态渲染与徽标）。
+- **内核健康桥 `kernel.health`（2026-11-15）**：`observability` 域新增 1 个只读 RPC（108 → 109），
+  把本进程可观测的运行态聚合成七分区健康报告（`receipts/telemetry/budget/sessions/plugins/
+  sandbox/context`，词表与内核哨兵一致：`ok/degraded/absent`，absent ≠ degraded）。诊断面板
+  新增「内核健康（哨兵桥）」一屏：分区状态、问题码与 absent 原因逐条可见；未装配分区显示
+  「未配置」而不是「正常」。实现 `services/kernelHealthBridge.ts` + `AgentRuntimeHost`
+  只读探针（沙箱名/嵌入端口/预算读数），单探针抛错只降级该分区（`HEALTH_SECTION_FAILED`）。
+  判据 `tests/kernelHealthBridge.test.ts`（七分区/越预算/语义召回降档/fail-soft）与
+  `web/test/diagnosticsTab.test.ts`（⑥⑦）。
+- **设置页 alpha.19 上下文三段入口（2026-11-15）**：运行时栏新增「上下文与检索」卡——
+  `retrievalContext`（mode/rewriter/rerank/maxSnippets/maxTokens）、`semanticRecall.mode`、
+  `contextPolicy`（降档两级 + 缓存命中率下限）共 9 行；三个段名进 `config.update` 白名单，
+  服务端对 `SECTION_REPLACE_KEYS` **按段替换**（深合并无法删除嵌套键）。设置页字段模型新增
+  `path` + `fieldId`（同段多行），数字留空=删除叶键、删空整段=显式清除。判据
+  `settingsPane`（fieldId 全集/NUMBER_RANGES 对齐）、`configWiring`（⑬–⑯ 完整段提交/清空/
+  越界）、`serverConfigStorePersist`（段替换往返/非法拒绝）、`settingsPersistKeys`（段校验器）。
 - **决策账本 v1（2026-11-11）**：控制台「数据与统计 / 审计之后」新增 1 个面板——
   执行前决策、审批、授权、双链（原始 audit + AAT）与共形证据一屏可读；支持复核抽屉、
   AAT + `.sha256` 导出与用户级审计开关。新增 `decision.session/detail/export/configure`
@@ -36,6 +90,19 @@
   的薄包装，缺依赖时自动 `npm ci`，失败时停在窗口里保留错误。
 
 ### Fixed（修复）
+- **安装版「本地 Harness 未能启动」（2026-11-14 用户报障）**：只重打 NSIS 的
+  `npm run installer` 复用了 6 天前的 `release/win-unpacked`，安装包外观是新的、侧车却是旧
+  `dist`（缺「PS7 终端启动时 DPAPI 凭据解密失败」修复，kernel 仍是 alpha.15），装完启动即退出。
+  现在 `stage` 写入 `BUILD_INFO.json`（版本/kernel/产物哈希），`pack`/`dist`/`installer` 三处
+  都用它把安装目录与**当前工作树**逐字节比对，旧载荷直接拒绝出包；启动失败对话框同时带上
+  侧车最近 20 行输出（不再只有「超时/退出码」），日志新增 `harness start failed after <ms>`；
+  就绪超时默认 30s → 60s（安装后首次启动实测 33.6s：新 exe 被 Defender 扫描 + 维护巡检）。
+  回归判据 `desktop/scripts/test.mjs` 的 `PackagedPayloadCheck` / `HarnessStartFailure` 用例。
+- **任务栏图标显示 Electron 默认原子而非 Ω（2026-11-14 用户报障）**：Windows 按
+  AppUserModelID 匹配开始菜单快捷方式取图标；机器上残留了一枚测试用的 `Electron.lnk`
+  （指向开发 `electron.exe`，却是产品 AUMID），任务栏因此显示 Electron 默认图标。已清理该
+  快捷方式并重启 Explorer；安装器新增 `customInstall` 的 `SHChangeNotify`，升级替换 exe 后
+  主动刷新图标缓存。排障步骤见 `desktop/README.md` §10.1。
 - **没有 API Key 时桌面端直接进不去（侧车启动即退出，2026-11-08 用户报障）**：`serve` 的模型
   装配在「配置了需要 Key 的厂商、但 Key 缺失」时直接抛错，侧车在就绪前退出 ⇒ 主进程弹
   「Harness 启动失败」并 `app.quit()`，用户连「设置 → 模型接入」都进不去（启动被配置反向卡死）。

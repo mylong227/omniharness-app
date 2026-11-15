@@ -1,18 +1,18 @@
 # 本仓与内核（`@omniharness/kernel`）的契约
 
-> 实测日期 2026-11-14（alpha.19 对齐批次）。**结论**：应用消费 vendored `@omniharness/kernel@0.1.0-alpha.19`，
+> 实测日期 2026-11-15（alpha.22 对齐批次）。**结论**：应用消费 vendored `@omniharness/kernel@0.1.0-alpha.22`，
 > 全部内核导入收敛于 **`src/host/kernel/` 分域对接面**（19 个**自动生成**的域文件，
 > `npm run kernel:check` 第 7 条强制单点、第 8 条拒绝生成物漂移、第 9 条拒绝「已承诺能力的同名副本」）；
 > 内核切片清掉、app 仍需要的能力收留于 **`src/host/extensions/`**（app 自有扩展层，原 `kernel-compat/`，
 > M27 兼容层清零后更名；归属契约见[其 README](../src/host/extensions/README.md)）。
-> 后端 RPC 面由 **18 个域模块声明式注册**（108 方法，parity 快照钉住）。
+> 后端 RPC 面由 **18 个域模块声明式注册**（109 方法，parity 快照钉住；2026-11-15 增 `kernel.health`）。
 >
-> **2026-11-14 内核同步（alpha.19）**：内核 M55–M76（哨兵/缓存/成本信封/审计时间线/CapFlow/
-> 检索供给与语义召回/上下文策略/缓存读数联动/改写/精排/注入 enforce/VectorStorePort/
-> eval:inject/供给压力/干净检出 tsc/SSE-Web 示例/路由质量对照/残余台账）打成 `v0.1.0-alpha.19` 并 tag；
-> 本仓 vendor 重建自该 tag，依赖钉 `vendor/omniharness-kernel-0.1.0-alpha.19.tgz`。
-> 公共导出面仍 60/60，`kernel:surface` 19 域零变化；`kernel:check` 九条复绿
-> （282 源文件 / 288 处包导入 / 原生内核实载），三份 typecheck / web 用例 / build / smoke / desktop 全通过。
+> **2026-11-15 内核同步（alpha.22）**：应用侧深度适配三项落进内核——`FileConfig` 的
+> `toolCache`/`capflow` 文件面、子代理父子树 `SubagentTree` 注入、压缩 `audit`/`signals`
+> 证据随 `OMNI_COMPACTION_V1` 游标持久化（alpha.20 收尾基线一并并入）。本仓 vendor 重建自
+> `v0.1.0-alpha.22`，依赖钉 `vendor/omniharness-kernel-0.1.0-alpha.22.tgz`。
+> 公共根导出面仍 60/60；`kernel:surface` 19 域仅新增 `SubagentTree` 一个消费符号；
+> `kernel:check` 九条复绿（284 源文件 / 290 处包导入 / 原生内核实载）。
 
 ## 1. 现在的依赖方向
 
@@ -25,7 +25,7 @@ web/ + desktop/ ──HTTP/SSE──▶ src/apps（宿主：CLI / RPC 域模块 
                                    ├─▶ src/host/extensions/        app 自有扩展层
                                    │      Laya 决策引擎 / CLI worker / doctor / 图存储 / web 广播 / …
                                    │
-                                   └─▶ @omniharness/kernel@0.1.0-alpha.19（vendored tarball）
+                                   └─▶ @omniharness/kernel@0.1.0-alpha.22（vendored tarball）
                                           ├─ dist/kernel/**        主循环 / 编排单源 / 工具 / 门禁 / 存储 / Jcs
                                           ├─ dist/contracts/**     端口 / 类型 / schema
                                           ├─ dist/protocols/**     ACP / MCP
@@ -57,6 +57,8 @@ web/ + desktop/ ──HTTP/SSE──▶ src/apps（宿主：CLI / RPC 域模块 
 | M32（2026-11-08 傍晚） | alpha.14 | 影子清零终盘：修复第 9 条的两处漏检（curated 键拼成目录、再导出桶未解析）后，`IsolationLadderFactory` / `SdkPreferredMcpConnector` / `SessionGc` / `SessionStorageLocation` / `TmpSweep` + 6 类型共 11 个名字判红；删除 5 件影子（约 760 行），消费点改经 `maintenance` / `adapters-sandbox` / `adapters-misc` 对接面，生成器支持 curated 子路径落点；登记表清零，新增桶再导出回归判据 |
 | M33（2026-11-08 夜） | alpha.15 | 内核 P1 信任边界收敛 + 16 件 L0 清零 + MCP 反向请求 + 覆盖率收紧 + 跨仓消费契约层；app 重新 vendor 到 alpha.15（对接面/域文件/符号数零变化，`kernel:check` 九条复绿） |
 | M34（2026-11-14） | alpha.19 | 内核 M55–M76 批次（观测/缓存/成本 + 检索供给与质量 + 上下文策略 + CapFlow + 评测/应用侧收尾）；app 重新 vendor 到 alpha.19（19 域零变化，`kernel:check` 282 源文件 / 288 导入 / 九条复绿，typecheck×3 + web 用例 + build/smoke/desktop 全通过） |
+| M36（2026-11-15） | alpha.22 | 应用侧深度适配三项（内核同步改）：`toolCache`/`capflow` 配置文件面；`SubagentTree` 注入 + 编队运行中子会话 id；压缩 `audit`/`signals` 随游标持久化 + 面板呈现。另修 alpha.19 遗留断链：上下文三段 FileConfig → CliArgs → ConfigFactory 通道从未映射（设置页能存、内核收不到）。 |
+| M35（2026-11-15） | alpha.19（不升版） | alpha.19 能力落地（可选批次）：① 设置页「上下文与检索」卡 + `retrievalContext`/`semanticRecall`/`contextPolicy` 三段进 `PERSISTABLE_KEYS`（服务端 `SECTION_REPLACE_KEYS` 按段替换）；② `kernel.health` 健康桥（108→109 RPC，七分区 absent≠degraded）+ 诊断面板「内核健康（哨兵桥）」；③ `context.studio.kernel` 与上下文面板「内核上下文策略」（与健康桥同一读模型，检索/语义召回/降档/缓存守卫生效值）。不改内核依赖、19 域零变化；`kernel:check` / typecheck×3 / web 全套 / build / smoke（9 条）/ desktop 全绿；能力↔UI 对齐矩阵见 [design/kernel-ui-alignment](design/kernel-ui-alignment/README.md) |
 
 对接面规模随迁移演化：alpha.6 时代 349 源文件 / 316 处导入 / 17 域 → M30 收官 267/361/18 →
 2026-11-08 上午清死桶 `src/indexBeta.ts`（从未接线的 beta 发布面，消费 45 处内核符号却零被消费）
@@ -148,3 +150,4 @@ M22–M31 的每一轮内核升级都走的这条回路，常态业务代码零�
 | `npm run web:test` | ✅ 180 文件 / 828 用例（web 772 + 后端 56；含 parity/守卫/家具/golden/影子扫描） |
 | `npm run desktop:build` + `desktop:test` | ✅ 36/36 |
 | 嵌入 API 实测 | ✅ `createOmniHarness` 启动 / healthz 200 / RPC 往返 / 优雅关闭（tests/embedApi.test.ts 常规跑） |
+

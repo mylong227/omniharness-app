@@ -63,7 +63,7 @@ export const SETTINGS_TABS: readonly SettingsTabDef[] = [
   {
     key: 'runtime',
     label: '运行时',
-    hint: '适配器、沙箱、存储、步数与成本预算、模型熔断、长期记忆',
+    hint: '适配器、沙箱、存储、步数与成本预算、模型熔断、上下文与检索、缓存与防火墙、长期记忆',
     icon: 'command',
   },
   {
@@ -81,8 +81,15 @@ export type SettingsFieldKind = 'select' | 'text' | 'switch' | 'number';
 
 /** 一个设置字段（行）。 */
 export interface SettingsField {
-  /** `Config` 的字段名。 */
+  /** `Config` 的字段名（结构化段时是段名，如 `retrievalContext`）。 */
   key: keyof Config;
+  /**
+   * 结构化段内的路径（如 `['degradeLadder','shapersAggressive']`）。
+   *
+   * 缺省 = 字段值就是顶层键本身；声明后 `key` 指向整个段，本字段只编辑段内一个叶子。
+   * 同一段可有多行字段（共用 `key`、不同 `path`），唯一性由 {@link fieldId} 保证。
+   */
+  path?: readonly string[];
   /** 所属分栏。 */
   tab: SettingsTabKey;
   /** 行标签。 */
@@ -127,7 +134,30 @@ export const NUMBER_RANGES: Readonly<Record<string, { desc: string; check: (n: n
   costBudgetSoftRatio: { desc: '0 < r ≤ 1', check: (n) => Number.isFinite(n) && n > 0 && n <= 1 },
   modelCircuitBreakerThreshold: { desc: '≥ 1 的整数', check: (n) => Number.isInteger(n) && n >= 1 },
   modelCircuitBreakerOpenMs: { desc: '≥ 1000 的整数（毫秒）', check: (n) => Number.isInteger(n) && n >= 1000 },
+  // 结构化段内的数字行：键 = fieldId（段名.路径），不是顶层 Config 键。
+  'retrievalContext.maxSnippets': { desc: '≥ 1 的整数', check: (n) => Number.isInteger(n) && n >= 1 },
+  'retrievalContext.maxTokens': { desc: '≥ 1 的整数', check: (n) => Number.isInteger(n) && n >= 1 },
+  'contextPolicy.cacheGuard.hitRateFloor': { desc: '0 < r ≤ 1', check: (n) => Number.isFinite(n) && n > 0 && n <= 1 },
+  // alpha.21：读缓存 LRU 上限（正整数）。
+  'toolCache.maxEntries': { desc: '≥ 1 的整数', check: (n) => Number.isInteger(n) && n >= 1 },
 };
+
+/**
+ * 字段的唯一 id：顶层键为键名，结构段字段为「段名.路径」（如 `retrievalContext.mode`）。
+ *
+ * 为什么需要：同一段可拆成多行（共用 `key`），渲染 key 与测试断言都必须按 id 而不是
+ * 按 key 去重——否则 React 会因重复 key 复用错行，判据也会互相覆盖。
+ * @param field 字段定义
+ * @returns 稳定唯一 id
+ */
+export function fieldId(field: SettingsField): string {
+  return [String(field.key), ...(field.path ?? [])].join('.');
+}
+
+/** 普通对象判定（结构化段取值/合并用；数组与 null 不算）。 */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 
 /**
  * 设置表单全部字段（**单一事实源**）。
@@ -311,6 +341,138 @@ export const SETTINGS_FIELDS: readonly SettingsField[] = [
     // 留空发 null（显式删除键）：keyFile:'' 会让加密器打开空路径（review P1-1）。
     clearWhenEmpty: true,
     group: 'memory',
+  },
+  // ── 运行时·上下文与检索（内核 alpha.19 三段：M60 检索供给 / M61 语义召回 / M63+M65 上下文策略）──
+  // 三段都是结构化对象：同一段拆多行，落盘时由 SettingsModel 合并成完整段提交
+  // （服务端对 SECTION_REPLACE_KEYS 按段替换；留空 = 删除嵌套键，删空即清除整段）。
+  {
+    key: 'retrievalContext',
+    path: ['mode'],
+    tab: 'runtime',
+    label: '检索供给',
+    kind: 'select',
+    options: ['off', 'bm25'],
+    hint: 'bm25=每步按预算把会话历史检索片段推入上下文；缺省 off（显式开启才生效）',
+    group: 'context',
+  },
+  {
+    key: 'retrievalContext',
+    path: ['rewriter'],
+    tab: 'runtime',
+    label: '查询改写',
+    kind: 'select',
+    options: ['off', 'model'],
+    hint: 'model=每步经模型把多轮查询改写为自足查询（补指代/省略）；缺省 off',
+    group: 'context',
+  },
+  {
+    key: 'retrievalContext',
+    path: ['rerank'],
+    tab: 'runtime',
+    label: '检索精排',
+    kind: 'select',
+    options: ['off', 'model'],
+    hint: 'model=候选片段经模型语义精排再进预算裁剪；预算降档时自动跳过；缺省 off',
+    group: 'context',
+  },
+  {
+    key: 'retrievalContext',
+    path: ['maxSnippets'],
+    tab: 'runtime',
+    label: '单步注入条数',
+    kind: 'number',
+    placeholder: '留空 = 内核默认 4',
+    hint: '每次上下文组装最多注入的片段数（正整数）',
+    group: 'context',
+  },
+  {
+    key: 'retrievalContext',
+    path: ['maxTokens'],
+    tab: 'runtime',
+    label: '注入 token 上限',
+    kind: 'number',
+    placeholder: '留空 = 内核默认 600',
+    hint: '单步注入片段的 token 预算上限（正整数）',
+    group: 'context',
+  },
+  {
+    key: 'semanticRecall',
+    path: ['mode'],
+    tab: 'runtime',
+    label: '语义召回',
+    kind: 'select',
+    options: ['off', 'on'],
+    hint: 'on=装配本地嵌入模型，检索走 BM25 ∪ 语义混合；嵌入不可用时降级为 BM25 并在诊断中如实标注',
+    group: 'context',
+  },
+  {
+    key: 'contextPolicy',
+    path: ['degradeLadder', 'shapersAggressive'],
+    tab: 'runtime',
+    label: '降档激进裁剪',
+    kind: 'switch',
+    hint: '软预算越档时启用旧轮激进裁剪（缺省关 = 维持既有行为）',
+    group: 'context',
+  },
+  {
+    key: 'contextPolicy',
+    path: ['degradeLadder', 'compactionForce'],
+    tab: 'runtime',
+    label: '降档强制压缩',
+    kind: 'switch',
+    hint: '软预算越档时强制压缩上下文（缺省关 = 维持既有行为）',
+    group: 'context',
+  },
+  {
+    key: 'contextPolicy',
+    path: ['cacheGuard', 'hitRateFloor'],
+    tab: 'runtime',
+    label: '缓存命中率下限',
+    kind: 'number',
+    placeholder: '留空 = 不告警',
+    hint: 'prompt cache 累计命中率低于该值时告警（0 < r ≤ 1；只告警不阻断）',
+    group: 'context',
+  },
+  // ── 运行时·缓存与防火墙（alpha.21：内核文件面补齐后补 UI 入口）──
+  {
+    key: 'toolCache',
+    path: ['enabled'],
+    tab: 'runtime',
+    label: '读缓存',
+    kind: 'switch',
+    hint: '白名单纯读工具按（工具 + 入参 + 工作区写代次）记忆命中；任何写提交全量失效；缺省关，切换在重启后生效',
+    group: 'guard',
+  },
+  {
+    key: 'toolCache',
+    path: ['maxEntries'],
+    tab: 'runtime',
+    label: '缓存条目上限',
+    kind: 'number',
+    placeholder: '留空 = 内核默认',
+    hint: 'LRU 上限（正整数）；到达上限淘汰最旧条目',
+    group: 'guard',
+  },
+  {
+    key: 'capflow',
+    path: ['mode'],
+    tab: 'runtime',
+    label: '能力防火墙',
+    kind: 'select',
+    options: ['off', 'shadow', 'enforce'],
+    hint: 'off=不跑 / shadow=留证放行 / enforce=命中即拒绝（外部与注入内容 → 写类工具）',
+    group: 'guard',
+  },
+  {
+    key: 'capflow',
+    path: ['policyPath'],
+    tab: 'runtime',
+    label: '防火墙策略文件',
+    kind: 'text',
+    placeholder: '留空 = 随包默认策略',
+    hint: '自定义 JSON 策略文件；不合 Schema 时启动即拒绝（fail-closed）',
+    browse: 'file',
+    group: 'guard',
   },
   {
     key: 'approval',
@@ -547,7 +709,9 @@ export class SettingsModel {
   /**
    * 按字段落盘：把"界面里的值"翻成"配置补丁"。
    *
-   * 三处语义要注意：
+   * 四处语义要注意：
+   *   · 声明了 `path` 的字段（结构化段）走 {@link saveSectionField}：提交**完整段**，
+   *     留空 = 删除段内叶键（服务端按段替换）；
    *   · `clearWhenEmpty` 的字段（baseUrl）留空 ⇒ 发 `null`（**显式清除**）而不是 `undefined`
    *     （后者是 no-op，空串会被当成真实端点写坏 URL 拼装）；
    *   · 文本字段一律 trim；`model` 清空时发 `undefined`（回落厂商默认）；
@@ -559,30 +723,18 @@ export class SettingsModel {
    * @returns 异步完成
    */
   public async saveField(field: SettingsField, raw: string | boolean): Promise<void> {
+    if (field.path !== undefined) {
+      await this.saveSectionField(field, raw);
+      return;
+    }
     if (field.kind === 'switch') {
       await this.save({ [field.key]: raw === true });
       return;
     }
     if (field.kind === 'number') {
-      const v = String(raw).trim();
-      if (v === '') {
-        await this.save({ [field.key]: null });
-        return;
-      }
-      const n = Number(v);
-      const spec = NUMBER_RANGES[String(field.key)];
-      if (spec === undefined) {
-        // 未登记范围的 number 字段：只要是个有限数就放行（保守，不发糊涂值）。
-        if (!Number.isFinite(n)) {
-          this.failInput(field, t('需为数字'));
-          return;
-        }
-      } else if (!spec.check(n)) {
-        // desc 必须过 t()：en 用户的提示要整句英文（review P1-3）。
-        this.failInput(field, t('取值范围：{range}', { range: t(spec.desc) }));
-        return;
-      }
-      await this.save({ [field.key]: n });
+      const n = this.numberForSave(field, raw);
+      if (n === 'invalid') return;
+      await this.save({ [field.key]: n === 'empty' ? null : n });
       return;
     }
     const v = String(raw).trim();
@@ -603,6 +755,127 @@ export class SettingsModel {
       return;
     }
     await this.save({ [field.key]: v });
+  }
+
+  /**
+   * 结构化段字段落盘：把「段内路径 + 新值」并进**完整段**后提交。
+   *
+   * 服务端对 `SECTION_REPLACE_KEYS` 按段替换（深合并无法删除嵌套键），故不能只发被改的叶子；
+   * 留空 = 删除该嵌套键，删空后整段发 `null`（显式清除段）。
+   * @param field 字段定义（`path` 非空）
+   * @param raw 控件给出的原始值
+   * @returns 异步完成
+   */
+  private async saveSectionField(field: SettingsField, raw: string | boolean): Promise<void> {
+    const path = field.path;
+    if (path === undefined) return;
+    let value: unknown;
+    if (field.kind === 'switch') {
+      value = raw === true;
+    } else if (field.kind === 'number') {
+      const n = this.numberForSave(field, raw);
+      if (n === 'invalid') return;
+      value = n === 'empty' ? undefined : n;
+    } else {
+      const v = String(raw).trim();
+      value = v === '' ? undefined : v;
+    }
+    const next = SettingsModel.withPath(this.sectionOf(String(field.key)), path, value);
+    await this.save({ [field.key]: Object.keys(next).length === 0 ? null : next });
+  }
+
+  /**
+   * number 输入翻译：数字 / 空（留空）/ invalid（已提示且不得落盘）。
+   * @param field 字段定义
+   * @param raw 控件原始值
+   * @returns 数字、'empty' 或 'invalid'
+   */
+  private numberForSave(field: SettingsField, raw: string | boolean): number | 'empty' | 'invalid' {
+    const v = String(raw).trim();
+    if (v === '') return 'empty';
+    const n = Number(v);
+    const spec = NUMBER_RANGES[fieldId(field)];
+    if (spec === undefined) {
+      // 未登记范围的 number 字段：只要是个有限数就放行（保守，不发糊涂值）。
+      if (!Number.isFinite(n)) {
+        this.failInput(field, t('需为数字'));
+        return 'invalid';
+      }
+      return n;
+    }
+    if (!spec.check(n)) {
+      // desc 必须过 t()：en 用户的提示要整句英文（review P1-3）。
+      this.failInput(field, t('取值范围：{range}', { range: t(spec.desc) }));
+      return 'invalid';
+    }
+    return n;
+  }
+
+  /**
+   * 取当前配置里的结构化段（非对象或缺省时给空对象）。
+   * @param key 段名
+   * @returns 段对象（快照的浅引用，只读消费）
+   */
+  private sectionOf(key: string): Record<string, unknown> {
+    const value = this.snapshot.cfg?.[key];
+    return isPlainObject(value) ? value : {};
+  }
+
+  /**
+   * 在段对象上设置（或删除）一个叶值，并剪掉空父对象。
+   * @param base 当前段（不修改）
+   * @param path 段内路径
+   * @param value 新值；undefined = 删除该叶
+   * @returns 新段对象（删空时为 `{}`）
+   */
+  private static withPath(
+    base: Record<string, unknown>,
+    path: readonly string[],
+    value: unknown,
+  ): Record<string, unknown> {
+    const root: Record<string, unknown> = { ...base };
+    let node = root;
+    for (const key of path.slice(0, -1)) {
+      const child = node[key];
+      const copy: Record<string, unknown> = isPlainObject(child) ? { ...child } : {};
+      node[key] = copy;
+      node = copy;
+    }
+    const leaf = path[path.length - 1];
+    if (leaf === undefined) return root;
+    if (value === undefined) delete node[leaf];
+    else node[leaf] = value;
+    return SettingsModel.pruneEmpty(root);
+  }
+
+  /**
+   * 递归删除空对象：`cacheGuard: {}` 这类残留会让「已关闭」在文件里看起来仍配置着。
+   * @param node 待清理对象（原地修改）
+   * @returns 同一对象
+   */
+  private static pruneEmpty(node: Record<string, unknown>): Record<string, unknown> {
+    for (const [key, value] of Object.entries(node)) {
+      if (!isPlainObject(value)) continue;
+      const pruned = SettingsModel.pruneEmpty({ ...value });
+      if (Object.keys(pruned).length === 0) delete node[key];
+      else node[key] = pruned;
+    }
+    return node;
+  }
+
+  /**
+   * 沿路径读值（中间不是对象时给 undefined，不抛错）。
+   * @param value 起点值
+   * @param path 段内路径
+   * @returns 叶值或 undefined
+   */
+  private static readPath(value: unknown, path: readonly string[]): unknown {
+    let node = value;
+    for (const key of path) {
+      if (!isPlainObject(node)) return undefined;
+      node = node[key];
+    }
+    return node;
   }
 
   /**
@@ -637,24 +910,35 @@ export class SettingsModel {
 
   /**
    * 取某字段在当前配置里的值（视图回填用；未加载时给空串）。
-   * @param key 配置键
+   *
+   * 同时接受顶层键（既有调用）与字段定义：结构化段字段按 `path` 取叶值，而不是把
+   * 整段对象 `String()` 成 "[object Object]"。
+   * @param target 配置键或字段定义
    * @returns 显示值
    */
-  public valueOf(key: keyof Config): string {
+  public valueOf(target: keyof Config | SettingsField): string {
     const c = this.snapshot.cfg;
     if (c === null) return '';
-    if (key === 'baseUrl') return this.snapshot.baseUrl;
-    const v = c[key];
-    return v === undefined || v === null ? '' : String(v);
+    if (typeof target !== 'object') {
+      if (target === 'baseUrl') return this.snapshot.baseUrl;
+      const value = c[target];
+      return value === undefined || value === null ? '' : String(value);
+    }
+    if (target.path === undefined) return this.valueOf(target.key);
+    const value = SettingsModel.readPath(c[target.key], target.path);
+    return value === undefined || value === null ? '' : String(value);
   }
 
   /**
    * 取某字段的布尔值（switch 用）。
-   * @param key 配置键
+   * @param target 配置键或字段定义
    * @returns 是否开启
    */
-  public boolOf(key: keyof Config): boolean {
-    return this.snapshot.cfg?.[key] === true;
+  public boolOf(target: keyof Config | SettingsField): boolean {
+    const c = this.snapshot.cfg;
+    if (c === null) return false;
+    if (typeof target !== 'object') return c[target] === true;
+    return SettingsModel.readPath(c[target.key], target.path ?? []) === true;
   }
 
   /**

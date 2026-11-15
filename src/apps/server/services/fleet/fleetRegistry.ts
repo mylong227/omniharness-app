@@ -10,6 +10,13 @@ export interface FleetRegistryDeps {
   readonly events: (threadId: string) => Promise<readonly SessionEvent[]>;
   /** 当前生效工作区根（patch 工件目录在其下）。 */
   readonly workspaceRoot: () => string;
+  /**
+   * `callId → 子会话 id`（alpha.21）：来自内核编排器的共享父子树。
+   *
+   * 运行中的车道在 `tool_result` 落盘前没有子会话 id；有这个查询口就能立刻显示，
+   * 缺省 undefined = 退回事件流解析（旧行为）。
+   */
+  readonly childOfCall?: ((callId: string) => string | undefined) | undefined;
 }
 
 /**
@@ -61,7 +68,7 @@ export class FleetRegistry {
     const parsed = FleetRegistry.PARSER.parse(events, threadId);
     const nodes: FleetNode[] = [];
     for (const node of parsed) {
-      const withPatch = this.attachPatchBytes(node);
+      const withPatch = this.attachPatchBytes(this.attachLiveChild(node));
       nodes.push(
         traceExists === undefined || withPatch.childSessionId === undefined
           ? withPatch
@@ -79,6 +86,20 @@ export class FleetRegistry {
       runningCount,
       collectedAt: new Date().toISOString(),
     };
+  }
+
+  /**
+   * 给运行中的车道补子会话 id（alpha.21：内核父子树在子代理启动时即登记）。
+   *
+   * 只在事件流还没有 `childSessionId` 且车道带 `callId` 时查询；查不到原样返回，
+   * 绝不猜测、也不把未登记读成「没有子会话」。
+   * @param node 解析出的车道
+   * @returns 可能补上 childSessionId 的车道
+   */
+  private attachLiveChild(node: FleetNode): FleetNode {
+    if (node.childSessionId !== undefined || node.callId === undefined) return node;
+    const child = this.deps.childOfCall?.(node.callId);
+    return child === undefined ? node : { ...node, childSessionId: child };
   }
 
   /**

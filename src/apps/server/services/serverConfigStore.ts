@@ -2,7 +2,7 @@ import { existsSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { configFile, type FileConfig } from '../../../host/kernel/config.ts';
 import { ConfigError } from '../../../host/kernel/config.ts';
-import { PERSISTABLE_KEYS } from '../core/appServerState.ts';
+import { PERSISTABLE_KEYS, SECTION_REPLACE_KEYS } from '../core/appServerState.ts';
 import { ProviderPresets, type ProviderPreset } from './providerPresets.ts';
 import { UserLevelConfigStore } from './userLevelConfigStore.ts';
 
@@ -153,7 +153,9 @@ export class ServerConfigStore {
       // 不能因为「UI 读了一次配置」就重新出现。
       trust: { grant: false },
     });
-    return ConfigError.mergeConfigs(layered, this.overrides);
+    const merged = ConfigError.mergeConfigs(layered, this.overrides);
+    this.replaceSections(merged, this.overrides);
+    return merged;
   }
 
   /**
@@ -214,6 +216,9 @@ export class ServerConfigStore {
       for (const key of cleared) {
         delete (next as Record<string, unknown>)[key];
       }
+      // 结构化段按段替换（见 SECTION_REPLACE_KEYS）：深合并会保留旧嵌套键，
+      // 使「清空 cacheGuard.hitRateFloor」这类操作静默失效。
+      this.replaceSections(next, patch as Partial<FileConfig>);
       this.overrides = next;
       this.clearedKeys = cleared;
       try {
@@ -316,10 +321,30 @@ export class ServerConfigStore {
     for (const key of this.clearedKeys) {
       if (!UserLevelConfigStore.SECRET_KEYS.includes(key)) delete merged[key];
     }
+    this.replaceSections(merged, this.overrides);
     configFile.save(path, merged as Partial<FileConfig>);
     this.path = path;
     this.userLevel.persistLocalState(this.overrides, this.clearedKeys);
     this.userLevel.persistSecrets(this.overrides, this.clearedKeys);
+  }
+
+  /**
+   * 用来源层的整段值覆盖目标层里的结构化段（`SECTION_REPLACE_KEYS`）。
+   *
+   * `ConfigError.mergeConfigs` 对普通对象递归合并：来源段缺某个嵌套键时，目标层里的旧值
+   * 会被保留——「清空一个嵌套项」因此无法表达。UI 提交的段恒为**完整段**（由当前配置
+   * 合并而来），所以这里按段整体覆盖；来源层没有该段时不动目标（未编辑的段保持原样）。
+   * @param target 待覆盖的合并结果（原地修改）
+   * @param source 本次编辑来源（UI 补丁 / 覆盖态）
+   * @returns 无返回值
+   */
+  private replaceSections(target: FileConfig, source: Partial<FileConfig>): void {
+    const whole = target as Record<string, unknown>;
+    const layer = source as Record<string, unknown>;
+    for (const key of SECTION_REPLACE_KEYS) {
+      const value = layer[key];
+      if (value !== undefined) whole[key] = value;
+    }
   }
 
   /**

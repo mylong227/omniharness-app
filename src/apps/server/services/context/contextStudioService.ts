@@ -2,6 +2,7 @@ import type { SessionEvent } from '../../../../host/kernel/contracts.ts';
 import { COMPACTION_MARKER } from '../../../../host/kernel/context.ts';
 import { CompactionMarkerReader } from '../../../../host/extensions/kernel/context/compactionMarkerReader.ts';
 import type { ContextUsageService, ContextUsageReport } from '../contextUsageService.ts';
+import { kernelContextOff, type KernelContextView } from './kernelContextView.ts';
 import type { CompactionMark, ContextStudioSnapshot, HandoffNote } from './contextStudioSnapshot.ts';
 
 /** 便签端口的最小结构（避免把内核端口类型扩散到应用层）。 */
@@ -19,6 +20,8 @@ export interface ContextStudioDeps {
   readonly events: (threadId: string) => Promise<readonly SessionEvent[]>;
   /** 跨重置便签端口（缺省 = 未接线，快照如实标记）。 */
   readonly scratchpad?: ScratchpadLike | undefined;
+  /** 内核上下文策略读模型（缺省 = 全关闭视图；serve 路径恒注入）。 */
+  readonly kernel?: (() => KernelContextView) | undefined;
 }
 
 /**
@@ -28,8 +31,10 @@ export interface ContextStudioDeps {
  *
  *  - 六类构成**直接复用** {@link ContextUsageService}（同源，不重投影两次——设计 §7.3）；
  *  - 压缩记录：事件流里 content 以 `OMNI_COMPACTION_V1` 开头的 **system 事件**，用应用侧
- *    `CompactionMarkerReader` 解码游标（与内核 encode 逐字节对齐；内核 codec 深路径不在
- *    alpha.16 的 exports 承诺面）；
+ *    `CompactionMarkerReader` 解码游标（与内核 encode 逐字节对齐；vendored alpha.21 的
+ *    exports 仍只承诺 `contextCompactor.js`，codec 深路径未进承诺面）；
+ *  - 压缩证据（alpha.21）：内核把 `stateAudit` / `signals` 随游标持久化（header `evidence=`），
+ *    本服务解码后原样上抛；旧游标没有证据时 `auditRecorded` 为 false（不伪造通过）；
  *  - `turnIndex`：压缩事件之前的 user 事件数（第几轮之后发生的压缩，与凭证回合切分同口径）；
  *  - 交接便签：serve 路径未注入 `ScratchpadPort` ⇒ 快照恒为空态 + `handoffAvailable:false`，
  *    绝不伪造便签（设计 §1.6 诚实边界）。
@@ -54,8 +59,9 @@ export class ContextStudioService {
    */
   public async snapshotOf(threadId: string): Promise<ContextStudioSnapshot> {
     const report = await this.deps.usage(threadId);
+    const kernel = this.deps.kernel?.() ?? kernelContextOff();
     if (threadId === '') {
-      return ContextStudioService.empty(threadId, report);
+      return ContextStudioService.empty(threadId, report, kernel);
     }
     let events: readonly SessionEvent[];
     try {
@@ -64,12 +70,14 @@ export class ContextStudioService {
       return ContextStudioService.empty(
         threadId,
         report,
+        kernel,
         `事件流不可读：${error instanceof Error ? error.message : String(error)}`,
       );
     }
     return {
       threadId,
       report,
+      kernel,
       compactions: ContextStudioService.compactionsOf(events),
       handoff: this.handoffOf(),
       handoffAvailable: this.deps.scratchpad !== undefined,
@@ -147,9 +155,11 @@ export class ContextStudioService {
         compactedUpTo: state.compactedUpTo,
         headHash: state.headHash,
         summary: state.summary,
-        // alpha.16 的 stateAudit / signals 是压缩时的 shadow 返回值，不落事件流；
-        // 有 sidecar 持久化后这里才可能出现 true（设计 §1.6）。
-        auditRecorded: false,
+        // alpha.21：内核把 shadow 证据随游标持久化（header `evidence=`）；旧游标没有证据，
+        // 仍如实标 false，绝不把「没证据」显示成「审计通过」。
+        auditRecorded: state.audit !== undefined,
+        ...(state.audit !== undefined ? { audit: state.audit } : {}),
+        ...(state.signals !== undefined ? { signals: state.signals } : {}),
       });
     }
     return marks;
@@ -158,8 +168,8 @@ export class ContextStudioService {
   /**
    * 解码压缩游标文本（fail-closed：格式不符返回 undefined，由调用方跳过）。
    *
-   * 为什么不直接用内核 `CompactionStateCodec`：alpha.16 的 package exports 只承诺
-   * `contextCompactor.js`，codec 的深路径不在 exports 清单里。解析实现收在应用侧自有件
+   * 为什么不直接用内核 `CompactionStateCodec`：vendored alpha.21 的 package exports 仍只
+   * 承诺 `contextCompactor.js`，codec 深路径不在清单里。解析实现收在应用侧自有件
    * {@link CompactionMarkerReader}（extensions 登记，口径与内核 encode 逐字节对齐）。
    * @param content system 事件文本。
    * @returns 压缩游标；不可解析时 undefined。
@@ -185,10 +195,16 @@ export class ContextStudioService {
    * @param error 快照级错误（可选）。
    * @returns 零记录快照。
    */
-  private static empty(threadId: string, report: ContextUsageReport, error?: string): ContextStudioSnapshot {
+  private static empty(
+    threadId: string,
+    report: ContextUsageReport,
+    kernel: KernelContextView,
+    error?: string,
+  ): ContextStudioSnapshot {
     return {
       threadId,
       report,
+      kernel,
       compactions: [],
       handoff: [],
       handoffAvailable: false,

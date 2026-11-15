@@ -14,8 +14,9 @@
 
 import assert from 'node:assert/strict';
 import { test, vi } from 'vitest';
+import type { Config } from '../src/types/models.ts';
 
-const { SettingsModel, SETTINGS_FIELDS } = await import('../src/ui/models/SettingsModel.ts');
+const { SettingsModel, SETTINGS_FIELDS, fieldId } = await import('../src/ui/models/SettingsModel.ts');
 
 /** 让排队的 promise 全部落地（含 await 链上的多跳）。 */
 async function flush() {
@@ -31,7 +32,7 @@ function makeDeps(overrides = {}) {
     toasts: [] as { m: string; k: 'ok' | 'err' }[],
     applyProfile: [] as string[],
   };
-  let cfg = {
+  let cfg: Config = {
     model: 'gpt-4o',
     modelAdapter: 'openai',
     approval: 'rules',
@@ -40,6 +41,11 @@ function makeDeps(overrides = {}) {
     autoApprove: false,
     workspace: '/workspace',
     baseUrl: 'https://old.test/v1',
+    // 结构化段初始值（alpha.19 上下文三段）：验证"提交完整段"不会丢掉段内其它键。
+    retrievalContext: { mode: 'off', maxSnippets: 8 },
+    contextPolicy: { degradeLadder: { shapersAggressive: false }, cacheGuard: { hitRateFloor: 0.5 } },
+    toolCache: { enabled: false },
+    capflow: { mode: 'off' },
   };
   const deps = {
     async getConfig() {
@@ -72,10 +78,17 @@ function makeDeps(overrides = {}) {
   return { model, calls, deps };
 }
 
-/** 按 key 取字段定义（测试里不写死下标）。 */
+/** 按 key 取字段定义（测试里不写死下标；结构化段取第一行）。 */
 function field(key: string) {
   const f = SETTINGS_FIELDS.find((x) => x.key === key);
   assert.ok(f !== undefined, `SETTINGS_FIELDS 必须声明字段 ${key}`);
+  return f;
+}
+
+/** 按字段 id（段名.路径）取字段定义（结构化段多行时用它，避免取错行）。 */
+function fieldAt(id: string) {
+  const f = SETTINGS_FIELDS.find((x) => fieldId(x) === id);
+  assert.ok(f !== undefined, `SETTINGS_FIELDS 必须声明字段 ${id}`);
   return f;
 }
 
@@ -264,5 +277,99 @@ test('⑫ text 字段 clearWhenEmpty：storageDir/keyFile 留空发 null（revie
   await model.saveField(field('longTermMemoryKeyFile'), '');
   await flush();
   assert.deepEqual(calls.updates, [{ storageDir: null }, { longTermMemoryKeyFile: null }], '空串不得原样落盘——内核消费侧不回落空串');
+  model.dispose();
+});
+
+// ---- 上下文与检索三段（alpha.19，2026-11-15）----
+// 三段是结构化对象：UI 每行只编辑一个叶，但**提交必须是完整段**——服务端按段替换，
+// 只发叶会把段内其它键抹掉（这正是本节判据要钉死的语义）。
+
+test('⑬ 结构化段·下拉：回填段内叶值，提交完整段（保留其它键）', async () => {
+  const { model, calls } = makeDeps();
+  await model.load();
+  assert.strictEqual(model.valueOf(fieldAt('retrievalContext.mode')), 'off', '段内叶值必须回填');
+  await model.saveField(fieldAt('retrievalContext.mode'), 'bm25');
+  await flush();
+  assert.deepEqual(calls.updates, [{ retrievalContext: { mode: 'bm25', maxSnippets: 8 } }]);
+  assert.strictEqual(
+    model.valueOf(fieldAt('retrievalContext.mode')),
+    'bm25',
+    '重拉后按路径回填新值',
+  );
+  model.dispose();
+});
+
+test('⑭ 结构化段·数字：合法值合并落盘；留空删叶键；删空整段发 null', async () => {
+  const { model, calls } = makeDeps();
+  await model.load();
+  await model.saveField(fieldAt('retrievalContext.maxSnippets'), ' 12 ');
+  await flush();
+  await model.saveField(fieldAt('retrievalContext.maxSnippets'), '');
+  await flush();
+  assert.deepEqual(calls.updates, [
+    { retrievalContext: { mode: 'off', maxSnippets: 12 } },
+    { retrievalContext: { mode: 'off' } },
+  ]);
+
+  // 段里只剩被清空的这一项 ⇒ 整段发 null（不留 `cacheGuard: {}` 这类空壳）。
+  const { model: onlyCache, calls: cacheCalls } = makeDeps({
+    async getConfig() {
+      return { contextPolicy: { cacheGuard: { hitRateFloor: 0.5 } } };
+    },
+  });
+  await onlyCache.load();
+  await onlyCache.saveField(fieldAt('contextPolicy.cacheGuard.hitRateFloor'), '');
+  await flush();
+  assert.deepEqual(cacheCalls.updates, [{ contextPolicy: null }]);
+  onlyCache.dispose();
+  model.dispose();
+});
+
+test('⑮ 结构化段·开关：布尔合并进完整段，不影响段内其它键', async () => {
+  const { model, calls } = makeDeps();
+  await model.load();
+  await model.saveField(fieldAt('contextPolicy.degradeLadder.compactionForce'), true);
+  await flush();
+  assert.deepEqual(calls.updates, [
+    {
+      contextPolicy: {
+        degradeLadder: { shapersAggressive: false, compactionForce: true },
+        cacheGuard: { hitRateFloor: 0.5 },
+      },
+    },
+  ]);
+  assert.strictEqual(model.boolOf(fieldAt('contextPolicy.degradeLadder.compactionForce')), true);
+  model.dispose();
+});
+
+test('⑰ 缓存与防火墙：嵌套开关/下拉/路径合并进完整段（alpha.21）', async () => {
+  const { model, calls } = makeDeps();
+  await model.load();
+  await model.saveField(fieldAt('toolCache.enabled'), true);
+  await flush();
+  await model.saveField(fieldAt('capflow.mode'), 'shadow');
+  await flush();
+  await model.saveField(fieldAt('capflow.policyPath'), 'C:/policies/capflow.json');
+  await flush();
+  assert.deepEqual(calls.updates, [
+    { toolCache: { enabled: true } },
+    { capflow: { mode: 'shadow' } },
+    { capflow: { mode: 'shadow', policyPath: 'C:/policies/capflow.json' } },
+  ]);
+  assert.strictEqual(model.boolOf(fieldAt('toolCache.enabled')), true);
+  assert.strictEqual(model.valueOf(fieldAt('capflow.mode')), 'shadow');
+  model.dispose();
+});
+
+test('⑯ 结构化段·数字越界：不发请求，提示带范围', async () => {
+  const { model, calls } = makeDeps();
+  await model.load();
+  await model.saveField(fieldAt('contextPolicy.cacheGuard.hitRateFloor'), '1.5');
+  await flush();
+  await model.saveField(fieldAt('retrievalContext.maxSnippets'), '0');
+  await flush();
+  assert.deepEqual(calls.updates, [], '越界值不得触达 config.update');
+  assert.strictEqual(calls.toasts.length, 2);
+  assert.ok(calls.toasts[0].m.includes('0 < r ≤ 1'), '命中率下限提示带范围');
   model.dispose();
 });

@@ -118,6 +118,12 @@ export class CliConfigSections {
       lspServer: built.lspServer,
       longTermMemoryEncryption: args.memoryEncrypt === true,
       longTermMemoryKeyFile: args.memoryKeyFile,
+      // 上下文三段 + alpha.21 两段：FileConfig → CLI 三段的最后一步（漏映射 = 内核收不到）。
+      ...(args.retrievalContext !== undefined ? { retrievalContext: args.retrievalContext } : {}),
+      ...(args.semanticRecall !== undefined ? { semanticRecall: args.semanticRecall } : {}),
+      ...(args.contextPolicy !== undefined ? { contextPolicy: args.contextPolicy } : {}),
+      ...(args.toolCache !== undefined ? { toolCache: args.toolCache } : {}),
+      ...(args.capflow !== undefined ? { capflow: args.capflow } : {}),
     };
   }
 }

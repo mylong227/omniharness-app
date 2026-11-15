@@ -3,7 +3,8 @@
  *
  * 数据来源与诚实边界（设计 §4.2 / §4.6，全部**只读**）：
  *  - 车道从**父会话事件流**解析：`tool_call(name='subagent')` 是派生事实，
- *    对应 `tool_result` 是回传事实——不依赖内核内部编排器实例（alpha.16 不暴露它）。
+ *    对应 `tool_result` 是回传事实——本实现不持有内核编排器实例（alpha.19 已导出
+ *    `SubagentOrchestrator`，接线待排期；见 docs/design/kernel-ui-alignment）。
  *  - 运行中车道（有 tool_call 无 tool_result）的步数 / token / 改动**未知**：
  *    子代理事件只进内存桥，结束后才落盘，运行态对这些字段一律 `undefined`，绝不填 0 冒充。
  *  - `truncated` / `aborted` / `writesUnrecoverable` 原样透传，**不得渲染成成功**。

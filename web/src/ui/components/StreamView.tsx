@@ -52,6 +52,7 @@ import type { ChatQueueView } from '../models/ChatMessageQueue.ts';
 import type { ApiClient } from '../../core/ApiClient.ts';
 import type { ToolResultView } from '../shared.ts';
 import {
+  renderAuditGroup,
   renderPlanNode,
   renderQuestionNode,
   renderStandaloneToolResult,
@@ -320,6 +321,9 @@ function renderBlockNode(b: DisplayBlock, ctx: EventCtx): React.ReactElement | n
         onOpenFile={ctx.onOpenFile}
       />
     );
+  }
+  if (b.kind === 'audit_group') {
+    return <React.Fragment key={b.key}>{renderAuditGroup(b.events)}</React.Fragment>;
   }
   return renderEventNode(b.event, ctx);
 }
