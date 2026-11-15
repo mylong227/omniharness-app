@@ -17,7 +17,7 @@
   },
   "harness": {
     "host": "127.0.0.1",
-    "readyTimeoutMs": 30000,
+    "readyTimeoutMs": 60000,
     "readyPollIntervalMs": 50,
     "readyzTimeoutMs": 8000,
     "readyzProbeTimeoutMs": 1500,

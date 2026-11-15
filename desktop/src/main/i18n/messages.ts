@@ -43,6 +43,7 @@ export type DesktopMessageKey =
   | 'dialog.noWorkspace'
   | 'dialog.harnessStartTitle'
   | 'dialog.harnessStartMessage'
+  | 'dialog.harnessOutput'
   | 'dialog.crashTitle'
   | 'dialog.crashMessage'
   | 'dialog.uiGoneTitle'
@@ -111,6 +112,7 @@ const ZH: Record<DesktopMessageKey, string> = {
   'dialog.noWorkspace': '未选择工作区，应用将退出。',
   'dialog.harnessStartTitle': 'Harness 启动失败',
   'dialog.harnessStartMessage': '本地 Harness 未能启动',
+  'dialog.harnessOutput': 'Harness 最近输出',
   'dialog.crashTitle': 'Harness 已退出',
   'dialog.crashMessage': '本地 Harness 意外退出',
   'dialog.uiGoneTitle': '界面进程异常',
@@ -181,6 +183,7 @@ const EN: Record<DesktopMessageKey, string> = {
   'dialog.noWorkspace': 'No workspace selected. The app will exit.',
   'dialog.harnessStartTitle': 'Harness failed to start',
   'dialog.harnessStartMessage': 'The local Harness could not start.',
+  'dialog.harnessOutput': 'Recent Harness output',
   'dialog.crashTitle': 'Harness exited',
   'dialog.crashMessage': 'The local Harness exited unexpectedly.',
   'dialog.uiGoneTitle': 'Workbench UI crash',

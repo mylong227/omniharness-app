@@ -12,6 +12,7 @@ import { loadDesktopConfig, type DesktopConfig } from './config.ts';
 import { DesktopDialogs } from './app/DesktopDialogs.ts';
 import { DeepLinkRouter } from './app/DeepLinkRouter.ts';
 import { HarnessRestartPolicy } from './app/HarnessRestartPolicy.ts';
+import { HarnessStartFailure } from './app/HarnessStartFailure.ts';
 import { SecondaryWindows } from './app/SecondaryWindows.ts';
 import { SmokeHarness, type SmokeReport } from './app/SmokeHarness.ts';
 import { StartupMarker } from './app/StartupMarker.ts';
@@ -459,9 +460,13 @@ async function bootstrap(): Promise<void> {
       if (process.env['OMNI_SMOKE'] === '1') void runSmoke(launch.hidden);
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    logger.write('main', `harness start failed: ${message}`);
-    await dialogs.harnessStartFailed(window, message, logger.directory());
+    // 详情里带上侧车最近输出：只报「超时/退出码」等于让用户去猜（2026-11-14 用户报障）。
+    // 复用日志脱敏（Token / Bearer / sk- 前缀），对话框内容可能被用户贴进 issue。
+    const detail = DesktopLogger.redact(
+      HarnessStartFailure.describe(error, i18n.t('dialog.harnessOutput')),
+    );
+    logger.write('main', `harness start failed: ${HarnessStartFailure.reasonOf(error)}`);
+    await dialogs.harnessStartFailed(window, detail, logger.directory());
     app.quit();
   }
 }
@@ -577,9 +582,13 @@ async function switchWorkspace(path: string): Promise<void> {
     // 旧 supervisor 已在上文 stop ⇒ ctx.handle 此刻指向一个**已死**的端口/令牌；
     // 不清空的话，托盘/菜单/新窗口路径仍会拿它去 loadHarness（连接拒答/401，2026-11-06 审计 P2）。
     ctx.handle = null;
-    const message = error instanceof Error ? error.message : String(error);
+    const message = HarnessStartFailure.reasonOf(error);
     ctx.logger.write('main', `switch workspace failed: ${message}`);
-    await ctx.dialogs.switchFailed(message);
+    await ctx.dialogs.switchFailed(
+      DesktopLogger.redact(
+        HarnessStartFailure.describe(error, ctx.i18n.t('dialog.harnessOutput')),
+      ),
+    );
   }
 }
 
@@ -606,9 +615,13 @@ async function restartHarness(): Promise<void> {
   } catch (error) {
     // 同 switchWorkspace：旧实例已停，悬挂的 handle 必须清空（2026-11-06 审计 P2）。
     ctx.handle = null;
-    const message = error instanceof Error ? error.message : String(error);
+    const message = HarnessStartFailure.reasonOf(error);
     ctx.logger.write('main', `restart failed: ${message}`);
-    await ctx.dialogs.restartFailed(message);
+    await ctx.dialogs.restartFailed(
+      DesktopLogger.redact(
+        HarnessStartFailure.describe(error, ctx.i18n.t('dialog.harnessOutput')),
+      ),
+    );
   }
 }
 

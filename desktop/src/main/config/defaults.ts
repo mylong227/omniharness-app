@@ -23,7 +23,9 @@ export const DEFAULT_DESKTOP_CONFIG: DesktopConfig = {
   },
   harness: {
     host: '127.0.0.1',
-    readyTimeoutMs: 30_000,
+    // 首次启动要付「新 exe 被 Defender 扫描 + 维护巡检」两份冷启动成本：2026-11-14 安装后
+    // 首次实测 33.6s（同一份侧车第二次只要 8s）。30s 会把正常冷启动误判成启动失败，故放宽到 60s。
+    readyTimeoutMs: 60_000,
     readyPollIntervalMs: 50,
     readyzTimeoutMs: 8_000,
     readyzProbeTimeoutMs: 1_500,

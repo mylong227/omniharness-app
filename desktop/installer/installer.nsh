@@ -110,3 +110,15 @@ LangString OMNI_UNWELCOME_TEXT 1033 "This removes the program files, shortcuts a
 ; 装到一半点「取消」时先确认，避免误触把半装状态丢在磁盘上。
 !define MUI_ABORTWARNING
 !define MUI_UNABORTWARNING
+
+; ---------------------------------------------------------------------------
+; 安装完成后通知外壳刷新图标/关联缓存
+; ---------------------------------------------------------------------------
+
+; 升级会替换 OmniHarness.exe 与快捷方式，而 Explorer 按 exe/快捷方式缓存任务栏与开始菜单
+; 图标。不通知时，卸旧装新后任务栏可能继续显示上一版图标（2026-11-14 用户报障的同类表征）。
+; SHCNF_FLUSH（0x1000）会同步等外壳处理完通知：本机实测 ~0.4s；若目标机器上空闲窗口
+; 长时间无响应，可改成 SHCNF_FLUSHNOWAIT（0x2000）避免安装器停在最后一步。
+!macro customInstall
+  System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0x1000, i 0, i 0)'
+!macroend

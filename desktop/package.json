@@ -21,8 +21,8 @@
     "verify:package": "node scripts/verifyPackage.mjs",
     "installer": "node scripts/buildInstaller.mjs",
     "manifest": "node scripts/releaseManifest.mjs",
-    "pack": "npm run build && npm run stage && electron-builder --dir --config electron-builder.yml",
-    "dist": "npm run build && npm run stage && electron-builder --win --x64 --config electron-builder.yml"
+    "pack": "npm run build && npm run stage && electron-builder --dir --config electron-builder.yml && npm run verify:package",
+    "dist": "npm run build && npm run stage && electron-builder --win --x64 --config electron-builder.yml && npm run verify:package"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

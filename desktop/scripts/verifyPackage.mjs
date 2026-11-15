@@ -15,11 +15,20 @@
  * - 输出总大小与文件数，供看板回填。
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { basename, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { PackagedPayloadCheck } from './lib/payloadCheck.mjs';
 
 const args = process.argv.slice(2);
 const dirFlag = args.indexOf('--dir');
+const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const appRoot = resolve(desktopRoot, '..');
+const backendRoot = (process.env['OMNI_BACKEND_ROOT'] ?? '').trim()
+  ? resolve((process.env['OMNI_BACKEND_ROOT'] ?? '').trim())
+  : appRoot;
+const sources = { backendRoot, webRoot: appRoot };
 const root = resolve(
+  desktopRoot,
   dirFlag >= 0 ? (args[dirFlag + 1] ?? 'release/win-unpacked') : 'release/win-unpacked',
 );
 
@@ -52,6 +61,19 @@ requirePath('OmniHarness.exe', '主程序');
 requirePath(join('resources', 'app.asar'), 'app.asar');
 requirePath(join('resources', 'desktop.config.json'), '内置桌面配置');
 requirePath(join('resources', 'harness', 'dist', 'src', 'apps', 'cli', 'exec.js'), 'sidecar 入口');
+
+// 载荷一致性（2026-11-14 用户报障）：安装包里的侧车/桌面壳必须由**当前工作树**构建。
+// 只重打 NSIS（npm run installer）复用了旧的 release/win-unpacked 时，这里会直接红。
+const harnessReport = PackagedPayloadCheck.inspectHarness(
+  join(root, 'resources', 'harness'),
+  sources,
+);
+failures.push(...harnessReport.problems);
+const desktopReport = PackagedPayloadCheck.inspectDesktop(
+  join(root, 'resources', 'app.asar'),
+  join(desktopRoot, 'dist'),
+);
+failures.push(...desktopReport.problems);
 
 const locales = join(root, 'locales');
 if (!existsSync(locales)) {
@@ -100,8 +122,15 @@ const installerNote =
   installer === undefined
     ? '未生成'
     : `${(statSync(installer).size / 1024 / 1024).toFixed(1)} MB（${basename(installer)}）`;
+const build = harnessReport.info;
+const buildLine =
+  build === null
+    ? 'build=(未知)'
+    : `build=${build.version} · ${build.kernel ?? 'kernel=(未知)'} · ${build.builtAt}` +
+      `${build.git.commit === null ? '' : ` · ${build.git.commit.slice(0, 8)}`}`;
 process.stdout.write(
   `✅ 打包产物校验通过：${root}\n` +
     `   ${mb} MB / ${stats.files.toLocaleString('en-US')} 文件 ｜ ` +
-    `locales=en-US,zh-CN ｜ channel=${String(config.update?.channel)} ｜ installer=${installerNote}\n`,
+    `locales=en-US,zh-CN ｜ channel=${String(config.update?.channel)} ｜ installer=${installerNote}\n` +
+    `   载荷与当前工作树一致：${buildLine}\n`,
 );

@@ -69,6 +69,9 @@ bundle('src/main/app/HarnessRestartPolicy.ts', 'restartPolicy');
 bundle('src/main/app/WindowLifecycle.ts', 'windowLifecycle');
 bundle('src/main/app/SmokeHarness.ts', 'smokeHarness');
 bundle('src/main/app/AppIcon.ts', 'appIcon');
+bundle('src/main/app/HarnessStartFailure.ts', 'harnessFailure');
+// 打包载荷门禁：纯 JS 模块，直接 import（不经过 esbuild）。
+const { PackagedPayloadCheck } = await import('./lib/payloadCheck.mjs');
 // 托盘：用假 electron 打包，busy 态切换/去重/回退/复位都在 node 里可测（不启动 GUI）。
 bundle('src/main/tray.ts', 'tray', [], { electron: './scripts/fakeElectron.cjs' });
 // IPC 安全守卫纯逻辑（2026-11-08 审计）：electron 仅 type-only 导入，无需假替身即可打包。
@@ -88,6 +91,9 @@ const { HarnessRestartPolicy } = await import(pathToFileURL(join(out, 'restartPo
 const { WindowLifecycle } = await import(pathToFileURL(join(out, 'windowLifecycle.cjs')).href);
 const { SmokeHarness } = await import(pathToFileURL(join(out, 'smokeHarness.cjs')).href);
 const { resolveAppIconPath } = await import(pathToFileURL(join(out, 'appIcon.cjs')).href);
+const { HarnessStartFailure } = await import(
+  pathToFileURL(join(out, 'harnessFailure.cjs')).href
+);
 const { TrayService } = await import(pathToFileURL(join(out, 'tray.cjs')).href);
 const { assertNotifyInput, trustRejection, assertRevealPathInside } = await import(
   pathToFileURL(join(out, 'ipcGuards.cjs')).href
@@ -529,6 +535,79 @@ test('窗口/任务栏图标：Windows 取多尺寸 ICO，其它平台取 512 PN
   );
 });
 
+test('HarnessStartFailure：详情带侧车最近输出，非本类异常保持原文', () => {
+  const failure = new HarnessStartFailure('等待 Harness 就绪超时（30000ms）', [
+    '',
+    '工作区: D:\\ws',
+    'omniharness: 启动失败：配置错误',
+  ]);
+  const detail = HarnessStartFailure.describe(failure, 'Harness 最近输出');
+  assert.match(detail, /等待 Harness 就绪超时/u);
+  assert.match(detail, /Harness 最近输出：\n工作区: D:\\ws\nomniharness: 启动失败/u);
+  assert.equal(HarnessStartFailure.reasonOf(failure), '等待 Harness 就绪超时（30000ms）');
+  // 无输出 / 非本类异常：只回原因，不凭空造输出块。
+  assert.equal(HarnessStartFailure.describe(new HarnessStartFailure('boom', []), '输出'), 'boom');
+  assert.equal(HarnessStartFailure.describe(new Error('plain'), '输出'), 'plain');
+  assert.equal(HarnessStartFailure.reasonOf('nope'), 'nope');
+  // 行数有界：只保留最后 20 行，长行截断，避免对话框被 PowerShell 堆栈撑爆。
+  const many = Array.from({ length: 40 }, (_value, index) => `line-${String(index)}`);
+  const clipped = HarnessStartFailure.describe(new HarnessStartFailure('x', many), '输出');
+  assert.ok(clipped.includes('line-39'));
+  assert.ok(!clipped.includes('line-19\n'));
+});
+
+test('PackagedPayloadCheck：载荷与当前工作树逐字节比对，能识别旧包/缺 BUILD_INFO', () => {
+  const fixture = mkdtempSync(join(tmpdir(), 'omni-payload-'));
+  const backend = join(fixture, 'backend');
+  const payload = join(fixture, 'payload');
+  try {
+    mkdirSync(join(backend, 'dist', 'src', 'apps', 'cli'), { recursive: true });
+    mkdirSync(join(fixture, 'web', 'dist'), { recursive: true });
+    writeFileSync(
+      join(backend, 'package.json'),
+      `${JSON.stringify({ version: '0.6.0-alpha.2', dependencies: { '@omniharness/kernel': 'file:vendor/k.tgz' } })}\n`,
+    );
+    writeFileSync(join(backend, 'dist', 'src', 'apps', 'cli', 'exec.js'), 'exec-v1');
+    writeFileSync(join(fixture, 'web', 'dist', 'index.html'), '<html>v1</html>');
+    const sources = { backendRoot: backend, webRoot: fixture };
+    const info = PackagedPayloadCheck.buildInfo(sources);
+    assert.equal(info.version, '0.6.0-alpha.2');
+    assert.equal(info.kernel, 'file:vendor/k.tgz');
+
+    mkdirSync(join(payload, 'dist', 'src', 'apps', 'cli'), { recursive: true });
+    mkdirSync(join(payload, 'web'), { recursive: true });
+    copyFileSync(join(backend, 'package.json'), join(payload, 'package.json'));
+    copyFileSync(
+      join(backend, 'dist', 'src', 'apps', 'cli', 'exec.js'),
+      join(payload, 'dist', 'src', 'apps', 'cli', 'exec.js'),
+    );
+    // stage 会把 `web/dist` 拷成载荷里的 `web/`（同级布局），这里按真实布局构造。
+    copyFileSync(join(fixture, 'web', 'dist', 'index.html'), join(payload, 'web', 'index.html'));    writeFileSync(join(payload, 'BUILD_INFO.json'), `${JSON.stringify(info)}\n`);
+    assert.deepEqual(PackagedPayloadCheck.inspectHarness(payload, sources).problems, []);
+
+    // 工作树前进、载荷没刷新 ⇒ 必须报「不一致」，而不是静默通过。
+    writeFileSync(join(backend, 'dist', 'src', 'apps', 'cli', 'exec.js'), 'exec-v2');
+    const stale = PackagedPayloadCheck.inspectHarness(payload, sources);
+    assert.ok(
+      stale.problems.some((problem) => problem.includes('dist/src/apps/cli/exec.js')),
+      stale.problems.join('\n'),
+    );
+
+    // 没有 stage 生成的 BUILD_INFO ⇒ 视为旧载荷（旧包根本不会有这个文件）。
+    rmSync(join(payload, 'BUILD_INFO.json'), { force: true });
+    const missing = PackagedPayloadCheck.inspectHarness(payload, sources);
+    assert.ok(missing.problems.some((problem) => problem.includes('BUILD_INFO.json')));
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
+});
+
+test('启动失败详情接线：main.ts 用 HarnessStartFailure.describe 注入侧车输出', () => {
+  const main = readFileSync(join(process.cwd(), 'src', 'main', 'main.ts'), 'utf8');
+  assert.match(main, /HarnessStartFailure\.describe\(/u);
+  assert.match(main, /dialog\.harnessOutput/u);
+});
+
 test('安装向导品牌素材：BMP 尺寸与位深符合 NSIS 要求，页面钩子齐全', () => {
   const bmpHeader = (name) => {
     const data = readFileSync(join(process.cwd(), 'installer', name));
@@ -747,7 +826,7 @@ test('loadDesktopConfig: 逐字段覆盖 + 非法值夹取/回落 + 未知权限
   assert.equal(loaded.config.window.width, 640, 'width 夹到最小值 640');
   assert.equal(loaded.config.window.backgroundThrottling, true);
   assert.equal(loaded.config.harness.host, '127.0.0.1', '非回环主机回落');
-  assert.equal(loaded.config.harness.readyTimeoutMs, 30_000, '类型错误回落');
+  assert.equal(loaded.config.harness.readyTimeoutMs, 60_000, '类型错误回落');
   assert.equal(loaded.config.harness.tokenBytes, 16, 'tokenBytes 夹到最小值 16');
   assert.deepEqual(loaded.config.security.permissions, ['notifications']);
   assert.equal(loaded.config.update.autoDownload, false);

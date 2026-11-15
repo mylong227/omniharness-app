@@ -127,9 +127,31 @@ npm run installer        # electron-builder nsis 目标 + 生成安装包 .sha25
 ```
 
 脚本内部等价于 `electron-builder --win nsis --x64 --prepackaged release/win-unpacked
--c.win.signAndEditExecutable=false`：本机没有 `winCodeSign` 缓存（未做签名）时，那个
-`signAndEditExecutable=false` 是必需的，否则 electron-builder 会尝试联网下载签名工具；
-要签名的正式包走 `npm run dist`。
+--config.win.signExecutable=false`：本机没有 `winCodeSign` 缓存（未做签名）时，跳过签名是
+必需的，否则 electron-builder 会尝试联网下载签名工具；注意用 `signExecutable: false` 而不是
+`signAndEditExecutable: false`——后者会连 exe 图标/版本资源一起跳过；要签名的正式包走
+`npm run dist`。
+
+> 本机打包小抄（2026-11-14 实测）：如果 electron-builder 卡在
+> `unpacking default Electron distribution`，用 `--config.electronDist=<desktop>/node_modules/electron/dist`
+> 直接复用已安装的 Electron（也更快）；它和 `--config.win.signExecutable=false` 可以同时用。
+
+### 4.0.1 载荷一致性门禁（2026-11-14）
+
+**真实事故**：`npm run installer` 复用了 6 天前的 `release/win-unpacked` —— 向导外观与图标
+都是新的，侧车却还是旧 `dist`（没有 DPAPI/`PSModulePath` 修复、kernel 停在 alpha.15）。
+安装版启动即报「本地 Harness 未能启动」，而源码、开发态都正常。
+
+现在的门禁（缺一项就拒绝出包，不再靠人记得先跑哪条命令）：
+
+- `npm run stage` 把版本 / kernel / 三份产物（`package.json`、侧车入口、`web/dist/index.html`）
+  的 SHA-256 写进 `resources/harness/BUILD_INFO.json`，随安装包一起发布；
+- `npm run pack` / `npm run dist` 末尾自动执行 `verify:package`：把 `release/win-unpacked` 里的
+  harness 与 `app.asar` 跟**当前工作树**逐字节比对；
+- `npm run installer` 在重打 NSIS 前跑同一套比对，发现旧载荷直接退出，并提示先 `npm run pack`。
+
+真机验收：`verify:package` 会打印 `build=<版本> · <kernel> · <builtAt> · <commit>`，可据此
+确认安装包里的侧车就是本次提交构建的那一份。
 
 ### 布局
 
@@ -314,3 +336,25 @@ $env:OMNI_SMOKE_OUT='D:\tmp\smoke.json'; npm run smoke # 指定结果落盘位�
 - GUI 冒烟验收已脚本化（§7.1）且真实桌面已跑通（2026-11-04 8/8，见 docs/DESKTOP-SMOKE.md）；
   本仓受限 shell 里 Electron 仍起不来；macOS/Linux 未验证；`stageHarness`/`nodeBinary` 已按
   平台分支，但 electron-builder 配置目前只配 Windows。
+
+### 10.1 排障：启动失败 / 任务栏图标错误（2026-11-14 实机）
+
+**「本地 Harness 未能启动」**：先看对话框详情里的「Harness 最近输出」（本次起会带上侧车最后
+20 行），再打开日志目录：`main-YYYY-MM-DD.log` 有 `harness start failed after <ms>: <原因>`，
+`harness-YYYY-MM-DD.log` 有侧车完整 stdout/stderr。典型两类：
+
+- `配置字段 providerKeysDpapi[...] 解密失败` / `ConvertTo-SecureString ... module could not be
+  loaded`：侧车不带 `WindowsPowerShellModulePath` 修复（旧载荷），按 §4.0.1 重新 `npm run pack`
+  并重装；不要用旧 `release/win-unpacked` 重打安装包。
+- `等待 Harness 就绪超时（60000ms）` 且输出为空：进程被安全软件拦截或磁盘/冷启动极慢；
+  重试一次，仍失败就把日志里的 spawn 行与时间点一起报出来。安装后首次启动可能因 Defender
+  扫描新 exe 达到 30s+（本机实测 33.6s），默认超时已放到 60s。
+
+**任务栏图标不是 Ω**：Windows 会按 **AppUserModelID**（`com.mylong227.omniharness`）在开始菜单
+里找对应快捷方式，并用**快捷方式的图标**。如果机器上还留着同 AUMID 的其它快捷方式——例如
+测试桌面端时给开发用 `electron.exe` 建过 `Electron.lnk`（图标是 Electron 默认原子）——任务栏
+就会显示它。处置：删掉多余快捷方式，重启 Explorer（任务栏）后重新启动应用；安装器现在会在
+安装完成时 `SHChangeNotify` 刷新图标缓存。开发时不要给 `electron.exe` 建带产品 AUMID 的
+开始菜单快捷方式。
+
+

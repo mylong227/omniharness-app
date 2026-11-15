@@ -17,10 +17,11 @@
  * 依赖安装用后端的 package-lock，剔除前端库与重型可选包；`node_modules` 体积大时
  * 可先只做 `SKIP_DEPS=1` 的产物复制用于本地验证。
  */
-import { cpSync, existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { PackagedPayloadCheck } from './lib/payloadCheck.mjs';
 
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const appRoot = resolve(desktopRoot, '..');
@@ -111,4 +112,12 @@ if (existsSync(nativeDir)) {
     if (name.endsWith('.old.node')) rmSync(join(nativeDir, name), { force: true });
   }
 }
-console.log(`[desktop] staged harness -> ${stage}`);
+
+// 构建信息（2026-11-14 用户报障后加）：把这份 stage 对应的版本/内核/产物哈希写进载荷。
+// `verifyPackage.mjs` 与 `buildInstaller.mjs` 用它证明「安装包里的侧车确实是当前工作树」，
+// 避免再次出现「NSIS 外观是新的、侧车还是 6 天前旧 dist」的静默组合。
+const buildInfo = PackagedPayloadCheck.buildInfo({ backendRoot, webRoot: appRoot });
+writeFileSync(join(stage, 'BUILD_INFO.json'), `${JSON.stringify(buildInfo, null, 2)}\n`, 'utf8');
+console.log(
+  `[desktop] staged harness -> ${stage}（version=${buildInfo.version} kernel=${buildInfo.kernel ?? 'unknown'}）`,
+);
