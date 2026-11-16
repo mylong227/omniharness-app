@@ -125,6 +125,146 @@ pre.json { border:1px solid var(--border-soft); padding:8px 10px; margin-top:7px
   background:var(--panel); border:1px dashed var(--border-soft); border-radius:8px;
   padding:8px 12px; max-height:280px; overflow:auto; color:var(--dim);
 }
+/* ---- 上下文注记卡（2026-11-16）：压缩游标 / 工作流记忆 / 长系统注记 ----
+   折叠态 = 一行简报（图标 + 标题 + 元信息 + 展开），展开态 = 证据 chip + 排好版的正文。
+   表面用 panel（比对话底亮一档）+ 发丝线：它是一段「被引用的上下文」，不是又一条聊天消息。
+   正文给高度上限 + 独立滚动：摘要动辄数万字，展开不该把整轮结论顶出几屏。 */
+.ctx-note {
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  background: var(--panel);
+  overflow: hidden;
+}
+.ctx-note__head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  /* 右侧留出外层事件钻取按钮（.ev-open，24px）的位置：它 hover / 聚焦时浮在卡片右上角，
+     不留位就会压住「展开 / 收起」。 */
+  padding: 7px 38px 7px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ctx-note__head:hover { background: var(--hover); }
+.ctx-note__row { display: flex; align-items: center; gap: var(--sp-2); width: 100%; min-height: 20px; }
+.ctx-note__ico { display: inline-flex; flex: none; color: var(--faint); }
+.ctx-note__title { flex: none; font-size: var(--fs-ui); font-weight: 600; color: var(--text); }
+.ctx-note__meta {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.ctx-note__toggle { margin-left: auto; flex: none; font-size: var(--fs-micro); color: var(--dim); }
+.ctx-note__head:hover .ctx-note__toggle,
+.ctx-note__head:focus-visible .ctx-note__toggle { color: var(--text); }
+/* 焦点环内缩：卡片有 overflow:hidden，外扩环会被裁掉（键盘用户就看不到落点了）。 */
+.ctx-note__head:focus-visible { outline-offset: -2px; }
+/* 摘要行与标题左缘对齐（图标 14px + gap 8px）。 */
+.ctx-note__excerpt {
+  display: block;
+  padding-left: 22px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-xs);
+  color: var(--dim);
+}
+.ctx-note__body {
+  border-top: 1px solid var(--hairline);
+  padding: 10px 12px 12px;
+  max-height: min(56vh, 460px);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.ctx-note__chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+.ctx-note__chip {
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  color: var(--dim);
+}
+.ctx-note__text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: var(--fs-sm);
+  line-height: 1.7;
+  color: var(--dim);
+}
+/* 压缩摘要是 Markdown 文档：标题压到与正文同一尺度；`####` 是 `【…】` 分节标签。 */
+.ctx-note__doc { font-size: var(--fs-sm); line-height: 1.72; }
+.ctx-note__doc .md-content { font-size: inherit; line-height: inherit; }
+.ctx-note__doc .md-content h1,
+.ctx-note__doc .md-content h2 { font-size: var(--fs-ui); font-weight: 600; color: var(--text); }
+.ctx-note__doc .md-content h3 { font-size: var(--fs-sm); font-weight: 600; color: var(--text); }
+.ctx-note__doc .md-content h4 {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+/* 分节之间拉一条发丝线：这是长文档里唯一真的需要"断开"的地方（否则一整段灰字没有段落边界）。 */
+.ctx-note__doc .md-content h1:not(:first-child),
+.ctx-note__doc .md-content h2:not(:first-child),
+.ctx-note__doc .md-content h3:not(:first-child),
+.ctx-note__doc .md-content h4:not(:first-child) {
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--hairline);
+}
+.ctx-note__doc .md-content p,
+.ctx-note__doc .md-content li { color: var(--dim); }
+.ctx-note__doc .md-content > *:first-child { margin-top: 0; }
+/* 工作流记忆步骤：编号在左、命令在右；工具名 dim、目标 text（机器产物一律等宽）。 */
+.ctx-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: ctx-step;
+}
+.ctx-step {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: var(--sp-2);
+  align-items: baseline;
+  padding: 3px 0;
+  counter-increment: ctx-step;
+}
+.ctx-step::before {
+  content: counter(ctx-step, decimal-leading-zero);
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.ctx-step__cmd {
+  font-family: var(--mono);
+  font-size: var(--fs-list);
+  line-height: 1.6;
+  color: var(--text);
+  word-break: break-word;
+}
+.ctx-step__verb { color: var(--dim); }
+.ctx-step__target { margin-left: var(--sp-2); }
+/* 窄窗：元信息（游标 / 字数）让位给标题与开合入口——被截成「摘要约 138…」比不显示更难看。 */
+@media (max-width: 560px) {
+  .ctx-note__meta { display: none; }
+}
+
 /* ---- 审计记录收纳（2026-11-15）：每轮一条默认收起的摘要，展开才看逐条 JSON ---- */
 .audit-fold {
   margin: 2px 0;

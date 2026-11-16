@@ -2,8 +2,6 @@
 export const EN_STREAM: Record<string, string> = {
   // StreamView.tsx
   '工具结果（独立事件）': 'Tool result (standalone event)',
-  '— 上下文已压缩 · 游标 upTo={upTo} · 摘要约 {n} 字 · 点击查看 —':
-    '— Context compacted · cursor upTo={upTo} · summary ~{n} chars · click to view —',
   '进行中…': 'Running…',
   '加载更早的消息': 'Load earlier messages',
   '对话事件流': 'Conversation event stream',
@@ -31,6 +29,19 @@ export const EN_STREAM: Record<string, string> = {
   '约 {n} 字': '~{n} chars',
   '收起 ▴': 'Collapse ▴',
   '展开全文 ▾': 'Expand full text ▾',
+
+  // models/SystemNote.ts + ContextBriefingCard.tsx（上下文注记卡：压缩游标 / 工作流记忆 / 长注记）
+  '上下文已压缩': 'Context compacted',
+  '工作流记忆参考': 'Workflow memory hint',
+  '系统注记': 'System note',
+  '游标 {n}': 'cursor {n}',
+  '摘要约 {n} 字': 'summary ~{n} chars',
+  '仅作参考': 'reference only',
+  '展开 ▾': 'Expand ▾',
+  '审计 ✓ 文件 {f} · 命令 {c} · 待办 {o}': 'audit ✓ files {f} · commands {c} · todos {o}',
+  '审计缺 {n} 项': 'audit missing {n} items',
+  '触发预算 {p}% · {n} 轮': 'trigger budget {p}% · {n} turns',
+  '压缩证据无法解码': 'compaction evidence undecodable',
 
   // ThinkingTrail.tsx
   '思考轨迹': 'Thinking trail',

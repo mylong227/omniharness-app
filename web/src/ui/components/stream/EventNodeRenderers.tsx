@@ -8,8 +8,7 @@
 import * as React from 'react';
 import { badge, jsonView, questionView, timeOf, todoView } from '../../format.ts';
 import { icon } from '../../models/Icon.ts';
-import { CompactionNote } from '../../models/CompactionNote.ts';
-import { NumberFormatter } from '../../models/NumberFormatter.ts';
+import { SystemNoteNode } from './ContextBriefingCard.tsx';
 import { t } from '../../i18n/i18n.ts';
 import type { ThreadEvent } from '../../../types/models.ts';
 import type { ToolResultView } from '../../shared.ts';
@@ -69,8 +68,8 @@ export function renderStandaloneToolResult(ev: ThreadEvent, p: Record<string, un
 }
 
 /**
- * system 事件：压缩游标收成一行简报（点击展开摘要全文，阻断冒泡防误触钻取），
- * 其余 system 文本渲染为普通系统注记。
+ * system 事件：上下文中继类注记（压缩游标 / 工作流记忆 / 长注记）收成一张可展开的简报卡，
+ * 一两句旁白仍按普通系统注记渲染。
  * @param p 事件负载
  * @param node 事件包装器
  * @returns 节点
@@ -79,33 +78,11 @@ export function renderSystemNode(
   p: Record<string, unknown>,
   node: EvWrapper,
 ): React.ReactElement {
-  const sysContent = (p.content as string) || '';
-  const compaction = CompactionNote.parse(sysContent);
-  if (compaction !== null) {
-    // 压缩游标事件（OMNI_COMPACTION_V1）：摘要动辄数千字，平铺会糊满一屏
-    // （2026-10-13 用户反馈）。收纳成一行简报，点击展开摘要全文；
-    // 点击阻断冒泡——details 的开合不应顺带触发外层的事件钻取。
-    return node(
-      <details
-        className="sysnote-fold"
-        spellCheck="false"
-        onClick={(e: React.MouseEvent) => e.stopPropagation()}
-      >
-        <summary className="sysnote-fold__summary">
-          {t('— 上下文已压缩 · 游标 upTo={upTo} · 摘要约 {n} 字 · 点击查看 —', {
-            upTo: String(compaction.upTo),
-            n: NumberFormatter.abbrev(compaction.summary.length),
-          })}
-        </summary>
-        <div className="sysnote-fold__body">{compaction.summary}</div>
-      </details>,
-    );
-  }
-  return node(
-    <div className="sysnote" spellCheck="false">
-      — {sysContent} —
-    </div>,
-  );
+  // 2026-11-16 用户反馈：压缩游标（带 evidence=）与工作流记忆（单行 → 步骤串）此前按纯文本
+  // 平铺，几 KB 的 base64 与上千字命令串糊满一屏。现在统一收成折叠卡：折叠态给标题 + 元信息
+  // + 首行摘要，展开后压缩摘要是分节 Markdown、记忆召回是逐条步骤（判定见 models/SystemNote）。
+  // 归类放在 SystemNoteNode 内部做（按 content 记忆），不在这里每次渲染重跑一遍。
+  return node(<SystemNoteNode content={(p.content as string) || ''} />);
 }
 
 /**
