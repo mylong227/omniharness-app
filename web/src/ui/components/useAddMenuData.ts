@@ -63,7 +63,11 @@ export function useAddMenuData(options: AddMenuDataOptions): AddMenuData {
           setPlanMode(m.planMode);
           setSketchMode(m.sketchMode);
         })
-        .catch(() => {});
+        .catch(() => {
+          /* 静默的已知代价（2026-11-17 review 登记）：读取失败时菜单回落默认态，用户在菜单里
+             做的乐观 patch 会把服务端真实模式顶掉（下一次成功读取会纠正）。菜单打开是高频
+             动作，失败多为服务端不可达——连接横幅已是全局反馈，逐次 toast 会刷屏。 */
+        });
     }
     setPluginsLoading(true);
     api

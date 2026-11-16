@@ -805,3 +805,28 @@ export function parseDiffRows(patch: string): DiffRow[] {
   }
   return rows;
 }
+
+/** partial JSON 试解析的缓存（键=原文）：流式参数每帧变长，同一前缀会被多帧重复解析，缓存把滚动 / 重渲染的重复解析摊平。 */
+const PARTIAL_JSON_CACHE = new Map<string, unknown>();
+/** 缓存上限：live input 是瞬态行（个位数），64 已经远超单屏用量，满了整表清一次即可。 */
+const PARTIAL_JSON_CACHE_MAX = 64;
+
+/**
+ * 尽力解析一段**未完成**的 JSON 参数流（工具调用 partial）：解析失败回落空对象，绝不抛错。
+ * StreamLiveRow / TraceView 共用这一份（此前是两处各一段相同的 try/catch）。
+ * @param text 未完成 JSON 文本
+ * @returns 解析结果；失败为空对象
+ */
+export function parsePartialJson(text: string): unknown {
+  const hit = PARTIAL_JSON_CACHE.get(text);
+  if (hit !== undefined) return hit;
+  let parsed: unknown = {};
+  try {
+    parsed = JSON.parse(text) as unknown;
+  } catch {
+    parsed = {};
+  }
+  if (PARTIAL_JSON_CACHE.size >= PARTIAL_JSON_CACHE_MAX) PARTIAL_JSON_CACHE.clear();
+  PARTIAL_JSON_CACHE.set(text, parsed);
+  return parsed;
+}

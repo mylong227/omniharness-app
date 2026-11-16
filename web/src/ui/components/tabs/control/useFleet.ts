@@ -6,6 +6,7 @@
 
 import * as React from 'react';
 import { useApp } from '../../../context.ts';
+import { useNow } from '../../../hooks/useNow.ts';
 import type { FleetSnapshotLike } from '../../../../types/models.ts';
 
 /** 轮询间隔（毫秒）。 */
@@ -45,8 +46,11 @@ export function useFleet(threadId: string | null, active: boolean): UseFleetResu
   const fetchedAtRef = React.useRef(0);
   /** 上一次请求的会话（切会话时清空旧快照与缓存窗口）。 */
   const lastThreadRef = React.useRef<string | null>(null);
-  /** 「已过期」标注用的当前时刻（低频跳动，不驱动轮询）。 */
-  const [nowTick, setNowTick] = React.useState(() => Date.now());
+  /** 「已过期」标注用的当前时刻（低频跳动，不驱动轮询）：useNow 收编（2026-11-17 review）。 */
+  const tick = useNow(active, 30_000);
+  /** 刚拉到新快照时把时钟顶到当前（否则 collectedAt 缺失的快照会立刻被标成最长 30s 的「已过期」）。 */
+  const [freshTick, setFreshTick] = React.useState(() => Date.now());
+  const nowTick = Math.max(tick, freshTick);
 
   const load = React.useCallback((): void => {
     if (threadId === null || threadId === '') return;
@@ -59,7 +63,7 @@ export function useFleet(threadId: string | null, active: boolean): UseFleetResu
         fetchedAtRef.current = Date.now();
         setSnapshot(snapshot);
         setError(null);
-        setNowTick(Date.now());
+        setFreshTick(Date.now());
       })
       .catch((e: unknown) => {
         if (seq !== seqRef.current) return;
@@ -98,13 +102,6 @@ export function useFleet(threadId: string | null, active: boolean): UseFleetResu
     }, POLL_MS);
     return () => clearInterval(timer);
   }, [active, load, threadId]);
-
-  // 「已过期」标注的低频时钟：30s 一次，避免高频重渲染。
-  React.useEffect(() => {
-    if (!active) return;
-    const timer = setInterval(() => setNowTick(Date.now()), 30_000);
-    return () => clearInterval(timer);
-  }, [active]);
 
   const staleMs =
     snapshot === null ? 0 : Math.max(0, nowTick - Date.parse(snapshot.collectedAt || String(fetchedAtRef.current)));

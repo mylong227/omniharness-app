@@ -113,6 +113,7 @@ function makeController(mode: 'queue' | 'steer') {
   };
   const sessions = {
     async refreshSessions() {},
+    clearRemoteBusy() {},
     streamPhase() {},
     viewAttachment: { attach: () => 0, epoch: () => 0, detached: false },
     modes: { flush: async () => {} },
@@ -258,4 +259,45 @@ test('聊天模式切换：写状态并落盘到用户级配置', () => {
   ctrl.chatQueue.setMode('steer');
   assert.strictEqual(state.chatMode, 'steer');
   assert.deepStrictEqual(api.configCalls, [{ chatMode: 'steer' }]);
+});
+
+test('远端回合（打开在跑会话）：send() 分流不并发开跑；stop() 降级收口', async () => {
+  const { state, ctrl, api } = makeController('queue');
+  // loadThread 打开「正在运行」的会话写入的远端忙碌：inFlight=false、busy=true。
+  state.busy = true;
+  const aborts: unknown[] = [];
+  api.abortTurn = (id?: unknown) => {
+    aborts.push(id);
+    return Promise.resolve({ ok: true });
+  };
+
+  // 远端忙碌期间发送：按模式分流，不得并发开跑第二个回合（幽灵回合）。
+  await ctrl.send('排队一条', [], []);
+  assert.strictEqual(api.runCalls.length, 0, '远端忙碌时发送不得直接开跑');
+  assert.strictEqual((state.queuedMessages as unknown[]).length, 1, '队列模式应入队等待');
+
+  // 远端收尾（SessionController 解除 busy 后接 queueDrain）：队列自动续发。
+  state.busy = false;
+  ctrl.queueDrain();
+  await flush();
+  assert.strictEqual(api.runCalls.length, 1, '远端收尾后队列续发');
+  assert.strictEqual(api.runCalls[0]?.['prompt'], '排队一条');
+  await flush();
+
+  // 降级停止：再次远端忙碌（无本地 runRound），stop() 必须收口 UI 并通知后端取消
+  // （旧实现在 !inFlight 时直接 return——停止按钮点了没反应）。
+  state.busy = true;
+  ctrl.stop();
+  await flush();
+  assert.strictEqual(state.busy, false, '降级停止必须立即收口忙碌态');
+  assert.strictEqual(aborts.length, 1, '必须通知后端取消远端回合');
+  assert.strictEqual(aborts[0], 't1', 'abortTurn 必须带当前线程 id');
+});
+
+test('远端回合（插话模式）：send() 走 turns.interject 并入远端回合，不并发开跑', async () => {
+  const { state, ctrl, api } = makeController('steer');
+  state.busy = true;
+  await ctrl.send('补充一句', [], []);
+  assert.strictEqual(api.interjectCalls.length, 1, '插话模式并入当前（远端）回合');
+  assert.strictEqual(api.runCalls.length, 0, '不得并发开跑');
 });

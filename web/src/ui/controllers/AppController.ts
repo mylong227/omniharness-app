@@ -148,6 +148,8 @@ export interface AppState {
   activeTool: string | null;
   toastState: ToastState;
   paletteOpen: boolean;
+  /** 快捷键速查浮层（「?」键开合，2026-11-17 粘性批次）。 */
+  shortcutsOpen: boolean;
   /** 会话列表是否显示**全部项目**（默认只显示当前项目；一键切换，见 SessionController.toggleSessionsScope）。 */
   sessionsScopeAll: boolean;
   /** 应用内对话框状态（替代 window.confirm / window.prompt）。 */
@@ -234,6 +236,8 @@ export class AppController {
   private keyHandler: ((e: KeyboardEvent) => void) | null = null;
   /** 桌面通知/深链订阅（卸载时取消）。 */
   private desktopUnsubscribes: Array<() => void> = [];
+  /** 上一次「未处理 rejection」toast 的时刻（节流用）。 */
+  private lastRejectionToastAt = 0;
   /**
    * 「断开」宽限期（毫秒）：SSE 抖动先显示「重连中」，超过该时长仍未重连上才判「断开」。
    *
@@ -316,6 +320,10 @@ export class AppController {
     const sessions = new SessionController(this.host, this.services);
     const graph = new GraphController(this.host, this.services);
     const composer = new ComposerController(this.host, this.services, sessions);
+    // 远端回合收尾联动：打开「正在运行」的会话后，其回合不在本页面跑，自然收尾时由
+    // SessionController 在 refreshSessions 里解除 busy，这里接上队列续发（与本地回合
+    // finally 的 drain 同一口径）。
+    sessions.onRemoteBusyCleared = () => composer.queueDrain();
     const browser = new BrowserController(this.host, this.services);
     // 打开 HTML 时默认直接进网页预览（文件标签仍保留源码视图，点标签可切回）。
     const files = new FileController(this.host, this.services, (path) =>
@@ -343,6 +351,16 @@ export class AppController {
       }),
     };
     this.commands = this.buildCommands();
+    // 全局未处理 rejection 的用户可见出口（main.ts 派发 `omni:unhandled-rejection`）：
+    // 节流到 10s 一条，防连环失败刷屏；只报首条原因，全量在控制台。
+    this.lastRejectionToastAt = 0;
+    window.addEventListener('omni:unhandled-rejection', (ev) => {
+      const message = (ev as CustomEvent<string>).detail ?? '';
+      const now = Date.now();
+      if (now - this.lastRejectionToastAt < 10_000) return;
+      this.lastRejectionToastAt = now;
+      this.showToast(t('内部错误：{msg}', { msg: message }), 'err');
+    });
     // F8：路由绑定在组合根装配（需 children.sessions 作为打开会话回调）。
     this.routeBinding = new RouteBinding(this.host, (id: string) => void this.children.sessions.loadThread(id));
     // 绑定对外回调，保证作为 props 传递给子组件时 this 正确。
@@ -375,7 +393,11 @@ export class AppController {
         // 聊天模式同一口径：配置里有值才回灌（缺失时保留首帧的本地缓存，不覆盖成缺省）。
         if (c.chatMode !== undefined) this.children.composer.chatQueue.setMode(c.chatMode, false);
       })
-      .catch(() => {});
+      .catch(() => {
+        /* 启动时 config.get 失败保持静默（口径与 refreshSessions 一致）：服务端不可达时
+           连接横幅（connectStream）已是全局反馈，此处再弹 toast 属于重复打扰；回灌失败的
+           结果是首帧本地缓存生效，语义仍正确。 */
+      });
     this.connectStream();
     // 启动时**连归档一起读一次**：此后日常刷新走快速路径（跳过归档文件的逐个扫描），而归档行已在内存
     // ⇒ `mergeSessions` 会一直保留它们（「已归档」组不会因为快速刷新而消失）。
@@ -546,12 +568,35 @@ export class AppController {
     window.addEventListener('omni:token-updated', onTokenUpdated);
     this.desktopUnsubscribes.push(() => window.removeEventListener('omni:token-updated', onTokenUpdated));
     this.keyHandler = (e: KeyboardEvent) => {
+      // 「?」速查（2026-11-17 粘性批次）：非输入焦点按 ? 开合快捷键速查浮层。
+      // ? 是 Shift+/，不需要 ctrl/meta；输入焦点内让给正文（问号照打）。
+      if (e.key === '?' && !e.ctrlKey && !e.metaKey && !AppController.isEditableTarget(e.target)) {
+        e.preventDefault();
+        this.host.patch((s) => ({ shortcutsOpen: !s.shortcutsOpen }));
+        return;
+      }
       const action = this.children.keyBindings.resolve(e);
       if (!action) return;
       e.preventDefault();
       this.children.shortcuts.run(action);
     };
     window.addEventListener('keydown', this.keyHandler);
+  }
+
+  /**
+   * 判定事件目标是否是可编辑元素（输入框 / 文本域 / 可编辑宿主）：
+   * 裸键快捷键（如「?」）只在非输入焦点时接管，避免劫持正文输入。
+   * @param target 事件目标
+   * @returns 可编辑为 true
+   */
+  private static isEditableTarget(target: EventTarget | null): boolean {
+    if (!(target instanceof HTMLElement)) return false;
+    return (
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.tagName === 'SELECT' ||
+      target.isContentEditable
+    );
   }
 
   /**
@@ -612,7 +657,12 @@ export class AppController {
           this.host.patch((s) => (s.model ? s : { model: active.model || s.model }));
         }
       })
-      .catch(() => {});
+      .catch((e: unknown) => {
+        // 模型清单读取失败不再静默（2026-11-17 全面 review）：失败后下拉只能停留 localStorage
+        // 缓存或为空，用户看着「没有可选模型」却不知道为什么。与挂起恢复失败同一口径：如实提示。
+        const msg = e instanceof Error ? e.message : String(e);
+        this.services.toast(t('模型清单读取失败：{msg}', { msg }), 'err');
+      });
   }
 
   /**
@@ -644,6 +694,11 @@ export class AppController {
   /** 关闭命令面板。 @returns 无 */
   public closePalette(): void {
     this.host.patch({ paletteOpen: false });
+  }
+
+  /** 关闭快捷键速查浮层。 @returns 无 */
+  public closeShortcuts(): void {
+    this.host.patch({ shortcutsOpen: false });
   }
 
   /**
@@ -844,6 +899,7 @@ export class AppController {
       toast: (message: string, kind?: ToastKind) => this.showToast(message, kind),
       dialog: this.services.dialogSvc,
       refreshModelCatalog: () => this.refreshModelCatalog(),
+      openContextPane: () => this.navigateRoute({ pane: 'control', view: 'context' }),
       sessionId: this.host.getState().currentThreadId,
       sessionTick: this.host.getState().sessionTick,
       workspaceEpoch: this.host.getState().workspaceEpoch,

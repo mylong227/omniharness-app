@@ -1,6 +1,7 @@
 // 自动化任务：定时把提示词交给 Agent（服务端 30s 调度；任务触发即新建会话）。
 import * as React from 'react';
 import { useApp } from '../../context.ts';
+import { useSessionResource } from '../../hooks/useSessionResource.ts';
 import { t } from '../../i18n/i18n.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
 import InputNumber from 'antd/es/input-number';
@@ -162,23 +163,24 @@ function useAutomationRows(api: ReturnType<typeof useApp>['api']): {
   rows: AutomationRow[] | null;
   error: string;
   setError: (value: string) => void;
-  refresh: () => Promise<void>;
+  refresh: () => void;
 } {
-  const [rows, setRows] = React.useState<AutomationRow[] | null>(null);
-  const [error, setError] = React.useState('');
-  const refresh = React.useCallback(async (): Promise<void> => {
-    try {
+  const [actionError, setActionError] = React.useState('');
+  // 列表取数收编进 useSessionResource（2026-11-17）：seq 守卫 + 失败保留旧数据。
+  const { data, error: fetchError, refresh } = useSessionResource<AutomationRow[]>({
+    enabled: true,
+    followTick: false,
+    load: React.useCallback(async () => {
       const list = await api.listAutomations();
-      setRows(Array.isArray(list) ? list : []);
-      setError('');
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
-    }
-  }, [api]);
-  React.useEffect(() => {
-    void refresh();
-  }, [refresh]);
-  return { rows, error, setError, refresh };
+      return Array.isArray(list) ? list : [];
+    }, [api]),
+  });
+  return {
+    rows: data,
+    error: actionError !== '' ? actionError : fetchError ?? '',
+    setError: setActionError,
+    refresh,
+  };
 }
 
 /** 自动化面板。 */
@@ -205,7 +207,7 @@ export function AutomationsTab(): React.ReactElement {
       });
       setName('');
       setPrompt('');
-      await refresh();
+      refresh();
       toast(t('自动化已创建'));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
@@ -229,7 +231,7 @@ export function AutomationsTab(): React.ReactElement {
       else if (await dialog.confirm(t('删除自动化「{name}」？', { name: row.name }))) {
         await api.deleteAutomation(row.id);
       }
-      await refresh();
+      refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {

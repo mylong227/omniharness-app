@@ -412,9 +412,16 @@ const FLAG_TABLE: Record<string, FlagApply> = {
     return 1;
   },
   '--model-router': (a, argv, i) => {
-    a.modelRouter = JSON.parse(
-      CliFlagTable.valueOf(argv, i, '--model-router'),
-    ) as ModelRouterConfig;
+    // 非法 JSON 不裸崩（2026-11-17 review）：此前用户传一个坏 JSON 就把 SyntaxError 栈
+    // 直接砸给终端；这里捕住转成带用法提示的参数错误（CLI 错误口径：可读一句话 + 修复建议）。
+    const raw = CliFlagTable.valueOf(argv, i, '--model-router');
+    try {
+      a.modelRouter = JSON.parse(raw) as ModelRouterConfig;
+    } catch {
+      throw new Error(
+        `--model-router 参数不是合法 JSON: ${raw}（示例: {"默认模型":"gpt-5"}；也可改用 --model-router-file）`,
+      );
+    }
     return 1;
   },
   '--model-router-file': (a, argv, i) => {

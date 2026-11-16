@@ -51,10 +51,6 @@ type DialogResult = boolean | string | null;
 
 type DialogSink = (state: DialogState) => void;
 
-/** 确认 / 取消按钮的缺省文案。 */
-export const DEFAULT_CONFIRM_LABEL = '确定';
-export const DEFAULT_CANCEL_LABEL = '取消';
-
 /** 应用内对话框服务：发起 Promise、由宿主渲染、用户选择后结算。 */
 export class DialogService {
   /** 绑定到 React 状态的订阅槽（App 挂载时注入）。 */

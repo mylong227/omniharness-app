@@ -22,6 +22,7 @@
 // 标准 React 项目写法：`import * as React from 'react'`（Vite 负责解析裸标识符）。
 import * as React from 'react';
 import { useApp } from '../../context.ts';
+import { useSessionResource } from '../../hooks/useSessionResource.ts';
 import { icon } from '../../models/Icon.ts';
 import type { ReactElement } from 'react';
 import type {
@@ -156,45 +157,27 @@ function sectionSummary(section: KernelHealthSectionLike): string {
 /** 诊断面板：daemon 运行态 + 内核健康（哨兵桥） + 环境诊断报告。 */
 export function DiagnosticsTab(): ReactElement {
   const { api } = useApp();
-  const [daemon, setDaemon] = React.useState<DaemonStatus | null>(null);
-  const [doctor, setDoctor] = React.useState<DoctorResponse | null>(null);
-  const [health, setHealth] = React.useState<KernelHealthSnapshotLike | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
-  const [loading, setLoading] = React.useState<boolean>(true);
-
-  /** 拉取两项只读状态（任一失败都进 error 状态：UI 必须能显示"读不出来"）。 */
-  const refresh = React.useCallback(async (): Promise<void> => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [d, r, h] = await Promise.all([
-        api.daemonStatus(),
-        api.doctorReport(),
-        api.kernelHealth(),
-      ]);
-      setDaemon(d);
-      setDoctor(r);
-      setHealth(h);
-    } catch (e) {
-      setError((e as Error).message);
-      setDaemon(null);
-      setDoctor(null);
-      setHealth(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [api]);
-
-  React.useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  // 三项只读状态一并取数（收编进 useSessionResource，2026-11-17）：seq 守卫 + 失败保留旧数据。
+  // 体检是全局状态，不跟随 sessionTick 陪跑。
+  const { data, error, loading, refresh } = useSessionResource<
+    readonly [DaemonStatus, DoctorResponse, KernelHealthSnapshotLike]
+  >({
+    enabled: true,
+    followTick: false,
+    load: React.useCallback(async () => {
+      return Promise.all([api.daemonStatus(), api.doctorReport(), api.kernelHealth()] as const);
+    }, [api]),
+  });
+  const daemon = data?.[0] ?? null;
+  const doctor = data?.[1] ?? null;
+  const health = data?.[2] ?? null;
 
   if (loading) return <div className="diagnostics-tab">{t('正在体检…')}</div>;
-  if (error !== null) {
+  if (data === null && error !== null) {
     return (
       <div className="diagnostics-tab">
         <p className="err">{t('读取诊断数据失败：{msg}', { msg: error })}</p>
-        <Button onClick={() => void refresh()}>
+        <Button onClick={refresh}>
           {t('重试')}
         </Button>
       </div>

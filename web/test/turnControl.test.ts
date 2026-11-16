@@ -131,6 +131,7 @@ function makeController(host: HostStub, api: Pick<ApiStub, 'runTurn'>, toasts: s
   // loadThread 挂），状态与改动同源；ComposerController 只借用代数做比对。
   const sessions = {
     async refreshSessions() {},
+    clearRemoteBusy() {},
     // 流式缓冲生命周期（开新回合 / 收尾刷增量；真实现见 models/TurnStreamBuffer.ts）
     streamPhase() {},
     // 视图代数契约（2026-10-06）：见 web/src/ui/models/ViewAttachment.ts

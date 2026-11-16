@@ -10,6 +10,7 @@ import Space from 'antd/es/space';
 import Tag from 'antd/es/tag';
 import Typography from 'antd/es/typography';
 import { useApp } from '../../context.ts';
+import { ClipboardCopier } from '../../models/ClipboardCopier.ts';
 import { icon } from '../../models/Icon.ts';
 import { t } from '../../i18n/i18n.ts';
 import type {
@@ -67,10 +68,13 @@ export function DecisionTab(props: DecisionTabProps): React.ReactElement {
 
   const copy = React.useCallback(
     (text: string): void => {
-      void navigator.clipboard
-        .writeText(text)
-        .then(() => toast(t('已复制'), 'info'))
-        .catch((error: unknown) => toast(error instanceof Error ? error.message : String(error), 'err'));
+      // 走 ClipboardCopier 双路径降级（2026-11-17 review 收编）：此前直写 navigator.clipboard，
+      // 在 http 非安全上下文 / 权限被拒时只会弹一串英文错误——Clipboard API 失败还有
+      // execCommand 兜底，与 AssistantCard 等三处调用点同一事实源。
+      void ClipboardCopier.copy(text).then((ok) => {
+        if (ok) toast(t('已复制'), 'ok');
+        else toast(t('复制失败，请检查剪贴板权限'), 'err');
+      });
     },
     [toast],
   );

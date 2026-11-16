@@ -54,7 +54,12 @@ export function useProof(threadId: string | null, active: boolean): UseProofResu
   const [building, setBuilding] = React.useState(false);
   const [turnsError, setTurnsError] = React.useState<string | null>(null);
   const [buildError, setBuildError] = React.useState<string | null>(null);
+  // 两条异步流各用一本序号账（与 useDecisionLedger 的 seqRef/detailSeqRef 同形）：
+  // 此前共用一个 seqRef，活跃回合里 sessionTick 每 300ms 触发 loadTurns 重跑，用户此刻点回合行
+  // 触发 build 会把序号顶掉——loadTurns 的 then/finally 全部被守卫短路，loadingTurns 永久卡在
+  // true（骨架屏挂死到下一次 tick 重拉才自愈）。2026-11-17 全面 review 修复。
   const seqRef = React.useRef(0);
+  const buildSeqRef = React.useRef(0);
   /** 上一次请求的会话（切会话时清掉旧回合 / 选中 / 证书）。 */
   const lastThreadRef = React.useRef<string | null>(null);
 
@@ -110,13 +115,13 @@ export function useProof(threadId: string | null, active: boolean): UseProofResu
   const build = React.useCallback(
     (turnIndex: number): void => {
       if (threadId === null || threadId === '') return;
-      const seq = ++seqRef.current;
+      const seq = ++buildSeqRef.current;
       setBuilding(true);
       setBuildError(null);
       api
         .proofBuild(threadId, turnIndex)
         .then((result) => {
-          if (seq !== seqRef.current) return;
+          if (seq !== buildSeqRef.current) return;
           if (isFailure(result)) {
             setBuildError(result.message);
             setBundle(null);
@@ -125,12 +130,12 @@ export function useProof(threadId: string | null, active: boolean): UseProofResu
           }
         })
         .catch((e: unknown) => {
-          if (seq !== seqRef.current) return;
+          if (seq !== buildSeqRef.current) return;
           setBuildError(e instanceof Error ? e.message : String(e));
           setBundle(null);
         })
         .finally(() => {
-          if (seq === seqRef.current) setBuilding(false);
+          if (seq === buildSeqRef.current) setBuilding(false);
         });
     },
     [api, threadId],

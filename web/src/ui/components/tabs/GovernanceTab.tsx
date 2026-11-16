@@ -23,6 +23,7 @@
 // 整页会因模块解析失败而完全不挂载；web e2e 正是靠这一条把这类错误挡在提交前）。
 import * as React from 'react';
 import { useApp } from '../../context.ts';
+import { useSessionResource } from '../../hooks/useSessionResource.ts';
 import { icon } from '../../models/Icon.ts';
 import type { ReactElement } from 'react';
 import { currentLocale, t } from '../../i18n/i18n.ts';
@@ -182,33 +183,17 @@ function GovernanceError(props: { message: string; onRetry: () => void }): React
  * @returns 治理面板节点
  */
 export function GovernanceTab(): ReactElement {
-  const { api, sessionTick } = useApp();
-  const [data, setData] = React.useState<GovernanceHistory | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
-  const [loading, setLoading] = React.useState<boolean>(true);
+  const { api } = useApp();
+  // 取数收编进 useSessionResource（2026-11-17）：seq 守卫 + 失败保留旧数据。全局只读，不跟 tick。
+  const { data, error, loading, refresh } = useSessionResource<GovernanceHistory>({
+    enabled: true,
+    followTick: false,
+    load: React.useCallback(async () => api.governanceHistory<GovernanceHistory>(), [api]),
+  });
 
-  /** 拉取治理视图（失败也进状态：UI 必须能显示"读不出来"，不许静默空列表）。 */
-  const refresh = React.useCallback(async (): Promise<void> => {
-    setLoading(true);
-    setError(null);
-    try {
-      const r = await api.governanceHistory<GovernanceHistory>();
-      setData(r);
-    } catch (e) {
-      setError((e as Error).message);
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [api]);
-
-  React.useEffect(() => {
-    void refresh();
-  }, [refresh, sessionTick]);
-
-  if (loading) return <div className="governance-tab">{t('载入晋升台账…')}</div>;
-  if (error !== null) {
-    return <GovernanceError message={error} onRetry={() => void refresh()} />;
+  if (loading && data === null) return <div className="governance-tab">{t('载入晋升台账…')}</div>;
+  if (data === null && error !== null) {
+    return <GovernanceError message={error} onRetry={refresh} />;
   }
   if (data === null) return <div className="governance-tab">{t('暂无治理数据。')}</div>;
   if (!data.available) {
@@ -217,7 +202,7 @@ export function GovernanceTab(): ReactElement {
       <div className="governance-tab">
         <p className="err">{entitlementReasonOf(data) || t('未提供原因')}</p>
         <p className="hint">{t('台账尚未产生时可忽略；若已产生过晋升，请检查工作区 .omniharness/evolution。')}</p>
-        <Button onClick={() => void refresh()}>
+        <Button onClick={refresh}>
           {t('重试')}
         </Button>
       </div>
@@ -247,7 +232,7 @@ export function GovernanceTab(): ReactElement {
             ? ''
             : t('（首个失败 #{seq}）', { seq: summary.firstFailureSeq })}
         </span>
-        <Button onClick={() => void refresh()}>
+        <Button onClick={refresh}>
           {t('刷新')}
         </Button>
       </header>

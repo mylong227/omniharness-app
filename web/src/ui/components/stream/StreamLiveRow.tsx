@@ -8,7 +8,7 @@
 
 import * as React from 'react';
 import { icon } from '../../models/Icon.ts';
-import { toolSubject, toolVerb } from '../../textUtils.ts';
+import { parsePartialJson, toolSubject, toolVerb } from '../../textUtils.ts';
 import { t } from '../../i18n/i18n.ts';
 import type { LiveInput } from '../../shared.ts';
 
@@ -25,12 +25,8 @@ export interface StreamLiveRowProps {
  */
 export function StreamLiveRow(props: StreamLiveRowProps): React.ReactElement {
   const li = props.li;
-  let partialArgs: unknown = {};
-  try {
-    partialArgs = JSON.parse(li.partial);
-  } catch {
-    partialArgs = {};
-  }
+  // 共享的试解析（带缓存）：参数流式期每帧变长，同一前缀被多帧重复解析的成本收进 textUtils。
+  const partialArgs: unknown = parsePartialJson(li.partial);
   // 运行中的当前动作：只占一行（工具行会在 tool_call 事件到达后由过程簇接管）。
   const subject = toolSubject(li.name, partialArgs);
   return (

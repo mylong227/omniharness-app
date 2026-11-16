@@ -41,6 +41,16 @@ import { installAuthRequiredBanner } from './ui/authRequiredBanner.ts';
 authToken.adoptFromUrl();
 installAuthRequiredBanner();
 
+// 全局未处理 rejection 兜底（2026-11-17 全面 review，与后端 crashGuard 同思路）：此前任何
+// 一处漏写 catch 的 Promise 都会静默消失（控制台无提示、用户无感知）。这里统一记日志并派发
+// 应用事件；toast 由 AppController 监听该事件给出（节流防刷屏）。
+window.addEventListener('unhandledrejection', (ev) => {
+  const reason: unknown = (ev as PromiseRejectionEvent).reason;
+  const message = reason instanceof Error ? reason.message : String(reason ?? 'unknown');
+  console.error('[omni] unhandled rejection:', reason);
+  window.dispatchEvent(new CustomEvent<string>('omni:unhandled-rejection', { detail: message }));
+});
+
 const root = document.getElementById('root');
 if (root) {
   mountApp(root);

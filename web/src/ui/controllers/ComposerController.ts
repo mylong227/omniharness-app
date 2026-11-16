@@ -52,7 +52,9 @@ export class ComposerController {
       host: this.host,
       api: this.services.api,
       toast: (message, kind) => this.services.toast(message, kind),
-      isBusy: () => this.inFlight,
+      // 在飞判定含远端回合（打开在跑会话时的 busy）：drain / resume 据此不并发开跑，
+      // 收尾续发由 SessionController.onRemoteBusyCleared → queueDrain 接力。
+      isBusy: () => this.inFlight || this.host.getState().busy,
       // 续发复用同一个回合执行体（队列只决定"发哪一条"，不自己碰 RPC）。
       sendQueued: (message) => {
         void this.runRound(message.prompt, [...message.images], [...message.files]).catch(() => {
@@ -107,7 +109,9 @@ export class ComposerController {
     files: FileAttachment[],
   ): Promise<void> {
     const state = this.host.getState();
-    if (this.inFlight) {
+    // busy 覆盖两种在跑：本页面的 runRound（inFlight）与打开「正在运行」会话时的远端回合。
+    // 远端回合同样要按模式分流（插话 / 队列），否则会并出第二个回合（2026-11-17 全面 review）。
+    if (this.inFlight || state.busy) {
       // 在跑回合里再发：按设置的模式处理（此前一律退化为 steering，队列模式无入口）。
       if (state.chatMode === 'steer') {
         await this.interject(prompt, images, files);
@@ -294,11 +298,24 @@ export class ComposerController {
    * @returns 无返回值。
    */
   public stop(): void {
-    if (!this.inFlight || this.abortRequested) return;
-    this.abortRequested = true;
+    if (this.abortRequested) return;
+    const threadId = this.host.getState().currentThreadId;
+    if (!this.inFlight) {
+      // 打开「正在运行」的会话（loadThread 置 busy）时，跑着的回合不是本页面发起的：没有本地
+      // runRound 可收口，但不能就此吞掉停止——降级为「立即收口本地 UI + 通知后端取消」，
+      // 否则停止按钮点了没反应、发送还会并出第二个回合（2026-11-17 全面 review）。
+      if (!this.host.getState().busy) return;
+      // 登记先清：否则随后的本地回合会被远端收尾检测误伤（busy 被清 ⇒ 增量被丢弃）。
+      this.sessions.clearRemoteBusy();
+      this.queueController.pauseIfPending(threadId);
+      this.settleRound(true);
+      void this.services.api.abortTurn(threadId ?? undefined).catch(() => {});
+      return;
+    }
     // 「停止」要停的是**这一串**：队列里还有待发项时一并暂停，避免回合收尾时自动续发，
     // 让用户看到「刚停下又自己跑起来」。恢复入口在队列坞（继续）。
-    const threadId = this.host.getState().currentThreadId;
+    // abortRequested 必须置位：runRound 的成功/失败分支据此静默，迟到收尾不再补正文或报错。
+    this.abortRequested = true;
     this.queueController.pauseIfPending(threadId);
     this.settleRound(true);
     // 带上当前 threadId：服务端允许多回合并行，不带 id 会退化成「取消全部在跑回合」
@@ -306,6 +323,15 @@ export class ComposerController {
     void this.services.api
       .abortTurn(threadId ?? undefined)
       .catch(() => {});
+  }
+
+  /**
+   * 远端回合（打开在跑会话）收尾后的队列续发入口：由组合根接到
+   * `SessionController.onRemoteBusyCleared`，与本地回合 finally 的 drain 同一口径。
+   * @returns 无
+   */
+  public queueDrain(): void {
+    this.queueController.drain();
   }
 
   /**
@@ -345,7 +371,7 @@ export class ComposerController {
    * @returns 异步完成
    */
   public async regenerate(): Promise<void> {
-    if (this.inFlight) {
+    if (this.inFlight || this.host.getState().busy) {
       this.services.toast(t('正在生成，请先停止后再重生成'), 'info');
       return;
     }

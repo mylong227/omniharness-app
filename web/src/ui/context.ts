@@ -14,6 +14,11 @@ export interface AppContextValue {
   dialog: DialogService;
   /** 重新拉取厂商目录（model.catalog）：检测/启用厂商后调用，Composer 模型下拉即时反映真实可用清单。 */
   refreshModelCatalog?: () => void;
+  /**
+   * 打开「控制室 · 上下文」面板（2026-11-17 粘性批次）：容量坞在上下文接近上限时给一条
+   * 「去压缩」出口——压缩操作（含确认）在控制室，这里只负责把用户带到正确的位置。
+   */
+  openContextPane?: () => void;
   /** 当前会话 id（null = 尚未创建会话 / 新会话态）。 */
   sessionId: string | null;
   /** 会话数据版本号：切换会话或回合推进后 +1，面板据此重新拉取自己的数据。 */

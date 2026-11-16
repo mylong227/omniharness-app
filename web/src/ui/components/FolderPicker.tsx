@@ -21,11 +21,9 @@ import { icon } from '../models/Icon.ts';
 import { FS_ROOT, fsKeyOf, fsPathOf, isFsKey } from '../models/FsPickerLazy.ts';
 import { PickerModal } from './PickerModal.tsx';
 import type { ApiClient } from '../../core/ApiClient.ts';
+import { useWorkspaceTree } from '../hooks/useWorkspaceTree.ts';
 import type { FsNode } from '../../types/models.ts';
 import { t } from '../i18n/i18n.ts';
-
-/** 工作区 `fs.list` 深度。 */
-const DEPTH = 3;
 
 /** `fs.browse` 的回包（目录层只关心 dirs）。 */
 type BrowseResult =
@@ -91,45 +89,6 @@ function wsNode(node: FsNode): TreeDataNode {
     ...(node.type === 'file' ? { disabled: true } : {}),
     ...(children !== undefined && children.length > 0 ? { children } : {}),
   };
-}
-
-/**
- * 读工作区整树（失败也不挡「文件系统…」懒加载模式，见设计 §6）。
- * @param api RPC 客户端
- * @returns 树、加载态、错误与 refresh
- */
-function useWorkspaceTree(api: ApiClient): {
-  tree: FsNode[];
-  loading: boolean;
-  error: string | null;
-  refresh: () => void;
-} {
-  const [state, setState] = React.useState<{ tree: FsNode[]; loading: boolean; error: string | null }>({
-    tree: [],
-    loading: true,
-    error: null,
-  });
-  const seq = React.useRef(0);
-  const load = React.useCallback(async (): Promise<void> => {
-    const mine = ++seq.current;
-    setState((prev) => ({ ...prev, loading: true, error: null }));
-    try {
-      const r = await api.listFs(DEPTH);
-      if (mine !== seq.current) return;
-      setState({
-        tree: Array.isArray(r?.tree) ? r.tree : [],
-        loading: false,
-        error: Array.isArray(r?.tree) ? null : t('文件树返回格式异常（fs.list）'),
-      });
-    } catch (e) {
-      if (mine !== seq.current) return;
-      setState({ tree: [], loading: false, error: (e as Error).message });
-    }
-  }, [api]);
-  React.useEffect(() => {
-    void load();
-  }, [load]);
-  return { ...state, refresh: () => void load() };
 }
 
 /**
