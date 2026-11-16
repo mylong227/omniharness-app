@@ -4723,3 +4723,11 @@ button,
     padding: 20px 18px 28px;
   }
 }
+/* ---- 输入区窄屏收口（2026-11-17 全面 review）：≤480px 隐藏语音按钮、收窄模型入口——
+   控制行两组已允许换行（见上方 composer-bar 注记），这里只压最宽的两块 chrome，
+   防止 390 宽下右组把「发送」挤出屏。 ---- */
+@media (max-width: 480px) {
+  .composer-bar .iconbtn.mic { display: none; }
+  .composer .mp { min-width: 76px; }
+  .chat-queue .cq-list { max-height: 160px; }
+}
