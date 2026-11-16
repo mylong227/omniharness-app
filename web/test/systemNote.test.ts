@@ -49,7 +49,10 @@ test('classify：压缩游标（带 evidence）→ 折叠视图，元信息/摘�
   assert.match(view.meta, /游标 355/u);
   assert.match(view.meta, /摘要约 \d/u);
   assert.strictEqual(view.excerpt, '现在盘点当前项目信息 ---- 将存在的问题进行修改', '摘要在结构标签之后，不念标签');
-  assert.deepEqual(view.chips, ['审计 ✓ 文件 3 · 命令 12 · 待办 1', '触发预算 82% · 17 轮']);
+  assert.deepEqual(view.chips, [
+    { text: '审计 ✓ 文件 3 · 命令 12 · 待办 1', tone: 'ok' },
+    { text: '触发预算 82% · 17 轮', tone: 'info' },
+  ], 'chip 带语义色温：审计齐全=ok、触发预算=info');
   assert.strictEqual(view.body.type, 'markdown');
 });
 
@@ -58,11 +61,21 @@ test('classify：证据坏掉只丢证据——游标与摘要仍在，并如实
   assert.ok(view !== null);
   assert.strictEqual(view.kind, 'compaction');
   assert.match(view.meta, /游标 9/u);
-  assert.deepEqual(view.chips, ['压缩证据无法解码']);
+  assert.deepEqual(view.chips, [{ text: '压缩证据无法解码', tone: 'err' }], '证据坏=err 色温');
   const parts = CompactionNote.parse('OMNI_COMPACTION_V1 upTo=9 hash=aa evidence=%%%\n正文');
   assert.strictEqual(parts?.evidenceRaw, '%%%');
   assert.strictEqual(parts?.evidence, undefined);
   assert.strictEqual(parts?.summary, '正文');
+});
+
+test('classify：审计缺项的 chip 走 warn 色温（展开后色点先说话）', () => {
+  const evidence = evidenceOf({
+    audit: { ok: false, missing: ['command:7'], checked: { editedFiles: 1, commands: 3, openTodos: 0 } },
+    signals: { budgetRatio: 0.4, turns: 5, toolResultShare: 0.3, repetitionRate: 0.1, combinedWouldTrigger: false },
+  });
+  const view = SystemNote.classify(`OMNI_COMPACTION_V1 upTo=12 hash=bb evidence=${evidence}\n${SUMMARY}`);
+  assert.ok(view !== null);
+  assert.deepEqual(view.chips[0], { text: '审计缺 1 项', tone: 'warn' }, '缺项=warn');
 });
 
 test('classify：工作流记忆召回 → 步数 + 引导语 + 逐条步骤（不再是一串 →）', () => {

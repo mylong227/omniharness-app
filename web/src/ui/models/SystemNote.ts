@@ -33,6 +33,17 @@ export type SystemNoteBody =
   | { readonly type: 'steps'; readonly steps: readonly string[] }
   | { readonly type: 'text'; readonly text: string };
 
+/** chip 的信号色温：前置圆点用什么语义色（文字本身保持中性，信号不铺满）。 */
+export type SystemNoteChipTone = 'ok' | 'warn' | 'err' | 'info';
+
+/** 展开态头条 chip：文案 + 信号色温。 */
+export interface SystemNoteChip {
+  /** chip 文案（已本地化 / 已插值）。 */
+  readonly text: string;
+  /** 信号色温。 */
+  readonly tone: SystemNoteChipTone;
+}
+
 /** 折叠卡的视图模型（全部字段已本地化 / 已插值，组件不再做判断）。 */
 export interface SystemNoteView {
   /** 注记种类。 */
@@ -44,7 +55,7 @@ export interface SystemNoteView {
   /** 折叠态一行摘要（纯文本，已剥掉 markdown 修饰）。 */
   readonly excerpt: string;
   /** 展开态头条 chip（压缩证据等；可为空）。 */
-  readonly chips: readonly string[];
+  readonly chips: readonly SystemNoteChip[];
   /** 展开态正文。 */
   readonly body: SystemNoteBody;
 }
@@ -232,37 +243,43 @@ export class SystemNote {
 
   /**
    * 压缩证据 chip：审计齐全度 + 触发信号；有证据但解不开时如实说明（不静默吞掉）。
+   * 色温随语义走：审计齐全=ok、缺项=warn、触发预算=info、证据解不开=err——
+   * 收起态看不到正文，展开后第一眼就该由色点告诉用户「这轮压缩干不干净」。
    * @param raw 原始证据串（未附带时为 undefined）
    * @param evidence 解码结果（失败时为 undefined）
-   * @returns chip 文案数组
+   * @returns chip 数组（文案 + 信号色温）
    */
   private static evidenceChips(
     raw: string | undefined,
     evidence: CompactionEvidenceParts | undefined,
-  ): readonly string[] {
+  ): readonly SystemNoteChip[] {
     if (raw === undefined) return [];
-    if (evidence === undefined) return [t('压缩证据无法解码')];
-    const chips: string[] = [];
+    if (evidence === undefined) return [{ text: t('压缩证据无法解码'), tone: 'err' }];
+    const chips: SystemNoteChip[] = [];
     const audit = evidence.audit;
     if (audit !== undefined) {
       chips.push(
         audit.ok
-          ? t('审计 ✓ 文件 {f} · 命令 {c} · 待办 {o}', {
-              f: String(audit.checked.editedFiles),
-              c: String(audit.checked.commands),
-              o: String(audit.checked.openTodos),
-            })
-          : t('审计缺 {n} 项', { n: String(audit.missing.length) }),
+          ? {
+              text: t('审计 ✓ 文件 {f} · 命令 {c} · 待办 {o}', {
+                f: String(audit.checked.editedFiles),
+                c: String(audit.checked.commands),
+                o: String(audit.checked.openTodos),
+              }),
+              tone: 'ok',
+            }
+          : { text: t('审计缺 {n} 项', { n: String(audit.missing.length) }), tone: 'warn' },
       );
     }
     const signals = evidence.signals;
     if (signals !== undefined) {
-      chips.push(
-        t('触发预算 {p}% · {n} 轮', {
+      chips.push({
+        text: t('触发预算 {p}% · {n} 轮', {
           p: String(Math.round(signals.budgetRatio * 100)),
           n: String(signals.turns),
         }),
-      );
+        tone: 'info',
+      });
     }
     return chips;
   }

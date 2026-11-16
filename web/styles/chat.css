@@ -128,12 +128,27 @@ pre.json { border:1px solid var(--border-soft); padding:8px 10px; margin-top:7px
 /* ---- 上下文注记卡（2026-11-16）：压缩游标 / 工作流记忆 / 长系统注记 ----
    折叠态 = 一行简报（图标 + 标题 + 元信息 + 展开），展开态 = 证据 chip + 排好版的正文。
    表面用 panel（比对话底亮一档）+ 发丝线：它是一段「被引用的上下文」，不是又一条聊天消息。
-   正文给高度上限 + 独立滚动：摘要动辄数万字，展开不该把整轮结论顶出几屏。 */
+   正文给高度上限 + 独立滚动：摘要动辄数万字，展开不该把整轮结论顶出几屏。
+   身份色温（2026-11-16 美化）：--note-tint 按种类取语义 token（压缩=墨 / 记忆=雾蓝 /
+   其余=中性灰），左侧 3px 色轨、图标、chip 色点、分节锚点共用这一个信号源——
+   两类卡扫一眼就能分清，而文字本身保持中性（信号不铺满，遵守语义色纪律）。 */
 .ctx-note {
+  --note-tint: var(--faint);
   border: 1px solid var(--hairline);
+  /* 左色轨是卡片的「引用条」：这段内容是从上下文里引出来的注记，不是普通消息。
+     强度按重要度分层：压缩（改写上下文）> 记忆召回（参考）> 普通注记。 */
+  border-left: 3px solid color-mix(in srgb, var(--note-tint) 45%, transparent);
   border-radius: var(--r-md);
   background: var(--panel);
   overflow: hidden;
+}
+.ctx-note--compaction {
+  --note-tint: var(--accent);
+  border-left-color: color-mix(in srgb, var(--note-tint) 80%, transparent);
+}
+.ctx-note--memory {
+  --note-tint: var(--info);
+  border-left-color: color-mix(in srgb, var(--note-tint) 70%, transparent);
 }
 .ctx-note__head {
   display: flex;
@@ -152,7 +167,14 @@ pre.json { border:1px solid var(--border-soft); padding:8px 10px; margin-top:7px
 }
 .ctx-note__head:hover { background: var(--hover); }
 .ctx-note__row { display: flex; align-items: center; gap: var(--sp-2); width: 100%; min-height: 20px; }
-.ctx-note__ico { display: inline-flex; flex: none; color: var(--faint); }
+.ctx-note__ico {
+  display: inline-flex;
+  flex: none;
+  color: color-mix(in srgb, var(--note-tint) 72%, var(--dim));
+  transition: color var(--dur-1) var(--ease);
+}
+.ctx-note__head:hover .ctx-note__ico,
+.ctx-note__head:focus-visible .ctx-note__ico { color: var(--note-tint); }
 .ctx-note__title { flex: none; font-size: var(--fs-ui); font-weight: 600; color: var(--text); }
 .ctx-note__meta {
   min-width: 0;
@@ -164,7 +186,20 @@ pre.json { border:1px solid var(--border-soft); padding:8px 10px; margin-top:7px
   color: var(--faint);
   font-variant-numeric: tabular-nums;
 }
-.ctx-note__toggle { margin-left: auto; flex: none; font-size: var(--fs-micro); color: var(--dim); }
+.ctx-note__toggle {
+  margin-left: auto;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--fs-micro);
+  color: var(--dim);
+}
+.ctx-note__chev {
+  display: inline-flex;
+  transition: transform 0.18s var(--ease-out);
+}
+.ctx-note--open .ctx-note__chev { transform: rotate(180deg); }
 .ctx-note__head:hover .ctx-note__toggle,
 .ctx-note__head:focus-visible .ctx-note__toggle { color: var(--text); }
 /* 焦点环内缩：卡片有 overflow:hidden，外扩环会被裁掉（键盘用户就看不到落点了）。 */
@@ -185,9 +220,20 @@ pre.json { border:1px solid var(--border-soft); padding:8px 10px; margin-top:7px
   max-height: min(56vh, 460px);
   overflow: auto;
   overscroll-behavior: contain;
+  /* 每次展开都是新挂载：入场轻微下沉淡入（160ms），收起即卸载故无需出场动画。 */
+  animation: ctx-note-open 0.16s var(--ease-out);
+}
+@keyframes ctx-note-open {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 }
 .ctx-note__chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-bottom: var(--sp-3); }
 .ctx-note__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 1px solid var(--border-soft);
   border-radius: 999px;
   padding: 1px 8px;
@@ -195,6 +241,20 @@ pre.json { border:1px solid var(--border-soft); padding:8px 10px; margin-top:7px
   font-size: var(--fs-micro);
   color: var(--dim);
 }
+/* 语义色点：文字保持中性，色温只走这颗 6px 圆点（审计齐全=绿、缺项=琥珀、
+   预算=雾蓝、证据坏=茜红）。 */
+.ctx-note__chip::before {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--chip-dot, transparent);
+}
+.ctx-note__chip--ok { --chip-dot: var(--ok); }
+.ctx-note__chip--warn { --chip-dot: var(--warn); }
+.ctx-note__chip--err { --chip-dot: var(--err); }
+.ctx-note__chip--info { --chip-dot: var(--info); }
 .ctx-note__text {
   white-space: pre-wrap;
   word-break: break-word;
@@ -213,6 +273,18 @@ pre.json { border:1px solid var(--border-soft); padding:8px 10px; margin-top:7px
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--text);
+}
+/* 分节标题的锚点：标题文字前一枚 10×2 的色温短划（--note-tint），
+   长文档里扫读时先撞到颜色再撞到字——段落边界不用逐字找。 */
+.ctx-note__doc .md-content h4::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 2px;
+  border-radius: 1px;
+  margin-right: 8px;
+  vertical-align: middle;
+  background: color-mix(in srgb, var(--note-tint) 70%, transparent);
 }
 /* 分节之间拉一条发丝线：这是长文档里唯一真的需要"断开"的地方（否则一整段灰字没有段落边界）。 */
 .ctx-note__doc .md-content h1:not(:first-child),
@@ -263,6 +335,11 @@ pre.json { border:1px solid var(--border-soft); padding:8px 10px; margin-top:7px
 /* 窄窗：元信息（游标 / 字数）让位给标题与开合入口——被截成「摘要约 138…」比不显示更难看。 */
 @media (max-width: 560px) {
   .ctx-note__meta { display: none; }
+}
+/* 减动效：入场动画与 chevron 旋转都停（色轨 / 色点是静态信号，保留）。 */
+@media (prefers-reduced-motion: reduce) {
+  .ctx-note__body { animation: none; }
+  .ctx-note__chev { transition: none; }
 }
 
 /* ---- 审计记录收纳（2026-11-15）：每轮一条默认收起的摘要，展开才看逐条 JSON ---- */

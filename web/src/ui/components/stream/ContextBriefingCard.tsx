@@ -112,8 +112,9 @@ export function ContextBriefingCard(props: ContextBriefingCardProps): ReactEleme
   return (
     // 阻断冒泡：外层 `.ev.clickable` 会把点击上抛成「事件钻取」，而读摘要时点一下不该跳走。
     // spellCheck 关掉：卡里是命令 / 路径 / 工具名，红波浪线纯属噪音。
+    // kind 修饰类带出「身份色温」（--note-tint）：左侧色轨 + 图标 + chip 色点共用一个信号源。
     <div
-      className={'ctx-note' + (open ? ' ctx-note--open' : '')}
+      className={`ctx-note ctx-note--${view.kind}` + (open ? ' ctx-note--open' : '')}
       spellCheck="false"
       onClick={(e: React.MouseEvent) => e.stopPropagation()}
     >
@@ -132,7 +133,12 @@ export function ContextBriefingCard(props: ContextBriefingCardProps): ReactEleme
           </span>
           <span className="ctx-note__title">{view.title}</span>
           {view.meta === '' ? null : <span className="ctx-note__meta">{view.meta}</span>}
-          <span className="ctx-note__toggle">{open ? t('收起 ▴') : t('展开 ▾')}</span>
+          <span className="ctx-note__toggle">
+            <span>{open ? t('收起') : t('展开')}</span>
+            <span className="ctx-note__chev" aria-hidden="true">
+              {icon('chevron-down', { size: 12, strokeWidth: 2.2 })}
+            </span>
+          </span>
         </span>
         {open || view.excerpt === '' ? null : (
           <span className="ctx-note__excerpt" title={view.excerpt}>
@@ -145,8 +151,8 @@ export function ContextBriefingCard(props: ContextBriefingCardProps): ReactEleme
           {view.chips.length === 0 ? null : (
             <div className="ctx-note__chips">
               {view.chips.map((chip) => (
-                <span className="ctx-note__chip" key={chip}>
-                  {chip}
+                <span className={`ctx-note__chip ctx-note__chip--${chip.tone}`} key={chip.text}>
+                  {chip.text}
                 </span>
               ))}
             </div>

@@ -103,6 +103,8 @@ test('上下文注记卡：默认收起、展开是排好版的预览、键盘�
         compactExpanded: head(cards[0]).getAttribute('aria-expanded'),
         compactBodyMounted: cards[0].querySelectorAll('.ctx-note__body').length,
         ariaControls: head(cards[0]).getAttribute('aria-controls'),
+        compactKind: cards[0].className.indexOf('ctx-note--compaction') >= 0,
+        memoryKind: cards[1].className.indexOf('ctx-note--memory') >= 0,
         memoryTitle: text(cards[1], '.ctx-note__title'),
         memoryMeta: text(cards[1], '.ctx-note__meta'),
         memoryExcerpt: text(cards[1], '.ctx-note__excerpt'),
@@ -110,6 +112,8 @@ test('上下文注记卡：默认收起、展开是排好版的预览、键盘�
     })()`)) as Record<string, unknown>;
     assert.strictEqual(collapsed['cards'], 2, '压缩游标 + 工作流记忆各一张卡');
     assert.strictEqual(collapsed['plainNotes'], 1, '短旁白仍走一行 sysnote，不该变成卡');
+    assert.ok(collapsed['compactKind'], '压缩卡带 compaction 身份类（左色轨/图标/chip 色点共用）');
+    assert.ok(collapsed['memoryKind'], '记忆卡带 memory 身份类');
     assert.strictEqual(collapsed['compactTitle'], '上下文已压缩');
     assert.match(String(collapsed['compactMeta']), /游标 355 · 摘要约/u);
     assert.strictEqual(
@@ -145,6 +149,7 @@ test('上下文注记卡：默认收起、展开是排好版的预览、键盘�
         excerptGone: card.querySelectorAll('.ctx-note__excerpt').length,
         sections: Array.from(body.querySelectorAll('h4')).map(function(e){ return e.textContent; }),
         chips: Array.from(body.querySelectorAll('.ctx-note__chip')).map(function(e){ return e.textContent; }),
+        chipTones: Array.from(body.querySelectorAll('.ctx-note__chip')).map(function(e){ return e.className; }),
         ledgerHeading: body.querySelector('h2') ? body.querySelector('h2').textContent : '',
         leakedEvidence: text.indexOf('evidence=') >= 0 || text.indexOf(${JSON.stringify(EVIDENCE.slice(0, 40))}) >= 0,
         scrolls: body.scrollHeight > body.clientHeight,
@@ -165,6 +170,11 @@ test('上下文注记卡：默认收起、展开是排好版的预览、键盘�
       '既有 Markdown 标题保持原样',
     );
     assert.deepEqual(expanded['chips'], ['审计 ✓ 文件 3 · 命令 12 · 待办 2', '触发预算 82% · 17 轮']);
+    assert.deepEqual(
+      expanded['chipTones'],
+      ['ctx-note__chip ctx-note__chip--ok', 'ctx-note__chip ctx-note__chip--info'],
+      'chip 色点：审计齐全=ok、触发预算=info（伪元素圆点，不进 textContent）',
+    );
     assert.strictEqual(expanded['leakedEvidence'], false, '证据 base64 只能进 chip，绝不进正文');
     assert.strictEqual(expanded['scrolls'], true, '长摘要在正文内部滚动，不把对话顶出几屏');
     assert.strictEqual(expanded['bodyIdMatches'], true, 'aria-controls 指向真实正文节点');
