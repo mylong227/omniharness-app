@@ -1,6 +1,6 @@
-# 内核能力 ↔ 应用 UI 对齐审计（alpha.22）
+# 内核能力 ↔ 应用 UI 对齐审计（alpha.24）
 
-> 2026-11-15 综合研究产出。范围：vendored `@omniharness/kernel@0.1.0-alpha.22` 的公共能力
+> 2026-11-15 综合研究产出。范围：vendored `@omniharness/kernel@0.1.0-alpha.24` 的公共能力
 > 与本仓 UI/宿主入口的对齐现状；结论落到「已对齐 / 本轮补齐 / 明确不接 / 待排期」四档，
 > 避免 UI 文案与内核实际能力脱节（本仓反复记录的「看着绿」形态）。
 
@@ -13,7 +13,7 @@
 
 ## 2. 对齐矩阵
 
-| 内核能力（alpha.22） | 应用入口 | 状态 |
+| 内核能力（alpha.24） | 应用入口 | 状态 |
 | --- | --- | --- |
 | 配置三段 `retrievalContext` / `semanticRecall` / `contextPolicy` | 设置 → 运行时 → 上下文与检索（9 行） | ✅ 已对齐（2026-11-15） |
 | 上下文生效值（检索 mode/改写/精排/预算、语义召回 requested/active、降档两级、缓存守卫） | 控制室 → 上下文 → 内核上下文策略 | ✅ 本轮补齐（`context.studio.kernel`） |
@@ -42,6 +42,9 @@
   子会话 id（共享 `SubagentTree`）、压缩审计/信号（游标 `evidence=` 持久化）全部落地；
   alpha.22 另含信任闸分类修复（`capflow` 权威键 / `toolCache` 安全键）。同时修复上下文三段
   `FileConfig → CliArgs → ConfigFactory` 通道断链。
+- **alpha.23/24**：R9–R11 的端到端评测、`ModelRequestHash`、`CitationChecker`、压缩长段落与
+  checkpoint 文件态恢复均为内核/评测/回滚内部面，**不新增应用 UI 入口**；本矩阵无新增行，
+  现有「上下文 / 编队 / 诊断 / 回滚」入口继续按同一读模型呈现。
 - **判据**：`tests/configSectionWiring.test.ts`、`tests/controlRoom.test.ts`（树补 live child）、
   `tests/controlContext.test.ts`（证据解码）、`web/test/contextMode.test.ts`（审计徽标）、
   `web/test/settingsPane.test.ts` / `web/test/configWiring.test.ts`（新段）。
@@ -53,3 +56,4 @@
 3. **入口可回溯**：面板上的值要能指出「去哪改」（本轮副标题指向设置路径）；
 4. **不冒充内核**：应用自有实现（如压缩游标解码、编队事件解析）在注释里写明原因，
    内核已承诺后要么接线、要么把「未接线」写成待排期，不写成「不支持」。
+

@@ -4,7 +4,7 @@
 
 | 文件 | 说明 |
 | ---- | ---- |
-| `omniharness-kernel-0.1.0-alpha.22.tgz` | `@omniharness/kernel` 在 tag `v0.1.0-alpha.22` 的构建产物 + 应用 `native/omni_napi.node`（`NativeKernel` 从包根找它） |
+| `omniharness-kernel-0.1.0-alpha.24.tgz` | `@omniharness/kernel` 在 tag `v0.1.0-alpha.24` 的构建产物 + 应用 `native/omni_napi.node`（`NativeKernel` 从包根找它） |
 
 ## 重新生成
 
@@ -23,7 +23,14 @@ npm run kernel:check     # 9 条判据（含生成物不漂移 / 已承诺能力
 
 ## 版本史
 
-- **alpha.22**（当前）：应用侧深度适配三项——`FileConfig` 增 `toolCache`/`capflow` 文件面；
+- **alpha.24**（当前）：alpha.23/24 的 R9–R11 批次——长任务端到端评测（pass@k/预算画像）、
+  模型请求哈希与回滚等价、结论引用检查、问题拆分基准、压缩摘要长段落保真与 checkpoint
+  文件态恢复；公共根导出面仍 60/60。应用消费面零变化，`kernel:check` 284 源文件 / 290 导入、
+  tarball integrity 与原生实载全绿。
+- **alpha.23**：R9/R10 能力批次（`LongTaskAgentRunner` / `ModelRequestHash` / `CitationChecker` /
+  `FILE_WRITE_TOOL_NAMES` / 压缩保真 / 拆分基准）；应用消费面零变化，随 alpha.24 一并以 tag
+  `v0.1.0-alpha.24` 收口。
+- **alpha.22**：应用侧深度适配三项——`FileConfig` 增 `toolCache`/`capflow` 文件面；
   `SubagentTreePort`/`SubagentTree` + `OmniHarnessConfig.subagentTree` 注入（编排器写父子/调用映射）；
   `CompactionState` 增 `audit`/`signals` 并以 ` evidence=<base64url-json>` 持久化（旧游标兼容）。
   alpha.22 另含信任闸分类修复（`capflow` 权威键 / `toolCache` 安全键）。公共根导出面仍 60/60；

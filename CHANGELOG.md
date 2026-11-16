@@ -6,6 +6,12 @@
 ## [Unreleased]
 
 ### Added（新增）
+- **内核升级 alpha.24（2026-11-16）**：vendored kernel 升到 `v0.1.0-alpha.24`
+  （alpha.23 R9/R10 + alpha.24 R11，含长任务端到端评测、请求哈希回溯、引用检查、
+  压缩长段落保真、checkpoint 文件态恢复与回滚原子性）。这些能力均在内核/评测/回滚内部面，
+  应用消费面零变化（19 域、公共根导出 60/60）；本仓完成 vendor 重建、tarball integrity、
+  `kernel:check`（284 源文件 / 290 导入 / 原生实载）与文档账实闭环，并重打桌面安装包。
+  版本历史见 [vendor/README.md](vendor/README.md)，契约见 [KERNEL-CONTRACT.md](docs/KERNEL-CONTRACT.md)。
 - **厂商编辑「可用模型」空白修复（2026-11-15，用户截图反馈）**：探测成功但手选模型
   残留空串/已下线模型时，antd Select 拿不到匹配项显示为空白；现在统一回退到「当前
   清单内的当前模型 → 清单首项」，并同步修正启用请求使用的模型，避免启用一个不存在的
