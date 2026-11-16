@@ -35,7 +35,7 @@ export interface DecisionDetailPanelProps {
 export function DecisionDetailPanel(props: DecisionDetailPanelProps): React.ReactElement {
   if (!props.selected) {
     return (
-      <aside className="decision-detail decision-detail--empty" aria-label="决策详情">
+      <aside className="decision-detail decision-detail--empty" aria-label={t('决策详情')}>
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
           description={t('选一条决策，查看执行前依据')}
@@ -370,6 +370,7 @@ function Metric(props: { readonly label: string; readonly value: string; readonl
 
 /**
  * 确定性「为什么」模板（不调用模型）。
+ * 全部文案过 t()（2026-11-17 i18n 收口）：这些解释段此前整段裸中文，en 界面混排。
  * @param detail 详情。
  * @returns 2–4 句人话。
  */
@@ -377,29 +378,42 @@ function whyText(detail: DecisionDetailViewLike): string {
   const conformal = detail.conformal;
   const result = detail.row.disposition;
   if (conformal !== undefined) {
-    const scope = `α=${formatNumber(conformal.alpha)}，风险分 ${formatNumber(conformal.riskScore)} < 阈值 ${formatNumber(conformal.threshold)}（${effectClassLabel(conformal.effectClass)}，n=${String(conformal.unitCount)}）`;
+    const scope = `α=${formatNumber(conformal.alpha)}，${t('风险分 {score} < 阈值 {threshold}（{effect}，n={n}）', {
+      score: formatNumber(conformal.riskScore),
+      threshold: formatNumber(conformal.threshold),
+      effect: effectClassLabel(conformal.effectClass),
+      n: String(conformal.unitCount),
+    })}`;
     if (isDenied(result)) {
-      return `审批层由共形层放行：${scope}；随后沙箱/计划/污点层拒绝，最终未执行。共形块只描述审批层，不代表最终放行。`;
+      return t('审批层由共形层放行：{scope}；随后沙箱/计划/污点层拒绝，最终未执行。共形块只描述审批层，不代表最终放行。', { scope });
     }
-    return `审批层要求升级；共形层以 ${scope} 直接放行。执行前签发单次授权；${executionTail(detail)}`;
+    return t('审批层要求升级；共形层以 {scope} 直接放行。执行前签发单次授权；{tail}', { scope, tail: executionTail(detail) });
   }
   if (detail.approvals.some((item) => item.result === 'approved' || item.result === 'override')) {
-    const approver = detail.approvals.find((item) => item.result === 'approved' || item.result === 'override')?.by ?? '未记录主体';
-    return `审批层要求升级；${approver} 批准。执行前签发单次授权；${executionTail(detail)}`;
+    const approver =
+      detail.approvals.find((item) => item.result === 'approved' || item.result === 'override')?.by ??
+      t('未记录主体');
+    return t('审批层要求升级；{approver} 批准。执行前签发单次授权；{tail}', { approver, tail: executionTail(detail) });
   }
   if (detail.decision.result === 'unavailable') {
-    return `裁决器不可用；fail-closed=${detail.decision.failClosed ? 'true' : 'false'}；${executionTail(detail)}`;
+    return t('裁决器不可用；fail-closed={flag}；{tail}', {
+      flag: detail.decision.failClosed ? 'true' : 'false',
+      tail: executionTail(detail),
+    });
   }
   if (detail.row.disposition === 'escalated_pending') {
-    return '审批层要求升级；还没有最终回答，因此没有执行。';
+    return t('审批层要求升级；还没有最终回答，因此没有执行。');
   }
   if (detail.row.disposition === 'approved_not_executed') {
-    return '审批已批准；但没有发起工具调用，最终未执行。';
+    return t('审批已批准；但没有发起工具调用，最终未执行。');
   }
   if (isDenied(result)) {
-    return `裁决器 ${detail.decision.evaluatorId} 拒绝；未签发授权，未执行。`;
+    return t('裁决器 {evaluator} 拒绝；未签发授权，未执行。', { evaluator: detail.decision.evaluatorId });
   }
-  return `没有规则命中，按默认 ${detail.decision.defaultApplied} 处理；${executionTail(detail)}`;
+  return t('没有规则命中，按默认 {fallback} 处理；{tail}', {
+    fallback: detail.decision.defaultApplied,
+    tail: executionTail(detail),
+  });
 }
 
 /**
@@ -408,9 +422,9 @@ function whyText(detail: DecisionDetailViewLike): string {
  * @returns 一句执行结论。
  */
 function executionTail(detail: DecisionDetailViewLike): string {
-  if (detail.toolResult !== undefined) return detail.toolResult.ok ? '工具返回成功。' : '工具返回失败。';
-  if (detail.toolCall !== undefined) return '已发起工具调用，结果未记录。';
-  return '没有执行。';
+  if (detail.toolResult !== undefined) return detail.toolResult.ok ? t('工具返回成功。') : t('工具返回失败。');
+  if (detail.toolCall !== undefined) return t('已发起工具调用，结果未记录。');
+  return t('没有执行。');
 }
 
 /**

@@ -2,10 +2,8 @@
 export const EN_FILES: Record<string, string> = {
   // FilePicker / FolderPicker 共用
   '（用户目录）': ' (home directory)',
-  '..（上级目录）': '.. (parent directory)',
   '（空目录）': '(empty directory)',
   '关闭 (Esc)': 'Close (Esc)',
-  '此电脑（选择盘符）': 'This PC (select a drive)',
   '读取中…': 'Loading…',
   '取消': 'Cancel',
   // FilePicker
@@ -38,14 +36,12 @@ export const EN_FILES: Record<string, string> = {
   '新建文件夹': 'New folder',
   '选择此文件夹': 'Select this folder',
   // CodeSurface（FileModal 组件已于 2026-10-18 删除）
-  '关闭文件预览': 'Close file preview',
   '关闭': 'Close',
   '代码内容': 'Code content',
   // SearchResults
   '搜索中…': 'Searching…',
   '无匹配结果': 'No matching results',
   '找到 {count} 条结果': 'Found {count} results',
-  '会话与文件搜索结果': 'Session and file search results',
   // FileController
   '二进制文件': 'Binary file',
   '已截断（>200KB）': 'Truncated (>200KB)',

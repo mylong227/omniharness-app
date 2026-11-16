@@ -9,7 +9,6 @@ export const EN_TABS_C: Record<string, string> = {
   '先选择一个会话，再打开编队。': 'Select a session first to open the fleet.',
   '编队状态不可读：{msg}': 'Fleet status unreadable: {msg}',
   '重试': 'Retry',
-  '正在读取编队…': 'Reading fleet…',
   '还没有子代理。当主代理在任务中派生子代理时，它们会出现在这里。':
     'No subagents yet. When the main agent spawns subagents in a task, they appear here.',
   '委派任务需在会话输入区发起（控制室 v1 只观察）。':
@@ -72,7 +71,6 @@ export const EN_TABS_C: Record<string, string> = {
   '查看补丁': 'View patch',
   '补丁预览': 'Patch preview',
   '关闭预览': 'Close preview',
-  '正在读取补丁…': 'Reading patch…',
   '补丁不可读：{msg}': 'Patch unreadable: {msg}',
   '{bytes} 字节': '{bytes} bytes',
   '已截断（仅前 512 KB）': 'truncated (first 512 KB only)',
@@ -88,7 +86,6 @@ export const EN_TABS_C: Record<string, string> = {
   ' 步': ' steps',
   // 上下文模式
   '先选择一个会话，再查看上下文。': 'Select a session first to inspect context.',
-  '正在读取上下文…': 'Reading context…',
   '暂无上下文数据。': 'No context data yet.',
   '本轮构成': 'Composition',
   '无数据': 'no data',
@@ -168,7 +165,6 @@ export const EN_TABS_C: Record<string, string> = {
   // 凭证模式
   '先选择一个会话，再生成凭证。': 'Select a session first to build proof.',
   '回合': 'Turns',
-  '正在读取回合…': 'Reading turns…',
   '回合读取失败：{msg}': 'Failed to read turns: {msg}',
   '还没有可复核的回合。回合按用户消息切分，发起新回合后出现在这里。':
     'No verifiable turns yet. Turns are split by user messages; they appear after a new turn.',
@@ -176,9 +172,7 @@ export const EN_TABS_C: Record<string, string> = {
   '系统回合 {n}': 'System turn {n}',
   '第 {n} 轮': 'Turn {n}',
   '条事件': 'events',
-  '正在构造证书…': 'Building certificate…',
   '复核失败：{msg}': 'Verification failed: {msg}',
-  '第 {n} 回合 · {state}': 'Turn {n} · {state}',
   '结构自洽（未签名）': 'structurally consistent (unsigned)',
   '已签名（本机信任根）': 'signed (local trust root)',
   '本机签名 {kid} · {alg}': 'signed by {kid} · {alg}',

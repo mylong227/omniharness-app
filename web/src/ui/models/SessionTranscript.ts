@@ -11,6 +11,7 @@
 
 import type { ThreadEvent } from '../../types/models.ts';
 import { EventFields } from './EventFields.ts';
+import { t } from '../i18n/i18n.ts';
 
 /** 导出选项。 */
 export interface TranscriptOptions {
@@ -31,11 +32,12 @@ export class SessionTranscript {
    * @returns Markdown 文本
    */
   public static markdown(events: readonly ThreadEvent[], options: TranscriptOptions = {}): string {
-    const title = (options.title ?? '').trim() || '会话';
+    // 文案过 t()（2026-11-17 i18n 收口）：导出的 .md 会被归档/外发，en 界面下不该是中文文稿。
+    const title = (options.title ?? '').trim() || t('会话');
     const now = options.now ?? Date.now();
-    const lines: string[] = [`# ${title}`, '', `> 导出时间：${new Date(now).toISOString()}`];
+    const lines: string[] = [`# ${title}`, '', `> ${t('导出时间：')}${new Date(now).toISOString()}`];
     if (options.partial === true) {
-      lines.push('> 说明：更早的历史尚未加载，本稿只包含当前已加载区间。');
+      lines.push(`> ${t('说明：更早的历史尚未加载，本稿只包含当前已加载区间。')}`);
     }
     lines.push('', '---', '');
 
@@ -44,17 +46,17 @@ export class SessionTranscript {
       const atText = at > 0 ? new Date(at).toISOString() : '';
       const suffix = atText === '' ? '' : ` · ${atText}`;
       if (ev.type === 'user') {
-        SessionTranscript.pushSection(lines, `你${suffix}`, EventFields.content(ev));
+        SessionTranscript.pushSection(lines, `${t('你')}${suffix}`, EventFields.content(ev));
       } else if (ev.type === 'assistant') {
         SessionTranscript.pushSection(lines, `OmniHarness${suffix}`, EventFields.content(ev));
       } else if (ev.type === 'system') {
-        SessionTranscript.pushSection(lines, `系统${suffix}`, EventFields.content(ev));
+        SessionTranscript.pushSection(lines, `${t('系统')}${suffix}`, EventFields.content(ev));
       } else if (ev.type === 'tool_call') {
         const name = EventFields.toolName(ev) || 'tool';
-        lines.push(`- 工具调用：\`${name}\``, '');
+        lines.push(`- ${t('工具调用：')}\`${name}\``, '');
       } else if (ev.type === 'tool_result') {
         const ok = ev.payload?.['ok'] === true;
-        lines.push(`- 工具结果：${ok ? '成功' : '失败'}`, '');
+        lines.push(`- ${t('工具结果：')}${ok ? t('成功') : t('失败')}`, '');
       }
     }
 
@@ -75,7 +77,7 @@ export class SessionTranscript {
       .slice(0, 60)
       .trim();
     const day = new Date(now).toISOString().slice(0, 10);
-    return `${safe === '' ? '会话' : safe}-${day}.md`;
+    return `${safe === '' ? t('会话') : safe}-${day}.md`;
   }
 
   /**

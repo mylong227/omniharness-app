@@ -5,17 +5,10 @@ export const EN_SETTINGS: Record<string, string> = {
   深色: 'Dark',
   浅色: 'Light',
   跟随系统: 'Follow system',
-  '界面跟随系统的浅色 / 深色设置，系统切换时自动跟随。当前：':
-    'Follows the system light/dark setting and updates live. Now: ',
   '已锁定为': 'Locked to ',
-  '；选「跟随系统」可重新交给系统决定。':
-    '. Choose “Follow system” to hand the decision back to the system.',
-  '两套主题共用同一组 token（黑/白/灰），只交换明度方向；切换后立即生效并记住选择。':
-    'Both themes share one token set (black/white/gray) with inverted lightness direction; changes apply instantly and are remembered.',
   语言: 'Language',
   中文: '中文',
   English: 'English',
-  '界面文案即时切换并记住选择。': 'UI text switches instantly and your choice is remembered.',
 
   // 顶部与导航
   设置: 'Settings',
@@ -87,17 +80,12 @@ export const EN_SETTINGS: Record<string, string> = {
   需重启: 'Restart required',
   桌面桥: 'Desktop bridge',
   权限: 'Permissions',
-  '审批模式、升级策略与免确认开关': 'Approval mode, escalation policy and confirmation toggle',
   外观: 'Appearance',
-  '主题与界面密度': 'Theme and UI density',
   配置集: 'Profiles',
-  '切换配置集、查看当前生效插件': 'Switch profiles and view active plugins',
 
   // 「模型」栏
   厂商接入: 'Providers',
   '{done}/{total} 已配置 Key': '{done}/{total} keys configured',
-  '保存 Key → 检测（真实请求厂商端点）→ 启用。凭据由服务端打码存储，界面不回显原文。':
-    'Save key → probe (a real request to the provider endpoint) → enable. Credentials are stored masked on the server and never shown in the UI.',
   '读取厂商目录…': 'Loading provider catalog…',
   '读取厂商目录失败：{msg}': 'Failed to load provider catalog: {msg}',
   '厂商目录为空：defaults/providers.json 可能缺失或不可读。':
@@ -135,7 +123,6 @@ export const EN_SETTINGS: Record<string, string> = {
   '模型适配器': 'Model adapter',
   '切换适配器会同时刷新可用模型清单': 'Switching the adapter also refreshes the available model list',
   沙箱: 'Sandbox',
-  '命令执行环境的隔离方式': 'Isolation mode for command execution',
   'policy/restricted 只做进程内策略；windows-native 在 Windows 提供原生写隔离（需 omni-cli）；读/网络真隔离用 wsl-bwrap 或 container（需 Docker/Podman）':
     'policy/restricted are in-process only; windows-native provides native Windows write isolation (requires omni-cli); use wsl-bwrap or container (requires Docker/Podman) for real read/network isolation',
 
@@ -143,8 +130,6 @@ export const EN_SETTINGS: Record<string, string> = {
   '适配器与执行环境': 'Adapter & execution environment',
   工作区: 'Workspace',
   当前工作区: 'Current workspace',
-  '工作区由启动参数或用户级配置决定（`--workspace` / `~/.omniharness/omniharness.json`），界面内不提供切换——改它等于换一整个项目上下文。':
-    'The workspace is set by launch args or user-level config (`--workspace` / `~/.omniharness/omniharness.json`); it cannot be switched here — changing it means a whole new project context.',
 
   // 「权限」栏
   审批: 'Approval',
@@ -156,18 +141,11 @@ export const EN_SETTINGS: Record<string, string> = {
   '开启后不再弹出审批确认；危险操作仍受沙箱与规则约束':
     'No more approval prompts when on; dangerous operations are still constrained by the sandbox and rules',
   '参数级规则': 'Per-command rules',
-  '上面三档是**全局默认**；要按命令/参数逐个放行或拦截（例如只允许 `git status`），在「权限」面板里编辑规则表。':
-    'The three options above are **global defaults**; to allow or block specific commands/args (e.g. only `git status`), edit the rule table in the "Permissions" panel.',
-  '打开权限规则面板': 'Open permission rules panel',
 
   // 「配置集」栏
-  '配置集（Profile）': 'Profiles',
   应用配置集: 'Apply profile',
-  '选择并应用…': 'Select and apply…',
-  '应用后立即生效，当前生效插件见下': 'Takes effect immediately; active plugins shown below',
   当前生效插件: 'Active plugins',
   '（默认）': '(default)',
-  '新建 / 删除 / 打包配置集在「配置集」面板里完成。': 'Create / delete / export profiles in the "Profiles" panel.',
   '打开配置集面板': 'Open profiles panel',
   '已应用配置集': 'Profile applied',
   '应用配置集失败：{msg}': 'Failed to apply profile: {msg}',
@@ -213,8 +191,6 @@ export const EN_SETTINGS: Record<string, string> = {
   '长任务在后台继续运行；托盘菜单可随时恢复窗口。':
     'Long tasks keep running in the background; restore the window from the tray menu at any time.',
   开机启动: 'Launch at login',
-  '登录系统后以托盘方式启动（Windows/macOS）。':
-    'Start in the tray after signing in (Windows/macOS).',
   更新: 'Updates',
   '读取中…': 'Loading…',
   当前已是最新版本: 'You are up to date',

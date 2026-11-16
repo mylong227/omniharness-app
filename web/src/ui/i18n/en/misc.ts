@@ -24,16 +24,12 @@ export const EN_MISC: Record<string, string> = {
   '例如：把召回率提到 60%': 'e.g. Raise recall to 60%',
   '已选择智能体：{name}（载入会话后生效）': 'Agent selected: {name} (takes effect after the session loads)',
   // WorkIndicator.tsx
-  '正在调用 {tool}': 'Calling {tool}',
   '思考中': 'Thinking',
   '刚刚': 'Just now',
   // Resizer.tsx
   '拖拽调整宽度': 'Drag to resize',
   // RightPanel.tsx（面板标签同 PanelRegistry）
-  '（点 × 回到文件）': ' (click × to return to files)',
-  '关闭 {name}': 'Close {name}',
   ' 面板': ' panel',
-  '文件与面板': 'Files & panels',
   '收起功能面板（Ctrl/Cmd+Shift+E）': 'Collapse panel (Ctrl/Cmd+Shift+E)',
   '收起功能面板': 'Collapse panel',
   // GraphResumeChip.tsx
@@ -47,7 +43,6 @@ export const EN_MISC: Record<string, string> = {
   '模型': 'Model',
   '模型与推理强度': 'Model & reasoning effort',
   '模型与推理强度 · {name}': 'Model & reasoning effort · {name}',
-  '选择模型与推理强度': 'Select model and reasoning effort',
   '可用模型': 'Available models',
   选择模型: 'Select a model',
   '当前': 'Current',
@@ -61,8 +56,6 @@ export const EN_MISC: Record<string, string> = {
   'AI 权限等级': 'AI permission level',
   '{title}｜{label}：{desc}': '{title} | {label}: {desc}',
   '完全访问': 'Full access',
-  '完全访问：AI 可不受限制地访问你的文件和互联网':
-    'Full access: AI can access your files and the internet without restriction',
   '默认': 'Default',
   '请求批准': 'Ask for approval',
   '计划模式': 'Plan mode',
@@ -97,27 +90,18 @@ export const EN_MISC: Record<string, string> = {
   '上下文容量': 'Context usage',
   '上下文 {pct}，点击查看详情': 'Context {pct}; click for details',
   '上下文，点击查看详情': 'Context; click for details',
-  '上下文容量与今日余额': "Context usage & today's balance",
   '加载中…': 'Loading…',
   '缓存命中 {text}': 'Cache hit {text}',
   '今日余额': "Today's balance",
-  '剩余 {text}': '{text} left',
   '重置': 'reset',
   '免费': 'Free',
   '档位 {name}': 'Plan {name}',
   '按模型 {model} 自动识别': 'Auto-detected from model {model}',
   '未识别到模型，按缺省档': 'No model detected; using the default plan',
   '（{reason}）': ' ({reason})',
-  '容量数据加载失败：{msg}': 'Failed to load context usage: {msg}',
   '上下文构成': 'Context composition',
-  '顶部大条是「已用 / 窗口」；下面每行的百分比分母是「已用上下文」。':
-    'The big bar is used / window; each row percentage is of the used context.',
-  '上下文已用 {pct}': 'Context used {pct}',
   '本会话还没有上下文消耗': 'No context consumed in this session yet',
-  '按本地日内 token 预算估算（非厂商账户余额）；档位自动识别，不需要手动切换。':
-    'Estimated from the local daily token budget (not your provider balance); the plan is auto-detected, no manual switching.',
   '刷新失败：{msg}': 'Refresh failed: {msg}',
-  '配额数据暂不可用': 'Quota data is not available yet',
   '容量数据暂不可用': 'Context usage is not available yet',
   // TraceView.tsx
   '工具调用轨迹': 'Tool call trace',
@@ -166,8 +150,6 @@ export const EN_MISC: Record<string, string> = {
   // SkillsTab / AutomationsTab
   '读取技能失败：{msg}': 'Failed to read skills: {msg}',
   技能: 'Skills',
-  '在输入框输入 / 可快速选择技能；下面可浏览全部技能。':
-    'Type / in the composer to pick a skill; browse the full catalog below.',
   搜索技能: 'Search skills',
   没有匹配的技能: 'No matching skills',
   新建自动化: 'New automation',
@@ -203,6 +185,28 @@ export const EN_MISC: Record<string, string> = {
     'A question is already waiting: the new one is queued and will appear after the current one is answered.',
   '挂起审批恢复失败，可刷新页面重试': 'Failed to restore pending approvals; refresh the page to retry.',
   '挂起提问恢复失败，可刷新页面重试': 'Failed to restore pending questions; refresh the page to retry.',
+  // —— 2026-11-17 全面 review 新增（模型清单 / 全局兜底 / 容量预警 / 掉线横幅 / 导出文稿）——
+  '模型清单读取失败：{msg}': 'Failed to load the model catalog: {msg}',
+  '内部错误：{msg}': 'Internal error: {msg}',
+  '上下文 {pct}，接近上限——点击查看构成并压缩':
+    'Context {pct}, near the limit — review composition and compact',
+  '上下文接近上限：建议压缩历史': 'Context near its limit; consider compacting history',
+  '上下文已近上限：任务变长会先撞预算，建议压缩历史。':
+    'Context is near its limit: longer tasks hit the budget first — consider compacting.',
+  '去压缩': 'Compact now',
+  '键盘快捷键速查': 'Keyboard shortcuts',
+  '关闭速查': 'Close cheat sheet',
+  '需要授权：访问令牌缺失或已失效（服务端可能已重启）。':
+    'Authorization required: the access token is missing or invalid (the server may have restarted).',
+  '粘贴新令牌就地重连': 'Paste a new token to reconnect in place',
+  '新的访问令牌': 'New access token',
+  '连接': 'Connect',
+  '（或用带 token 的地址重新打开本页）': '(or reopen this page with the tokened URL)',
+  '导出时间：': 'Exported at: ',
+  '说明：更早的历史尚未加载，本稿只包含当前已加载区间。':
+    'Note: earlier history is not loaded yet; this transcript covers the loaded range only.',
+  '工具调用：': 'Tool call: ',
+  '工具结果：': 'Tool result: ',
   回合完成: 'Turn complete',
   'Agent 已完成本轮任务。': 'The agent has finished this turn.',
   外部链接: 'External links',

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useApp } from '../../../context.ts';
+import { t } from '../../../i18n/i18n.ts';
 import type {
   DecisionDetailViewLike,
   DecisionExportResultLike,
@@ -155,7 +156,7 @@ export function useDecisionLedger(threadId: string | null): UseDecisionLedgerRes
   );
 
   const exportEvidence = React.useCallback(async (): Promise<DecisionExportResultLike | string> => {
-    if (threadId === null || threadId === '') return '先选择一个会话，再导出 AAT。';
+    if (threadId === null || threadId === '') return t('先选择一个会话，再导出 AAT。');
     try {
       const result = await api.decisionExport(threadId);
       return isFailure(result) ? result.message : result;
@@ -169,7 +170,7 @@ export function useDecisionLedger(threadId: string | null): UseDecisionLedgerRes
       try {
         const result = await api.decisionConfigure(enabled, principal);
         if ('ok' in result && result.ok === false) return result.message;
-        if (!('settings' in result)) return '保存失败：服务端未返回设置。';
+        if (!('settings' in result)) return t('保存失败：服务端未返回设置。');
         load(true);
         return result.settings;
       } catch (e) {

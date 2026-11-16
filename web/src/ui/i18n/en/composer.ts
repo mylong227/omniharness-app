@@ -12,10 +12,6 @@ export const EN_COMPOSER: Record<string, string> = {
     'Task input: type a task, Enter to send, Shift+Enter for a new line, @ to reference files, / to pick a skill',
   '发消息或创建任务，/ 调用技能，@ 文件或对话':
     'Send a message or create a task, / for skills, @ for files or threads',
-  '继续输入以排队后续修改': 'Keep typing to queue follow-up changes',
-  '粘贴 / 拖拽 / 选择文件（项目内文件夹选择器风格）':
-    'Paste / drag / pick files (project folder picker style)',
-  '附加图片、视频或文件': 'Attach images, videos, or files',
   '停止语音输入': 'Stop voice input',
   '语音输入（中文）': 'Voice input (Chinese)',
   '开始语音输入': 'Start voice input',
@@ -124,7 +120,6 @@ export const EN_COMPOSER: Record<string, string> = {
   '已中止（用户中断）。': 'Aborted (interrupted by user).',
   '正在生成，请先停止后再重生成': 'Still generating; stop the current turn before regenerating',
   '正在生成，请先停止': 'Still generating; stop the current turn first',
-  '正在收尾上一回合，请稍候': 'The previous turn is still winding down; please wait',
   '没有可重生成的用户消息': 'No user message to regenerate',
   '重生成失败（服务端未回退）：{reason}': 'Regeneration failed (server did not rewind): {reason}',
   '未知原因': 'unknown reason',

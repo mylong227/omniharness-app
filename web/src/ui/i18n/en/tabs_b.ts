@@ -51,7 +51,6 @@ export const EN_TABS_B: Record<string, string> = {
   '编辑 / 运行': 'Edit / Run',
   '图名': 'Graph name',
   '依赖(逗号分隔)': 'Dependencies (comma-separated)',
-  '+ 添加步骤': '+ Add step',
   '添加步骤': 'Add step',
   '删除这一步骤': 'Remove this step',
   '保存': 'Save',
@@ -110,23 +109,13 @@ export const EN_TABS_B: Record<string, string> = {
   '保存 Key': 'Save key',
   '检测': 'Test',
   '启用此厂商': 'Enable this provider',
-  '检测未通过：{reason}（保存有效 Key 后重试）': 'Test failed: {reason} (save a valid key and retry)',
   '未知原因': 'unknown reason',
   '已保存 Key，点「检测」拉取真实可用模型清单': 'Key saved — click "Probe" to fetch the real available model list',
-  '未配置 Key：保存 Key → 检测 → 启用后才会显示可用模型':
-    'No key configured: save key → test → enable to see available models',
   '请输入 API Key': 'Please enter an API key',
-  '{label} Key 未修改（输入新值才会覆盖）': '{label} key unchanged (enter a new value to overwrite)',
-  '{label} Key 已保存（服务端打码存储）': '{label} key saved (stored masked on the server)',
-  '{label} 连通（{count} 个模型，来源 {source}）': '{label} connected ({count} models, source {source})',
-  '{label} 不可用：{reason}': '{label} unavailable: {reason}',
   '检测失败：{msg}': 'Probe failed: {msg}',
   '没有可用模型，请先检测': 'No available models — run a probe first',
-  '{label} 已启用（模型 {model}），下一条消息即生效': '{label} enabled (model {model}); takes effect on the next message',
   '启用失败：{msg}': 'Enable failed: {msg}',
   '模型接入': 'Model providers',
-  '填 Key → 保存 → 检测（真实请求厂商端点）→ 启用。有 Key 支持接多少显示多少；凭据服务端打码存储，UI 不回显原文。':
-    'Enter key → save → test (a real request to the provider endpoint) → enable. Shows as many providers as have keys; credentials are stored masked on the server and never echoed to the UI.',
 
   // PermissionTab
   '已保存（服务端已校验并落盘）': 'Saved (validated and persisted by the server)',
@@ -243,13 +232,8 @@ export const EN_TABS_B: Record<string, string> = {
   '模型名': 'Model name',
   '如 gpt-4o / deepseek-v4-flash': 'e.g. gpt-4o / deepseek-v4-flash',
   '自定义 Base URL': 'Custom base URL',
-  'OpenAI 兼容端点（留空＝清除覆盖，回落厂商默认）':
-    'OpenAI-compatible endpoint (empty = clear override, fall back to provider default)',
   '自动审批（免人工确认）': 'Auto-approve (no manual confirmation)',
   '浅色主题': 'Light theme',
-  '配置集（Profile）': 'Profiles',
-  '切换配置集': 'Switch profile',
-  '选择并应用…': 'Select and apply…',
   '当前生效插件': 'Active plugins',
   '（默认）': '(default)',
 

@@ -167,5 +167,28 @@ export const EN_DECISION: Record<string, string> = {
   '{n} 条规则 · {hash}': '{n} rules · {hash}',
   '{n} 个': '{n}',
   'argKeys {n} · {kind}/{risk}{mutating}': 'argKeys {n} · {kind}/{risk}{mutating}',
-  '{tool}，{result}，{time}，{basis}': '{tool}, {result}, {time}, {basis}',
+  // DecisionDetailPanel whyText/executionTail（2026-11-17 i18n 收口：解释段此前整段裸中文）
+  '风险分 {score} < 阈值 {threshold}（{effect}，n={n}）':
+    'risk {score} < threshold {threshold} ({effect}, n={n})',
+  '审批层由共形层放行：{scope}；随后沙箱/计划/污点层拒绝，最终未执行。共形块只描述审批层，不代表最终放行。':
+    'The approval layer was waived by the conformal layer: {scope}; a later sandbox/plan/taint layer denied it, so nothing ran. The conformal block only describes the approval layer and does not mean final approval.',
+  '审批层要求升级；共形层以 {scope} 直接放行。执行前签发单次授权；{tail}':
+    'The approval layer required escalation; the conformal layer waived it with {scope}. A one-time authorization was issued before execution; {tail}',
+  '审批层要求升级；{approver} 批准。执行前签发单次授权；{tail}':
+    'The approval layer required escalation; {approver} approved it. A one-time authorization was issued before execution; {tail}',
+  '裁决器不可用；fail-closed={flag}；{tail}': 'Arbiter unavailable; fail-closed={flag}; {tail}',
+  '审批层要求升级；还没有最终回答，因此没有执行。':
+    'The approval layer required escalation; no final answer yet, so nothing was executed.',
+  '审批已批准；但没有发起工具调用，最终未执行。':
+    'Approved by the approval layer, but no tool call was issued and nothing ran.',
+  '裁决器 {evaluator} 拒绝；未签发授权，未执行。':
+    'Arbiter {evaluator} denied it; no authorization was issued and nothing ran.',
+  '没有规则命中，按默认 {fallback} 处理；{tail}':
+    'No rule matched; fell back to the default ({fallback}); {tail}',
+  '工具返回成功。': 'The tool returned success.',
+  '工具返回失败。': 'The tool returned failure.',
+  '已发起工具调用，结果未记录。': 'A tool call was issued but its result was not recorded.',
+  '没有执行。': 'Nothing was executed.',
+  '先选择一个会话，再导出 AAT。': 'Select a session before exporting the AAT.',
+  '保存失败：服务端未返回设置。': 'Save failed: the server returned no settings.',
 };

@@ -103,6 +103,12 @@ export interface SettingsField {
   /** 一行说明。 */
   hint?: string;
   /**
+   * 改动需重启才生效（2026-11-17 i18n 修复）：行尾常驻「需重启」标记的**结构化真源**。
+   * 此前 ConsoleUI 用 `hint.includes('重启')` 在 t() 翻译**后**的文案上做中文子串判断——
+   * en 词条不含「重启」二字，标记静默失效。声明在字段上，渲染层不再猜文案。
+   */
+  needRestart?: boolean;
+  /**
    * 同栏内的卡片分组（`fieldsOfGroup(tab, group)` 过滤；缺省进该栏的默认卡）。
    * 2026-11-14 设置页补全后运行时栏一张卡装不下（存储/成本熔断/长期记忆各自成卡）。
    */
@@ -237,6 +243,7 @@ export const SETTINGS_FIELDS: readonly SettingsField[] = [
     kind: 'select',
     options: ['memory', 'jsonl', 'sqlite'],
     hint: '会话与事件的落盘方式；切换在重启后生效',
+    needRestart: true,
     group: 'storage',
   },
   {
@@ -246,6 +253,7 @@ export const SETTINGS_FIELDS: readonly SettingsField[] = [
     kind: 'text',
     placeholder: '留空 = 内核默认目录',
     hint: '会话存档根目录；切换在重启后生效',
+    needRestart: true,
     browse: 'dir',
     // 留空必须发 null（显式删除键）而不是空串：内核消费侧 `??` 不回落空串，
     // storageDir:'' 会让 jsonl 存储往 `mkdir('')` 里撞（review P1-1，与 baseUrl 同机制）。
@@ -441,6 +449,7 @@ export const SETTINGS_FIELDS: readonly SettingsField[] = [
     label: '读缓存',
     kind: 'switch',
     hint: '白名单纯读工具按（工具 + 入参 + 工作区写代次）记忆命中；任何写提交全量失效；缺省关，切换在重启后生效',
+    needRestart: true,
     group: 'guard',
   },
   {

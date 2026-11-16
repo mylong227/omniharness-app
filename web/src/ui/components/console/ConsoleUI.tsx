@@ -401,7 +401,7 @@ export function ConsoleSettingRow(props: {
 
   if (field.kind === 'switch') {
     return (
-      <ConsoleRow label={label} hint={hint} saved={saved} restart={hint?.includes('重启') === true} dataFieldId={id}>
+      <ConsoleRow label={label} hint={hint} saved={saved} restart={field.needRestart === true} dataFieldId={id}>
         <ConsoleSwitch
           checked={model.boolOf(field)}
           label={label}
@@ -413,7 +413,7 @@ export function ConsoleSettingRow(props: {
   if (field.kind === 'select') {
     const fallback = defaultLabelOf(field);
     return (
-      <ConsoleRow label={label} hint={hint} saved={saved} restart={hint?.includes('重启') === true} dataFieldId={id}>
+      <ConsoleRow label={label} hint={hint} saved={saved} restart={field.needRestart === true} dataFieldId={id}>
         <ConsoleSelect
           ariaLabel={label}
           value={committed}
@@ -430,7 +430,7 @@ export function ConsoleSettingRow(props: {
     );
   }
   return (
-    <ConsoleRow label={label} hint={hint} saved={saved} restart={hint?.includes('重启') === true} dataFieldId={id}>
+    <ConsoleRow label={label} hint={hint} saved={saved} restart={field.needRestart === true} dataFieldId={id}>
       {field.browse !== undefined ? (
         <PathBrowseControl
           browse={field.browse}

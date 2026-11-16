@@ -16,6 +16,7 @@
  */
 
 import { authToken } from '../core/authToken.ts';
+import { t } from './i18n/i18n.ts';
 
 /** 横幅是否已装监听（幂等锚点）。 */
 let installed = false;
@@ -54,19 +55,22 @@ export function installAuthRequiredBanner(): void {
     ].join(';');
 
     const text = document.createElement('span');
-    text.textContent = '需要授权：访问令牌缺失或已失效（服务端可能已重启）。';
+    // 文案过 t()（2026-11-17 i18n 收口）：这是掉线即见的全局横幅，en 界面下不该冒出中文。
+    // t() 读取当前语言并随 omni:locale-changed 动态切换——横幅是重建型 DOM（每次 401 重建），
+    // 切语言后下一次 401 自然落新语言，无需额外订阅。
+    text.textContent = t('需要授权：访问令牌缺失或已失效（服务端可能已重启）。');
 
     tokenInput = document.createElement('input');
     tokenInput.type = 'password';
-    tokenInput.placeholder = '粘贴新令牌就地重连';
-    tokenInput.setAttribute('aria-label', '新的访问令牌');
+    tokenInput.placeholder = t('粘贴新令牌就地重连');
+    tokenInput.setAttribute('aria-label', t('新的访问令牌'));
     tokenInput.style.cssText =
       'font:inherit;color:inherit;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.45);' +
       'border-radius:4px;padding:2px 8px;min-width:220px';
 
     const submit = document.createElement('button');
     submit.type = 'button';
-    submit.textContent = '连接';
+    submit.textContent = t('连接');
     submit.style.cssText =
       'font:inherit;color:#8a3a12;background:#fff;border:none;border-radius:4px;padding:2px 12px;cursor:pointer';
 
@@ -86,7 +90,7 @@ export function installAuthRequiredBanner(): void {
 
     const hint = document.createElement('span');
     hint.style.cssText = 'opacity:.72';
-    hint.textContent = '（或用带 token 的地址重新打开本页）';
+    hint.textContent = t('（或用带 token 的地址重新打开本页）');
 
     banner.append(text, tokenInput, submit, hint);
     document.body.appendChild(banner);

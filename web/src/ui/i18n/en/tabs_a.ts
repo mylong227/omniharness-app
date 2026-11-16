@@ -68,7 +68,6 @@ export const EN_TABS_A: Record<string, string> = {
   '键盘评审快捷键（输入框内不生效）': 'Review keyboard shortcuts (inactive while typing in inputs)',
   '关闭（Esc）': 'Close (Esc)',
   '没有变更——工作区很干净。改点东西再来看。': 'No changes — the worktree is clean. Make some changes and come back.',
-  '点击查看变更内容': 'Click to view changes',
   // KEY_HELP 描述（渲染处经 t(k.desc) 查表）
   '选中下一个改动块': 'Select next hunk',
   '选中上一个改动块': 'Select previous hunk',

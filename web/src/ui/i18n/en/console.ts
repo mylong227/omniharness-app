@@ -33,9 +33,9 @@ export const EN_CONSOLE: Record<string, string> = {
 
   // —— 设置分栏标题与副标题 ——
   常规: 'General',
-  '界面语言、工作区与会话范围': 'Language, workspace and session scope',
+  '界面语言、聊天模式、主题与两栏宽度、工作区与会话范围':
+    'Language, chat mode, theme and column widths, workspace and session scope',
   外观: 'Appearance',
-  '主题与界面宽度': 'Theme and UI width',
   模型与厂商: 'Model & providers',
   键盘快捷键: 'Keyboard shortcuts',
   '全局快捷键与输入框按键': 'Global shortcuts and composer keys',
@@ -63,8 +63,6 @@ export const EN_CONSOLE: Record<string, string> = {
   凭据: 'Credentials',
   技能: 'Skills',
   '本会话的审批、变更与最近事件汇总': 'Approvals, changes and recent events in this session',
-  '本会话的上下文构成与今日余额':
-    "This session's context composition and today's balance",
   '可复用技能目录，按名称、描述与标签检索':
     'Reusable skills, searchable by name, description and tags',
   定时与事件触发的自动化任务: 'Scheduled and event-triggered automations',
@@ -92,8 +90,6 @@ export const EN_CONSOLE: Record<string, string> = {
     "File changes in the current workspace (non-git workspaces aggregate this session's events).",
   '本会话的 token 消耗 + 进程级指标；随回合实时刷新。':
     "This session's token usage plus process metrics; refreshed live.",
-  '本会话的上下文构成（含今日额度）；模型事件一到就刷新，5s 兜底。':
-    "This session's context composition (including today's quota); refreshed on model events with a 5s fallback.",
   '工作区的编排图与运行态；运行进度实时推送。':
     'Workspace graphs and run state; progress is pushed live.',
   '长期记忆（跨会话共享；变更事件会实时刷新）。':
@@ -122,8 +118,6 @@ export const EN_CONSOLE: Record<string, string> = {
 
   // —— 常规 ——
   界面: 'Interface',
-  '语言切换即时生效，并随用户级配置持久化。':
-    'Language changes apply instantly and persist to user-level config.',
   界面语言: 'Interface language',
   '选择应用 UI 的显示语言。': 'Choose the display language for the app UI.',
   中文: '中文',
@@ -136,8 +130,6 @@ export const EN_CONSOLE: Record<string, string> = {
   当前项目: 'Current project',
   全部项目: 'All projects',
   快捷键: 'Shortcuts',
-  '全局组合键不劫持正文输入：必须同时按下 Ctrl 或 Cmd。':
-    'Global chords never hijack prose input: they require Ctrl or Cmd.',
   全局快捷键: 'Global shortcuts',
   '命令面板、新建会话、左右栏开合、明暗切换。':
     'Command palette, new session, sidebar and right panel toggles, theme switch.',
@@ -152,8 +144,6 @@ export const EN_CONSOLE: Record<string, string> = {
   // —— 外观 ——
   主题: 'Theme',
   主题模式: 'Theme mode',
-  '跟随系统时，系统在日落切暗色，界面自动跟随；显式选择则锁定。':
-    'When following the system, the UI switches to dark at sunset; an explicit choice locks the theme.',
   '当前跟随系统：{theme}': 'Following the system now: {theme}',
   '已锁定为{theme}': 'Locked to {theme}',
   主题色: 'Accent theme',
