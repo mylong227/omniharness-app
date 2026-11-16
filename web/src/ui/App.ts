@@ -29,6 +29,7 @@ import { BrowserPane } from './components/BrowserPane.tsx';
 import { isSettingKey } from './models/ConsoleRegistry.ts';
 import { ApprovalModal } from './components/ApprovalModal.tsx';
 import { CommandPalette } from './components/CommandPalette.tsx';
+import { ShortcutsOverlay } from './components/ShortcutsOverlay.tsx';
 import { Toast } from './components/Toast.tsx';
 import { DialogHost } from './components/DialogHost.tsx';
 import { TooltipLayer } from './components/TooltipLayer.tsx';
@@ -207,6 +208,7 @@ function initialState(): AppState {
     activeTool: null,
     toastState: { seq: 0, message: '', kind: 'info', visible: false },
     paletteOpen: false,
+    shortcutsOpen: false,
     sessionsScopeAll: SessionsScope.read() === 'all',
     dialog: { request: null },
     streamText: '',
@@ -241,6 +243,14 @@ function mergeAppPatch(prev: AppState, action: AppAction): AppState {
  * @returns 右侧面板节点
  */
 function renderPane(ctrl: AppController, s: AppState): ReactElement {
+  // 面板级错误边界（2026-11-17 全面 review）：此前全仓只有根级一处边界，任一右栏面板渲染
+  // 抛错会把**整个工作台**换成 crash 屏（左右栏、输入区全部陪葬）。包在 switch 输出外、
+  // key=activePane：爆炸半径收敛到单面板，切面板即重置边界（上一个面板的错误态不带走）。
+  return React.createElement(RenderErrorBoundary, { key: s.activePane }, paneOf(ctrl, s));
+}
+
+/** 按激活面板选择内容（不含边界）。 */
+function paneOf(ctrl: AppController, s: AppState): ReactElement {
   switch (s.activePane) {
     case 'control':
       // 控制室（2026-11-10）：编队/上下文/凭证三模式 tab；view 从路由读（深链可恢复 tab）。
@@ -524,6 +534,9 @@ function sessionPanelElement(
     onOpenSettings: h.onOpenSettings,
     connected: s.connected,
     streamState: s.streamState,
+    // 多会话并行聚合（2026-11-17 粘性批次）：页脚徽标显示「N 个会话在跑」——
+    // 运行态只在侧栏行内有指示，切走后用户回不到"全局还有几只在跑"的感知。
+    runningCount: s.sessions.reduce((n, x) => (x.running === true ? n + 1 : n), 0),
     open: s.leftOpen,
     style: leftStyle,
   });
@@ -745,6 +758,8 @@ function renderBody(
       commands: s.paletteOpen ? paletteCommandsOf(ctrl) : ctrl.commands,
       onClose: ctrl.closePalette,
     }),
+    // 快捷键速查浮层（2026-11-17 粘性批次）：非输入焦点按「?」呼出。
+    React.createElement(ShortcutsOverlay, { open: s.shortcutsOpen, onClose: ctrl.closeShortcuts }),
     React.createElement(Toast, { toast: s.toastState }),
     React.createElement(DialogHost, { dialog: s.dialog }),
   );

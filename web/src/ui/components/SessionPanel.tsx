@@ -86,6 +86,8 @@ export interface SessionPanelProps {
   connected?: boolean;
   /** SSE 三态（页脚徽标文案 / 配色，见 SidebarFooter）。 */
   streamState?: 'open' | 'connecting' | 'closed';
+  /** 正在运行中的会话总数（页脚聚合徽标；0 时不显示）。 */
+  runningCount?: number;
   open: boolean;
   style?: Record<string, string>;
   /** 远端搜索防抖调度注入点（单测传「立即执行」以获得确定性，缺省走 setTimeout）。 */
@@ -238,7 +240,12 @@ function SessionPanelBody(props: SessionPanelBodyProps): ReactElement {
         onTogglePin={(id) => props.onTogglePin?.(id, !pinnedIds.has(id))}
       />
       {/* 页脚：连接状态 + 主题（原 TopBar 的状态 / 主题职责收编于此；设置走「全部面板」菜单）。 */}
-      <SidebarFooter connected={panel.connected ?? true} streamState={panel.streamState} onOpenSettings={panel.onOpenSettings} />
+      <SidebarFooter
+        connected={panel.connected ?? true}
+        streamState={panel.streamState}
+        runningCount={panel.runningCount}
+        onOpenSettings={panel.onOpenSettings}
+      />
     </div>
   );
 }

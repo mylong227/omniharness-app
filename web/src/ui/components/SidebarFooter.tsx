@@ -20,12 +20,14 @@ export interface SidebarFooterProps {
   connected: boolean;
   /** SSE 三态：`connecting` 显示「重连中」，`closed`（宽限期后）才显示「断开」。 */
   streamState?: 'open' | 'connecting' | 'closed';
+  /** 正在运行中的会话总数（0 / 缺省不显示徽标）。 */
+  runningCount?: number;
   /** 打开工作台控制台（未提供则不渲染设置按钮）。 */
   onOpenSettings?: () => void;
 }
 
 /**
- * 侧栏页脚：连接徽标（role=status）+ 设置 + 主题按钮。
+ * 侧栏页脚：连接徽标（role=status）+ 多会话运行聚合徽标 + 设置 + 主题按钮。
  * @param props 组件入参
  * @returns 页脚节点
  */
@@ -34,6 +36,7 @@ export function SidebarFooter(props: SidebarFooterProps): ReactElement {
   const state = props.streamState ?? (connected ? 'open' : 'closed');
   const label = state === 'open' ? t('已连接') : state === 'connecting' ? t('重连中') : t('断开');
   const pillClass = 'pill' + (state === 'open' ? ' on' : state === 'connecting' ? ' warn' : '');
+  const running = props.runningCount ?? 0;
   return (
     <div className="side-foot-wrap">
       {/* 容量小图表（2026-10-28 用户指定位置）：常驻在页脚正上方，收起态只占一行；
@@ -43,6 +46,14 @@ export function SidebarFooter(props: SidebarFooterProps): ReactElement {
         <span className={pillClass} role="status" aria-live="polite">
           <span className="dot" aria-hidden="true"></span> {label}
         </span>
+        {/* 多会话并行聚合（2026-11-17 粘性批次）：运行态此前只在侧栏行内一颗圆点，
+            切走后「全局还有几只在跑」就没了。页脚一行小徽标补回这个感知。 */}
+        {running > 0 ? (
+          <span className="run-badge" title={t('{n} 个会话正在运行', { n: running })}>
+            <span className="run-badge-dot" aria-hidden="true"></span>
+            {t('{n} 在跑', { n: running })}
+          </span>
+        ) : null}
         <span className="flex-spacer" aria-hidden="true"></span>
         {onOpenSettings === undefined ? null : (
           <button

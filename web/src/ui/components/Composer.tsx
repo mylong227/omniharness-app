@@ -32,6 +32,8 @@ import type { FileAttachment } from '../../types/models.ts';
 import type { ComposerSeed } from '../shared.ts';
 import type { ApiClient } from '../../core/ApiClient.ts';
 import { t } from '../i18n/i18n.ts';
+import { ComposerDraftStore } from '../models/ComposerDraftStore.ts';
+import { composerHistory } from '../models/ComposerHistory.ts';
 import { PICKER_ERR_BOX, placeholderOf } from './composer/composerLabels.ts';
 import { ComposerAttachments } from './composer/ComposerAttachments.tsx';
 import { ComposerInput } from './composer/ComposerInput.tsx';
@@ -179,11 +181,48 @@ function ComposerToolbar(p: ComposerToolbarProps): ReactElement {
 export function Composer(props: ComposerProps): ReactElement {
   const taRef = React.useRef<HTMLTextAreaElement | null>(null);
   const completions = useComposerCompletions({ api: props.api, taRef });
+  // 会话草稿（2026-11-17 粘性批次）：换会话时旧稿落盘、新稿回填；输入防抖落盘；发送清场。
+  const threadKeyRef = React.useRef<string | null>(props.threadId ?? null);
+  const draftTimerRef = React.useRef(0);
+  React.useEffect(() => {
+    const key = props.threadId ?? null;
+    if (threadKeyRef.current === key) return;
+    window.clearTimeout(draftTimerRef.current);
+    const prev = threadKeyRef.current;
+    threadKeyRef.current = key;
+    const ta = taRef.current;
+    if (ta === null) return;
+    ComposerDraftStore.write(prev, ta.value);
+    const draft = ComposerDraftStore.read(key);
+    ta.value = draft;
+    // 回填不抢焦点：用户刚点的是侧栏会话，焦点留在原地（键盘导航不被打断）。
+    if (typeof ta.setSelectionRange === 'function') ta.setSelectionRange(draft.length, draft.length);
+  }, [props.threadId]);
+  // 卸载兜底：组件万一带稿卸载（布局重构 / 面板切换），草稿不丢。
+  React.useEffect(
+    () => () => {
+      window.clearTimeout(draftTimerRef.current);
+      const ta = taRef.current;
+      if (ta !== null) ComposerDraftStore.write(threadKeyRef.current, ta.value);
+    },
+    [],
+  );
+  const onTextInput = React.useCallback((value: string): void => {
+    composerHistory.break();
+    window.clearTimeout(draftTimerRef.current);
+    const key = threadKeyRef.current;
+    draftTimerRef.current = window.setTimeout(() => ComposerDraftStore.write(key, value), 300);
+  }, []);
+  const onSent = React.useCallback((prompt: string): void => {
+    composerHistory.push(prompt);
+    ComposerDraftStore.clear(threadKeyRef.current);
+  }, []);
   const attachments = useComposerAttachments({
     api: props.api,
     taRef,
     onSend: props.onSend,
     clearSuggest: completions.clearSuggest,
+    onSent,
   });
   const voice = useComposerVoice(taRef);
   useComposerSeed(props.seed, taRef, completions.clearSuggest);
@@ -205,6 +244,8 @@ export function Composer(props: ComposerProps): ReactElement {
           completions={completions}
           onPaste={attachments.onPaste}
           onSubmit={attachments.send}
+          history={composerHistory}
+          onTextInput={onTextInput}
         />
         <ComposerAttachments
           attachments={attachments.attachments}

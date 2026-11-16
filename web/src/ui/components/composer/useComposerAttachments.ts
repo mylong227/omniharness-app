@@ -30,6 +30,8 @@ export interface ComposerAttachmentsOptions {
   ) => void;
   /** 收起补全（发送后清场）。 */
   readonly clearSuggest: () => void;
+  /** 已发送（输入历史入栈 / 会话草稿清场用；prompt 为发送文本）。 */
+  readonly onSent?: (prompt: string) => void;
 }
 
 /** 附件接口（组件层只接这一个对象）。 */
@@ -184,6 +186,7 @@ export function useComposerAttachments(o: ComposerAttachmentsOptions): ComposerA
     growComposerTextarea(o.taRef.current);
     setAttachments([]);
     o.clearSuggest();
+    o.onSent?.(prompt);
     o.onSend(prompt, images, files);
   };
 

@@ -159,6 +159,33 @@
 }
 .side-foot .pill { font-size: 11.5px; }
 
+/* 多会话运行聚合徽标（2026-11-17 粘性批次）：一行小字 + 呼吸圆点，与 pill 同族但不抢眼。 */
+.run-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.run-badge-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ok);
+  animation: run-badge-breathe 2.2s ease-in-out infinite;
+}
+@keyframes run-badge-breathe {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .run-badge-dot { animation: none; }
+}
+/* 窄侧栏（图标条）放不下文字徽标：隐藏文字保圆点也容易误解，整个隐藏最干净。 */
+.side.rail .run-badge { display: none; }
+
 /* ---------- 面板划分（用户实测"面板要能进行划分"）：三栏各用一层底色 + 发丝线分隔 ---------- */
 
 /* 桌面端收起右栏（面板菜单旁的「»」或中栏头的面板按钮 / Ctrl+Cmd+Shift+E）；窄屏抽屉不受影响。 */
