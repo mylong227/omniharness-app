@@ -290,6 +290,10 @@ const HTML_CACHE_MAX_TEXT = 64 * 1024;
 const htmlCache = new Map<string, string>();
 let htmlCacheChars = 0;
 
+/** hljs 高亮结果缓存：键 = lang + '\u0000' + 代码原文（流式期闭合围栏内容不可变，见 highlight 实现）。 */
+const HIGHLIGHT_CACHE_MAX = 48;
+const highlightCache = new Map<string, string>();
+
 /**
  * 读缓存（命中刷新 LRU 顺序）。
  * @param key Markdown 源码。
@@ -339,17 +343,26 @@ function getMd(): MarkdownItInstance {
   // 代码高亮：优先按语言高亮，未知语言走自动识别。输出受信任（hljs 先转义后加色）。
   md.set({
     highlight: (str: string, lang: string): string => {
+      // 高亮结果缓存（2026-11-17 性能批次）：流式会话的 markdown 渲染以 ~80ms 节流频率重跑整段
+      // 已闭合前缀，而**已闭合围栏的代码内容不可变**——hljs 高亮是管线里最贵的一步，按
+      // (lang, code) 内容缓存后重复渲染直接命中，结构解析照旧（零正确性风险）。
+      const cacheKey = lang + '\u0000' + str;
+      const hit = highlightCache.get(cacheKey);
+      if (hit !== undefined) return hit;
       const esc = (s: string): string => md.utils.escapeHtml(s);
+      let out: string;
       try {
         if (lang && hljs.getLanguage(lang)) {
-          const out = hljs.highlight(str, { language: lang, ignoreIllegals: true }).value;
-          return '<pre class="hljs"><code>' + out + '</code></pre>';
+          out = '<pre class="hljs"><code>' + hljs.highlight(str, { language: lang, ignoreIllegals: true }).value + '</code></pre>';
+        } else {
+          out = '<pre class="hljs"><code>' + hljs.highlightAuto(str).value + '</code></pre>';
         }
-        const auto = hljs.highlightAuto(str).value;
-        return '<pre class="hljs"><code>' + auto + '</code></pre>';
       } catch {
-        return '<pre class="hljs"><code>' + esc(str) + '</code></pre>';
+        out = '<pre class="hljs"><code>' + esc(str) + '</code></pre>';
       }
+      if (highlightCache.size >= HIGHLIGHT_CACHE_MAX) highlightCache.clear();
+      highlightCache.set(cacheKey, out);
+      return out;
     },
   });
 

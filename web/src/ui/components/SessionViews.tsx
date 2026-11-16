@@ -319,19 +319,23 @@ export function renderSessionTime(s: SessionEntry, now: number): ReactElement | 
  */
 export function renderCardsView(ctx: ListCtx, now: number = Date.now()): ReactElement {
   const pinned = ctx.pinnedIds;
+  // filterSessions 只算一次（2026-11-17 性能批次）：此前置顶排序路径连调三遍 O(sessions×query)。
+  const filtered = filterSessions(ctx.sessions, ctx.query);
   // 卡片视图同样让置顶排最前（稳定排序：置顶集合内保持原顺序，其余不变）。
   const all = pinned === undefined
-    ? filterSessions(ctx.sessions, ctx.query)
-    : [
-        ...filterSessions(ctx.sessions, ctx.query).filter((x) => pinned.has(x.id)),
-        ...filterSessions(ctx.sessions, ctx.query).filter((x) => !pinned.has(x.id)),
-      ];
+    ? filtered
+    : [...filtered.filter((x) => pinned.has(x.id)), ...filtered.filter((x) => !pinned.has(x.id))];
   if (all.length === 0) {
     return emptyState(icon('inbox', { size: 20 }), t('暂无会话'), t('新建会话后，任务卡会显示在这里。'));
   }
+  // 与分组视图同一分页口径：先渲染 PAGE 张，其余「显示全部」（limits 单源，见 ListCtx）。
+  const limitKey = 'cards';
+  const limit = ctx.limits[limitKey] ?? PAGE;
+  const shown = all.slice(0, limit);
+  const rest = all.length - shown.length;
   return (
     <div className="session-cards">
-      {all.map((s) => (
+      {shown.map((s) => (
         <div
           key={s.id}
           className={
@@ -391,6 +395,11 @@ export function renderCardsView(ctx: ListCtx, now: number = Date.now()): ReactEl
           </div>
         </div>
       ))}
+      {rest > 0 ? (
+        <button className="ws-more" onClick={() => ctx.onShowAll(limitKey, all.length)}>
+          {t('显示全部 {n} 条', { n: all.length })}
+        </button>
+      ) : null}
     </div>
   );
 }

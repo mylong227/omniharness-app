@@ -534,12 +534,14 @@ function computeStreamWindow(
   if (holeBoost <= 0) return base;
   const start = Math.max(0, base.start - holeBoost);
   const end = Math.min(keys.length, base.end + holeBoost);
+  // 一次扫描取三段高度（2026-11-17 性能批次）：此前 3 次 prefix = 每帧 3×O(blocks) 全扫。
+  const spans = index.windowSpans(keys, start, end);
   return {
     start,
     end,
     rendered: end - start,
-    padTop: index.prefix(keys, start),
-    padBottom: index.prefix(keys, keys.length) - index.prefix(keys, end),
+    padTop: spans.beforeStart,
+    padBottom: spans.total - spans.beforeEnd,
     total: base.total,
   };
 }

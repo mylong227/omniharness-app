@@ -166,3 +166,22 @@ test('StreamWindow.compute 统一估算路径不被破坏（既有行为复跑�
     '首屏渲染块数 = ceil(视口/块高)+1 可视块 + 8 overscan',
   );
 });
+
+test('windowSpans：单次扫描给出三段高度（与三次 prefix 等价）', () => {
+  const index = new BlockHeightIndex();
+  const keys = Array.from({ length: 10 }, (_, i) => 'k' + String(i));
+  keys.forEach((k, i) => index.set(k, (i + 1) * 10)); // 10,20,…,100 → 总高 550
+  const spans = index.windowSpans(keys, 3, 6);
+  assert.strictEqual(spans.beforeStart, 10 + 20 + 30, 'start 前累计 = padTop');
+  assert.strictEqual(spans.beforeEnd, 10 + 20 + 30 + 40 + 50 + 60, 'end 前累计');
+  assert.strictEqual(spans.total, 550, '全量总高');
+  assert.strictEqual(
+    spans.total - spans.beforeEnd,
+    70 + 80 + 90 + 100,
+    'padBottom = total - beforeEnd（与既有组合等价）',
+  );
+  // 边界：越界按数组长度收窄（与 prefix 同语义）。
+  const clipped = index.windowSpans(keys, -5, 99);
+  assert.strictEqual(clipped.beforeStart, 0);
+  assert.strictEqual(clipped.beforeEnd, 550);
+});

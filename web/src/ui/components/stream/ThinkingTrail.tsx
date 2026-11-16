@@ -19,6 +19,7 @@ import { icon } from '../../models/Icon.ts';
 import { formatDuration } from '../../models/DurationFormat.ts';
 import { describeToolCall, processSummary } from '../../textUtils.ts';
 import { t } from '../../i18n/i18n.ts';
+import { useNow } from '../../hooks/useNow.ts';
 import { EventFields } from '../../models/EventFields.ts';
 import { TrailFilter } from '../../models/TrailFilter.ts';
 import type { TrailCounts, TrailFilterMode, TrailRow } from '../../models/TrailFilter.ts';
@@ -138,21 +139,7 @@ function latestAction(events: readonly ThreadEvent[]): string {
   return describeToolCall(name, last.payload?.args);
 }
 
-/**
- * 每秒时钟（只在运行中跳动；收尾即停，避免历史回放空转）。
- * @param running 是否运行中
- * @returns 当前时刻（ms）
- */
-function useClock(running: boolean): number {
-  const [now, setNow] = React.useState<number>(() => Date.now());
-  React.useEffect(() => {
-    if (!running) return undefined;
-    setNow(Date.now());
-    const id = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(id);
-  }, [running]);
-  return now;
-}
+// 每秒时钟收编进 hooks/useNow（2026-11-17 review）：与 useFleet 的 30s 时钟同源。
 
 /**
  * 单条思考行：状态 + 预览 + 展开全文。
@@ -375,7 +362,18 @@ export function ThinkingTrail(props: ThinkingTrailProps): React.ReactElement | n
   const runIdRef = React.useRef<string>(events[0]?.id ?? '');
   const bodyRef = React.useRef<HTMLDivElement | null>(null);
   const stickRef = React.useRef<boolean>(true);
-  const now = useClock(running);
+  const now = useNow(running);
+  // 派生收编（2026-11-17 性能批次）：stepCount / failureCount / latestAction / processSummary
+  // 都是 O(轮内事件) 全遍历，此前每帧重跑——与 view 的同一个 useMemo 合并成一次派生。
+  const derived = React.useMemo(
+    () => ({
+      steps: stepCount(events),
+      failures: failureCount(events),
+      action: latestAction(events),
+      summary: processSummary(events),
+    }),
+    [events],
+  );
   const view = React.useMemo(() => TrailFilter.view(events), [events]);
 
   // busy 变化即复位形态：开跑自动展开（看得到实时思考），收尾自动折成一行总思考；
@@ -407,10 +405,10 @@ export function ThinkingTrail(props: ThinkingTrailProps): React.ReactElement | n
 
   if (events.length === 0) return null;
 
-  const steps = stepCount(events);
-  const failures = failureCount(events);
-  const action = latestAction(events);
-  const summary = processSummary(events);
+  const steps = derived.steps;
+  const failures = derived.failures;
+  const action = derived.action;
+  const summary = derived.summary;
   const firstAt = startedAt !== undefined && startedAt > 0 ? startedAt : EventFields.timestamp(events[0]!);
   // 收尾后优先用「本轮末条事件」（含助手正文 / turn_diff），与结果卡耗时一致；
   // 老数据没有该字段时退回最后一条过程事件。

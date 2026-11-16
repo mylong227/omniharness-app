@@ -10,7 +10,7 @@
 import * as React from 'react';
 import { icon } from '../models/Icon.ts';
 import type { IconName } from '../models/Icon.ts';
-import { describeToolCall } from '../textUtils.ts';
+import { describeToolCall, parsePartialJson } from '../textUtils.ts';
 import { timeOf } from '../format.ts';
 import { EventFields } from '../models/EventFields.ts';
 import { t } from '../i18n/i18n.ts';
@@ -217,7 +217,8 @@ export function TraceView(props: TraceViewProps): ReactElement {
   const [limit, setLimit] = React.useState(TRACE_RENDER_LIMIT);
   React.useEffect(() => setLimit(TRACE_RENDER_LIMIT), [filter, query]);
   const visible = shown.length > limit ? shown.slice(0, limit) : shown;
-  const running = rows.filter((r) => !r.done).length;
+  // TraceView 常驻挂载（隐藏只切 CSS）：这个过滤原先每帧跑 O(rows)，rows 数千时滚动帧可感。
+  const running = React.useMemo(() => rows.filter((r) => !r.done).length, [rows]);
   const filtered = filter !== 'all' || query.trim() !== '';
   return (
     <div
@@ -255,17 +256,7 @@ export function TraceView(props: TraceViewProps): ReactElement {
                 <span className="tr-ico" aria-hidden="true">
                   {icon('wrench', { size: 14 })}
                 </span>
-                <span className="tr-act">
-                  {(() => {
-                    let args: unknown = {};
-                    try {
-                      args = JSON.parse(li.partial);
-                    } catch {
-                      args = {};
-                    }
-                    return describeToolCall(li.name, args);
-                  })()}
-                </span>
+                <span className="tr-act">{describeToolCall(li.name, parsePartialJson(li.partial))}</span>
                 <span className="tr-st run">{t('进行中')}</span>
                 <span className="tr-time" aria-hidden="true"></span>
               </div>
