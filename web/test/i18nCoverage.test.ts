@@ -5,10 +5,16 @@
 //         靠人眼发现不了，这里用扫描兜底。
 // 判据二：跨分片键不得重复（分片会被 en/index.ts 展开合并成一张表，重复键后者覆盖前者，
 //         属静默丢翻译）。
+// 判据三（键表模式，2026-11-17 沉淀）：渲染处大量 `t(var.label)` / `t(var.hint)` /
+//         `t(var.name)` / `t(var.group)` 查表调用（SETTINGS_FIELDS / 快捷键行 / 命令面板
+//         buildCommands / 权限档 / 轨迹筛选 chips / 主题方案…），键值是**中文标签字面量**，
+//         en 是否覆盖只能从「表的值」侧比对。判据：源码里这四个键的 CJK 字符串值都必须在
+//         en 分片有条目。本轮批次 C 曾靠一次性脚本比对（清出 85 孤儿词条时顺带查过表模式），
+//         现沉淀为常驻门禁；首跑即抓到 AppReducers 命令「专注模式」缺 en 词条。
 //
-// 已知边界（不扫描、由评审保证）：动态键 t(variable)（StarterTasks / PanelRegistry /
-// PermissionTierModel / buildCommands 拼接键）——这些键的值无法静态枚举，靠「值与分片逐字
-// 一致」的约定 + code review。
+// 已知边界：① 动态拼接键（`'编辑：' + name` 这类）无法静态枚举，靠「值与分片逐字一致」
+// 约定 + code review；② title/desc/combo/subject 等键当前没有任何 CJK 值、也没有 t(var.X)
+// 消费者，不纳入——将来出现消费者时再扩键集（避免对非 UI 数据字段误报）。
 //
 // 直跑：node --test web/test/i18nCoverage.test.mjs（无需构建）。
 import assert from 'node:assert/strict';
@@ -176,4 +182,48 @@ test('en 词条分片之间的重复键不得有相异的译文（合并时后�
     }
   }
   assert.deepEqual(conflicts, [], '跨分片同键不同译文（统一成一个分片或对齐译文）');
+});
+
+/** 键表模式的键集：源码里有 `t(var.X)` 消费者的表键（边界见文件头 ②）。 */
+const KEY_TABLE_KEYS = new Set(['label', 'hint', 'name', 'group']);
+
+/**
+ * 从源码文本提取键表条目（`label: '中文'` 等形态；键可裸字或引号——只认键集内的键，
+ * 其余键名条目一律跳过）。值允许跨行缩进，与 collectChunkEntries 同口径。
+ * @param text 已剥注释的源码文本
+ * @returns 键值对数组
+ */
+function collectKeyTableEntries(text: string) {
+  const entries: { key: string; value: string }[] = [];
+  const re = new RegExp(
+    String.raw`(?:^|\n)\s*(?:'(label|hint|name|group)'|"(label|hint|name|group)"|(label|hint|name|group))\s*:\s*\n?\s*(?:'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)")`,
+    'g',
+  );
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const key = m[1] ?? m[2] ?? m[3];
+    if (key === undefined || !KEY_TABLE_KEYS.has(key)) continue;
+    entries.push({ key, value: m[4] !== undefined ? m[4] : m[5]! });
+  }
+  return entries;
+}
+
+test('键表模式：label/hint/name/group 的 CJK 值都必须在 en 词条分片有条目（t(var.X) 查表兜底）', () => {
+  const files = collectTsFiles(SRC_ROOT, [EN_DIR.replace(/[\\/]+$/, '')]);
+  const chunkFiles = collectTsFiles(EN_DIR);
+  const chunks = chunkFiles.map((f) => readFileSync(f, 'utf8'));
+  const missing: string[] = [];
+  for (const file of files) {
+    const text = stripComments(readFileSync(file, 'utf8'));
+    for (const { key, value } of collectKeyTableEntries(text)) {
+      if (!/[\u4e00-\u9fff]/.test(value)) continue; // 只看中文值（英文值无需词条）
+      const hit = chunks.some((c) => chunkHasEntry(c, value));
+      if (!hit) missing.push(file.replace(SRC_ROOT, '') + ' → ' + key + ': ' + value);
+    }
+  }
+  assert.deepEqual(
+    missing,
+    [],
+    '以下键表 CJK 值缺英文词条（渲染处 t(var.X) 查表，en 缺条目即静默回落中文；补进 web/src/ui/i18n/en/ 对应分片）',
+  );
 });

@@ -155,4 +155,5 @@ export const EN_COMPOSER: Record<string, string> = {
   '切换浅色 / 深色主题': 'Toggle light / dark theme',
   '切换会话面板': 'Toggle session panel',
   '切换工具面板': 'Toggle tools panel',
+  '专注模式': 'Focus mode',
 };
