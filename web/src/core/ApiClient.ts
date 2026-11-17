@@ -38,6 +38,51 @@ interface JsonRpcError {
   data?: unknown;
 }
 
+/**
+ * 后端桥接超时的稳定 JSON-RPC 错误码（协议面单一真源在后端
+ * `src/apps/server/transport/httpBridgeTransport.ts` 的 errorCodeFor）：
+ * `turns.run` 等长 RPC 超出桥接等待窗（缺省 60s）时后端回 `-32002`——
+ * **回合可能仍在后台继续**。此前前端用正则匹配翻译后文案（`/RPC 超时/`）来识别
+ * 这个场景：en 词条一变就静默失效（2026-11-18 硬编码清理批次改为码位判定）。
+ */
+export const SERVER_WAIT_TIMEOUT_CODE = -32002;
+
+/** RPC 失败的稳定种类（渲染层据此给**可执行**建议；文案与判定解耦）。 */
+export type RpcErrorKind = 'rpc-error' | 'auth' | 'http-status' | 'bad-json' | 'network';
+
+/** 带稳定种类的 RPC 错误：`kind`/`status`/`code` 供调用方分类，`message` 是已本地化的展示文案。 */
+export class RpcError extends Error {
+  /** 稳定种类。 */
+  public readonly kind: RpcErrorKind;
+  /** HTTP 状态码（kind = 'http-status' 时存在）。 */
+  public readonly status: number | undefined;
+  /** JSON-RPC 协议错误码（后端回 error 对象时存在；如桥接超时 -32002）。 */
+  public readonly code: number | undefined;
+
+  /**
+   * @param kind 稳定种类。
+   * @param message 已本地化的展示文案。
+   * @param status HTTP 状态码（可选）。
+   * @param code JSON-RPC 协议错误码（可选）。
+   */
+  public constructor(kind: RpcErrorKind, message: string, status?: number, code?: number) {
+    super(message);
+    this.name = 'RpcError';
+    this.kind = kind;
+    this.status = status;
+    this.code = code;
+  }
+
+  /**
+   * 把任意抛出值分类成稳定种类（非 RpcError 的未知错误返回 undefined）。
+   * @param error 抛出值。
+   * @returns 稳定种类；未知错误 undefined。
+   */
+  public static kindOf(error: unknown): RpcErrorKind | undefined {
+    return error instanceof RpcError ? error.kind : undefined;
+  }
+}
+
 interface JsonRpcResponse<T> {
   jsonrpc: string;
   id: number;
@@ -62,14 +107,22 @@ export class ApiClient {
     return headers;
   }
 
-  /** 统一的 JSON-RPC 2.0 调用入口；失败时抛出带服务端 message 的 Error。 */
+  /** 统一的 JSON-RPC 2.0 调用入口；失败时抛出带稳定 kind 的 RpcError（见 RpcErrorKind）。 */
   public async rpc<T = unknown>(method: string, params: Record<string, unknown> = {}): Promise<T> {
     const id = ++this.nextId;
-    const res = await fetch('/rpc', {
-      method: 'POST',
-      headers: this.buildHeaders(),
-      body: JSON.stringify({ jsonrpc: '2.0', id, method, params }),
-    });
+    let res: Response;
+    try {
+      res = await fetch('/rpc', {
+        method: 'POST',
+        headers: this.buildHeaders(),
+        body: JSON.stringify({ jsonrpc: '2.0', id, method, params }),
+      });
+    } catch (error) {
+      // fetch 自身失败 = 传输层不可达（服务未运行 / 断网 / 代理拒答）。此前落进通用
+      // 「检查 API Key」提示是误导（2026-11-18 硬编码清理批次：网络失败首次可分类）。
+      const reason = error instanceof Error ? error.message : String(error);
+      throw new RpcError('network', t('无法连接服务端（服务未运行或网络不可达）：{reason}', { reason }));
+    }
     // 归因必须保住：只有「JSON-RPC error **对象**」才当作协议错误读它的 message。
     // 曾经无条件 `data.error.message || 'RPC 错误'`，而 HTTP 500 的兜底体是 `{"error":"internal"}`
     // ——`error` 是字符串，`.message` 为 undefined，于是任何服务端异常在界面上都退化成同一句
@@ -79,7 +132,12 @@ export class ApiClient {
       | JsonRpcResponse<T>
       | undefined;
     if (data !== undefined && typeof data.error === 'object' && data.error !== null) {
-      throw new Error(data.error.message || t('RPC 错误（code {code}）', { code: data.error.code }));
+      throw new RpcError(
+        'rpc-error',
+        data.error.message || t('RPC 错误（code {code}）', { code: data.error.code }),
+        undefined,
+        data.error.code,
+      );
     }
     if (res.ok === false) {
       // 401 单列（2026-11-06 审计 P2）：令牌失效/服务端重启换令牌时，用户需要的不是
@@ -87,12 +145,16 @@ export class ApiClient {
       // App 挂授权提示横幅；SSE 的 EventSource 不暴露状态码，401 提示只能由 RPC 路径触发。
       if (res.status === 401 && typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('omni:auth-required'));
-        throw new Error(t('需要授权：令牌缺失或已失效——请重新用服务端打印的带 token 地址打开'));
+        throw new RpcError(
+          'auth',
+          t('需要授权：令牌缺失或已失效——请重新用服务端打印的带 token 地址打开'),
+          res.status,
+        );
       }
-      throw new Error(t('RPC 请求失败：HTTP {status}', { status: res.status }));
+      throw new RpcError('http-status', t('RPC 请求失败：HTTP {status}', { status: res.status }), res.status);
     }
     if (data === undefined) {
-      throw new Error(t('RPC 响应不是合法 JSON'));
+      throw new RpcError('bad-json', t('RPC 响应不是合法 JSON'));
     }
     return data.result as T;
   }

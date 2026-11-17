@@ -15,6 +15,7 @@ import { MethodBinder } from './methodBinder.ts';
 import { EventFields } from '../models/EventFields.ts';
 import { MessageQuote } from '../models/MessageQuote.ts';
 import { ComposerOptions } from '../models/ComposerOptions.ts';
+import { RpcError, SERVER_WAIT_TIMEOUT_CODE } from '../../core/ApiClient.ts';
 import { t } from '../i18n/i18n.ts';
 import { desktopBridge, notifyDesktop } from '../../core/desktop/DesktopBridge.ts';
 import { ChatQueueController } from './ChatQueueController.ts';
@@ -80,17 +81,34 @@ export class ComposerController {
   /**
    * 按失败原因给出**可执行**的下一步建议（静态纯函数，便于单测）。
    *
-   * 原先无论什么失败都拼「可尝试切换模型或检查 API Key」，而 2026-09-27 用户遭遇的是
-   * `turns.run` 等服务端等待超时（回合仍在后台推进）——把用户引向换模型查 Key 是误导。
-   * @param message 失败原因文本（来自 ApiClient 的真实错误消息）。
+   * 分类**结构化**（2026-11-18 硬编码清理批次）：`RpcError.kind` / `status` / `code` 驱动，
+   * 不再匹配翻译后的文案——en 词条变化不再让提示静默失效（与批次 C 的 `includes('重启')`
+   * 同类缺陷）。后端桥接等待超时（`SERVER_WAIT_TIMEOUT_CODE` = -32002，协议面）单列：
+   * 回合可能仍在后台继续，绝不能把用户引向「换模型 / 查 Key」。
+   * @param error 抛出值（RpcError 优先分类；字符串/旧 Error 走文案兜底）。
    * @returns 追加在系统提示末尾的建议句（含前导句号）。
    */
-  public static failureHint(message: string): string {
-    if (/RPC 超时|HTTP 5\d\d|RPC 请求失败/.test(message)) {
+  public static failureHint(error: unknown): string {
+    const kind = RpcError.kindOf(error);
+    if (kind === 'network') {
+      return t('。服务端不可达：请确认本地服务正在运行（或检查网络/代理设置），恢复后重新发送即可。');
+    }
+    if (kind === 'auth') {
+      return t('。请按页面顶部的授权提示，用服务端打印的带 token 地址重新打开后再试。');
+    }
+    if (
+      (error instanceof RpcError && error.code === SERVER_WAIT_TIMEOUT_CODE) ||
+      (kind === 'http-status' && (error as RpcError).status !== undefined && (error as RpcError).status! >= 500)
+    ) {
       return t('。服务端等待超时，回合可能仍在后台继续；可稍候重新打开该会话查看结果，或点「停止」后再发一次。');
     }
+    // 非结构化兜底（旧客户端 / 非 rpc() 抛出）：按文案识别中止；其余给通用建议。
+    const message = error instanceof Error ? error.message : String(error);
     if (/中止|abort/i.test(message)) {
       return t('。');
+    }
+    if (/HTTP 5\d\d/.test(message)) {
+      return t('。服务端等待超时，回合可能仍在后台继续；可稍候重新打开该会话查看结果，或点「停止」后再发一次。');
     }
     return t('。可尝试切换模型或检查 API Key。');
   }
@@ -195,7 +213,7 @@ export class ComposerController {
         // 错误不再弹窗阻断，而是写进对话流作为 system 提示 + toast，页面保持可用。
         this.services.toast(t('运行失败：{msg}', { msg }), 'err');
         this.host.patch((s) => ({
-          events: [...s.events, this.systemNote(t('运行失败：{msg}{hint}', { msg, hint: ComposerController.failureHint(msg) }))],
+          events: [...s.events, this.systemNote(t('运行失败：{msg}{hint}', { msg, hint: ComposerController.failureHint(e) }))],
         }));
       }
     } finally {

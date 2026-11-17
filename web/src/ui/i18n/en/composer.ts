@@ -112,6 +112,10 @@ export const EN_COMPOSER: Record<string, string> = {
   // controllers/ComposerController.ts
   '。服务端等待超时，回合可能仍在后台继续；可稍候重新打开该会话查看结果，或点「停止」后再发一次。':
     '. The server timed out; the turn may still be running in the background. Reopen this thread later to check the result, or press "Stop" and send again.',
+  '。服务端不可达：请确认本地服务正在运行（或检查网络/代理设置），恢复后重新发送即可。':
+    '. The server is unreachable: confirm the local service is running (or check your network/proxy settings), then send again.',
+  '。请按页面顶部的授权提示，用服务端打印的带 token 地址重新打开后再试。':
+    '. Follow the authorization banner at the top of the page and reopen with the tokened URL printed by the server.',
   '。': '.',
   '。可尝试切换模型或检查 API Key。': '. Try switching models or checking the API key.',
   '未知错误': 'Unknown error',
