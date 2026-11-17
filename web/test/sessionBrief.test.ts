@@ -104,3 +104,27 @@ test('SessionBrief：空事件 / 脏 usage 不产生 NaN', () => {
   assert.equal(stats.tokens, 0);
   assert.deepEqual(stats.models, ['x']);
 });
+
+test('SessionBrief：成本估算只累计有参考价的模型（宁缺毋滥）', () => {
+  // deepseek-chat 在参考价表内：(100+50)×0.28 + (20+5)×0.42（per 1M）
+  const known = SessionBrief.from([
+    event('m1', 'model', { model: 'deepseek-chat', usage: { promptTokens: 100, completionTokens: 20 } }, at(0)),
+    event('m2', 'model', { model: 'deepseek-chat', usage: { promptTokens: 50, completionTokens: 5 } }, at(1)),
+  ]);
+  const expected = (150 * 0.28 + 25 * 0.42) / 1_000_000;
+  assert.ok(known.costUsd !== undefined && Math.abs(known.costUsd - expected) < 1e-12);
+  // 未知价模型：不累计（宁缺毋滥，绝不猜价）
+  const unknown = SessionBrief.from([
+    event('m1', 'model', { model: 'no-such-model', usage: { promptTokens: 100, completionTokens: 20 } }, at(0)),
+  ]);
+  assert.equal(unknown.costUsd, undefined);
+  // 混用：未知价调用不贡献，已知价的照常累计
+  const mixed = SessionBrief.from([
+    event('m1', 'model', { model: 'no-such-model', usage: { promptTokens: 999, completionTokens: 999 } }, at(0)),
+    event('m2', 'model', { model: 'glm-4.6', usage: { promptTokens: 1_000_000, completionTokens: 0 } }, at(1)),
+  ]);
+  assert.ok(mixed.costUsd !== undefined && Math.abs(mixed.costUsd - 0.6) < 1e-9);
+  // 无 usage 的 model 事件不产生成本
+  const bare = SessionBrief.from([event('m1', 'model', { model: 'deepseek-chat' }, at(0))]);
+  assert.equal(bare.costUsd, undefined);
+});

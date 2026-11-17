@@ -20,6 +20,7 @@ import { PathJoiner } from '../../models/PathJoiner.ts';
 import { SessionBrief, type SessionBriefStats, type SessionContextStat } from '../../models/SessionBrief.ts';
 import { ContextForecast } from '../../models/ContextForecast.ts';
 import { formatDurationMs } from '../../models/DurationFormat.ts';
+import { PRICES_AS_OF, ModelPricing } from '../../models/ModelPricing.ts';
 import { TokenScaleFormatter } from '../../models/TokenScaleFormatter.ts';
 import { useWorkspaceChangeBrief } from './useWorkspaceChangeBrief.ts';
 import type { WorkspaceChangeBrief, WorkspaceChangeState } from './useWorkspaceChangeBrief.ts';
@@ -164,6 +165,17 @@ function SessionLine(props: {
           })}
         >
           {t('上下文 {percent}%', { percent: stats.context.percent })}
+        </span>
+      )}
+      {stats.costUsd === undefined || stats.costUsd <= 0 ? null : (
+        <span
+          className="wb-session-item"
+          title={t(
+            '按内置参考价估算（{date} 快照）：未知单价的模型不计入，仅供量级参考，不是账单。',
+            { date: PRICES_AS_OF },
+          )}
+        >
+          ≈ {ModelPricing.formatUsd(stats.costUsd)}
         </span>
       )}
       {durationMs > 0 ? <span>{t('有效 {d}', { d: formatDurationMs(durationMs) })}</span> : null}

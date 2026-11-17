@@ -13,6 +13,7 @@
 import type { ThreadEvent } from '../../types/models.ts';
 import { ArtifactResolver } from './ArtifactResolver.ts';
 import { EventFields } from './EventFields.ts';
+import { ModelPricing } from './ModelPricing.ts';
 import { parseTurnDiffFiles } from './TurnDiffFiles.ts';
 
 /** 最近一次模型调用上报的上下文快照（内核 `model` 事件 payload.context）。 */
@@ -43,6 +44,11 @@ export interface SessionBriefStats {
   readonly deleted: number;
   /** 累计 token（prompt + completion；未上报的调用不贡献）。 */
   readonly tokens: number;
+  /**
+   * 累计成本（USD，按内置参考价估算；只累计有参考价的模型调用，未知价不贡献）。
+   * 展示必须带「≈」并注明是参考价——没有可估成本时为 undefined（宁缺毋滥）。
+   */
+  readonly costUsd?: number | undefined;
   /** 首末事件时间差（ms；不足两条时间戳时为 0）。 */
   readonly durationMs: number;
   /** 出现过的模型名（顺序 = 首次出现顺序，去重）。 */
@@ -80,6 +86,8 @@ export class SessionBrief {
     let toolCalls = 0;
     let toolFailures = 0;
     let tokens = 0;
+    let costUsd = 0;
+    let costKnown = false;
     let firstAt = 0;
     let lastAt = 0;
     let context: SessionContextStat | undefined;
@@ -139,9 +147,28 @@ export class SessionBrief {
           const record = usage as Record<string, unknown>;
           const prompt = SessionBrief.numberOf(record['promptTokens']);
           const cached = SessionBrief.numberOf(record['cachedPromptTokens']);
-          tokens += prompt + SessionBrief.numberOf(record['completionTokens']);
+          const completion = SessionBrief.numberOf(record['completionTokens']);
+          tokens += prompt + completion;
           if (prompt > 0 && record['cachedPromptTokens'] !== undefined) {
             cacheHitRate = Math.round((Math.min(cached, prompt) / prompt) * 1000) / 10;
+          }
+          // 成本估算（内置参考价，宁缺毋滥）：只在模型命中价表时累计；同一会话混用
+          // 已知价 + 未知价模型时，未知的部分如实不估（展示以「≈」声明这是参考值）。
+          if (prompt > 0 || completion > 0) {
+            // 模型名在 payload 层（usage 内不含 model）；与下方「出现过的模型」同源。
+            const model = ev.payload?.['model'];
+            const estimate =
+              typeof model === 'string'
+                ? ModelPricing.estimate(model, {
+                    promptTokens: prompt,
+                    completionTokens: completion,
+                    ...(cached > 0 ? { cachedPromptTokens: cached } : {}),
+                  })
+                : null;
+            if (estimate !== null) {
+              costUsd += estimate.totalUsd;
+              costKnown = true;
+            }
           }
         }
         const snapshot = ev.payload?.['context'];
@@ -186,6 +213,7 @@ export class SessionBrief {
       added,
       deleted,
       tokens,
+      ...(costKnown ? { costUsd } : {}),
       durationMs: firstAt > 0 && lastAt > firstAt ? lastAt - firstAt : 0,
       models,
       ...(context !== undefined ? { context } : {}),
