@@ -73,6 +73,38 @@ export class PreviewUrl {
   }
 
   /**
+   * 端点归属判定（2026-11-17 美化批次，厂商卡「本地 / 云端」标签用）：
+   *   · `local`  = 回环（127.0.0.1 / localhost / ::1）、私有网段 IPv4（10 / 172.16–31 / 192.168）、
+   *     或不带点的内网主机名（`ollama`、`my-gateway`——按企业内网 DNS 约定）；
+   *   · `cloud`  = 其余（公网域名 / 公网 IP）。
+   * 解析失败（非 URL 形态）按 `cloud` 处理——标签宁可保守，不把公网端点误标成本地。
+   * @param raw 端点地址（http(s) 或 host:port 形态）
+   * @returns `local` / `cloud`
+   */
+  public static endpointScopeOf(raw: string): 'local' | 'cloud' {
+    const text = (raw ?? '').trim();
+    // host:port 无协议写法补上 http: 便于统一解析。
+    const candidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(text) ? text : 'http://' + text;
+    let host = '';
+    try {
+      host = new URL(candidate).hostname.toLowerCase().replace(/^\[|\]$/g, '');
+    } catch {
+      return 'cloud';
+    }
+    if (PreviewUrl.isLoopbackHost(host)) return 'local';
+    // 内网主机名：不含点（非 FQDN）视为本地网络内的自建端点。
+    if (host !== '' && !host.includes('.')) return 'local';
+    const v4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+    if (v4 !== null) {
+      const a = Number(v4[1]);
+      const b = Number(v4[2]);
+      if (a === 10 || a === 192) return a === 10 ? 'local' : b === 168 ? 'local' : 'cloud';
+      if (a === 172 && b >= 16 && b <= 31) return 'local';
+    }
+    return 'cloud';
+  }
+
+  /**
    * 预览源应使用的主机名：**永远与 UI 主机名不同**（cookie 隔离，见文件头注释）。
    * @param appHost UI 主机名
    * @returns `localhost` / `127.0.0.1`；UI 不在回环时返回空串（本地预览不可用）

@@ -5,6 +5,7 @@
 // 一个箭头函数 107 行）。这里只做展示与回调透传，状态仍全部由 `SettingsSurface` /
 // 上层控制台持有；DOM 结构、class 名、aria 文案与 i18n 调用与抽出前逐字一致。
 
+import * as React from 'react';
 import { t, type Locale } from '../../i18n/i18n.ts';
 import type { ThemePreference } from '../../models/ThemePreference.ts';
 import type { ThemeScheme } from '../../theme/palette.ts';
@@ -153,6 +154,9 @@ function LanguageCard(props: {
 
 /**
  * 两栏宽度卡（会话栏 / 右侧面板）。
+ * 拖动即实时生效（本机偏好）；「已应用」徽标 1.5s 消隐（2026-11-17 美化批次）——
+ * 宽度不经过 SettingsModel（localStorage 偏好，不写服务端配置），flashSaved 不能直接搬，
+ * 这里按同款口径本地管理。
  * @param props 当前宽度与调整回调
  * @returns 宽度设置卡
  */
@@ -162,6 +166,14 @@ function PanelWidthCards(props: {
   onLeftWidthChange: (width: number) => void;
   onRightWidthChange: (width: number) => void;
 }): ReactElement {
+  const [applied, setApplied] = React.useState<'left' | 'right' | null>(null);
+  const timerRef = React.useRef(0);
+  React.useEffect(() => () => window.clearTimeout(timerRef.current), []);
+  const mark = (side: 'left' | 'right'): void => {
+    window.clearTimeout(timerRef.current);
+    setApplied(side);
+    timerRef.current = window.setTimeout(() => setApplied(null), 1500);
+  };
   return (
     <ConsoleCard
       footer={t('这里与拖动分隔条改的是同一份本机偏好；窄屏（≤880px）下两栏是抽屉，宽度不生效。')}
@@ -169,6 +181,7 @@ function PanelWidthCards(props: {
       <ConsoleRow
         label={t('会话栏宽度')}
         hint={t('范围 180–600 px，当前 {width} px', { width: props.leftWidth })}
+        saved={applied === 'left'}
       >
         <Slider
           min={180}
@@ -176,7 +189,10 @@ function PanelWidthCards(props: {
           step={4}
           ariaLabelForHandle={t('会话栏宽度')}
           value={props.leftWidth}
-          onChange={(value) => props.onLeftWidthChange(value)}
+          onChange={(value) => {
+            props.onLeftWidthChange(value);
+            mark('left');
+          }}
           style={{ width: 190 }}
           tooltip={{ formatter: (value) => `${String(value)} px` }}
         />
@@ -184,6 +200,7 @@ function PanelWidthCards(props: {
       <ConsoleRow
         label={t('右侧面板宽度')}
         hint={t('范围 180–760 px，当前 {width} px', { width: props.rightWidth })}
+        saved={applied === 'right'}
       >
         <Slider
           min={180}
@@ -191,7 +208,10 @@ function PanelWidthCards(props: {
           step={4}
           ariaLabelForHandle={t('右侧面板宽度')}
           value={props.rightWidth}
-          onChange={(value) => props.onRightWidthChange(value)}
+          onChange={(value) => {
+            props.onRightWidthChange(value);
+            mark('right');
+          }}
           style={{ width: 190 }}
           tooltip={{ formatter: (value) => `${String(value)} px` }}
         />

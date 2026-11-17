@@ -9,6 +9,7 @@
 import type { ReactElement } from 'react';
 import type { ProviderPreset, ProviderProbeResult } from '../../../types/models.ts';
 import { isActiveProvider } from '../console/useProviderCatalog.ts';
+import { PreviewUrl } from '../../models/PreviewUrl.ts';
 import { t } from '../../i18n/i18n.ts';
 
 /** ProviderTile 的入参。 */
@@ -72,6 +73,9 @@ export function ProviderTile(props: ProviderTileProps): ReactElement {
       : maskedKey !== undefined
         ? maskedKey
         : preset.baseUrl;
+  // 归属标签（2026-11-17 美化批次）：端点长 URL 在卡片上省略后看不出「本地 Ollama 还是云端
+  // API」——一枚微标签替代悬停。触屏无 hover，这条信息必须常驻。
+  const scope = PreviewUrl.endpointScopeOf(preset.baseUrl);
   return (
     <button
       type="button"
@@ -91,6 +95,12 @@ export function ProviderTile(props: ProviderTileProps): ReactElement {
         {st.text}
       </span>
       <span className="sp-tile-sub" title={preset.baseUrl}>
+        <span
+          className={'sp-tile-scope' + (scope === 'local' ? ' sp-tile-scope--local' : '')}
+          aria-hidden="true"
+        >
+          {scope === 'local' ? t('本地') : t('云端')}
+        </span>
         {sub}
       </span>
     </button>

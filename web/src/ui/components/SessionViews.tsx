@@ -312,6 +312,21 @@ export function renderSessionTime(s: SessionEntry, now: number): ReactElement | 
 }
 
 /**
+ * 左栏空态一行化（2026-11-17 美化批次，ux-audit P2）：中栏已有完整主空态（等待任务 +
+ * 示例任务 + 快捷键提示），左栏再挂一张大插画就是同一句话说三遍。这里收成一行状态
+ * （role=status，读屏可直达），三种视图（卡片 / 分组 / 时间分组）共用同一文案。
+ * @returns 一行空态节点
+ */
+function sessionEmpty(): ReactElement {
+  return (
+    <div className="session-empty" role="status">
+      {icon('inbox', { size: 14 })}
+      <span>{t('暂无会话——新建任务后显示在这里。')}</span>
+    </div>
+  );
+}
+
+/**
  * 并行任务卡视图：running 徽章来自服务端 activeTurns 真实运行态（非前端猜测）。
  * @param ctx 列表上下文
  * @param now 参照时刻（毫秒；单测注入以获得确定性）
@@ -326,7 +341,7 @@ export function renderCardsView(ctx: ListCtx, now: number = Date.now()): ReactEl
     ? filtered
     : [...filtered.filter((x) => pinned.has(x.id)), ...filtered.filter((x) => !pinned.has(x.id))];
   if (all.length === 0) {
-    return emptyState(icon('inbox', { size: 20 }), t('暂无会话'), t('新建会话后，任务卡会显示在这里。'));
+    return sessionEmpty();
   }
   // 与分组视图同一分页口径：先渲染 PAGE 张，其余「显示全部」（limits 单源，见 ListCtx）。
   const limitKey = 'cards';
@@ -412,7 +427,7 @@ export function renderCardsView(ctx: ListCtx, now: number = Date.now()): ReactEl
 export function renderGroupsView(ctx: ListCtx, now: number = Date.now()): ReactElement {
   const all = filterSessions(ctx.sessions, ctx.query);
   if (all.length === 0) {
-    return emptyState(icon('inbox', { size: 20 }), t('暂无会话'), t('新建会话后，历史对话会显示在这里，随时可回看。'));
+    return sessionEmpty();
   }
   return (
     <>
@@ -502,7 +517,7 @@ export function renderGroupsView(ctx: ListCtx, now: number = Date.now()): ReactE
 export function renderTimeGroupsView(ctx: ListCtx, now: number = Date.now()): ReactElement {
   const all = filterSessions(ctx.sessions, ctx.query);
   if (all.length === 0) {
-    return emptyState(icon('inbox', { size: 20 }), t('暂无会话'), t('新建会话后，历史对话会显示在这里，随时可回看。'));
+    return sessionEmpty();
   }
   return (
     <>

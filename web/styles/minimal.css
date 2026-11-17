@@ -4731,3 +4731,29 @@ button,
   .composer .mp { min-width: 76px; }
   .chat-queue .cq-list { max-height: 160px; }
 }
+
+/* ---- 厂商卡归属标签（2026-11-17 美化批次）：本地 / 云端微标签——
+   端点长 URL 省略后看不出是本地 Ollama 还是云端 API，触屏又没有 hover。 ---- */
+.sp-tile-scope {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border-soft);
+  color: var(--faint);
+  font-size: 10px;
+  line-height: 16px;
+}
+.sp-tile-scope--local {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 38%, transparent);
+}
+
+/* ---- 上下文余量预测行（2026-11-17 粘性批次）：「按近 N 轮增速，大约还能再撑 M 轮」。
+   一行小字跟在会话摘要下；预测是参考，数据不足时不渲染（宁缺毋滥）。 ---- */
+.wb-forecast {
+  margin: -4px 0 10px;
+  font-size: 11.5px;
+  color: var(--faint);
+}
