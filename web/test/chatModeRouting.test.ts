@@ -114,6 +114,10 @@ function makeController(mode: 'queue' | 'steer') {
   const sessions = {
     async refreshSessions() {},
     clearRemoteBusy() {},
+    // 队列在飞判定读的远端登记（isBusy 依赖）；桩缺了它 drain 会 TypeError。
+    hasRemoteBusy() {
+      return false;
+    },
     streamPhase() {},
     viewAttachment: { attach: () => 0, epoch: () => 0, detached: false },
     modes: { flush: async () => {} },

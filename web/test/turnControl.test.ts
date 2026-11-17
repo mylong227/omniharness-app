@@ -132,6 +132,10 @@ function makeController(host: HostStub, api: Pick<ApiStub, 'runTurn'>, toasts: s
   const sessions = {
     async refreshSessions() {},
     clearRemoteBusy() {},
+    // 队列在飞判定读的远端登记（isBusy 依赖）；桩缺了它 drain 会 TypeError。
+    hasRemoteBusy() {
+      return false;
+    },
     // 流式缓冲生命周期（开新回合 / 收尾刷增量；真实现见 models/TurnStreamBuffer.ts）
     streamPhase() {},
     // 视图代数契约（2026-10-06）：见 web/src/ui/models/ViewAttachment.ts

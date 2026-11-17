@@ -53,9 +53,11 @@ export class ComposerController {
       host: this.host,
       api: this.services.api,
       toast: (message, kind) => this.services.toast(message, kind),
-      // 在飞判定含远端回合（打开在跑会话时的 busy）：drain / resume 据此不并发开跑，
-      // 收尾续发由 SessionController.onRemoteBusyCleared → queueDrain 接力。
-      isBusy: () => this.inFlight || this.host.getState().busy,
+      // 在飞判定 = 本地回合 + 远端回合（打开在跑会话）。远端用 SessionController 的同步
+      // 登记字段（hasRemoteBusy），不读 state.busy——它经 React setState 异步提交，本地回合
+      // finally 里同步 drain 时读到的还是本回合刚要清掉的旧值，会把收尾续发永远挡住
+      // （2026-11-17 chatQueueE2e 实测回归；收尾续发由本地 finally / onRemoteBusyCleared 接力）。
+      isBusy: () => this.inFlight || this.sessions.hasRemoteBusy(),
       // 续发复用同一个回合执行体（队列只决定"发哪一条"，不自己碰 RPC）。
       sendQueued: (message) => {
         void this.runRound(message.prompt, [...message.images], [...message.files]).catch(() => {

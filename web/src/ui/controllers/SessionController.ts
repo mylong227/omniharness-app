@@ -71,6 +71,19 @@ export class SessionController {
   }
 
   /**
+   * 是否存在「非本页发起、仍在跑」的远端回合（loadThread 登记，refreshSessions / 降级停止解除）。
+   *
+   * 队列续发的在飞判定用**这个同步字段**而不是 `state.busy`：后者经 React setState 异步提交，
+   * `runRound` 的 finally 在同一宏任务里读到的还是本回合刚要清掉的旧值，会把本地收尾续发
+   * 永远挡住（2026-11-17 chatQueueE2e 实测回归）。远端回合判定本来就只在 loadThread 登记，
+   * 与 React 提交时机无关。
+   * @returns 有远端在跑回合为 true
+   */
+  public hasRemoteBusy(): boolean {
+    return this.remoteBusyThread !== null;
+  }
+
+  /**
    * 构造并绑定对外回调。
    * @param host 状态宿主
    * @param services 共享服务
