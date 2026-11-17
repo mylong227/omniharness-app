@@ -75,6 +75,8 @@ export interface UsageLike {
 
 /** 单价估算：内置参考价 + 最长前缀匹配，查不到的模型一律 null。 */
 export class ModelPricing {
+  private constructor() {}
+
   /**
    * 按模型名取参考价（最长前缀命中，大小写不敏感）。
    * @param model 模型名（如 `claude-sonnet-4-5-20260101`）
