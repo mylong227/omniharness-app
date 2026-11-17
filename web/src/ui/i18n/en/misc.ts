@@ -195,6 +195,9 @@ export const EN_MISC: Record<string, string> = {
     'Context is near its limit: longer tasks hit the budget first — consider compacting.',
   '去压缩': 'Compact now',
   '键盘快捷键速查': 'Keyboard shortcuts',
+  '按近 {n} 轮增速，大约还能再撑 {m} 轮': '~{m} more turns left at the recent {n}-turn pace',
+  '按最近 {n} 轮的上下文增量估算（每轮约 {tokens} token）；压缩 / 长附件会改变走势，仅作参考。':
+    'Estimated from the context growth of the last {n} turns (~{tokens} tokens each); compaction or large attachments change the pace — reference only.',
   '关闭速查': 'Close cheat sheet',
   '需要授权：访问令牌缺失或已失效（服务端可能已重启）。':
     'Authorization required: the access token is missing or invalid (the server may have restarted).',

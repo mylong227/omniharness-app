@@ -49,6 +49,8 @@ import type { ChatMode } from '../models/ChatModePreference.ts';
 import type { QueuedMessage } from '../models/ChatMessageQueue.ts';
 import { ClipboardCopier } from '../models/ClipboardCopier.ts';
 import { SessionTranscript } from '../models/SessionTranscript.ts';
+import { TraceTranscript } from '../models/TraceTranscript.ts';
+import type { TraceRow } from '../models/TraceFilter.ts';
 import { t } from '../i18n/i18n.ts';
 
 /** 应用根组件的全部 UI 状态（原 useAppController 的各 useState 合集）。 */
@@ -761,17 +763,49 @@ export class AppController {
       now,
       partial: state.historyHasMore,
     });
+    this.downloadText(SessionTranscript.filename(title, now), body, 'text/markdown;charset=utf-8');
+    this.showToast(t('已导出会话 Markdown'));
+  }
+
+  /**
+   * 导出工具轨迹（2026-11-17 粘性批次）：把 TraceView 当前筛选后的行整理成 Markdown 下载。
+   * 行数据由组件层传入（筛选状态是组件事实源），格式化在 TraceTranscript 纯函数。
+   * @param rows 筛选后的轨迹行
+   * @param options 标题 / 筛选标注
+   * @returns 无
+   */
+  public exportTrace(
+    rows: readonly TraceRow[],
+    options: { readonly title?: string; readonly filtered?: boolean; readonly filterLabel?: string } = {},
+  ): void {
+    if (rows.length === 0) {
+      this.showToast(t('当前轨迹没有可导出的行'), 'info');
+      return;
+    }
+    const now = Date.now();
+    const body = TraceTranscript.markdown(rows, { ...options, now });
+    this.downloadText(TraceTranscript.filename(options.title ?? '', now), body, 'text/markdown;charset=utf-8');
+    this.showToast(t('已导出轨迹 Markdown'));
+  }
+
+  /**
+   * 浏览器下载一段文本（Blob + 匿名 anchor + 回收 URL；exportSession/exportTrace 共用）。
+   * @param filename 下载文件名
+   * @param body 文本内容
+   * @param mime MIME 类型
+   * @returns 无
+   */
+  private downloadText(filename: string, body: string, mime: string): void {
     try {
-      const blob = new Blob([body], { type: 'text/markdown;charset=utf-8' });
+      const blob = new Blob([body], { type: mime });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;
-      anchor.download = SessionTranscript.filename(title, now);
+      anchor.download = filename;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 0);
-      this.showToast(t('已导出会话 Markdown'));
     } catch (cause) {
       this.showToast(
         t('导出失败：{msg}', { msg: cause instanceof Error ? cause.message : String(cause) }),

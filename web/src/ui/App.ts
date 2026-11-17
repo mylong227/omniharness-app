@@ -581,6 +581,17 @@ function streamViewElement(
     onStop: ctrl.composer.stop,
     onRegenerate: ctrl.composer.regenerate,
     onEditUser: ctrl.composer.editLastUser,
+    // 引用追问：任意一条消息以引用块填回输入框（纯前端拼接，零新 RPC）。
+    onQuote: (ev) => ctrl.composer.quoteMessage(ev),
+    // 轨迹导出：TraceView 筛选后的行上抛，控制器格式化（TraceTranscript）并下载。
+    onExportTrace: (rows, meta) => {
+      const entry = s.sessions.find((x) => x.id === s.currentThreadId);
+      ctrl.exportTrace(rows, {
+        title: entry !== undefined ? entry.label : '',
+        filtered: meta.filtered,
+        filterLabel: meta.filterLabel,
+      });
+    },
     model: s.model,
     modelOptions: s.modelOptions,
     providerLabel: s.providerLabel,

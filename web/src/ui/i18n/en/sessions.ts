@@ -175,4 +175,6 @@ export const EN_SESSIONS: Record<string, string> = {
   '在工作区里搜索所有 TODO 注释，按文件分组列出（文件路径 + 行号 + 原文），不要修改任何文件。': 'Search the workspace for all TODO comments and list them grouped by file (path + line number + text) without modifying any files.',
   '写个小程序': 'Write a small program',
   '在工作区新建 examples/hello.js，内容是打印当前时间，然后运行它并贴出输出。': 'Create examples/hello.js in the workspace that prints the current time, then run it and show the output.',
+  // —— 左栏空态一行化（2026-11-17 美化批次）——
+  '暂无会话——新建任务后显示在这里。': 'No sessions yet — new tasks will appear here.',
 };

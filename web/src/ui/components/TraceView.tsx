@@ -38,6 +38,11 @@ export interface TraceViewProps {
   toolResults: Record<string, ToolResultView>;
   /** 是否隐藏（对话/轨迹双视图常驻，切换只切显示，避免卸载重挂闪白）。 */
   hidden?: boolean;
+  /** 导出轨迹：组件把当前筛选后的行与筛选标注上抛（格式化与下载在控制器）。 */
+  onExport?: (
+    rows: readonly TraceRow[],
+    meta: { readonly filtered: boolean; readonly filterLabel: string },
+  ) => void;
 }
 
 /**
@@ -147,8 +152,12 @@ function TraceToolbar(props: {
   counts: Readonly<Record<TraceFilterKind, number>>;
   onFilter: (kind: TraceFilterKind) => void;
   onQuery: (query: string) => void;
+  /** 导出当前筛选后的行（缺省不渲染导出入口）。 */
+  onExport?: () => void;
+  /** 回到当前轮（缺省不渲染入口）。 */
+  onJumpLatest?: () => void;
 }): ReactElement {
-  const { filter, query, counts, onFilter, onQuery } = props;
+  const { filter, query, counts, onFilter, onQuery, onExport, onJumpLatest } = props;
   return (
     <div className="tr-tools">
       <div className="tr-chips" role="group" aria-label={t('筛选轨迹')}>
@@ -173,6 +182,29 @@ function TraceToolbar(props: {
         value={query}
         onChange={(e) => onQuery(e.target.value)}
       />
+      {/* 动作区（2026-11-17 粘性批次）：回到当前轮 + 导出——都在筛选/搜索语境里可用。 */}
+      {onJumpLatest === undefined ? null : (
+        <button
+          type="button"
+          className="tr-act"
+          title={t('回到当前轮')}
+          aria-label={t('回到当前轮')}
+          onClick={onJumpLatest}
+        >
+          {t('⤓ 当前轮')}
+        </button>
+      )}
+      {onExport === undefined ? null : (
+        <button
+          type="button"
+          className="tr-act"
+          title={t('导出当前轨迹为 Markdown')}
+          aria-label={t('导出轨迹')}
+          onClick={onExport}
+        >
+          {icon('download', { size: 13 })}
+        </button>
+      )}
     </div>
   );
 }
@@ -190,7 +222,7 @@ function TraceRows(props: { rows: readonly TraceRow[]; showTurns: boolean }): Re
     if (showTurns && row.turn !== lastTurn) {
       lastTurn = row.turn;
       out.push(
-        <div className="tr-turn" key={'turn:' + String(row.turn)}>
+        <div className="tr-turn" key={'turn:' + String(row.turn)} data-turn={row.turn}>
           {t('第 {n} 轮', { n: row.turn })}
         </div>,
       );
@@ -206,7 +238,8 @@ function TraceRows(props: { rows: readonly TraceRow[]; showTurns: boolean }): Re
  * @returns 轨迹节点
  */
 export function TraceView(props: TraceViewProps): ReactElement {
-  const { events, liveInputs, toolResults, hidden } = props;
+  const { events, liveInputs, toolResults, hidden, onExport } = props;
+  const rootRef = React.useRef<HTMLDivElement | null>(null);
   const [filter, setFilter] = React.useState<TraceFilterKind>('all');
   const [query, setQuery] = React.useState('');
   // 对话流每个文本增量都会让父组件重渲染；轨迹行只依赖事件/结果，缓存后隐藏态切换不重算。
@@ -220,8 +253,25 @@ export function TraceView(props: TraceViewProps): ReactElement {
   // TraceView 常驻挂载（隐藏只切 CSS）：这个过滤原先每帧跑 O(rows)，rows 数千时滚动帧可感。
   const running = React.useMemo(() => rows.filter((r) => !r.done).length, [rows]);
   const filtered = filter !== 'all' || query.trim() !== '';
+  // 回到当前轮（2026-11-17 粘性批次）：非筛选态滚到最后一轮的分隔行；筛选态退化为滚到底部。
+  const jumpToLatest = (): void => {
+    const el = rootRef.current;
+    if (el === null || shown.length === 0) return;
+    const lastTurn = shown[shown.length - 1]!.turn;
+    const target =
+      !filtered && lastTurn > 0
+        ? el.querySelector<HTMLElement>(".tr-turn[data-turn='" + String(lastTurn) + "']")
+        : null;
+    if (target !== null) target.scrollIntoView({ block: 'start' });
+    else el.scrollTop = el.scrollHeight;
+  };
+  // 导出标注：筛选项的人话 + 搜索词（TraceTranscript 文稿开头如实声明「只包含筛选结果」）。
+  const filterLabel =
+    (TRACE_FILTERS.find((item) => item.kind === filter)?.label ?? '') +
+    (query.trim() === '' ? '' : ' · ' + t('搜索「{q}」', { q: query.trim() }));
   return (
     <div
+      ref={rootRef}
       className={'trace' + (hidden === true ? ' view-hidden' : '')}
       role={hidden === true ? undefined : 'log'}
       aria-label={t('工具调用轨迹')}
@@ -240,6 +290,12 @@ export function TraceView(props: TraceViewProps): ReactElement {
             counts={counts}
             onFilter={setFilter}
             onQuery={setQuery}
+            onJumpLatest={jumpToLatest}
+            onExport={
+              onExport === undefined
+                ? undefined
+                : () => onExport(shown, { filtered, filterLabel })
+            }
           />
         ) : null}
         {rows.length === 0 && liveInputs.length === 0 ? (

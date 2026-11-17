@@ -30,6 +30,8 @@ export interface EventCtx {
   onEditUser?: () => void;
   /** 历史用户消息「从此处重开」：服务端回退事件流到该消息（最后一条走编辑重发）。 */
   onRewindUser?: (ev: ThreadEvent) => void;
+  /** 引用追问：把该消息以引用块填回输入框（缺省不渲染入口）。 */
+  onQuote?: (ev: ThreadEvent) => void;
   onRegenerate?: () => void;
   /** 已被 assistant 事件收口的流式文本。 */
   finalizedStreamText: string;

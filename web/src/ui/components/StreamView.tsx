@@ -36,6 +36,7 @@ import type { DisplayBlock } from '../textUtils.ts';
 import { DEFAULT_ITEM_HEIGHT, StreamWindow } from '../models/StreamWindow.ts';
 import type { StreamWindowMetrics } from '../models/StreamWindow.ts';
 import { BlockHeightIndex } from '../models/BlockHeightIndex.ts';
+import type { TraceRow } from '../models/TraceFilter.ts';
 import { EventFields } from '../models/EventFields.ts';
 import type { StreamModel } from '../models/StreamModelCache.ts';
 import { ToolCallCard } from './stream/ToolCallCard.tsx';
@@ -109,6 +110,13 @@ export interface StreamViewProps {
   onRegenerate?: () => void;
   /** 编辑重发（最后一条用户消息挂载）：把该消息填回底部输入框。 */
   onEditUser?: () => void;
+  /** 引用追问：把任意一条 user / assistant 消息以引用块填回输入框。 */
+  onQuote?: (ev: ThreadEvent) => void;
+  /** 导出工具轨迹（TraceView 筛选后的行上抛；格式化与下载在控制器）。 */
+  onExportTrace?: (
+    rows: readonly TraceRow[],
+    meta: { readonly filtered: boolean; readonly filterLabel: string },
+  ) => void;
   /** 历史用户消息「从此处重开」：服务端事件流回退到该消息（最后一条走编辑重发）。 */
   onRewindUser?: (ev: ThreadEvent) => void;
   /** 当前模型（驱动 Composer 的切换器）。 */
@@ -251,6 +259,7 @@ function renderEventNode(ev: ThreadEvent, ctx: EventCtx): React.ReactElement | n
           canEdit={ev.id === ctx.lastUserId}
           turnDurationMs={ctx.turnDurations.get(ev.id)}
           onEdit={() => ctx.onEditUser?.()}
+          onQuote={ctx.onQuote === undefined ? undefined : () => ctx.onQuote?.(ev)}
           onRewind={
             ev.id === ctx.lastUserId || ctx.onRewindUser === undefined
               ? undefined
@@ -267,6 +276,7 @@ function renderEventNode(ev: ThreadEvent, ctx: EventCtx): React.ReactElement | n
           onOpenUrl={ctx.onOpenUrl}
           animate={!wasStreamed(p, ctx.finalizedStreamText)}
           onRegenerate={ev.id === ctx.lastAssistantId && ctx.busy !== true ? ctx.onRegenerate : undefined}
+          onQuote={ctx.onQuote === undefined ? undefined : () => ctx.onQuote?.(ev)}
         />,
       );
     case 'reasoning':
@@ -650,6 +660,7 @@ function buildEventCtx(props: StreamViewProps, model: StreamModel, clusterFresh:
     lastUserId: model.lastUserId,
     lastAssistantId: model.lastAssistantId,
     onEditUser: props.onEditUser,
+    onQuote: props.onQuote,
     onRewindUser: props.onRewindUser,
     onRegenerate: props.onRegenerate,
     finalizedStreamText: props.finalizedStreamText ?? '',
@@ -732,6 +743,7 @@ export function StreamView(props: StreamViewProps): React.ReactElement {
         liveInputs={props.liveInputs}
         toolResults={props.toolResults}
         hidden={view !== 'trace'}
+        onExport={props.onExportTrace}
       />
       <StreamBottom {...props} />
       <StreamStatusBar {...props} />

@@ -261,4 +261,17 @@ export const EN_TABS_C: Record<string, string> = {
   '回执保留期已过（保留承诺未兑现）': 'Receipt retention period expired (retention promise broken)',
   '对手方身份与期望不符': 'Counterparty identity mismatch',
   '见证法定人数未达成': 'Witness quorum not met',
+  // —— 轨迹动作区（2026-11-17 粘性批次：回到当前轮 / 导出）——
+  '回到当前轮': 'Back to latest turn',
+  '⤓ 当前轮': '⤓ Latest turn',
+  '导出当前轨迹为 Markdown': 'Export current trace as Markdown',
+  '导出轨迹': 'Export trace',
+  '当前轨迹没有可导出的行': 'No trace rows to export',
+  '已导出轨迹 Markdown': 'Trace exported as Markdown',
+  '搜索「{q}」': 'search "{q}"',
+  '轨迹导出': 'Trace transcript',
+  '说明：本稿只包含当前筛选结果（{condition}）。':
+    'Note: this transcript covers the filtered rows only ({condition}).',
+  '（没有轨迹行）': '(no trace rows)',
+  '自定义筛选': 'custom filter',
 };

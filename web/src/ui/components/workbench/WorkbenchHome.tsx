@@ -17,7 +17,8 @@ import type { ThreadEvent } from '../../../types/models.ts';
 import { icon } from '../../models/Icon.ts';
 import { t } from '../../i18n/i18n.ts';
 import { PathJoiner } from '../../models/PathJoiner.ts';
-import { SessionBrief, type SessionBriefStats } from '../../models/SessionBrief.ts';
+import { SessionBrief, type SessionBriefStats, type SessionContextStat } from '../../models/SessionBrief.ts';
+import { ContextForecast } from '../../models/ContextForecast.ts';
 import { formatDurationMs } from '../../models/DurationFormat.ts';
 import { TokenScaleFormatter } from '../../models/TokenScaleFormatter.ts';
 import { useWorkspaceChangeBrief } from './useWorkspaceChangeBrief.ts';
@@ -171,6 +172,41 @@ function SessionLine(props: {
 }
 
 /**
+ * 本会话上下文余量预测行（2026-11-17 粘性批次）：「按近 N 轮增速，大约还能再撑 M 轮」。
+ *
+ * 数据不足 / 非实测快照 / 已近满（剩余 <1 轮）都不渲染——预测是**参考**，宁缺毋滥。
+ * @param props 已加载事件与最近一次上下文快照
+ * @returns 预测行；不可估时 null
+ */
+function ContextForecastLine(props: {
+  readonly events: readonly ThreadEvent[];
+  readonly context: SessionContextStat | undefined;
+}): React.ReactElement | null {
+  const { events, context } = props;
+  if (context === undefined) return null;
+  const forecast = ContextForecast.estimate(events, context.windowTokens, context.usedTokens);
+  if (forecast === null) return null;
+  const { remainingTurns, samples, medianDelta } = forecast;
+  if (remainingTurns < 1 || remainingTurns > 200 || samples < 2) {
+    return null;
+  }
+  return (
+    <div
+      className="wb-forecast"
+      title={t('按最近 {n} 轮的上下文增量估算（每轮约 {tokens} token）；压缩 / 长附件会改变走势，仅作参考。', {
+        n: samples,
+        tokens: TOKENS.compact(medianDelta),
+      })}
+    >
+      {t('按近 {n} 轮增速，大约还能再撑 {m} 轮', {
+        n: samples,
+        m: remainingTurns,
+      })}
+    </div>
+  );
+}
+
+/**
  * 工作区变更清单（最多 4 行）。
  * @param props 变更状态与打开回调
  * @returns 变更区
@@ -240,6 +276,7 @@ export function WorkbenchHome(props: WorkbenchHomeProps): React.ReactElement {
     <div className="wb-home">
       <WorkbenchHead path={props.workspacePath} changes={changes} />
       <SessionLine stats={stats} turns={current?.turns} activeMs={current?.activeMs} />
+      <ContextForecastLine events={props.events} context={stats.context} />
       <WorkspaceChanges
         changes={changes}
         onOpenFile={props.onOpenFile}

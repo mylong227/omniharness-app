@@ -39,6 +39,8 @@ export interface AssistantCardProps {
   animate?: boolean;
   /** 重新生成回调（仅最后一条助手消息挂载；点击「重新生成」用最后一条用户消息重发）。 */
   onRegenerate?: () => void;
+  /** 引用追问：把这条回复以引用块填回输入框（缺省不渲染该入口）。 */
+  onQuote?: () => void;
   /** 定时器注入点（单测可替换；组件内默认用全局 setTimeout）。 */
   schedule?: (fn: () => void, ms: number) => ReturnType<typeof setTimeout>;
 }
@@ -54,19 +56,34 @@ const COPY_BTN: Record<string, string> = {
 };
 
 /**
- * 助手卡头部：徽标、时间与重新生成入口。
- * @param props 事件与重新生成回调。
+ * 助手卡头部：徽标、时间、重新生成与引用追问入口。
+ * @param props 事件与回调。
  * @returns 头部节点。
  */
 function AssistantHead(props: {
   ev: ThreadEvent;
   onRegenerate?: (() => void) | undefined;
+  onQuote?: (() => void) | undefined;
 }): ReactElement {
-  const { ev, onRegenerate } = props;
+  const { ev, onRegenerate, onQuote } = props;
   return (
     <div className="head">
       {badge(ev.type)}
       <span className="time">{timeOf(ev.timestamp)}</span>
+      {/* 引用追问（2026-11-17 粘性批次）：引用任意一条回复继续问。 */}
+      {onQuote ? (
+        <button
+          className="msg-act"
+          title={t('引用追问：把这条回复填回输入框，补一句继续问')}
+          aria-label={t('引用追问')}
+          onClick={(e: React.MouseEvent) => {
+            e.stopPropagation();
+            onQuote();
+          }}
+        >
+          {icon('message', { size: 12 })}
+        </button>
+      ) : null}
       {onRegenerate ? (
         <button
           className="msg-act"
@@ -112,7 +129,7 @@ function openFileFromClick(
  * @returns 助手消息节点
  */
 export function AssistantCard(props: AssistantCardProps): ReactElement {
-  const { ev, busy, animate, onOpenFile, onOpenUrl, onRegenerate, schedule } = props;
+  const { ev, busy, animate, onOpenFile, onOpenUrl, onRegenerate, onQuote, schedule } = props;
   const [shown, setShown] = React.useState<string>('');
   const full = (ev.payload?.content as string) || '';
   // 收折判定（2026-11-17 性能批次）：shouldCollapse 内部 countLines 是 O(len) 字符扫描，
@@ -147,7 +164,7 @@ export function AssistantCard(props: AssistantCardProps): ReactElement {
   const p = ev.payload || {};
   return (
     <>
-      <AssistantHead ev={ev} onRegenerate={onRegenerate} />
+      <AssistantHead ev={ev} onRegenerate={onRegenerate} onQuote={onQuote} />
       <div className={'card ' + ev.type}>
         {/* 长内容默认收起为简报卡（2026-10-13 用户反馈：数千字报告整段平铺糊满一屏）。
             仅对**最终卡片**生效：生成中（busy）正文还在长，收起会跟揭示动画打架。 */}

@@ -97,6 +97,7 @@ test('上下文注记卡：默认收起、展开是排好版的预览、键盘�
       return {
         cards: cards.length,
         plainNotes: document.querySelectorAll('.sysnote').length,
+        quoteBtns: document.querySelectorAll('button[aria-label="引用追问"]').length,
         compactTitle: text(cards[0], '.ctx-note__title'),
         compactMeta: text(cards[0], '.ctx-note__meta'),
         compactExcerpt: text(cards[0], '.ctx-note__excerpt'),
@@ -112,6 +113,10 @@ test('上下文注记卡：默认收起、展开是排好版的预览、键盘�
     })()`)) as Record<string, unknown>;
     assert.strictEqual(collapsed['cards'], 2, '压缩游标 + 工作流记忆各一张卡');
     assert.strictEqual(collapsed['plainNotes'], 1, '短旁白仍走一行 sysnote，不该变成卡');
+    assert.ok(
+      Number(collapsed['quoteBtns']) >= 1,
+      '引用追问入口已挂到用户卡（msg-act，与复制/重开同排）',
+    );
     assert.ok(collapsed['compactKind'], '压缩卡带 compaction 身份类（左色轨/图标/chip 色点共用）');
     assert.ok(collapsed['memoryKind'], '记忆卡带 memory 身份类');
     assert.strictEqual(collapsed['compactTitle'], '上下文已压缩');

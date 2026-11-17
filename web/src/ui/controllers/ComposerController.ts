@@ -13,6 +13,7 @@ import type { ToolResultView } from '../shared.ts';
 import type { SessionController } from './SessionController.ts';
 import { MethodBinder } from './methodBinder.ts';
 import { EventFields } from '../models/EventFields.ts';
+import { MessageQuote } from '../models/MessageQuote.ts';
 import { ComposerOptions } from '../models/ComposerOptions.ts';
 import { t } from '../i18n/i18n.ts';
 import { desktopBridge, notifyDesktop } from '../../core/desktop/DesktopBridge.ts';
@@ -417,6 +418,22 @@ export class ComposerController {
     this.host.patch((s) => ({
       composerSeed: { text: trimmed, nonce: (s.composerSeed?.nonce ?? 0) + 1 },
     }));
+  }
+
+  /**
+   * 引用追问（2026-11-17 粘性批次）：把任意一条 user / assistant 消息以 Markdown 引用块
+   * 填回输入框，用户在引用下面直接补问题发送——模型天然能从 blockquote 分辨「哪段是历史、
+   * 哪段是新问题」。与编辑重发共用 seedDraft 回填通道，零新 RPC。
+   * @param ev 被引用的消息事件
+   * @returns 无
+   */
+  public quoteMessage(ev: ThreadEvent): void {
+    const quote = MessageQuote.compose(EventFields.content(ev));
+    if (quote === null) {
+      this.services.toast(t('这条消息没有可引用的正文'), 'info');
+      return;
+    }
+    this.seedDraft(quote);
   }
 
   /**

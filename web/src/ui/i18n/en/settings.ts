@@ -319,4 +319,7 @@ export const EN_SETTINGS: Record<string, string> = {
   '≥ 1000 的整数（毫秒）': 'integer ≥ 1000 (ms)',
   'auto 全自动 / rules 按规则 / ask 每次询问 / plan 只读规划（写类一律拒绝）/ guardian 守护裁决 / deny 全拒':
     'auto = fully automatic / rules = by rules / ask = confirm each time / plan = read-only planning (writes denied) / guardian = guardian verdict / deny = reject all',
+  // —— 厂商卡归属标签（2026-11-17 美化批次）——
+  '本地': 'Local',
+  '云端': 'Cloud',
 };

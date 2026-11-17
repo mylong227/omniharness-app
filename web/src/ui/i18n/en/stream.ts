@@ -219,4 +219,11 @@ export const EN_STREAM: Record<string, string> = {
   '{n} 分钟前': '{n} minutes ago',
   '{n} 小时前': '{n} hours ago',
   '{n} 天前': '{n} days ago',
+  // —— 消息引用追问（2026-11-17 粘性批次）——
+  '引用追问': 'Quote & follow up',
+  '引用追问：把这条消息填回输入框，补一句继续问':
+    'Quote & follow up: put this message back into the composer and add a question',
+  '引用追问：把这条回复填回输入框，补一句继续问':
+    'Quote & follow up: put this reply back into the composer and add a question',
+  '这条消息没有可引用的正文': 'This message has no quotable content',
 };
