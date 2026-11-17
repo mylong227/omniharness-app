@@ -227,3 +227,32 @@ test('键表模式：label/hint/name/group 的 CJK 值都必须在 en 词条分�
     '以下键表 CJK 值缺英文词条（渲染处 t(var.X) 查表，en 缺条目即静默回落中文；补进 web/src/ui/i18n/en/ 对应分片）',
   );
 });
+
+test('判据四：JSX 文本节点与展示属性不得直写 CJK 字面量（必须走 t()）', () => {
+  // 2026-11-18 普查沉淀：web/src 当前为 0 直写（文案全走 t()/键表），钉住防回归。
+  // 边界：① 只扫 .tsx 的 JSX 文本节点（>…中文…<，且文本不含引号——排除字符串字面量内部的
+  // `>…<` 形态，如 markdown.ts 拼接 t('复制') 的模板）；② 展示属性 title=/aria-label=/
+  // placeholder=/alt= 的**裸引号**值在任何 .ts/.tsx 里都不许带 CJK（动态值一律 {t(…)}）。
+  const files = collectTsFiles(SRC_ROOT, [EN_DIR.replace(/[\\/]+$/, '')]);
+  const violations: string[] = [];
+  for (const file of files) {
+    const rel = file.replace(SRC_ROOT, '');
+    const text = stripComments(readFileSync(file, 'utf8'));
+    const isTsx = rel.endsWith('.tsx');
+    text.split('\n').forEach((line, idx) => {
+      if (!/[\u4e00-\u9fff]/.test(line)) return;
+      if (/^\s*(\/\/|\*|\/\*)/.test(line)) return; // 行首注释（块注释残余也按行首匹配兜底）
+      const attr = line.match(/\b(title|aria-label|placeholder|alt)=["'][^"']*[\u4e00-\u9fff][^"']*["']/);
+      if (attr) violations.push(rel + ':' + (idx + 1) + ' → ' + attr[0].slice(0, 80));
+      if (isTsx) {
+        const jsx = line.match(/>([^<>{}'"]*[\u4e00-\u9fff][^<>{}'"]*)</);
+        if (jsx) violations.push(rel + ':' + (idx + 1) + ' → JSX 文本「' + jsx[1].trim().slice(0, 40) + '」');
+      }
+    });
+  }
+  assert.deepEqual(
+    violations,
+    [],
+    '以下用户可见文案直写了中文（en 用户看不懂）：改为 t("…") 并补词条，或改用键表',
+  );
+});

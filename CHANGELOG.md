@@ -6,6 +6,16 @@
 ## [Unreleased]
 
 ### Added（新增）
+- **错误链路结构化分类（2026-11-18，硬编码清理批次）**：`ApiClient` 引入 `RpcError`
+  （稳定 kind：rpc-error / auth / http-status / bad-json / **network**，携带 HTTP status 与
+  JSON-RPC 协议码）；运行失败建议语改按 **kind / status / code** 分类——后端桥接等待超时
+  （协议码 `-32002`，回合可能仍在后台）与 HTTP ≥500 给「仍在后台」提示；**网络不可达首次
+  有了专属提示**（此前落进误导性的「检查 API Key」）；授权失败指向 token 横幅。判定不再
+  匹配翻译后文案（en 词条变化不再让提示静默失效），`/RPC 超时/` 中文字面量匹配从源码移除。
+  账本见 [hardcode-cleanup-2026-11-18.md](docs/design/hardcode-cleanup-2026-11-18.md)。
+- **i18nCoverage 判据四（2026-11-18）**：web/src 的 JSX 文本节点与展示属性（title /
+  aria-label / placeholder / alt 裸引号值）**零 CJK 直写**——普查为 0，钉住防回归；
+  桌面壳同步新增「ipc.ts / window.ts 剥离注释后零裸字面量」判据。
 - **压测 / 极限探针 + 后端并发锤（2026-11-18，批次 4）**：新增两个零第三方依赖的可复现探针
   （真 Chrome + CDP + 确定性假后端 / 嵌入 API 起真实宿主），本轮数据：大会话 2000 事件打开
   ~2s（DOM 3.2k，窗口化有界）；流式 600 delta 543ms 且 longtask **0ms**；轨迹 1500 行首屏
@@ -168,6 +178,11 @@
   的薄包装，缺依赖时自动 `npm ci`，失败时停在窗口里保留错误。
 
 ### Fixed（修复）
+- **桌面壳硬编码中文绕过 i18n（2026-11-18，硬编码清理批次）**：目录选择框标题（en 用户
+  看到中文「选择工作区」→ `dialog.pickWorkspace` 双语键）；切换工作区时守卫错误直弹
+  中文句子（`assertDirectory` 抛稳定码 `WorkspaceGuardError`，对话框按
+  `dialog.workspaceNotFound` / `dialog.workspaceNotDirectory` 本地化模板呈现）；启动页
+  兜底文案复写副本删除（引用消息表单一真源）。
 - **打开「正在运行」的会话后停止按钮失灵、可并出幽灵第二回合（2026-11-17 全面 review）**：
   busy 来自磁盘态而 `inFlight=false`，`stop()` 直接 return、`send()` 落进空闲分支直接 runRound。
   现在 `stop()` 在远端忙碌时降级收口（清 UI + 定向 abortTurn）、发送按聊天模式分流不并发，
