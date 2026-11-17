@@ -4,7 +4,7 @@
 
 | 文件 | 说明 |
 | ---- | ---- |
-| `omniharness-kernel-0.1.0-alpha.24.tgz` | `@omniharness/kernel` 在 tag `v0.1.0-alpha.24` 的构建产物 + 应用 `native/omni_napi.node`（`NativeKernel` 从包根找它） |
+| `omniharness-kernel-0.1.0-alpha.26.tgz` | `@omniharness/kernel` 在 tag `v0.1.0-alpha.26` 的构建产物 + 应用 `native/omni_napi.node`（`NativeKernel` 从包根找它） |
 
 ## 重新生成
 
@@ -23,7 +23,15 @@ npm run kernel:check     # 9 条判据（含生成物不漂移 / 已承诺能力
 
 ## 版本史
 
-- **alpha.24**（当前）：alpha.23/24 的 R9–R11 批次——长任务端到端评测（pass@k/预算画像）、
+- **alpha.26**（当前）：R12 两批一并收口。alpha.25（M88–M92）：缓存命中率三层修复
+  （finalize 兜底请求保留主请求工具前缀 / 缓存读数逐步入账，探针实测旧口径低估 1.99× /
+  gapMs 分因面）+ 内存上界收口（磁盘嵌入镜像 256 MiB 字节预算、watcher 峰值哨兵）+
+  内部缓存一致性三项 + 会话级前缀计量器（跨回合/resume 同实例）与零凭据稳定性探针；
+  alpha.26（M93）：工具暴露稳定杠杆 `OMNI_TOOL_EXPOSURE=monotonic`（显式第三模式，缺省仍
+  `plan`；A/B 实测 tools 前缀复用 0.8197→1，窗口退出不再灾难性重写）+ 三轮 review 收口。
+  均为内核内部面，应用消费面零变化：`kernel:surface` 19 域再生成「无变化」、公共根导出面
+  60/60；本仓 typecheck×3 + `kernel:check` 九条复绿（284 源文件 / 290 处包导入 / 原生内核实载）。
+- **alpha.24**：alpha.23/24 的 R9–R11 批次——长任务端到端评测（pass@k/预算画像）、
   模型请求哈希与回滚等价、结论引用检查、问题拆分基准、压缩摘要长段落保真与 checkpoint
   文件态恢复；公共根导出面仍 60/60。应用消费面零变化，`kernel:check` 284 源文件 / 290 导入、
   tarball integrity 与原生实载全绿。

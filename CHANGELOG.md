@@ -6,6 +6,20 @@
 ## [Unreleased]
 
 ### Added（新增）
+- **i18nCoverage 键表模式判据（2026-11-17，沉淀批次 C 的一次性脚本）**：设置字段 / 快捷键行 /
+  命令面板 buildCommands / 权限档 / 轨迹筛选 chips 等表驱动文案走 `t(var.label)` 查表，
+  en 是否覆盖只能从「表的值」侧比对——新增第三条静态判据：源码里 `label` / `hint` /
+  `name` / `group` 四键的 CJK 值都必须在 en 分片有条目。首跑即抓到命令面板「专注模式」
+  缺 en 词条（en 用户见中文），已补。
+- **内核升级 alpha.26（2026-11-17）**：vendored kernel 升到 `v0.1.0-alpha.26`
+  （R12 两批一并 vend）。alpha.25：缓存命中率三层修复（finalize 兜底请求保留主请求工具前缀 /
+  缓存读数逐步入账，实测旧口径低估 1.99× / gapMs 分因）、内存上界收口（磁盘嵌入镜像
+  256 MiB 预算 / watcher 峰值哨兵）、内部缓存一致性三项、会话级前缀计量器与零凭据稳定性探针；
+  alpha.26：工具暴露稳定杠杆 `OMNI_TOOL_EXPOSURE=monotonic`（显式第三模式，缺省仍 `plan`；
+  A/B 实测 tools 前缀复用 0.8197→1，窗口退出不再灾难性重写）与三轮 review 收口。
+  均为内核内部面，应用消费面零变化（19 域再生成「无变化」、公共根导出面 60/60）；
+  本仓 `kernel:check` 九条复绿（284 源文件 / 290 处包导入 / 原生内核实载）。
+  版本历史见 [vendor/README.md](vendor/README.md)，契约见 [KERNEL-CONTRACT.md](docs/KERNEL-CONTRACT.md)。
 - **粘性与美观第二批（2026-11-17，接全面 review，账本见
   [ux-audit-2026-11-17.md](docs/design/ux-audit-2026-11-17.md) 第二批）**：
   ① **消息引用追问**：任意一条 user / assistant 消息一键以引用块填回输入框（复用
