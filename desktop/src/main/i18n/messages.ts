@@ -53,6 +53,9 @@ export type DesktopMessageKey =
   | 'dialog.diagnosticsMessage'
   | 'dialog.workspaceOpenFailed'
   | 'dialog.invalidWorkspace'
+  | 'dialog.workspaceNotFound'
+  | 'dialog.workspaceNotDirectory'
+  | 'dialog.pickWorkspace'
   | 'dialog.switchFailedTitle'
   | 'dialog.switchFailedMessage'
   | 'dialog.restartFailedTitle'
@@ -122,6 +125,9 @@ const ZH: Record<DesktopMessageKey, string> = {
   'dialog.diagnosticsMessage': '可复制以下内容用于排障：',
   'dialog.workspaceOpenFailed': '打开工作区失败',
   'dialog.invalidWorkspace': '工作区无效',
+  'dialog.workspaceNotFound': '工作区不存在：{path}',
+  'dialog.workspaceNotDirectory': '不是目录：{path}',
+  'dialog.pickWorkspace': '选择工作区',
   'dialog.switchFailedTitle': '切换工作区失败',
   'dialog.switchFailedMessage': '无法启动新工作区的 Harness',
   'dialog.restartFailedTitle': '重启失败',
@@ -194,6 +200,9 @@ const EN: Record<DesktopMessageKey, string> = {
   'dialog.diagnosticsMessage': 'Copy the following for troubleshooting:',
   'dialog.workspaceOpenFailed': 'Failed to open workspace',
   'dialog.invalidWorkspace': 'Invalid workspace',
+  'dialog.workspaceNotFound': 'Workspace does not exist: {path}',
+  'dialog.workspaceNotDirectory': 'Not a directory: {path}',
+  'dialog.pickWorkspace': 'Select Workspace',
   'dialog.switchFailedTitle': 'Failed to switch workspace',
   'dialog.switchFailedMessage': 'Could not start the Harness for the new workspace.',
   'dialog.restartFailedTitle': 'Restart failed',

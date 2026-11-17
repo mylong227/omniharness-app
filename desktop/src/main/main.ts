@@ -6,6 +6,7 @@ import { AutoStartService } from './autoStart.ts';
 import { DesktopStateStore } from './desktopState.ts';
 import { HarnessSupervisor, type HarnessHandle } from './harnessSupervisor.ts';
 import { assertDirectory, openLogDirectory, pickDirectory, registerIpc } from './ipc.ts';
+import { WorkspaceGuardError } from './ipcGuards.ts';
 import { harnessEntry, logDir, modelDir, nodeBinary, runDir, vectorDir } from './lib/paths.ts';
 import { parseLaunchArgs } from './lib/args.ts';
 import { loadDesktopConfig, type DesktopConfig } from './config.ts';
@@ -265,7 +266,7 @@ async function bootstrap(): Promise<void> {
     launch.deepLink !== null
       ? DeepLinkRouter.workspaceOf(launch.deepLink, config.app.protocol)
       : null;
-  const initial = await resolveWorkspace(launch.workspace ?? linkedWorkspace, state);
+  const initial = await resolveWorkspace(launch.workspace ?? linkedWorkspace, state, i18n);
   if (initial === null) {
     logger.write('main', 'no workspace selected; quit');
     app.quit();
@@ -475,11 +476,13 @@ async function bootstrap(): Promise<void> {
  * 解析初始工作区：显式参数 > 上次工作区 > 原生选择框。
  * @param explicit 命令行 `--workspace`。
  * @param state 偏好。
+ * @param i18n 桌面文案（目录选择框标题等用户可见面）。
  * @returns 工作区绝对路径；取消为 null。
  */
 async function resolveWorkspace(
   explicit: string | null,
   state: DesktopStateStore,
+  i18n: DesktopI18n,
 ): Promise<string | null> {
   if (explicit !== null) {
     if (!existsSync(explicit) || !statSync(explicit).isDirectory()) {
@@ -500,15 +503,17 @@ async function resolveWorkspace(
     app.exit(2);
     return null;
   }
-  return pickWorkspace();
+  return pickWorkspace(i18n);
 }
 
 /**
- * 弹出目录选择框。
+ * 弹出目录选择框（标题走 `dialog.pickWorkspace` 消息键、跟随桌面语言——此前 ipc.ts
+ * 里硬编码中文标题，en 用户看到中文框题，2026-11-18 硬编码清理批次收口）。
+ * @param i18n 桌面文案。
  * @returns 选中路径或 null。
  */
-async function pickWorkspace(): Promise<string | null> {
-  return pickDirectory(app.getPath('documents'));
+async function pickWorkspace(i18n: DesktopI18n): Promise<string | null> {
+  return pickDirectory(app.getPath('documents'), i18n.t('dialog.pickWorkspace'));
 }
 
 /**
@@ -533,11 +538,12 @@ function createSupervisor(workspace: string, logger: DesktopLogger): HarnessSupe
 
 /** 菜单/IPC：选择并切换工作区。 */
 async function chooseWorkspace(): Promise<void> {
+  const ctx = context;
   try {
-    const picked = await pickWorkspace();
+    // context 未就绪时（理论不可达，防御性兜底）用缺省中文——正常路径 i18n 恒在位。
+    const picked = await pickWorkspace(ctx?.i18n ?? new DesktopI18n('zh-CN'));
     if (picked !== null) await switchWorkspace(picked);
   } catch (error) {
-    const ctx = context;
     ctx?.logger.write('main', `choose workspace failed: ${String(error)}`);
     if (ctx !== null) {
       await ctx.dialogs.workspaceOpenFailed(error instanceof Error ? error.message : String(error));
@@ -557,7 +563,13 @@ async function switchWorkspace(path: string): Promise<void> {
   try {
     absolute = assertDirectory(path);
   } catch (error) {
-    await ctx.dialogs.invalidWorkspace(error instanceof Error ? error.message : String(error));
+    // 守卫错误（not-exists / not-directory）按稳定码走本地化模板——en 用户不再看到中文句子；
+    // 其余错误（理论不可达）保留原样呈现。
+    if (error instanceof WorkspaceGuardError) {
+      await ctx.dialogs.invalidWorkspaceGuarded(error.code, error.path);
+    } else {
+      await ctx.dialogs.invalidWorkspace(error instanceof Error ? error.message : String(error));
+    }
     return;
   }
   if (absolute === ctx.workspace) return;

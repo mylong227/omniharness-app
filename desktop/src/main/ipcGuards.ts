@@ -73,13 +73,39 @@ export function trustRejection(
 }
 
 /**
+ * 工作区守卫错误的稳定种类（2026-11-18 硬编码清理批次）：`code` 供对话框层做**本地化**
+ * 呈现（`DesktopDialogs.invalidWorkspaceGuarded`），`message` 保留中文细节供日志/诊断——
+ * 文案与判定解耦，改错误文案不再牵动对话框分支。
+ */
+export class WorkspaceGuardError extends Error {
+  /** 稳定错误码（对话框本地化的键源）。 */
+  public readonly code: 'not-exists' | 'not-directory';
+  /** 被拒的路径（本地化模板的 {path} 参数）。 */
+  public readonly path: string;
+
+  /**
+   * @param code 稳定错误码。
+   * @param path 被拒路径。
+   * @param message 中文细节（日志/诊断用，不上本地化路径）。
+   */
+  public constructor(code: 'not-exists' | 'not-directory', path: string, message: string) {
+    super(message);
+    this.name = 'WorkspaceGuardError';
+    this.code = code;
+    this.path = path;
+  }
+}
+
+/**
  * 校验路径存在且是目录（自 ipc.ts 原样迁入）。
  * @param path 路径。
  * @returns 绝对路径。
  */
 export function assertDirectory(path: string): string {
-  if (!existsSync(path)) throw new Error(`工作区不存在：${path}`);
-  if (!statSync(path).isDirectory()) throw new Error(`不是目录：${path}`);
+  if (!existsSync(path)) throw new WorkspaceGuardError('not-exists', path, `工作区不存在：${path}`);
+  if (!statSync(path).isDirectory()) {
+    throw new WorkspaceGuardError('not-directory', path, `不是目录：${path}`);
+  }
   return path;
 }
 

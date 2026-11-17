@@ -95,9 +95,8 @@ const { HarnessStartFailure } = await import(
   pathToFileURL(join(out, 'harnessFailure.cjs')).href
 );
 const { TrayService } = await import(pathToFileURL(join(out, 'tray.cjs')).href);
-const { assertNotifyInput, trustRejection, assertRevealPathInside } = await import(
-  pathToFileURL(join(out, 'ipcGuards.cjs')).href
-);
+const { assertNotifyInput, trustRejection, assertRevealPathInside, assertDirectory, WorkspaceGuardError } =
+  await import(pathToFileURL(join(out, 'ipcGuards.cjs')).href);
 
 test('DesktopI18n：system 解析 + 中英词条完整 + 占位符替换', () => {
   assert.equal(DesktopI18n.resolve('system', 'en-US'), 'en-US');
@@ -130,11 +129,42 @@ test('DesktopI18n：中英语言包键集合完全一致', () => {
     'dialog.startFailedTitle',
     'dialog.crashTitle',
     'dialog.updateLatestMessage',
+    'dialog.pickWorkspace',
+    'dialog.workspaceNotFound',
+    'dialog.workspaceNotDirectory',
     'window.starting',
   ]) {
     assert.notEqual(zh.t(key), key, `zh 缺少 ${key}`);
     assert.notEqual(en.t(key), key, `en 缺少 ${key}`);
   }
+});
+
+test('ipcGuards：assertDirectory 抛 WorkspaceGuardError（稳定码 + 路径，供对话框本地化）', () => {
+  // 不存在 → not-exists
+  const missing = join(out, 'no-such-workspace-dir');
+  let err = null;
+  try {
+    assertDirectory(missing);
+  } catch (e) {
+    err = e;
+  }
+  assert.ok(err instanceof WorkspaceGuardError, '必须是 WorkspaceGuardError');
+  assert.equal(err.code, 'not-exists');
+  assert.equal(err.path, missing);
+  // 存在但不是目录 → not-directory
+  const file = join(out, 'guard-not-dir.tmp');
+  writeFileSync(file, 'x');
+  err = null;
+  try {
+    assertDirectory(file);
+  } catch (e) {
+    err = e;
+  }
+  assert.ok(err instanceof WorkspaceGuardError, '必须是 WorkspaceGuardError');
+  assert.equal(err.code, 'not-directory');
+  assert.equal(err.path, file);
+  // 合法目录 → 原样返回
+  assert.equal(assertDirectory(out), out);
 });
 
 test('StartupMarker：固定阶段格式（供 startupReport 解析）', () => {
@@ -1015,4 +1045,45 @@ test('CSP 门禁：script-src 哈希白名单必须覆盖主题内联脚本；un
   if (existsSync(distIndex)) {
     assert.deepEqual(inlineScriptHashes(distIndex), sourceHashes, 'web/dist 与 source 的内联脚本哈希漂移');
   }
+});
+
+test('桌面壳零裸 CJK 字面量：ipc.ts / window.ts 的用户可见文案必须走消息表（硬编码清理批次钉住）', () => {
+  // 2026-11-18 普查发现两处绕过 DesktopI18n 的硬编码（目录选择框标题 / 启动页兜底文案），
+  // 收口后用本判据钉住：这两个壳面文件剥离注释后不得再出现任何 CJK——新增用户可见文案
+  // 一律进 i18n/messages.ts（双语表由 TS Record 类型强制补全）。
+  // 范围只钉「已收口的壳面」：SmokeHarness / 配置加载器等的中文是诊断输出（产品语言），
+  // harnessSupervisor/ready 的错误进日志与诊断面板，不在本判据范围（账本已登记）。
+  const stripComments = (src) => {
+    let out = '';
+    let i = 0;
+    let mode = 'code';
+    while (i < src.length) {
+      const c = src[i];
+      const d = src[i + 1] ?? '';
+      if (mode === 'code') {
+        if (c === '/' && d === '/') { mode = 'line'; out += ' '; i += 2; continue; }
+        if (c === '/' && d === '*') { mode = 'block'; out += ' '; i += 2; continue; }
+        if (c === "'" || c === '"' || c === '`') { mode = c === "'" ? 's' : c === '"' ? 'd' : 't'; out += c; i += 1; continue; }
+        out += c; i += 1; continue;
+      }
+      if (mode === 'line') { if (c === '\n') { mode = 'code'; out += '\n'; } i += 1; continue; }
+      if (mode === 'block') { if (c === '*' && d === '/') { mode = 'code'; out += ' '; i += 2; } else { i += 1; } continue; }
+      if (c === '\\') { out += src.slice(i, i + 2); i += 2; continue; }
+      if ((mode === 's' && c === "'") || (mode === 'd' && c === '"') || (mode === 't' && c === '`')) mode = 'code';
+      out += c; i += 1;
+    }
+    return out;
+  };
+  const violations = [];
+  for (const rel of ['src/main/ipc.ts', 'src/main/window.ts']) {
+    const text = stripComments(readFileSync(join(process.cwd(), rel), 'utf8'));
+    text.split('\n').forEach((line, idx) => {
+      if (/[\u4e00-\u9fff]/.test(line)) violations.push(rel + ':' + (idx + 1) + ' → ' + line.trim().slice(0, 80));
+    });
+  }
+  assert.deepEqual(
+    violations,
+    [],
+    '桌面壳面文件出现裸中文：用户可见文案进 i18n/messages.ts（双语）；注释请放在注释里（判据已剥离注释，不误伤）',
+  );
 });

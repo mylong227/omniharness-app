@@ -108,12 +108,30 @@ export class DesktopDialogs {
     });
   }
 
-  /** 工作区无效。 */
+  /** 工作区无效（通用：错误细节原样呈现）。 */
   public async invalidWorkspace(message: string): Promise<void> {
     await dialog.showMessageBox({
       type: 'error',
       title: this.i18n.t('dialog.invalidWorkspace'),
       message,
+    });
+  }
+
+  /**
+   * 工作区无效（守卫错误本地化版，2026-11-18）：按 `WorkspaceGuardError.code` 取
+   * 本地化模板（{path} 填被拒路径）——此前主进程抛的中文 message 原样进对话框，
+   * en 用户看到中文句子。
+   * @param code 稳定错误码（not-exists / not-directory）。
+   * @param path 被拒路径。
+   */
+  public async invalidWorkspaceGuarded(
+    code: 'not-exists' | 'not-directory',
+    path: string,
+  ): Promise<void> {
+    await dialog.showMessageBox({
+      type: 'error',
+      title: this.i18n.t('dialog.invalidWorkspace'),
+      message: this.i18n.t(code === 'not-exists' ? 'dialog.workspaceNotFound' : 'dialog.workspaceNotDirectory', { path }),
     });
   }
 

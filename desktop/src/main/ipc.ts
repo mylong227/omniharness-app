@@ -194,11 +194,13 @@ function assertTrusted(event: IpcMainInvokeEvent, deps: IpcDeps): void {
 /**
  * 弹出原生目录选择。
  * @param defaultPath 默认路径。
+ * @param title 对话框标题（**本地化后的文案**，由调用方从 `DesktopI18n` 取——
+ *              此前在这里硬编码中文标题，en 用户看到的是中文框题，2026-11-18 收口）。
  * @returns 选中路径或 null。
  */
-export async function pickDirectory(defaultPath: string): Promise<string | null> {
+export async function pickDirectory(defaultPath: string, title: string): Promise<string | null> {
   const result = await dialog.showOpenDialog({
-    title: '选择工作区',
+    title,
     defaultPath,
     properties: ['openDirectory', 'createDirectory'],
   });

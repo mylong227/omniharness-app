@@ -4,6 +4,9 @@ import type { DesktopStateStore, WindowBounds } from './desktopState.ts';
 import type { DesktopWindowConfig } from './config.ts';
 import type { HarnessHandle } from './harnessSupervisor.ts';
 import { resolveAppIconPath } from './app/AppIcon.ts';
+// 启动页兜底文案引用消息表单一真源：不再复写字面量（改文案只动 messages.ts 一处，
+// 此前这里散落一份中文副本会静默漂移，2026-11-18 硬编码清理批次）。
+import { DESKTOP_MESSAGES } from './i18n/messages.ts';
 
 /** 启动页（内联 data URL：不依赖 asar 内文件路径，规避 packaged `ERR_FILE_NOT_FOUND`）。 */
 const loadingHtml = (hint: string, lang: string): string =>
@@ -150,7 +153,10 @@ export function createMainWindow(options: MainWindowOptions): BrowserWindow {
   });
   void window.loadURL(
     `data:text/html;charset=utf-8,${encodeURIComponent(
-      loadingHtml(options.loadingHint ?? '正在启动本地 Harness…', options.loadingLang ?? 'zh-CN'),
+      loadingHtml(
+        options.loadingHint ?? DESKTOP_MESSAGES['zh-CN']['window.starting'],
+        options.loadingLang ?? 'zh-CN',
+      ),
     )}`,
   );
   return window;
