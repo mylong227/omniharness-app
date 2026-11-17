@@ -58,14 +58,14 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.0",
-    "@omniharness/kernel": "file:vendor/omniharness-kernel-0.1.0-alpha.27.tgz",
-    "antd": "6.6.8",
-    "croner": "10.0.1",
+    "@omniharness/kernel": "file:vendor/omniharness-kernel-0.1.0-alpha.28.tgz",
+    "antd": "^6.7.1",
+    "croner": "^11.0.1",
     "highlight.js": "^11.12.0",
-    "jose": "6.2.12",
-    "katex": "^0.16.47",
-    "markdown-it": "^14.3.3",
-    "openid-client": "^6.8.8",
+    "jose": "^6.2.17",
+    "katex": "^0.19.1",
+    "markdown-it": "^15.0.3",
+    "openid-client": "^6.9.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "sirv": "^3.0.2",
@@ -75,7 +75,7 @@
     "@huggingface/transformers": "^4.2.0",
     "@mozilla/readability": "^0.6.0",
     "linkedom": "^0.18.13",
-    "playwright-core": "^1.64.1",
+    "playwright-core": "^1.65.1",
     "sharp": "^0.35.4",
     "unpdf": "^1.9.1",
     "yaml": "^2.9.1"
@@ -87,17 +87,16 @@
   "devDependencies": {
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
-    "@testing-library/user-event": "^14.6.8",
-    "@types/markdown-it": "^14.2.0",
+    "@testing-library/user-event": "^14.6.12",
     "@types/node": "^22.10.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^4.7.0",
-    "axe-core": "^4.14.0",
+    "axe-core": "^4.14.1",
     "esbuild": "^0.25.12",
     "jsdom": "^25.0.1",
     "typescript": "^5.7.0",
     "vite": "^6.4.4",
-    "vitest": "^2.1.9"
+    "vitest": "^5.1.0"
   }
 }

@@ -4,7 +4,7 @@
 
 | 文件 | 说明 |
 | ---- | ---- |
-| `omniharness-kernel-0.1.0-alpha.26.tgz` | `@omniharness/kernel` 在 tag `v0.1.0-alpha.26` 的构建产物 + 应用 `native/omni_napi.node`（`NativeKernel` 从包根找它） |
+| `omniharness-kernel-0.1.0-alpha.27.tgz` | `@omniharness/kernel` 在 tag `v0.1.0-alpha.27` 的构建产物 + 应用 `native/omni_napi.node`（`NativeKernel` 从包根找它） |
 
 ## 重新生成
 
@@ -23,7 +23,15 @@ npm run kernel:check     # 9 条判据（含生成物不漂移 / 已承诺能力
 
 ## 版本史
 
-- **alpha.26**（当前）：R12 两批一并收口。alpha.25（M88–M92）：缓存命中率三层修复
+- **alpha.27**（当前）：R13 全轮（M94–M98 + 深度 review 收口 P1×2/P2×7/P3×8，0 P0）——
+  统一工具结果预算读数（`ToolResultBudgetReadout`/回合级计量器/哨兵 `budget` 分区，
+  spill/trim/snip 三处决策首次统一账目）、tail 侧整形收口（`compose.over_budget` 从只记不治
+  到预算内确定性整形，`HeadTailTrimmer` 头尾整形 + `shaped` 留痕）、MCP 工具指纹 JCS 化
+  （rug-pull 闸改 `Canonical.stableStringify`，键序重排不再误触 fail-closed）、区分性检索
+  对照池（hard 档 baseline recall 0.8<1.000，mock 精排价值首次可测）、RNG 收敛。公共根导出
+  面仍 60/60；应用消费面零变化，`kernel:check` 九条复绿（284 源文件 / 290 处包导入 /
+  原生内核实载）。
+- **alpha.26**：R12 两批一并收口。alpha.25（M88–M92）：缓存命中率三层修复
   （finalize 兜底请求保留主请求工具前缀 / 缓存读数逐步入账，探针实测旧口径低估 1.99× /
   gapMs 分因面）+ 内存上界收口（磁盘嵌入镜像 256 MiB 字节预算、watcher 峰值哨兵）+
   内部缓存一致性三项 + 会话级前缀计量器（跨回合/resume 同实例）与零凭据稳定性探针；
