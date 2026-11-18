@@ -6,6 +6,22 @@
 ## [Unreleased]
 
 ### Added（新增）
+- **内核升级 alpha.31（2026-11-19，连同 alpha.30 一并跨过）**：vendored kernel 升到
+  `v0.1.0-alpha.31`（R16 跨代理 provenance 轮 + R17 派生边收口轮：M105–M109 + 深度
+  review 收口，0 P0）。**委托边继承标记**（`inherited-untrusted` 第四能力维度：信任标签
+  随委托交接保持而非逐代理重置）、**链式洗白窗口**（boundary laundering 逐代理防御的
+  窗口闭合）、**paraphrase 三档曲线**、**全派生边执法扩面**（`IN_PROCESS_DERIVED_TOOL_NAMES`
+  单一真源：subagent/run_workflow/run_goal/run_plan + CFI 指令信道文本按工具提取器
+  强转镜像工具层）——均为内核/安全内部面，应用消费面零变化（19 域「无变化」、公共根
+  导出面 60/60 无新增）；本仓 `kernel:check` 九条复绿（284 源文件 / 290 处包导入 /
+  原生内核实载）。版本历史见 [vendor/README.md](vendor/README.md)，契约见
+  [KERNEL-CONTRACT.md](docs/KERNEL-CONTRACT.md)。
+- **后端 RPC 错误码位化（2026-11-19，遗留清偿）**：新增共享分类器
+  `core/rpcErrorCodes.ts`（appServer WS 与 httpBridgeTransport HTTP 两条路径同源消费）——
+  调用方参数问题（域模块「X 需要 Y / 未找到 X / X 拒绝」约定形态）判 **-32602**（JSON-RPC
+  标准 Invalid params），不再与内部服务端故障同码 -32000；等待超时保持 -32002。前端
+  failureHint 增 -32602 专属提示（错误信息已说明缺什么，换模型/查 Key 是误导）。
+  判据：tests/rpcErrorCodes（三类形态/超时/兜底）+ rpcFailureMessage ③ 增 -32602 路。
 - **TypeScript 7 收编（2026-11-19）**：typescript 5.9.3→**7.0.2**（Go 原生化编译器）。
   实证迁移：desktop tsconfig 的 `moduleResolution: Node`（node10）在 TS 7 已移除 →
   换 `module: node16 / moduleResolution: node16`（typecheck-only 面，esbuild 产物不受
