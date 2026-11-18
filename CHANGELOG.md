@@ -6,6 +6,18 @@
 ## [Unreleased]
 
 ### Added（新增）
+- **Vite 8 / Rolldown 迁移（2026-11-19）**：vite ^6.4.5→**^8.3.8**（esbuild/Rollup →
+  Oxc/Rolldown）、@vitejs/plugin-react ^4.7.0→**^6.3.0**、esbuild ^0.25.12→**^0.28.2**
+  （vite 8 peerOptional）。vite.config 换面：`rollupOptions`→`rolldownOptions`、
+  `manualChunks` 函数→`advancedChunks.groups`（**Vite 8 下 manualChunks 函数返回值被
+  静默丢弃**——不迁移分包即无声失效；原函数两规则殊途同归收敛为 vendor-react /
+  vendor-antd 两条分组，katex/markdown-it/highlight.js 负向排除随 entry）、
+  `minify:'esbuild'`+`esbuild.keepNames`→oxc 缺省 + `rolldownOptions.output.keepNames`
+  （错误边界组件栈依赖）。两处判据随合法压缩产物形态放宽：CSS hex 3/6 位通用归一
+  （Rolldown 把 `#0000ff` 缩成 `#00f`，语义等价）、keepNames 锚点双形态兼容（esbuild
+  `__name()` 包装 vs Rolldown 具名函数表达式）。门禁：全量 verify **EXIT=0**（218 文件 /
+  1004 用例 + CSP 哈希门禁 + smoke + desktop 43 条）+ 压测五场景全绿。
+  账本见 [deps-upgrade-2026-11-18.md](docs/design/deps-upgrade-2026-11-18.md) 追加批次。
 - **内核升级 alpha.28（2026-11-18）**：vendored kernel 升到 `v0.1.0-alpha.28`
   （R14：M99–M101 + 深度 review 收口，0 P0）。**CapFlow 确认门**（`require-approval`
   从枚举预留落地为真确认门：三态裁决 + 真实 target 单一真源 + per-call 确认不缓存 +

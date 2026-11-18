@@ -108,9 +108,12 @@ async function readTokenColors(cdp: CdpSession): Promise<TokenColor[] | null> {
     var root = document.documentElement;
     var PAIRS = ${pairs};
     function hexToRgbStr(hex) {
-      var m = /^#([0-9a-fA-F]{6})$/.exec((hex || '').trim());
+      // Rolldown CSS 压缩会把 6 位 hex 缩成 3 位（#0000ff→#00f，语义等价）——
+      // 两种形态都必须接受，否则合法压缩产物被误判成「缺变量」（2026-11-18 Vite 8）。
+      var m = /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/.exec((hex || '').trim());
       if (!m) return '';
       var n = m[1];
+      if (n.length === 3) n = n[0] + n[0] + n[1] + n[1] + n[2] + n[2];
       return 'rgb(' + parseInt(n.slice(0,2),16) + ', ' + parseInt(n.slice(2,4),16) + ', ' + parseInt(n.slice(4,6),16) + ')';
     }
     return Object.keys(PAIRS).map(function(c){

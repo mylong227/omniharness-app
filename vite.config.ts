@@ -34,48 +34,44 @@ export default defineConfig({
     // 报错上报方持有 map 时才可用；换来压榨后可诊断性。
     sourcemap: 'hidden',
     target: 'es2020',
-    // `keepNames`：保留函数/类名，错误边界才能显示组件栈（如 `SessionPanel`）。
-    minify: 'esbuild',
+    // minify 缺省即 oxc（Vite 8 起 esbuild 退役为可选回退）；keepNames 经
+    // rolldownOptions.output.keepNames 保留——错误边界才能显示组件栈（如 `SessionPanel`）。
     // 单 bundle 实测约 1030 KB（react + markdown-it + katex + highlight + 应用码），
     // 1200 KB = 实测 + 约 15% 余量；越过它说明依赖膨胀，值得有人看一眼。
     chunkSizeWarningLimit: 1200,
     /**
-     * vendor 分块（2026-11-11 收敛）：
+     * vendor 分块（2026-11-11 收敛；2026-11-18 Vite 8 迁移为 advancedChunks 分组）：
      *
      *   · react 基座 → `vendor-react`；
-     *   · 其余 npm 依赖 → `vendor-antd`（构造上完备，避免第三方跟随包随导入方漂进面板块）。
-     *   · katex / markdown-it / highlight.js 随 entry（历史口径，按 entry 桶记账预算）。
+     *   · 其余 npm 依赖 → `vendor-antd`（构造上完备，避免第三方跟随包随导入方漂进面板块；
+     *     katex / markdown-it / highlight.js 负向排除随 entry——历史口径，按 entry 桶记账预算）。
      *
-     * 历史口径曾把面板级 antd 组件族拆成异步 `panel-antd`；2026-11-11 实测该拆法产生
+     * 历史 esbuild/Rollup 口径曾把 antd 组件族再细拆：2026-11-11 实测产生
      * `panel-antd → vendor-antd → panel-antd` 循环块，在真机 E2E 中触发
-     * `ReferenceError: Cannot access 'Sr' before initialization`（整页未挂载）。antd 组件族
-     * 与 rc-component 内部互相引用，不能按组件名硬切；正确性优先于省首屏的 70 KB gzip，
-     * 故合并回 `vendor-antd`。若未来要恢复异步块，必须先消除跨块反向边再拆。
+     * `ReferenceError: Cannot access 'Sr' before initialization`（整页未挂载）；antd 组件族
+     * 与 rc-component 内部互相引用，不能按组件名硬切，故两规则殊途同归合并为一条兜底。
+     * **为什么必须用分组而不是 manualChunks 函数**：Vite 8 下 manualChunks 的返回值被
+     * **静默丢弃**（不报错、分包无声失效），advancedChunks.groups 是唯一受支持形态。
+     * 若未来要恢复异步块，必须先消除跨块反向边再拆。
      */
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        manualChunks(id: string) {
-          if (/[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id))
-            return 'vendor-react';
-          // 跨族共享的小件先行回收进 vendor。
-          if (
-            /[\\/]node_modules[\\/](?:antd[\\/](?:es|lib)[\\/](?:.*[\\/]style[\\/]|form[\\/](?:context|validateMessagesContext)\.js|tooltip[\\/]UniqueProvider[\\/]|table[\\/]TableMeasureRowContext\.js|(?:pagination|calendar|date-picker|time-picker)[\\/]locale[\\/]|locale[\\/])|@rc-component[\\/](?:picker|pagination)[\\/](?:es|lib)[\\/]locale[\\/])/.test(
-              id,
-            )
-          )
-            return 'vendor-antd';
-          // 历史口径三库随 entry。
-          if (/[\\/]node_modules[\\/](katex|markdown-it|highlight\.js)[\\/]/.test(id))
-            return undefined;
-          // 其余一切 npm 依赖一律 vendor（构造上完备）。
-          if (/[\\/]node_modules[\\/]/.test(id)) return 'vendor-antd';
-          return undefined;
+        keepNames: true,
+        advancedChunks: {
+          groups: [
+            {
+              name: 'vendor-react',
+              test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/,
+              priority: 10,
+            },
+            {
+              name: 'vendor-antd',
+              test: /[\\/]node_modules[\\/](?!(?:katex|markdown-it|highlight\.js)[\\/])/,
+            },
+          ],
         },
       },
     },
-  },
-  esbuild: {
-    keepNames: true,
   },
   server: {
     port: dev.uiPort,

@@ -18,7 +18,7 @@
 | Electron 45 | 沙箱 preload 失去 Buffer/events/timers/url 全局 | 本仓 preload 只 import electron 三件（contextBridge/ipcRenderer/webUtils），**零交集**；desktop 43 判据 + smoke 门禁 |
 | TypeScript 7 | **登记不升** | Go 原生化首批（7.0.2），构建链生态（vite/esbuild 判据、types 校验）尚未整体跟上；等 7.1+ 再评估 |
 | @types/node 26 | **登记不升** | engines 钉 node ≥22.14，类型版本须对齐运行时大版本（22.x） |
-| esbuild 0.28 | **登记不升** | 顶层 0.25.12 无漏洞告警；桌面 test.mjs 按平台二进制路径解析 esbuild，跨 0.x 升级与打包链耦合 |
+| esbuild 0.28 | ~~登记不升~~ → **已随 Vite 8 升至 ^0.28.2** | Vite 8 的 peerOptional 要求 esbuild ^0.27/^0.28；桌面 test.mjs 按平台二进制路径解析（@esbuild/win32-x64/esbuild.exe），0.28 二进制同型，desktop:build + 43 判据复验通过 |
 
 ## 落地批次
 
@@ -38,8 +38,21 @@
 
 ## 遗留（下一批候选）
 
-1. **Vite 8 / Rolldown 迁移**（独立批次）：6→7→8 分步走，oxc/rolldownOptions/advancedChunks
-   换面；构建速度收益大（社区实测 46s→6s 量级），但牵动 CSP 哈希门禁与产物字节契约。
-2. **Electron 46**（46.0.0 已 stable，Node 24.22.1/Chromium 156 同代）——45.3.3 先行稳住，
-   46 在下一窗口跟进。
+1. ~~Vite 8 / Rolldown 迁移~~ → **已落地**（见下节）；
+2. **Electron 46**（46.0.0 已 stable，Node 24.22.1/Chromium 156 同代）——45.3.4 先行稳住，
+   46 在下一窗口跟进；
 3. TypeScript 7 生态跟进评估。
+
+## 追加批次：Vite 8 / Rolldown 迁移（2026-11-19）
+
+> 原登记「独立批次」当日落地。**关键调研发现**：Vite 8 下 `manualChunks` 函数形式的返回值
+> 被**静默丢弃**（不报错、分包无声失效）——不迁移等于分包语义已坏，故必须换
+> `rolldownOptions.output.advancedChunks` 分组。
+
+| 项 | 落地 |
+| --- | --- |
+| 依赖 | vite ^6.4.5→**^8.3.8**（Rolldown + Oxc）；@vitejs/plugin-react ^4.7.0→**^6.3.0**；esbuild ^0.25.12→**^0.28.2**（vite 8 peerOptional 强制） |
+| vite.config 换面 | ① `rollupOptions`→`rolldownOptions`；② `manualChunks` 函数→`advancedChunks.groups`（原函数两规则殊途同归——antd 细分规则与兜底规则同落 `vendor-antd`——收敛为两条分组：vendor-react / node_modules 除 katex\|markdown-it\|highlight\.js 外全入 vendor-antd）；③ `minify:'esbuild'`+`esbuild.keepNames` → oxc 缺省 + `rolldownOptions.output.keepNames`（错误边界组件栈依赖，不能丢）；④ `optimizeDeps.include` / `target` / `sourcemap:'hidden'` / `base:'./'` 原样受支持 |
+| 判据修复（合法压缩产物形态变化，两处都是**测试健壮性**而非产品缺陷） | ① `highlightColors`：Rolldown CSS 压缩把 6 位 hex 缩成 3 位（`#0000ff`→`#00f`，语义等价），探针 `hexToRgbStr` 只认 6 位 → 误报「缺变量」；放宽为 3/6 位通用归一。② `renderErrorBoundary`：keepNames 锚点形态变化——esbuild 产 `__name(fn,"SessionPanel")` 包装、Rolldown 保留**具名函数表达式**本体 `memo(function SessionPanel(e){`；夹具放宽为双形态兼容（错误边界注入语义不变） |
+| 门禁 | web:build（分包语义完整：vendor-react 278KB / vendor-antd 1039KB / katex 异步 278KB / md-it+hljs 随 entry）+ 全量 verify **EXIT=0**（218 文件 / 1004 用例 + smoke 9 条 + desktop 43 条，CSP 哈希门禁在新产物上复验）+ 压测五场景全绿（S1 2853ms / S3 254ms / S5 12069ms，均在预算内） |
+| 构建耗时 | 单入口 16.66s（vite 6 时代 ~17s 持平——社区 7× 提速在大体量工程，本仓单页构建规模下收益不显；开发态 HMR 冷启动为 Rolldown 主收益面） |

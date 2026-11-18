@@ -61,11 +61,15 @@ interface StaticServerHandle {
  * @returns 注入锚点；找不到时 null
  */
 function findPanelAnchor(src: string) {
-  // keepNames 锚点 = `__name(<组件函数>, "SessionPanel[2]")` 调用（`\d*`：2026-11-01 起
-  // SessionPanel 以 `memo(function SessionPanel(...))` 包层，keepNames 对同名冲突生成
-  // `SessionPanel2` 这类数字后缀，且组件函数**内联**在调用里——旧的「先找 `function 标识符(`
-  // 再找体 `{`」不再成立）。改为从尾部逗号向前做花括号配平：与收尾逗号紧邻的 `}` 是
-  // 函数体的闭括号，配平到的 `{` 即函数体开括号（注入点）。
+  // keepNames 锚点有**两种压缩器形态**（2026-11-18 起 Vite 8/Rolldown）：
+  // ① esbuild：`__name(<组件函数>, "SessionPanel[2]")` 调用（`\d*`：2026-11-01 起
+  //    SessionPanel 以 `memo(function SessionPanel(...))` 包层，keepNames 对同名冲突生成
+  //    `SessionPanel2` 这类数字后缀，且组件函数**内联**在调用里——旧的「先找 `function 标识符(`
+  //    再找体 `{`」不再成立）。从尾部逗号向前做花括号配平定位注入点。
+  // ② Rolldown：不产 `__name()` 包装，而是保留**具名函数表达式**本体——
+  //    `memo(function SessionPanel(e){`（`rolldownOptions.output.keepNames` 同义）。
+  //    从 `function SessionPanel(` 向后找首个 `{`（参数为简单标识符时即函数体开括号）。
+  // 两者注入语义一致：函数体开头抛 INJECTED。
   for (const m of src.matchAll(/,\s*"SessionPanel\d*"\s*\)/g)) {
     const start = m.index ?? -1;
     let depth = 0;
@@ -81,6 +85,10 @@ function findPanelAnchor(src: string) {
         depth -= 1;
       }
     }
+  }
+  for (const m of src.matchAll(/function SessionPanel\d*\s*\([^()]*\)\s*\{/g)) {
+    const insertAt = (m.index ?? 0) + m[0].length;
+    return { prefix: src.slice(0, insertAt), suffix: src.slice(insertAt) };
   }
   return null;
 }
@@ -101,8 +109,9 @@ function patchedCrashModule() {
   const anchor = findPanelAnchor(src);
   assert.ok(
     anchor !== null,
-    '夹具失效：bundle 里找不到 SessionPanel 的 keepNames 锚点（形如 `X(Y,"SessionPanel")`）——' +
-      '若已关闭 vite.config.ts 的 esbuild.keepNames，请恢复（错误边界面板依赖组件名）',
+    '夹具失效：bundle 里找不到 SessionPanel 的 keepNames 锚点（esbuild 形 `X(Y,"SessionPanel")` 或 ' +
+      'Rolldown 形 `function SessionPanel(…){`）——若已关闭 keepNames（vite.config.ts 的 ' +
+      'rolldownOptions.output.keepNames），请恢复（错误边界面板依赖组件名）',
   );
   // 插在 `{` 之后：`function Ov(u){` + `throw new Error('…');` + 原有 `const{...}`
   const code = anchor.prefix + `throw new Error('${INJECTED}');` + anchor.suffix;
