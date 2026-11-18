@@ -4,7 +4,7 @@
 
 | 文件 | 说明 |
 | ---- | ---- |
-| `omniharness-kernel-0.1.0-alpha.27.tgz` | `@omniharness/kernel` 在 tag `v0.1.0-alpha.27` 的构建产物 + 应用 `native/omni_napi.node`（`NativeKernel` 从包根找它） |
+| `omniharness-kernel-0.1.0-alpha.28.tgz` | `@omniharness/kernel` 在 tag `v0.1.0-alpha.28` 的构建产物 + 应用 `native/omni_napi.node`（`NativeKernel` 从包根找它） |
 
 ## 重新生成
 
@@ -23,7 +23,15 @@ npm run kernel:check     # 9 条判据（含生成物不漂移 / 已承诺能力
 
 ## 版本史
 
-- **alpha.27**（当前）：R13 全轮（M94–M98 + 深度 review 收口 P1×2/P2×7/P3×8，0 P0）——
+- **alpha.28**（当前）：R14 全轮（M99–M101 + 深度 review 收口 P1×3/P2×9/P3×11，0 P0）——
+  **CapFlow 确认门**（`require-approval` 从枚举预留落地为真确认门：三态裁决 + 真实 target
+  单一真源 + per-call 确认不缓存 + fail-closed `CAPFLOW_APPROVAL_DENIED`）、**污点跨委托
+  传播**（执法面闭合进子代理树：装配点单点构造共享 assessor，父能力集对子可见 / 子 observe
+  感染整树，Multi-CaMeL boundary laundering 的执法面防御）、**确定性轨迹评测器**
+  （`eval:trace`：`TraceFold` + 调用指纹循环检测等规则四件套，零凭据零模型调用）。
+  公共根导出面仍 60/60；应用消费面零变化，`kernel:check` 九条复绿（284 源文件 / 290 处
+  包导入 / 原生内核实载）。
+- **alpha.27**：R13 全轮（M94–M98 + 深度 review 收口 P1×2/P2×7/P3×8，0 P0）——
   统一工具结果预算读数（`ToolResultBudgetReadout`/回合级计量器/哨兵 `budget` 分区，
   spill/trim/snip 三处决策首次统一账目）、tail 侧整形收口（`compose.over_budget` 从只记不治
   到预算内确定性整形，`HeadTailTrimmer` 头尾整形 + `shaped` 留痕）、MCP 工具指纹 JCS 化
