@@ -58,7 +58,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.0",
-    "@omniharness/kernel": "file:vendor/omniharness-kernel-0.1.0-alpha.31.tgz",
+    "@omniharness/kernel": "file:vendor/omniharness-kernel-0.1.0-alpha.32.tgz",
     "antd": "^6.7.1",
     "croner": "^11.0.1",
     "highlight.js": "^11.12.0",
