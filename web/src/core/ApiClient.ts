@@ -190,8 +190,16 @@ export class ApiClient {
    * 早期版本误用 res.json() 解析必挂，导致指标面板永远停在「读取中…」。
    */
   public async fetchMetrics(): Promise<Metrics> {
-    const res = await fetch('/metrics', { headers: this.buildHeaders() });
-    if (!res.ok) throw new Error(t('metrics 请求失败：{status}', { status: res.status }));
+    let res: Response;
+    try {
+      res = await fetch('/metrics', { headers: this.buildHeaders() });
+    } catch (error) {
+      // 传输层不可达与其他 rpc() 路径同一分类口径（kind=network），消费方据此给
+      // 「服务端不可达」类建议而不是误导性的换模型/查 Key（2026-11-18 硬编码清理批次延续）。
+      const reason = error instanceof Error ? error.message : String(error);
+      throw new RpcError('network', t('无法连接服务端（服务未运行或网络不可达）：{reason}', { reason }));
+    }
+    if (!res.ok) throw new RpcError('http-status', t('metrics 请求失败：{status}', { status: res.status }), res.status);
     const text = await res.text();
     const metrics: Metrics = { sessions: 0, eventsByType: {} };
     const labelOf = (line: string, key: string): string | undefined => {

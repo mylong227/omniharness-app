@@ -39,9 +39,18 @@
 ## 遗留（下一批候选）
 
 1. ~~Vite 8 / Rolldown 迁移~~ → **已落地**（见下节）；
-2. **Electron 46**（46.0.0 已 stable，Node 24.22.1/Chromium 156 同代）——45.3.4 先行稳住，
-   46 在下一窗口跟进；
+2. ~~Electron 46~~ → **修正**：46 尚未发布（预计 2027-01，Electron 官方时间线）——前版账本
+   「46 已 stable」是把 tentative 计划当成已发布，已更正；45.3.4 即受支持最新稳定线；
 3. TypeScript 7 生态跟进评估。
+
+## 追加批次：收尾批（2026-11-19）
+
+| 项 | 落地 | 门禁 |
+| --- | --- | --- |
+| vitest | 5.1.0→**5.1.1**（patch） | 全量套件 |
+| jsdom | 25.0.1→**29.1.1**（major：CSS 引擎重写、computed-style 行为变化、canvas 可选后端换 @napi-rs/canvas——本仓未用 canvas；Node ≥22.13 满足） | 全量套件（jsdom 组件判据为风险面） |
+| desktop esbuild | 0.25.12→**0.28.2**（对齐根版本；桌面 build.mjs/test.mjs 用平台二进制） | desktop:build + 43 判据（✓ 全绿） |
+| fetchMetrics RpcError 化 | `metrics 请求失败` 从裸 Error 改 **RpcError**（HTTP 失败 → kind=http-status + status；fetch 拒答 → kind=network）——metrics 面板消费方据此分类，与 rpc() 主路径同口径。**SSE 维持原样**：EventSource 原生重连、无错误对象可分类（onerror 只触发重连状态机），RpcError 化无收益 | rpcFailureMessage ②d（HTTP 503 → http-status + status=503；拒答 → network） |
 
 ## 追加批次：Vite 8 / Rolldown 迁移（2026-11-19）
 

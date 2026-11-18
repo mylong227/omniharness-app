@@ -41,6 +41,13 @@
   + desktop 43 判据 + smoke 全过。账本见
   [deps-upgrade-2026-11-18.md](docs/design/deps-upgrade-2026-11-18.md)（含 Vite 8/TS 7/
   @types/node 26/esbuild 0.28 的登记不升理由与 Vite 8 独立迁移路径）。
+- **依赖收尾批 + fetchMetrics 分类补齐（2026-11-19）**：vitest 5.1.0→**5.1.1**；
+  jsdom 25.0.1→**29.1.1**（major：CSS 引擎重写/computed-style 变化——全量 jsdom 组件判据
+  复验零破坏）；桌面 esbuild 0.25.12→**0.28.2**（对齐根，desktop:build + 43 判据 ✓）；
+  `fetchMetrics` 补齐 **RpcError 分类**（HTTP 失败 → kind=http-status + status / 拒答 →
+  kind=network，与 rpc() 主路径同口径；**SSE 维持原样**——EventSource 原生重连无错误对象
+  可分类）。账本修正一处：Electron 46 尚未发布（预计 2027-01），45.3.4 即受支持最新线。
+  门禁：全量 verify EXIT=0（218 文件 / 1005 用例 + smoke + desktop）。
 - **错误链路结构化分类（2026-11-18，硬编码清理批次）**：`ApiClient` 引入 `RpcError`
   （稳定 kind：rpc-error / auth / http-status / bad-json / **network**，携带 HTTP status 与
   JSON-RPC 协议码）；运行失败建议语改按 **kind / status / code** 分类——后端桥接等待超时

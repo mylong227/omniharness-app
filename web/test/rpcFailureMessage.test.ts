@@ -86,6 +86,34 @@ test('②c fetch 拒答（网络不可达）⇒ RpcError kind=network，文案�
   assert.match((thrown as Error).message, /无法连接服务端/);
 });
 
+test('②d fetchMetrics 同一分类口径：HTTP 失败 ⇒ http-status、拒答 ⇒ network', async () => {
+  const api = new ApiClient();
+  // HTTP 503 ⇒ kind=http-status（带 status）
+  global.fetch = async () =>
+    ({ ok: false, status: 503, json: async () => ({ error: 'internal' }) }) as unknown as Response;
+  let thrown: unknown = null;
+  try {
+    await api.fetchMetrics();
+  } catch (e) {
+    thrown = e;
+  }
+  assert.ok(thrown instanceof RpcError, 'metrics HTTP 失败必须抛 RpcError');
+  assert.equal((thrown as RpcErrorInstance).kind, 'http-status');
+  assert.equal((thrown as RpcErrorInstance).status, 503);
+  // fetch 拒答 ⇒ kind=network
+  global.fetch = async () => {
+    throw new TypeError('Failed to fetch');
+  };
+  thrown = null;
+  try {
+    await api.fetchMetrics();
+  } catch (e) {
+    thrown = e;
+  }
+  assert.ok(thrown instanceof RpcError, 'metrics 网络失败必须抛 RpcError');
+  assert.equal((thrown as RpcErrorInstance).kind, 'network');
+});
+
 test('③ 建议语按稳定分类分流（kind/status/code 驱动，不再匹配翻译后文案）', () => {
   // 桥接等待超时：后端协议码 -32002（结构化判定——en 词条变化不再让提示失效）。
   const timeoutHint = ComposerController.failureHint(
