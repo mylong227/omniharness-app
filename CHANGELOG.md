@@ -6,6 +6,29 @@
 ## [Unreleased]
 
 ### Added（新增）
+- **内核升级 alpha.28（2026-11-18）**：vendored kernel 升到 `v0.1.0-alpha.28`
+  （R14：M99–M101 + 深度 review 收口，0 P0）。**CapFlow 确认门**（`require-approval`
+  从枚举预留落地为真确认门：三态裁决 + 真实 target 单一真源 + per-call 确认不缓存 +
+  fail-closed `CAPFLOW_APPROVAL_DENIED`）、**污点跨委托传播**（执法面闭合进子代理树，
+  Multi-CaMeL boundary laundering 的执法面防御）、**确定性轨迹评测器**（`eval:trace`：
+  `TraceFold` + 调用指纹循环检测等规则四件套，零凭据零模型调用）——均为内核/安全/评测
+  内部面，应用消费面零变化（19 域「无变化」、公共根导出面 60/60）；本仓 `kernel:check`
+  九条复绿（284 源文件 / 290 处包导入 / 原生内核实载）。路径上先并入了同日 alpha.27
+  （R13：统一工具结果预算读数 / tail 侧确定性整形 / MCP 工具指纹 JCS 化 / 区分性检索
+  对照池）。版本历史见 [vendor/README.md](vendor/README.md)，契约见
+  [KERNEL-CONTRACT.md](docs/KERNEL-CONTRACT.md)。
+- **依赖安全升级批次（2026-11-18）**：`npm audit` 10 项（2 critical / 4 high）清至
+  仅剩开发面 picomatch 链（上游无修复版待发）。**katex ^0.16.47→^0.19.1**（运行时原型
+  污染绕过信任限制，用户可见面修复）；**vitest ^2.1.9→^5.1.0**（tinypool RCE critical ×2
+  + mocker 路径穿越/代码注入 + ReDoS 链，本仓使用面与破坏面零交集——无 workspace/
+  coverage/bench/sequential/vi.mock 跨用例状态）；markdown-it ^14.3.3→**^15.0.3**
+  （CommonMark 一致性修复，自带类型故删 @types/markdown-it）；croner ^10.0.1→**^11.0.1**
+  （OCPS 1.4 + DST 对齐 Vixie）；antd 6.6.8→**6.7.1**；jose/openid-client/playwright-core/
+  axe-core/user-event 补丁位跟进；桌面 electron 44.7.0→**45.3.4**（Chromium 156 / Node 24.22；
+  沙箱 preload 收紧与本仓 preload 零交集）。门禁：typecheck×3 + 全量 web 218 文件/1004 用例
+  + desktop 43 判据 + smoke 全过。账本见
+  [deps-upgrade-2026-11-18.md](docs/design/deps-upgrade-2026-11-18.md)（含 Vite 8/TS 7/
+  @types/node 26/esbuild 0.28 的登记不升理由与 Vite 8 独立迁移路径）。
 - **错误链路结构化分类（2026-11-18，硬编码清理批次）**：`ApiClient` 引入 `RpcError`
   （稳定 kind：rpc-error / auth / http-status / bad-json / **network**，携带 HTTP status 与
   JSON-RPC 协议码）；运行失败建议语改按 **kind / status / code** 分类——后端桥接等待超时
