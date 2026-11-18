@@ -15,7 +15,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 
-const { ApiClient, RpcError, SERVER_WAIT_TIMEOUT_CODE } = await import('../src/core/ApiClient.ts');
+const { ApiClient, RpcError, SERVER_WAIT_TIMEOUT_CODE, INVALID_PARAMS_CODE } = await import(
+  '../src/core/ApiClient.ts'
+);
 const { ComposerController } = await import('../src/ui/controllers/ComposerController.ts');
 
 /** 运行时导入的 RpcError 值的实例类型（静态 import type 会与解构绑定同名冲突）。 */
@@ -121,6 +123,15 @@ test('③ 建议语按稳定分类分流（kind/status/code 驱动，不再匹�
   );
   assert.match(timeoutHint, /后台|background/u);
   assert.doesNotMatch(timeoutHint, /API Key/u);
+
+  // 调用方参数问题（-32602，后端域模块「X 需要 Y / 未找到 X / 拒绝」形态）：
+  // 错误信息本身已说明缺什么——换模型/查 Key 都是误导（2026-11-19 遗留清偿）。
+  const paramsHint = ComposerController.failureHint(
+    new RpcError('rpc-error', 'graph.save 需要 def（含 name 与 steps）', undefined, INVALID_PARAMS_CODE),
+  );
+  assert.match(paramsHint, /参数|parameter/u);
+  // 不得落进**通用**建议（其前缀是「可尝试切换模型」；本提示自带「无需切换模型」属否定语义，不算）
+  assert.doesNotMatch(paramsHint, /可尝试切换模型|Try switching models/u);
 
   // HTTP 500：服务端错误 ⇒ 同一条「仍在后台」提示。
   const httpHint = ComposerController.failureHint(new RpcError('http-status', 'RPC 请求失败：HTTP 500', 500));

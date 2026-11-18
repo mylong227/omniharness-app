@@ -15,7 +15,7 @@ import { MethodBinder } from './methodBinder.ts';
 import { EventFields } from '../models/EventFields.ts';
 import { MessageQuote } from '../models/MessageQuote.ts';
 import { ComposerOptions } from '../models/ComposerOptions.ts';
-import { RpcError, SERVER_WAIT_TIMEOUT_CODE } from '../../core/ApiClient.ts';
+import { RpcError, INVALID_PARAMS_CODE, SERVER_WAIT_TIMEOUT_CODE } from '../../core/ApiClient.ts';
 import { t } from '../i18n/i18n.ts';
 import { desktopBridge, notifyDesktop } from '../../core/desktop/DesktopBridge.ts';
 import { ChatQueueController } from './ChatQueueController.ts';
@@ -95,6 +95,11 @@ export class ComposerController {
     }
     if (kind === 'auth') {
       return t('。请按页面顶部的授权提示，用服务端打印的带 token 地址重新打开后再试。');
+    }
+    // 调用方参数问题（JSON-RPC 标准 Invalid params，后端域模块「X 需要 Y / 未找到 X / 拒绝」
+    // 形态）：错误信息本身已说明缺什么——换模型/查 Key 都是误导（2026-11-19 遗留清偿）。
+    if (error instanceof RpcError && error.code === INVALID_PARAMS_CODE) {
+      return t('。请求未满足服务端要求（属调用参数问题）：请按上方错误信息修正后重试，无需切换模型或检查 Key。');
     }
     if (
       (error instanceof RpcError && error.code === SERVER_WAIT_TIMEOUT_CODE) ||

@@ -4,6 +4,7 @@ import { type WsConnection } from '../../../host/kernel/runtime.ts';
 import { SseFanout } from './sseFanout.ts';
 import { EnterpriseAuth } from '../../enterprise/index.ts';
 import { PendingRequests } from '../../../host/kernel/util.ts';
+import { rpcErrorCodeFor } from '../core/rpcErrorCodes.ts';
 
 /**
  * 「全部客户端断开」宽限期解析：显式入参 > env `OMNI_CLIENTS_GONE_GRACE_MS` > 缺省 10s；
@@ -245,12 +246,13 @@ export class HttpBridgeTransport implements Transport {
   }
 
   /**
-   * 把失败原因映射为 JSON-RPC 错误码（纯函数，便于单测）。
+   * 把失败原因映射为 JSON-RPC 错误码（纯函数；分类真源在 `core/rpcErrorCodes.ts`——
+   * WS 与 HTTP 两条路径同源消费，2026-11-19 遗留清偿：调用方参数问题改判 -32602）。
    * @param text 失败原因文本。
-   * @returns `-32002`（等待超时，客户端应提示「可继续等待/中止」）或 `-32000`（其它服务端错误）。
+   * @returns `-32002`（等待超时）/ `-32602`（调用方参数问题）/ `-32000`（其它服务端错误）。
    */
   public static errorCodeFor(text: string): number {
-    return text.startsWith('RPC 超时') ? -32002 : -32000;
+    return rpcErrorCodeFor(text);
   }
 
   /**

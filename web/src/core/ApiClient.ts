@@ -47,6 +47,13 @@ interface JsonRpcError {
  */
 export const SERVER_WAIT_TIMEOUT_CODE = -32002;
 
+/**
+ * 调用方参数问题码（JSON-RPC 2.0 标准 Invalid params；语义单一真源在后端
+ * `src/apps/server/core/rpcErrorCodes.ts`——域模块「X 需要 Y / 未找到 X / 拒绝」形态的
+ * 错误判此码，错误信息本身已说明缺什么）。
+ */
+export const INVALID_PARAMS_CODE = -32602;
+
 /** RPC 失败的稳定种类（渲染层据此给**可执行**建议；文案与判定解耦）。 */
 export type RpcErrorKind = 'rpc-error' | 'auth' | 'http-status' | 'bad-json' | 'network';
 
