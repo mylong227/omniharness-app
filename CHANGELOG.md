@@ -6,6 +6,21 @@
 ## [Unreleased]
 
 ### Added（新增）
+- **TypeScript 7 收编（2026-11-19）**：typescript 5.9.3→**7.0.2**（Go 原生化编译器）。
+  实证迁移：desktop tsconfig 的 `moduleResolution: Node`（node10）在 TS 7 已移除 →
+  换 `module: node16 / moduleResolution: node16`（typecheck-only 面，esbuild 产物不受
+  影响）；后端（NodeNext）/ web（bundler）两配置零改动直过。门禁：typecheck×3 +
+  build（tsc 产物原子换入）+ smoke 9 条 + 全量 218 文件 / 1005 用例 + desktop 43 条全绿。
+- **内核升级 alpha.29（2026-11-19）**：vendored kernel 升到 `v0.1.0-alpha.29`
+  （R15 遗留清偿轮：M102–M104 + 深度 review 收口，0 P0）。**参考轨迹匹配四档组合子**
+  （`TraceMatch`：strict/unordered/subset/superset，带键多重集合 `name#argsDigest`，
+  对齐 agentevals `TrajectoryMatchEvaluator`；`eval:trace --expected` 接线）、
+  **Multi-CaMeL 双通道子代理契约**（variables 数据信道读取即审计 / 指令信道完整性）、
+  **金丝雀感染曲线**（`eval:propagation` 逐跳双指标 + CFI 衰减对照）——均为内核/评测/
+  安全内部面，应用消费面零变化（19 域「无变化」、公共根导出面 60/60；`./eval` 子路径
+  新增 TraceMatch + 4 类型）；本仓 `kernel:check` 九条复绿（284 源文件 / 290 处包导入 /
+  原生内核实载）。版本历史见 [vendor/README.md](vendor/README.md)，契约见
+  [KERNEL-CONTRACT.md](docs/KERNEL-CONTRACT.md)。
 - **Vite 8 / Rolldown 迁移（2026-11-19）**：vite ^6.4.5→**^8.3.8**（esbuild/Rollup →
   Oxc/Rolldown）、@vitejs/plugin-react ^4.7.0→**^6.3.0**、esbuild ^0.25.12→**^0.28.2**
   （vite 8 peerOptional）。vite.config 换面：`rollupOptions`→`rolldownOptions`、

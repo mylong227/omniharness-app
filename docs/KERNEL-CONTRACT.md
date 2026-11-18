@@ -1,11 +1,17 @@
 # 本仓与内核（`@omniharness/kernel`）的契约
 
-> 实测日期 2026-11-18（alpha.28 对齐批次）。**结论**：应用消费 vendored `@omniharness/kernel@0.1.0-alpha.28`，
+> 实测日期 2026-11-19（alpha.29 对齐批次）。**结论**：应用消费 vendored `@omniharness/kernel@0.1.0-alpha.29`，
 > 全部内核导入收敛于 **`src/host/kernel/` 分域对接面**（19 个**自动生成**的域文件，
 > `npm run kernel:check` 第 7 条强制单点、第 8 条拒绝生成物漂移、第 9 条拒绝「已承诺能力的同名副本」）；
 > 内核切片清掉、app 仍需要的能力收留于 **`src/host/extensions/`**（app 自有扩展层，原 `kernel-compat/`，
 > M27 兼容层清零后更名；归属契约见[其 README](../src/host/extensions/README.md)）。
 > 后端 RPC 面由 **18 个域模块声明式注册**（110 方法，parity 快照钉住；2026-11-15 增 `kernel.health` 与 `fs.exists`）。
+>
+> **2026-11-19 内核同步（alpha.29）**：R15 遗留清偿轮（M102–M104 + 深度 review 收口）——
+> 参考轨迹匹配四档组合子（`TraceMatch`）、Multi-CaMeL 双通道子代理契约、金丝雀感染曲线
+> （`eval:propagation`），均为内核/评测/安全内部面，应用消费面零变化。依赖钉
+> `vendor/omniharness-kernel-0.1.0-alpha.29.tgz`；`./eval` 子路径新增 TraceMatch + 4 类型；
+> 公共根导出面仍 60/60；`kernel:check` 九条复绿（284 源文件 / 290 处包导入 / 原生内核实载）。
 >
 > **2026-11-18 内核同步（alpha.28）**：R14（M99–M101 + 深度 review 收口）——CapFlow 确认门
 > （require-approval 真确认门，fail-closed）、污点跨委托传播（执法面闭合进子代理树）、
@@ -43,7 +49,7 @@ web/ + desktop/ ──HTTP/SSE──▶ src/apps（宿主：CLI / RPC 域模块 
                                    ├─▶ src/host/extensions/        app 自有扩展层
                                    │      Laya 决策引擎 / CLI worker / doctor / 图存储 / web 广播 / …
                                    │
-                                   └─▶ @omniharness/kernel@0.1.0-alpha.28（vendored tarball）
+                                   └─▶ @omniharness/kernel@0.1.0-alpha.29（vendored tarball）
                                           ├─ dist/kernel/**        主循环 / 编排单源 / 工具 / 门禁 / 存储 / Jcs
                                           ├─ dist/contracts/**     端口 / 类型 / schema
                                           ├─ dist/protocols/**     ACP / MCP
@@ -79,6 +85,7 @@ web/ + desktop/ ──HTTP/SSE──▶ src/apps（宿主：CLI / RPC 域模块 
 | M37（2026-11-15） | alpha.24 | R9–R11 收口：alpha.23/24 的评测/压缩/checkpoint 能力并入；应用消费面零变化（19 域、60/60 导出面），vendor tarball 升 alpha.24，`kernel:check` 284/290 复绿，桌面安装包重新打包。 |
 | M38（2026-11-17） | alpha.26 | R12 两批一并 vend（alpha.25 缓存命中率三层修复 + 内存上界收口 + 会话级前缀计量器；alpha.26 工具暴露 `monotonic` 杠杆 + 三轮 review 收口）：均为内核内部面，应用消费面零变化（19 域再生成「无变化」、60/60 导出面），`kernel:check` 284/290 复绿。 |
 | M39（2026-11-18） | alpha.28 | R14 vend（M99–M101：CapFlow 确认门 / 污点跨委托传播 / 确定性轨迹评测器 + 深度 review 收口）：均为内核内部面，应用消费面零变化（19 域「无变化」、60/60 导出面），`kernel:check` 284/290 复绿。 |
+| M40（2026-11-19） | alpha.29 | R15 vend（M102–M104：参考轨迹匹配四档组合子 / Multi-CaMeL 双通道子代理契约 / 金丝雀感染曲线 + 深度 review 收口）：均为内核内部面，应用消费面零变化（19 域「无变化」、60/60 导出面），`kernel:check` 284/290 复绿。 |
 | M35（2026-11-15） | alpha.19（不升版） | alpha.19 能力落地（可选批次）：① 设置页「上下文与检索」卡 + `retrievalContext`/`semanticRecall`/`contextPolicy` 三段进 `PERSISTABLE_KEYS`（服务端 `SECTION_REPLACE_KEYS` 按段替换）；② `kernel.health` 健康桥（108→109 RPC，七分区 absent≠degraded）+ 诊断面板「内核健康（哨兵桥）」；③ `context.studio.kernel` 与上下文面板「内核上下文策略」（与健康桥同一读模型，检索/语义召回/降档/缓存守卫生效值）。不改内核依赖、19 域零变化；`kernel:check` / typecheck×3 / web 全套 / build / smoke（9 条）/ desktop 全绿；能力↔UI 对齐矩阵见 [design/kernel-ui-alignment](design/kernel-ui-alignment/README.md) |
 
 对接面规模随迁移演化：alpha.6 时代 349 源文件 / 316 处导入 / 17 域 → M30 收官 267/361/18 →

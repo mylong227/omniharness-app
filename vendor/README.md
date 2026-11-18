@@ -4,7 +4,7 @@
 
 | 文件 | 说明 |
 | ---- | ---- |
-| `omniharness-kernel-0.1.0-alpha.28.tgz` | `@omniharness/kernel` 在 tag `v0.1.0-alpha.28` 的构建产物 + 应用 `native/omni_napi.node`（`NativeKernel` 从包根找它） |
+| `omniharness-kernel-0.1.0-alpha.29.tgz` | `@omniharness/kernel` 在 tag `v0.1.0-alpha.29` 的构建产物 + 应用 `native/omni_napi.node`（`NativeKernel` 从包根找它） |
 
 ## 重新生成
 
@@ -23,7 +23,14 @@ npm run kernel:check     # 9 条判据（含生成物不漂移 / 已承诺能力
 
 ## 版本史
 
-- **alpha.28**（当前）：R14 全轮（M99–M101 + 深度 review 收口 P1×3/P2×9/P3×11，0 P0）——
+- **alpha.29**（当前）：R15 遗留清偿轮（M102–M104 + 深度 review 收口 P1×2/P2×9/P3×11，
+  0 P0）——**参考轨迹匹配四档组合子**（`TraceMatch`：strict/unordered/subset/superset，
+  带键多重集合 `name#argsDigest` 统一实现，对齐 agentevals `TrajectoryMatchEvaluator`；
+  `eval:trace --expected` 接线）、**Multi-CaMeL 双通道子代理契约**（variables 数据信道
+  读取即审计 + 指令信道完整性）、**金丝雀感染曲线**（`eval:propagation` 逐跳双指标 +
+  CFI 衰减对照）。`./eval` 子路径新增 TraceMatch + 4 类型；公共根导出面仍 60/60；应用
+  消费面零变化，`kernel:check` 九条复绿（284 源文件 / 290 处包导入 / 原生内核实载）。
+- **alpha.28**：R14 全轮（M99–M101 + 深度 review 收口 P1×3/P2×9/P3×11，0 P0）——
   **CapFlow 确认门**（`require-approval` 从枚举预留落地为真确认门：三态裁决 + 真实 target
   单一真源 + per-call 确认不缓存 + fail-closed `CAPFLOW_APPROVAL_DENIED`）、**污点跨委托
   传播**（执法面闭合进子代理树：装配点单点构造共享 assessor，父能力集对子可见 / 子 observe
