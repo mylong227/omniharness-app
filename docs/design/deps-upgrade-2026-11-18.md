@@ -16,7 +16,7 @@
 | markdown-it 15 | CommonMark 一致性修复可能改渲染 HTML | 全量渲染/文本契约判据做门禁；v15 自带 TS 类型 → 删 `@types/markdown-it` |
 | croner 11 | OCPS 1.4（`?` 通配）、DST 对齐 Vixie、`startAt` 含端、区间解析收紧 | 本仓仅 cronerSchedule.ts 一处消费；serverAutomations 判据做门禁 |
 | Electron 45 | 沙箱 preload 失去 Buffer/events/timers/url 全局 | 本仓 preload 只 import electron 三件（contextBridge/ipcRenderer/webUtils），**零交集**；desktop 43 判据 + smoke 门禁 |
-| TypeScript 7 | **登记不升** | Go 原生化首批（7.0.2），构建链生态（vite/esbuild 判据、types 校验）尚未整体跟上；等 7.1+ 再评估 |
+| TypeScript 7 | ~~登记不升~~ → **已收编 7.0.2**（2026-11-19，commit 6c33347） | 实证迁移：desktop tsconfig node10→node16（TS 7 移除 node10）；后端/web 配置零改动直过；typecheck×3 + build + smoke + 全量 1005 用例 + desktop 43 全绿 |
 | @types/node 26 | **登记不升** | engines 钉 node ≥22.14，类型版本须对齐运行时大版本（22.x） |
 | esbuild 0.28 | ~~登记不升~~ → **已随 Vite 8 升至 ^0.28.2** | Vite 8 的 peerOptional 要求 esbuild ^0.27/^0.28；桌面 test.mjs 按平台二进制路径解析（@esbuild/win32-x64/esbuild.exe），0.28 二进制同型，desktop:build + 43 判据复验通过 |
 
@@ -30,9 +30,8 @@
 
 ## 升级后残余
 
-- **picomatch ReDoS 链（5 high）**：`picomatch *` 全版本尚无修复版（上游待发），链路在
-  vite≥6.3 的开发期文件扫描（tinyglobby/fdir）——**纯开发/测试面**，不进运行时产物；
-  上游发版后 `npm audit fix` 即清。登记观察。
+- ~~picomatch ReDoS 链（5 high）~~：**已清零**（2026-11-19 复查）——picomatch **4.0.7**
+  上游修复版落地，`npm audit` **0 漏洞**（含开发面全部清零）。
 - vitest 5 运行器下最重真 Chrome 判据（streamScrollCoverage）在全量并发时偶触 60s 内部
   预算上限——fileParallelism:false 依旧保留（慢但可信 > 快但不可信），单测复现稳定绿。
 
@@ -41,7 +40,22 @@
 1. ~~Vite 8 / Rolldown 迁移~~ → **已落地**（见下节）；
 2. ~~Electron 46~~ → **修正**：46 尚未发布（预计 2027-01，Electron 官方时间线）——前版账本
    「46 已 stable」是把 tentative 计划当成已发布，已更正；45.3.4 即受支持最新稳定线；
-3. TypeScript 7 生态跟进评估。
+3. ~~TypeScript 7 生态跟进评估~~ → **已收编**（实证通过，见盘点表）。
+
+## 第四轮全面普查（2026-11-19）：无可升级项，全绿基线确认
+
+> 用户要求「全面盘点 → 补全不完整点」的例行轮。四路普查结论：
+
+| 维度 | 结论 |
+| --- | --- |
+| npm outdated | 仅剩 `@types/node 26`（绑定 engines node 22，运行时对齐，登记不升）——**依赖面完全收敛** |
+| npm audit | **0 漏洞**（picomatch 4.0.7 修复版落地，ReDoS 链清零） |
+| 文档账实 | RPC 方法数 110/110（文档 vs 实际注册一致）、kernel:check 284/290 一致、README 数字已于上轮更新、PanelPicker 遗留债务已被并行会话清偿（web/src 零残留） |
+| 内核 | alpha.29 = 最新 tag（已 vendored）；master R16（M105 委托边继承标记 / M106 子代 CFI 窗口扩展）活跃开发中未发版——按纪律不追未发布提交，alpha.30 发版后跟进 |
+| 回归验证 | 全量 verify EXIT=0（218 文件 / 1005 用例，TS 7 + alpha.29 之上）；压测五场景全绿（S1 2409ms / S2 536ms longtask 0 / S3 158ms / S4 1754ms / S5 8442ms）；后端锤 640/640 零错误（p50 82ms / p95 214ms，负载期波动量级内） |
+| 并行 WIP | UI 打磨 4 文件（TraceView/ContextBriefingCard/chat.css/shell.css）持续在树上，保留不碰 |
+
+**结论：本轮无代码改动可做（无造假改动），账本三处漂移修正 + 本普查结论即为交付。**
 
 ## 追加批次：收尾批（2026-11-19）
 
