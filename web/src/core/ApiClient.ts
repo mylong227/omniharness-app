@@ -725,13 +725,27 @@ export class ApiClient {
     return this.rpc('plugins.list', {});
   }
   /**
-   * `/` 技能选择器数据（只读 name/description/tags）。
+   * `/` 技能选择器数据（Skill Lab v1 起含 source/editable/overridden 增量字段）。
    * @returns 技能清单
    */
-  public listSkills(): Promise<{
-    skills: { name: string; description: string; tags: string[] }[];
-  }> {
+  public listSkills(): Promise<{ skills: import('../types/models.ts').SkillListRow[] }> {
     return this.rpc('skills.list', {});
+  }
+  /** 单条完整技能（skills.get：含 instructions）。 */
+  public getSkill(name: string): Promise<import('../types/models.ts').SkillGetView> {
+    return this.rpc('skills.get', { name });
+  }
+  /** 改写预览（skills.diff：结构差异测试 dry-run，fail-closed 不落盘）。 */
+  public diffSkill(draft: { name: string; description: string; instructions: string; tags?: string[] }): Promise<import('../types/models.ts').SkillEditReport> {
+    return this.rpc('skills.diff', draft);
+  }
+  /** 应用改写（skills.apply：差异测试通过才落 config.skills 整段；生效 = 下一会话）。 */
+  public applySkill(draft: { name: string; description: string; instructions: string; tags?: string[] }): Promise<import('../types/models.ts').SkillEditReport> {
+    return this.rpc('skills.apply', draft);
+  }
+  /** 删除技能（skills.delete：仅 config 内联可删）。 */
+  public deleteSkill(name: string): Promise<import('../types/models.ts').SkillEditReport> {
+    return this.rpc('skills.delete', { name });
   }
 
   /**

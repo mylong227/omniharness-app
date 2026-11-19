@@ -46,8 +46,8 @@ describe('RPC parity 快照（coreModules）', () => {
   const entries = collectMethods(coreModules());
   const methods = entries.map((e) => e.method).sort();
 
-  it('方法总数 == 112（111 + memory.facts；有意识地增减并同步 web ApiClient）', () => {
-    expect(methods.length).toBe(112);
+  it('方法总数 == 116（112 + skills.get/diff/apply/delete，Skill Lab v1；有意识地增减并同步 web ApiClient）', () => {
+    expect(methods.length).toBe(116);
   });
 
   it('全量方法清单（按域前缀分组快照）', () => {
@@ -147,6 +147,10 @@ describe('RPC parity 快照（coreModules）', () => {
         "sessions.reorder",
         "sessions.setPinned",
         "sessions.setWorkspace",
+        "skills.apply",
+        "skills.delete",
+        "skills.diff",
+        "skills.get",
         "skills.list",
         "threads.continue",
         "threads.create",
@@ -196,6 +200,8 @@ describe('RPC parity 快照（coreModules）', () => {
     expect(byOwner.get('graph.resume')).toBe('graphs');
     expect(byOwner.get('memory.search')).toBe('memory');
     expect(byOwner.get('memory.facts')).toBe('memory');
+    expect(byOwner.get('skills.list')).toBe('skills');
+    expect(byOwner.get('skills.apply')).toBe('skills');
     expect(byOwner.get('model.pricing')).toBe('config');
     expect(byOwner.get('checkpoint.rollback')).toBe('checkpoints');
     expect(byOwner.get('changes.stageHunk')).toBe('review');

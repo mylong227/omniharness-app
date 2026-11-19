@@ -4815,3 +4815,65 @@ button,
   font-family: var(--mono);
   color: var(--faint);
 }
+
+/* ---- 技能实验室编辑面（2026-11-20 Skill Lab v1）----
+   纯布局规则；diff 颜色走语义 token（加=ok 系、删=err 系，非 theme.css 不带色相字面量）。 */
+.skill-src {
+  color: var(--faint);
+  font-size: 11px;
+}
+.skill-src-tag {
+  margin-left: 6px;
+  font-size: 10px;
+}
+.skill-editor {
+  margin-top: 12px;
+}
+.skill-editor .form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.skill-diff {
+  margin-top: 10px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  padding: 8px 10px;
+  background: var(--panel);
+  max-height: 260px;
+  overflow: auto;
+}
+.skill-diff-head {
+  color: var(--faint);
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+.skill-diff-line {
+  display: flex;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.skill-diff-line--add {
+  color: var(--ok);
+}
+.skill-diff-line--del {
+  color: var(--err);
+}
+.skill-diff-sign {
+  flex: none;
+  width: 12px;
+}
+.skill-diff-empty {
+  margin: 8px 0 0;
+  color: var(--faint);
+  font-size: 11px;
+}
+.skill-editor-actions {
+  margin-top: 10px;
+}

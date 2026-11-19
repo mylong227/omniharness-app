@@ -161,6 +161,10 @@ export const SECTION_REPLACE_KEYS: readonly string[] = [
   // roles 指到的模型名要在 entries 里（内核 by-role fail-closed），深合并会把旧条目
   // 残留在段里造成「roles 指到已删条目」的静默坏配置；停用 = 整段发 null。
   'modelRouter',
+  // 2026-11-20 Skill Lab v1（docs/design/skill-lab）：skills 数组的增删改都是「按名整段」
+  // 操作（skills.apply/delete 服务端整段提交）——数组深合并无法表达删除；同名覆盖编辑
+  // 依赖「显式配置同名优先」内核语义，段替换保证旧值不残留。
+  'skills',
 ];
 
 /**
@@ -210,6 +214,7 @@ export const PERSISTABLE_KEYS: readonly string[] = [
   // 内核 alpha.19 上下文三段的 UI 入口（2026-11-15，settings-completion §1.3 扩展）：
   // 检索供给 / 语义召回 / 上下文工程策略。三段都是**结构化对象**，落盘语义见
   // {@link SECTION_REPLACE_KEYS}；类型/枚举/区间校验仍由内核 normalizeConfig 承担。
+  // 2026-11-20 Skill Lab：skills 数组随 SECTION_REPLACE 按段替换（设计稿 §2）。
   ...SECTION_REPLACE_KEYS,
 ];
 

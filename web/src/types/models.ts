@@ -78,6 +78,46 @@ export interface TemporalFactCard {
   expiresAt?: number;
 }
 
+/** 技能列表行（skills.list）：source/editable/overridden 为 Skill Lab 的增量字段。 */
+export interface SkillListRow {
+  name: string;
+  description: string;
+  tags: string[];
+  /** 来源：config=内联可编辑 / bundled=随包只读 / workspace=工作区只读。 */
+  source: 'config' | 'bundled' | 'workspace';
+  /** 是否可在 Skill Lab 编辑/删除。 */
+  editable: boolean;
+  /** 同名技能同时在 config 与运行 registry（覆盖编辑态）。 */
+  overridden?: boolean;
+}
+
+/** 单条完整技能（skills.get：含 instructions，编辑/diff 需要）。 */
+export interface SkillGetView {
+  name: string;
+  description: string;
+  instructions: string;
+  tags: string[];
+  source: SkillListRow['source'];
+  editable: boolean;
+}
+
+/** 差异行（web SkillDiff 模型的渲染单元）。 */
+export interface SkillDiffLine {
+  kind: 'same' | 'add' | 'del';
+  text: string;
+}
+
+/** 编辑报告（skills.diff/apply 响应；CrisprEditReport 本地同构 + dry-run 扩展）。 */
+export interface SkillEditReport {
+  applied: boolean;
+  dryRun?: boolean;
+  skillName: string;
+  mode?: 'create' | 'edit';
+  reason?: string;
+  issues?: string[];
+  count?: number;
+}
+
 /** `memory.facts` 响应：supported=false = 该运行时没有事实图（UI 如实隐藏时间图）。 */
 export interface MemoryFactsResult {
   supported: boolean;

@@ -9,7 +9,8 @@ import {
 } from '../../../host/kernel/adapters-model.ts';
 
 /**
- * 配置与模型模块：`config.get/update`、`model.catalog/probe/pricing`、`skills.list`、`usage.stats`。
+ * 配置与模型模块：`config.get/update`、`model.catalog/probe/pricing`、`usage.stats`。
+ * （skills.* 已迁独立域模块 `skills.ts`，2026-11-20 Skill Lab v1。）
  */
 export function configModule(): ServerModule {
   return {
@@ -26,16 +27,6 @@ export function configModule(): ServerModule {
           pricing: DEFAULT_ROUTE_PRICING,
           unpricedFamilies: UNPRICED_DEFAULT_FAMILIES,
           fallback: DEFAULT_FALLBACK_PRICE,
-        }),
-      );
-      // 技能选择器（Web 输入框 `/`）：只读名称/描述/标签，不回传完整 instructions。
-      ctx.rpc('skills.list', () =>
-        Promise.resolve({
-          skills: (s.options.skills?.list() ?? []).map((skill) => ({
-            name: skill.name,
-            description: skill.description,
-            tags: skill.tags ?? [],
-          })),
         }),
       );
       ctx.rpc('model.probe', (params) => s.modelCatalog.probe(params));
