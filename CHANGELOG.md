@@ -6,6 +6,24 @@
 ## [Unreleased]
 
 ### Added（新增）
+- **内核升级 alpha.33（2026-11-19）**：vendored kernel 升到
+  `v0.1.0-alpha.33`（R19 遗留总清偿轮：M112–M114 + 深度 review 收口 P1×1/P2×3/P3×9，
+  0 P0）。**会话上下文贯穿**（`ToolContext` 增可选 `capflowSessionContext` 实时闭包：
+  recorder 同源零滞后 + 继承指令信道 capflowInheritedTask，RunWorkflowTool resume 预检
+  优先消费——review-r18 窗口滞后/派生会话继承源双收口）、**遗留台账总收口**（RESIDUAL.md
+  全面刷新）、**EOL 卫生**（`.gitattributes` 钉未来 + 149 代码文件 CRLF→LF 归一）——
+  均为内核/安全内部面，应用消费面零变化（19 域「无变化」、公共根导出面 60/60 无新增）；
+  本仓 `kernel:check` 九条复绿（285 源文件 / 290 处包导入 / 原生内核实载）。版本历史见
+  [vendor/README.md](vendor/README.md)，契约见 [KERNEL-CONTRACT.md](docs/KERNEL-CONTRACT.md)。
+- **内核升级 alpha.32（2026-11-19）**：vendored kernel 升到
+  `v0.1.0-alpha.32`（R18 resume 盲区收口轮：M110–M111 + 深度 review 收口 P1×2/P2×2/P3×4，
+  0 P0）。**resume 续跑档 CFI 闭合**（RunWorkflowTool resume 分支预检 `resumeCfiCheckOf`：
+  WorkflowRunLog 预读存档 step prompts 逐条 × 当前会话最近工具输出重查，enforce 命中
+  先于任何子会话拒绝；预检 specHash 传 runner 锁内复验）、**workflow 边四档实测**
+  （`eval:propagation` 十三档：subagent/goal/workflow 三进程内派生边实测曲线收官）——
+  均为内核/安全内部面，应用消费面零变化（19 域「无变化」、公共根导出面 60/60 无新增）；
+  本仓 `kernel:check` 九条复绿（285 源文件 / 290 处包导入 / 原生内核实载）。版本历史见
+  [vendor/README.md](vendor/README.md)，契约见 [KERNEL-CONTRACT.md](docs/KERNEL-CONTRACT.md)。
 - **内核升级 alpha.31（2026-11-19，连同 alpha.30 一并跨过）**：vendored kernel 升到
   `v0.1.0-alpha.31`（R16 跨代理 provenance 轮 + R17 派生边收口轮：M105–M109 + 深度
   review 收口，0 P0）。**委托边继承标记**（`inherited-untrusted` 第四能力维度：信任标签

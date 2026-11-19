@@ -4,7 +4,7 @@
 
 | 文件 | 说明 |
 | ---- | ---- |
-| `omniharness-kernel-0.1.0-alpha.31.tgz` | `@omniharness/kernel` 在 tag `v0.1.0-alpha.31` 的构建产物 + 应用 `native/omni_napi.node`（`NativeKernel` 从包根找它） |
+| `omniharness-kernel-0.1.0-alpha.33.tgz` | `@omniharness/kernel` 在 tag `v0.1.0-alpha.33` 的构建产物 + 应用 `native/omni_napi.node`（`NativeKernel` 从包根找它） |
 
 ## 重新生成
 
@@ -23,7 +23,22 @@ npm run kernel:check     # 9 条判据（含生成物不漂移 / 已承诺能力
 
 ## 版本史
 
-- **alpha.31**（当前）：R17 派生边收口轮（M108–M109 + 深度 review 收口 P1×1/P2×4/P3×9，
+- **alpha.33**（当前）：R19 遗留总清偿轮（M112–M114 + 深度 review 收口 P1×1/P2×3/P3×9，
+  0 P0）——**会话上下文贯穿**（`ToolContext` 增可选 `capflowSessionContext` 实时闭包：
+  recorder 同源零滞后 + 继承指令信道 capflowInheritedTask，RunWorkflowTool resume 预检
+  优先消费——review-r18 窗口滞后/派生会话继承源双收口）、**遗留台账总收口**（RESIDUAL.md
+  全面刷新：外部阻塞复测 / 宿主职责增 H9 / 明确不做增 N14–N16 / R15–R19 候选逐条清偿）、
+  **EOL 卫生**（`.gitattributes` 钉未来 + 149 代码文件 CRLF→LF 归一，src/scripts/tests
+  零 CRLF 残留）。公共根导出面仍 60/60（无新增导出）；应用消费面零变化，`kernel:check`
+  九条复绿（285 源文件 / 290 处包导入 / 原生内核实载）。
+- **alpha.32**：R18 resume 盲区收口轮（M110–M111 + 深度 review 收口 P1×2/P2×2/P3×4，
+  0 P0）——**resume 续跑档 CFI 闭合**（RunWorkflowTool resume 分支预检 `resumeCfiCheckOf`：
+  WorkflowRunLog 预读存档 step prompts 逐条 × 当前会话最近工具输出重查，enforce 命中
+  先于任何子会话拒绝；预检 specHash 传 runner 锁内复验——被查 prompts 与实际执行 spec
+  逐字节绑定）、**workflow 边四档实测**（`eval:propagation` 十三档：三进程内派生边
+  subagent/goal/workflow 全部具备实测曲线收官）。公共根导出面仍 60/60；应用消费面零变化，
+  `kernel:check` 九条复绿（285 源文件 / 290 处包导入 / 原生内核实载）。
+- **alpha.31**：R17 派生边收口轮（M108–M109 + 深度 review 收口 P1×1/P2×4/P3×9，
   0 P0）——**全派生边执法扩面**（`IN_PROCESS_DERIVED_TOOL_NAMES` 单一真源：subagent/
   run_workflow/run_goal/run_plan；CFI 指令信道文本按工具提取器强转镜像工具层）+ 四边
   统一打 `inherited-untrusted` + 继承源透传。公共根导出面仍 60/60（无新增导出）；应用
