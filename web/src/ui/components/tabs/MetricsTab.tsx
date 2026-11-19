@@ -21,7 +21,8 @@ import type { ColumnsType } from 'antd/es/table';
 import Descriptions from 'antd/es/descriptions';
 
 /** 轮询间隔（ms）。 */
-const POLL_MS = 2000;
+/** 指标轮询间隔（ms；metricsTabStale 判据用 fake timers 推进同一节拍，单一真源）。 */
+export const POLL_MS = 2000;
 
 /** 单模型用量行。 */
 interface ModelStat {

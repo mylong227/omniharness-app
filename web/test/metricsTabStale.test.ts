@@ -26,7 +26,7 @@ import { act, render } from './rtlHarness.ts';
 import { AppContext } from '../src/ui/context.ts';
 import type { AppContextValue } from '../src/ui/context.ts';
 
-const { MetricsTab } = await import('../src/ui/components/tabs/MetricsTab.tsx');
+const { MetricsTab, POLL_MS } = await import('../src/ui/components/tabs/MetricsTab.tsx');
 
 /** 最小指标/用量载荷（渲染路径真的读到的字段）。 */
 const METRICS = { sessions: 3, eventsByType: { user: 5 } };
@@ -99,7 +99,7 @@ test('MetricsTab：成功后再失败降级为陈旧快照提示，旧数据保�
   assert.doesNotMatch(okText, /上次成功拉取的快照/, '健康时无陈旧提示（轮询已被冻结，不可能提前失败）');
   // 显式推进恰好一档 POLL_MS ⇒ 轮询开火 ⇒ 第二次调用失败：旧快照必须还在，且出现陈旧提示。
   await act(async () => {
-    vi.advanceTimersByTime(2000);
+    vi.advanceTimersByTime(POLL_MS);
     await Promise.resolve();
   });
   await settle();

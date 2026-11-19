@@ -1256,3 +1256,7 @@
 .mr-entry-price--unknown {
   opacity: 0.7;
 }
+.mr-entry .csl-select {
+  /* 适配器下拉固定宽（2026-11-20 打磨：内联 width prop 收进样式） */
+  width: 130px;
+}

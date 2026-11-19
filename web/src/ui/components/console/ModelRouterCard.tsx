@@ -85,7 +85,6 @@ function EntryRow(props: {
         ariaLabel={t('条目 {n} 适配器', { n: String(index + 1) })}
         options={ROUTER_ADAPTERS.map((adapter) => ({ value: adapter, label: adapter }))}
         onChange={(adapter) => update({ adapter })}
-        width="130px"
       />
       <EntryPriceHint model={entry.model} />
       <Button
