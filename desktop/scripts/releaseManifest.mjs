@@ -10,7 +10,11 @@ import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const release = join(root, 'release');
-const setup = join(release, 'OmniHarness Setup 0.2.0.exe');
+// 安装包文件名随版本走（electron-builder NSIS 缺省产物名 `${productName} Setup ${version}.exe`，
+// 2026-11-19 盘点轮修：此前写死 0.2.0，版本推进后 manifest 对不上实际产物名）。
+const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+const installerName = `OmniHarness Setup ${pkg.version}.exe`;
+const setup = join(release, installerName);
 const unpacked = join(release, 'win-unpacked');
 
 /**
@@ -56,7 +60,6 @@ if (!existsSync(setup) || !existsSync(unpacked)) {
   process.stderr.write('✗ 缺少安装包或 win-unpacked；先 build/pack/installer\n');
   process.exit(2);
 }
-const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 const unpackedStats = walk(unpacked);
 const hash = createHash('sha256').update(readFileSync(setup)).digest('hex');
 const shaFile = `${setup}.sha256`;
@@ -67,7 +70,7 @@ const manifest = {
   builtAt: new Date().toISOString(),
   git: gitHead(),
   installer: {
-    file: 'OmniHarness Setup 0.2.0.exe',
+    file: installerName,
     bytes: statSync(setup).size,
     sha256: hash,
     sha256ManifestMatches: declared?.toLowerCase() === hash,

@@ -74,5 +74,5 @@ nsis:
 publish:
   - provider: github
     owner: mylong227
-    repo: OmniHarness
+    repo: omniharness-app
     releaseType: draft

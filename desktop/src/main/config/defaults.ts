@@ -5,7 +5,7 @@ export const DEFAULT_DESKTOP_CONFIG: DesktopConfig = {
   app: {
     appId: 'com.mylong227.omniharness',
     protocol: 'omniharness',
-    repositoryUrl: 'https://github.com/mylong227/OmniHarness',
+    repositoryUrl: 'https://github.com/mylong227/omniharness-app',
     language: 'system',
   },
   window: {
