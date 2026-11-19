@@ -19,6 +19,7 @@ import { SmokeHarness, type SmokeReport } from './app/SmokeHarness.ts';
 import { StartupMarker } from './app/StartupMarker.ts';
 import { WindowLifecycle } from './app/WindowLifecycle.ts';
 import { DesktopI18n } from './i18n/DesktopI18n.ts';
+import type { DesktopMessageKey } from './i18n/messages.ts';
 import { DesktopLogger } from './logger.ts';
 import { installMenu, refreshMenu } from './menu.ts';
 import { NotificationService } from './notifications.ts';
@@ -248,10 +249,16 @@ async function bootstrap(): Promise<void> {
   const logger = new DesktopLogger(logDir(app.getPath('userData'), config.logging.dirName), {
     ringLines: config.logging.ringLines,
   });
-  for (const warning of loadedConfig.warnings) logger.write('main', `config: ${warning}`);
+  const i18n = new DesktopI18n(DesktopI18n.resolve(config.app.language, app.getLocale()));
+  // 结构化告警经 i18n 渲染（2026-11-20 遗留 #4 收口）：码与 messages.ts 的 config.* 键
+  // 一一对应（判据钉齐全，见 test.mjs「配置告警 code 与文案键一一对应」）；码拼接在此是
+  // 安全的——ConfigWarningCode 联合就是该键表的后缀面。
+  for (const issue of loadedConfig.issues) {
+    const key = `config.${issue.code}` as DesktopMessageKey;
+    logger.write('main', `config: ${i18n.t(key, { path: issue.path, ...issue.params })}`);
+  }
   const startup = new StartupMarker(logger);
   startup.mark('config.loaded');
-  const i18n = new DesktopI18n(DesktopI18n.resolve(config.app.language, app.getLocale()));
   const dialogs = new DesktopDialogs(i18n);
   logger.write('main', `desktop language=${i18n.locale} (setting=${config.app.language})`);
   const state = new DesktopStateStore(app.getPath('userData'), {
@@ -678,6 +685,7 @@ async function showDiagnostics(): Promise<void> {
     }`,
     `logs: ${ctx.logger.directory()}`,
     `config: ${loadedConfig.sources.length > 0 ? loadedConfig.sources.join(' -> ') : 'builtin defaults'}`,
+    `config issues: ${loadedConfig.issues.length}`,
   ].join('\n');
   await ctx.dialogs.diagnostics(detail);
 }

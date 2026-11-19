@@ -76,7 +76,24 @@ export type DesktopMessageKey =
   | 'dialog.updateFailedMessage'
   | 'dialog.updateLatestTitle'
   | 'dialog.updateLatestMessage'
-  | 'window.starting';
+  | 'window.starting'
+  // 配置加载器告警（2026-11-20 遗留 #4 收口：码与 DesktopConfigLoader.CONFIG_WARNING_CODES
+  // 一一对应，判据钉齐全；插值参数见各码的 issue.params）。
+  | 'config.fileMissing'
+  | 'config.notObject'
+  | 'config.badJson'
+  | 'config.expectObject'
+  | 'config.expectNumber'
+  | 'config.clamped'
+  | 'config.expectBoolean'
+  | 'config.badShape'
+  | 'config.expectEnum'
+  | 'config.loopbackOnly'
+  | 'config.expectStringArray'
+  | 'config.dropItem'
+  | 'config.dropToken'
+  | 'config.unknownPermission'
+  | 'config.expectObjectFallback';
 
 /** 中文（默认）。 */
 const ZH: Record<DesktopMessageKey, string> = {
@@ -150,6 +167,22 @@ const ZH: Record<DesktopMessageKey, string> = {
   'dialog.updateLatestTitle': '检查更新',
   'dialog.updateLatestMessage': '当前已是最新版本',
   'window.starting': '正在启动本地 Harness…',
+  // 配置加载器告警（DesktopConfigLoader 的 issue → 呈现层渲染）
+  'config.fileMissing': '{file}: 文件不存在，已忽略',
+  'config.notObject': '{file}: 顶层必须是对象，已忽略',
+  'config.badJson': '{file}: {message}',
+  'config.expectObject': '{path}: 应为对象，已忽略',
+  'config.expectNumber': '{path}: 应为数字，实际 {actual}，回落 {fallback}',
+  'config.clamped': '{path}: 越界 {actual}，夹取为 {clamped}（允许 {min}–{max}）',
+  'config.expectBoolean': '{path}: 应为布尔，实际 {actual}，回落 {fallback}',
+  'config.badShape': '{path}: 形状非法，回落 {fallback}',
+  'config.expectEnum': '{path}: 应为 {allowed} 之一，实际 {actual}，回落 {fallback}',
+  'config.loopbackOnly': '{path}: 只允许 127.0.0.1（serve 固定绑回环；当前不支持 --host）',
+  'config.expectStringArray': '{path}: 应为字符串数组，回落默认值',
+  'config.dropItem': '{path}: 忽略非字符串项 {item}',
+  'config.dropToken': '{path}: 忽略含 ; 或换行的 token {item}',
+  'config.unknownPermission': '{path}: 未知权限 {item}，已剔除',
+  'config.expectObjectFallback': '{path}: 应为对象，回落默认值',
 };
 
 /** 英文。 */
@@ -225,6 +258,22 @@ const EN: Record<DesktopMessageKey, string> = {
   'dialog.updateLatestTitle': 'Check for Updates',
   'dialog.updateLatestMessage': 'You are on the latest version.',
   'window.starting': 'Starting the local Harness…',
+  // Config-loader warnings (issue code → rendered here)
+  'config.fileMissing': '{file}: file not found, ignored',
+  'config.notObject': '{file}: top level must be an object, ignored',
+  'config.badJson': '{file}: {message}',
+  'config.expectObject': '{path}: expected an object, ignored',
+  'config.expectNumber': '{path}: expected a number, got {actual}, using {fallback}',
+  'config.clamped': '{path}: out of range {actual}, clamped to {clamped} (allowed {min}–{max})',
+  'config.expectBoolean': '{path}: expected a boolean, got {actual}, using {fallback}',
+  'config.badShape': '{path}: invalid shape, using {fallback}',
+  'config.expectEnum': '{path}: expected one of {allowed}, got {actual}, using {fallback}',
+  'config.loopbackOnly': '{path}: only 127.0.0.1 is allowed (serve binds loopback; --host not supported)',
+  'config.expectStringArray': '{path}: expected a string array, using defaults',
+  'config.dropItem': '{path}: dropped non-string item {item}',
+  'config.dropToken': '{path}: dropped token with ; or newline {item}',
+  'config.unknownPermission': '{path}: unknown permission {item}, removed',
+  'config.expectObjectFallback': '{path}: expected an object, using defaults',
 };
 
 /** 全部语言包。 */

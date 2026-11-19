@@ -63,6 +63,7 @@ bundle('src/main/harnessSupervisor.ts', 'supervisor', ['electron']);
 bundle('src/main/desktopState.ts', 'desktopState');
 bundle('src/main/config.ts', 'config');
 bundle('src/main/i18n/DesktopI18n.ts', 'i18n');
+bundle('src/main/i18n/messages.ts', 'messages');
 bundle('src/main/app/StartupMarker.ts', 'startup');
 bundle('src/main/app/DeepLinkRouter.ts', 'deepLinks');
 bundle('src/main/app/HarnessRestartPolicy.ts', 'restartPolicy');
@@ -81,10 +82,11 @@ const { parseLaunchArgs } = await import(pathToFileURL(join(out, 'args.cjs')).hr
 const { parseReadyInfo } = await import(pathToFileURL(join(out, 'ready.cjs')).href);
 const { buildHarnessEnv } = await import(pathToFileURL(join(out, 'supervisor.cjs')).href);
 const { DesktopStateStore } = await import(pathToFileURL(join(out, 'desktopState.cjs')).href);
-const { DEFAULT_DESKTOP_CONFIG, loadDesktopConfig, formatCsp } = await import(
+const { DEFAULT_DESKTOP_CONFIG, loadDesktopConfig, formatCsp, CONFIG_WARNING_CODES } = await import(
   pathToFileURL(join(out, 'config.cjs')).href
 );
 const { DesktopI18n } = await import(pathToFileURL(join(out, 'i18n.cjs')).href);
+const { DESKTOP_MESSAGES } = await import(pathToFileURL(join(out, 'messages.cjs')).href);
 const { StartupMarker } = await import(pathToFileURL(join(out, 'startup.cjs')).href);
 const { DeepLinkRouter } = await import(pathToFileURL(join(out, 'deepLinks.cjs')).href);
 const { HarnessRestartPolicy } = await import(pathToFileURL(join(out, 'restartPolicy.cjs')).href);
@@ -828,7 +830,7 @@ test('desktop.config.json 必须与内置默认值逐字段相等（防配置/�
   assert.deepEqual(shipped, DEFAULT_DESKTOP_CONFIG);
   const loaded = loadDesktopConfig({ builtinFile: join(process.cwd(), 'desktop.config.json') });
   assert.deepEqual(loaded.config, DEFAULT_DESKTOP_CONFIG);
-  assert.deepEqual(loaded.warnings, []);
+  assert.deepEqual(loaded.issues, []);
   assert.equal(loaded.sources.length, 1);
 });
 
@@ -861,8 +863,8 @@ test('loadDesktopConfig: 逐字段覆盖 + 非法值夹取/回落 + 未知权限
   assert.deepEqual(loaded.config.security.permissions, ['notifications']);
   assert.equal(loaded.config.update.autoDownload, false);
   assert.equal(loaded.config.app.language, 'en-US');
-  assert.ok(loaded.warnings.length >= 4, `应收集多条告警，实际 ${loaded.warnings.length}`);
-  assert.ok(loaded.warnings.some((line) => line.includes('harness.host')));
+  assert.ok(loaded.issues.length >= 4, `应收集多条告警，实际 ${loaded.issues.length}`);
+  assert.ok(loaded.issues.some((issue) => issue.path.includes('harness.host')));
 });
 
 test('loadDesktopConfig: 非法 app.language 回落 system 并告警', () => {
@@ -876,7 +878,23 @@ test('loadDesktopConfig: 非法 app.language 回落 system 并告警', () => {
     userFile,
   });
   assert.equal(loaded.config.app.language, 'system');
-  assert.ok(loaded.warnings.some((line) => line.includes('app.language')));
+  assert.ok(loaded.issues.some((issue) => issue.path.includes('app.language')));
+});
+
+test('配置告警 code 与 messages config.* 键一一对应（i18n 渲染面完整，中英齐全）', () => {
+  for (const locale of ['zh-CN', 'en-US']) {
+    const table = DESKTOP_MESSAGES[locale];
+    for (const code of CONFIG_WARNING_CODES) {
+      assert.ok(
+        typeof table[`config.${code}`] === 'string' && table[`config.${code}`].length > 0,
+        `${locale} 缺 config.${code} 文案`,
+      );
+    }
+  }
+  // 渲染链真实走一遍：一条结构化 issue → t() 出可读文案（带插值）。
+  const i18n = new DesktopI18n('zh-CN');
+  const text = i18n.t('config.expectNumber', { path: 'harness.readyTimeoutMs', actual: '"soon"', fallback: '60000' });
+  assert.ok(text.includes('harness.readyTimeoutMs') && text.includes('60000'), `插值渲染失败：${text}`);
 });
 
 test('loadDesktopConfig: 环境文件优先级最高（DEFAULT < builtin < user < env）', () => {

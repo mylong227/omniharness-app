@@ -7,6 +7,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { DEFAULT_DESKTOP_CONFIG } from './defaults.ts';
 import type {
+  ConfigIssue,
+  ConfigWarningCode,
   DesktopAppConfig,
   DesktopConfig,
   DesktopCspConfig,
@@ -25,9 +27,28 @@ import type {
   LoadedDesktopConfig,
 } from './types.ts';
 
-/** 校验上下文：收集告警（不抛错）。 */
+/** 全部告警码（判据用它核对 messages.ts 的 `config.*` 键齐全；与 ConfigWarningCode 联合一致）。 */
+export const CONFIG_WARNING_CODES: readonly ConfigWarningCode[] = [
+  'fileMissing',
+  'notObject',
+  'badJson',
+  'expectObject',
+  'expectNumber',
+  'clamped',
+  'expectBoolean',
+  'badShape',
+  'expectEnum',
+  'loopbackOnly',
+  'expectStringArray',
+  'dropItem',
+  'dropToken',
+  'unknownPermission',
+  'expectObjectFallback',
+];
+
+/** 校验上下文：收集结构化告警（不抛错；code 对应 messages.ts 的 `config.<code>` 键）。 */
 interface Validator {
-  warn(path: string, message: string): void;
+  warn(path: string, code: ConfigWarningCode, params?: Readonly<Record<string, string>>): void;
 }
 
 /** 允许的 Web 权限。 */
@@ -44,51 +65,57 @@ export class DesktopConfigLoader {
    * @returns 生效配置、告警与实际来源。
    */
   public static load(options: LoadDesktopConfigOptions = {}): LoadedDesktopConfig {
-    const warnings: string[] = [];
+    const issues: ConfigIssue[] = [];
     const sources: string[] = [];
-    const v: Validator = { warn: (path, message) => warnings.push(`${path}: ${message}`) };
+    const v: Validator = {
+      warn: (path, code, params) => issues.push({ path, code, params: params ?? {} }),
+    };
     let config: DesktopConfig = structuredClone(DEFAULT_DESKTOP_CONFIG);
 
     const builtin = DesktopConfigLoader.readConfigFile(
       options.builtinFile,
       false,
-      warnings,
+      issues,
       sources,
     );
     if (builtin !== undefined) config = DesktopConfigLoader.applyDocument(config, builtin, v);
 
-    const user = DesktopConfigLoader.readConfigFile(options.userFile, false, warnings, sources);
+    const user = DesktopConfigLoader.readConfigFile(options.userFile, false, issues, sources);
     if (user !== undefined) config = DesktopConfigLoader.applyDocument(config, user, v);
 
-    const env = DesktopConfigLoader.readConfigFile(options.envFile, true, warnings, sources);
+    const env = DesktopConfigLoader.readConfigFile(options.envFile, true, issues, sources);
     if (env !== undefined) config = DesktopConfigLoader.applyDocument(config, env, v);
 
-    return { config, warnings, sources };
+    return { config, issues, sources };
   }
 
   /** 读一份 JSON（容忍 BOM；坏文件只告警）。 */
   private static readConfigFile(
     file: string | undefined,
     required: boolean,
-    warnings: string[],
+    issues: ConfigIssue[],
     sources: string[],
   ): Record<string, unknown> | undefined {
     if (file === undefined || file === '') return undefined;
     if (!existsSync(file)) {
-      if (required) warnings.push(`${file}: 文件不存在，已忽略`);
+      if (required) issues.push({ path: file, code: 'fileMissing', params: { file } });
       return undefined;
     }
     try {
       const text = readFileSync(file, 'utf8').replace(/^\uFEFF/u, '');
       const parsed = JSON.parse(text) as unknown;
       if (!DesktopConfigLoader.isRecord(parsed)) {
-        warnings.push(`${file}: 顶层必须是对象，已忽略`);
+        issues.push({ path: file, code: 'notObject', params: { file } });
         return undefined;
       }
       sources.push(file);
       return parsed;
     } catch (error) {
-      warnings.push(`${file}: ${error instanceof Error ? error.message : String(error)}`);
+      issues.push({
+        path: file,
+        code: 'badJson',
+        params: { file, message: error instanceof Error ? error.message : String(error) },
+      });
       return undefined;
     }
   }
@@ -107,7 +134,7 @@ export class DesktopConfigLoader {
     const value = doc[name];
     if (value === undefined) return {};
     if (!DesktopConfigLoader.isRecord(value)) {
-      v.warn(name, '应为对象，已忽略');
+      v.warn(name, 'expectObject');
       return {};
     }
     return value;
@@ -186,15 +213,17 @@ export class DesktopConfigLoader {
   ): number {
     if (value === undefined) return fallback;
     if (typeof value !== 'number' || !Number.isFinite(value)) {
-      v.warn(path, `应为数字，实际 ${JSON.stringify(value)}，回落 ${String(fallback)}`);
+      v.warn(path, 'expectNumber', { actual: JSON.stringify(value), fallback: String(fallback) });
       return fallback;
     }
     if (value < min || value > max) {
       const clamped = Math.min(max, Math.max(min, value));
-      v.warn(
-        path,
-        `越界 ${String(value)}，夹取为 ${String(clamped)}（允许 ${String(min)}–${String(max)}）`,
-      );
+      v.warn(path, 'clamped', {
+        actual: String(value),
+        clamped: String(clamped),
+        min: String(min),
+        max: String(max),
+      });
       return clamped;
     }
     return value;
@@ -222,7 +251,7 @@ export class DesktopConfigLoader {
   ): boolean {
     if (value === undefined) return fallback;
     if (typeof value !== 'boolean') {
-      v.warn(path, `应为布尔，实际 ${JSON.stringify(value)}，回落 ${String(fallback)}`);
+      v.warn(path, 'expectBoolean', { actual: JSON.stringify(value), fallback: String(fallback) });
       return fallback;
     }
     return value;
@@ -238,7 +267,7 @@ export class DesktopConfigLoader {
   ): string {
     if (value === undefined) return fallback;
     if (typeof value !== 'string' || !pattern.test(value)) {
-      v.warn(path, `形状非法，回落 ${JSON.stringify(fallback)}`);
+      v.warn(path, 'badShape', { fallback: JSON.stringify(fallback) });
       return fallback;
     }
     return value;
@@ -256,10 +285,11 @@ export class DesktopConfigLoader {
     if (typeof value === 'string' && (allowed as readonly string[]).includes(value)) {
       return value as T;
     }
-    v.warn(
-      path,
-      `应为 ${allowed.join(' / ')} 之一，实际 ${JSON.stringify(value)}，回落 ${fallback}`,
-    );
+    v.warn(path, 'expectEnum', {
+      allowed: allowed.join(' / '),
+      actual: JSON.stringify(value),
+      fallback: String(fallback),
+    });
     return fallback;
   }
 
@@ -272,7 +302,7 @@ export class DesktopConfigLoader {
   ): string {
     if (value === undefined) return fallback;
     if (typeof value !== 'string' || value !== '127.0.0.1') {
-      v.warn(path, '只允许 127.0.0.1（serve 固定绑回环；当前不支持 --host）');
+      v.warn(path, 'loopbackOnly');
       return fallback;
     }
     return value;
@@ -286,17 +316,17 @@ export class DesktopConfigLoader {
   ): readonly string[] | undefined {
     if (value === undefined) return undefined;
     if (!Array.isArray(value)) {
-      v.warn(path, '应为字符串数组，回落默认值');
+      v.warn(path, 'expectStringArray');
       return undefined;
     }
     const tokens: string[] = [];
     for (const item of value) {
       if (typeof item !== 'string' || item === '') {
-        v.warn(path, `忽略非字符串项 ${JSON.stringify(item)}`);
+        v.warn(path, 'dropItem', { item: JSON.stringify(item) });
         continue;
       }
       if (item.includes(';') || /[\r\n]/u.test(item)) {
-        v.warn(path, `忽略含 ; 或换行的 token ${JSON.stringify(item)}`);
+        v.warn(path, 'dropToken', { item: JSON.stringify(item) });
         continue;
       }
       tokens.push(item);
@@ -768,12 +798,12 @@ export class DesktopConfigLoader {
     let permissions: readonly string[] = base.permissions;
     if (raw['permissions'] !== undefined) {
       if (!Array.isArray(raw['permissions'])) {
-        v.warn('security.permissions', '应为字符串数组，回落默认值');
+        v.warn('security.permissions', 'expectStringArray');
       } else {
         const kept = raw['permissions'].filter((item): item is string => {
           if (typeof item !== 'string') return false;
           if (ALLOWED_PERMISSIONS.has(item)) return true;
-          v.warn('security.permissions', `未知权限 ${JSON.stringify(item)}，已剔除`);
+          v.warn('security.permissions', 'unknownPermission', { item: JSON.stringify(item) });
           return false;
         });
         permissions = kept;
@@ -784,7 +814,7 @@ export class DesktopConfigLoader {
       ? cspRaw
       : cspRaw === undefined
         ? {}
-        : (v.warn('security.csp', '应为对象，回落默认值'), {});
+        : (v.warn('security.csp', 'expectObjectFallback'), {});
     return { permissions, csp: DesktopConfigLoader.mergeCsp(cspDoc, base.csp, v) };
   }
 
