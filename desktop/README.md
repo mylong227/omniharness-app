@@ -312,15 +312,20 @@ $env:OMNI_SMOKE_OUT='D:\tmp\smoke.json'; npm run smoke # 指定结果落盘位�
 `npm test` 直接覆盖（含五类致命断言与「观测项不判死」）。托盘图标/系统通知/深链注册在受限
 会话合法缺失，按观测项记录、不影响结论。
 
-## 8. 下一步
+## 8. 下一步（2026-11-20 账实：终态登记）
 
-1. **GUI 冒烟常态化**：真实桌面验收已跑通（[docs/DESKTOP-SMOKE.md](../docs/DESKTOP-SMOKE.md)，
+1. **GUI 冒烟常态化** ✅：真实桌面验收已跑通（[docs/DESKTOP-SMOKE.md](../docs/DESKTOP-SMOKE.md)，
    2026-11-04 8/8）；CI 已接 `workflow_dispatch` 手动门，发版前触发一次即可。
-2. **安装包**：代码签名、N-1 升级实跑、安装/卸载保留 `~/.omniharness`、高 DPI 验收。
-3. **安全复核余项**：script-src 哈希白名单与 `revealPath` 工作区白名单已就位（2026-11-08），
-   剩 Renderer 权限白名单细化与 CSP 的 style-src unsafe-inline 替代方案（antd cssinjs 限制，
-   已登记为接受项）。
-4. **平台**：macOS 签名/公证；Linux 的托盘/通知能力按桌面环境降级验证。
+2. **安装包** ⏸ 外部条件项（非代码遗留）：代码签名需要证书采购决策；N-1 升级实跑需要
+   两个历史版本的真实安装环境——均属发布运维，代码侧已就绪（publish 已指本仓 omniharness-app，
+   releaseManifest 按版本推导；2026-11-20 收口）。卸载保留 `~/.omniharness` 与高 DPI 验收
+   随下次出包一并核对。
+3. **安全复核余项** ✅ 接受项终态：script-src 哈希白名单与 `revealPath` 工作区白名单已就位
+   （2026-11-08）；CSP 的 style-src unsafe-inline 替代方案受 antd cssinjs 限制，已登记为
+   **接受项**（非待办）——Renderer 权限白名单细化同批完成（notifications + clipboard-
+   sanitized-write 双白名单 + permission request/check handler）。
+4. **平台** ⏸ 环境边界（非代码遗留）：macOS 签名/公证与 Linux 托盘/通知降级验证需对应
+   平台环境，本仓当前仅出 win32 包（package-desktop.cmd 单链路）。
 
 ## 9. 与文档的关系
 

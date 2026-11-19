@@ -12,6 +12,34 @@
   `releaseManifest.mjs` 安装包文件名从写死 0.2.0 改为按 package.json 版本推导。
 
 ### Added（新增）
+- **记忆时间图 Memory Atlas v1（2026-11-20，next-panels §13 第二项兑现）**：新 RPC
+  `memory.facts`（111→112，memory 域）：`factsSnapshot` 纯函数窄转型探测
+  `FileLongTermMemory.factGraph`（图是实现细节不进端口契约——探测消费，零内核改动），
+  返回全量 `TemporalFactCard` + total/active（内核 `<=` 到点即失效口径）；无图如实
+  `supported:false`。记忆面板新增「时间图」区：三元组卡（subject·predicate·object +
+  原文 + 起止日期）+ 生命状态徽标（有效/已被取代/已过期），有效卡在前、组内 validFrom
+  降序——「这条偏好现在还有效吗？谁取代了谁？」一眼可读；SSE `memory.changed` 自动跟随。
+  判据 tests/memoryFacts（探测命中/无图降级/取代字段透传）+ parity 112。已知边界如实
+  继承内核 temporalTripleParser（中文关系句暂不入卡）。
+- **服务端价表下发 `model.pricing`（2026-11-20，遗留 #9 收口）**：新 RPC（110→111，
+  config 域）纯静态下发内核 `DEFAULT_ROUTE_PRICING`（36 条单一真源）+
+  `UNPRICED_DEFAULT_FAMILIES`（故意不定价登记）+ 兜底价；web ModelPricing 服务端表优先、
+  内置 20 条表兜底（两表并扫最长前缀），AppController 启动期拉取失败静默兜底；路由卡
+  条目补 ≈ 单价或「未收录单价」——「成本差多少」兑现。口径提示：内核表经
+  routePricingDefaults 判据核对，切换后成本读数变化属预期。
+- **遗留全清零轮（2026-11-20）：总表 14 项全部终态**——
+  · **输入历史按天持久化**（#8）：`omni.inputHistory.<YYYY-MM-DD>` 按天档，同天重启/刷新
+    找回、跨天清空（「旧任务语境不带进新的一天」原设计精神保留）；存储注入可测，
+    localStorage 不可用 fail-soft 退内存态；判据 5→8 条。
+  · **桌面配置告警码化 i18n**（#4）：16 处硬编码文案 → `issues: ConfigIssue[]`
+    （path+code+params 单漏斗），文案单一真源迁 DesktopI18n messages.ts（15 键 ×中英），
+    诊断对话框补告警计数——告警首次有日志之外的出口；判据 43→44 条。
+  · **页头与右栏路径去重**（#10）：撤右栏空态首页 `.wb-path` 绝对路径层（同面板两层
+    重复）；全路径悬停保留，常驻路径只在中栏面包屑。
+  · **#14 并行会话 UI WIP 代收口**（review 验收后提交）+ **#12 桌面发布面**（2026-11-19）
+    + **#5/#7/#11 决策终态**（Electron 46 未发布 / types 锁 engines 主版本 / 仓间事实）
+    ——总表与 desktop README §8 全部账实回写。
+
 - **模型角色路由设置卡（2026-11-19，内核 #B4 接入，next-panels §13 Router 兑现）**：
   设置「模型与厂商」栏新增「模型角色路由」卡——按角色给规划/执行/审查/压缩等工作负载
   分配不同模型。未启用态引导 + 启用种子（默认模型 + 当前适配器做 entries[0]，未映射角色
