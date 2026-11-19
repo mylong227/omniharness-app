@@ -219,7 +219,6 @@ export const EN_MISC: Record<string, string> = {
 
   // 右栏工作台概览 / 会话导出（2026-11-10 体验优化）
   未跟踪: 'Untracked',
-  '正在读取工作区…': 'Reading workspace…',
   '当前分支': 'Current branch',
   '未提交的变更文件数': 'Uncommitted changed files',
   '{n} 个变更': '{n} changes',

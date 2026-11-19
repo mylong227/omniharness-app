@@ -2,33 +2,137 @@
 // 最新一条回到按下 ↑ 之前的草稿——终端 / IDE 输入框的通用习惯，省掉「编辑重发只认末条」
 // 的局限（历史可以从任意一条开始改）。
 //
-// 纯逻辑（无 React / DOM 依赖，可最小桩单测）；接管规则（何时翻、何时放行给光标移动）
-// 在 composerKeyboard.ts。内存态即可：历史的价值是「刚才发过的」，跨重启持久化反而会把
-// 旧任务语境带进新的一天。
+// 纯逻辑（无 React / DOM 依赖）；接管规则（何时翻、何时放行给光标移动）在 composerKeyboard.ts。
+//
+// 持久化（2026-11-20 遗留 #8 闭环，按天档）：同一天重启可找回「刚才发过的」（浏览器刷新
+// 不再丢），跨天自动清空——「旧任务语境不带进新的一天」的原设计精神保留。存储通道构造注入
+// （node 判据传桩）；缺省单例接 localStorage，不可用（隐私模式/quota）静默退回内存态。
+
+/** 持久化通道（注入以便 node 直测；键 = omni.inputHistory.<YYYY-MM-DD>，值 = {day, items}）。 */
+export interface HistoryStorage {
+  /** 读键值；无该键返回 null。 */
+  read(key: string): string | null;
+  /** 写键值。 */
+  write(key: string, value: string): void;
+}
 
 /** 历史条目上限。 */
 const MAX_ITEMS = 50;
 
-/** 输入历史：已发送消息的环形翻阅。 */
+/** 存储键前缀（后缀为当天日期键）。 */
+const STORAGE_PREFIX = 'omni.inputHistory.';
+
+/** 存储载荷形状（带日期键，装载时据此拒绝隔天数据）。 */
+interface StoredHistory {
+  day: string;
+  items: string[];
+}
+
+/**
+ * 当天日期键（本地时区 YYYY-MM-DD；按天档的判定源）。
+ * @param now 当前时刻
+ * @returns 日期键
+ */
+function dayKey(now: Date): string {
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * 浏览器存储适配：localStorage 可用则包装成通道，否则返回 undefined（纯内存态）。
+ * @returns 通道；不可用时 undefined
+ */
+function browserStorage(): HistoryStorage | undefined {
+  try {
+    const ls = globalThis.localStorage;
+    if (ls === undefined) return undefined;
+    return {
+      read: (key) => ls.getItem(key),
+      write: (key, value) => {
+        ls.setItem(key, value);
+      },
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+/** 输入历史：已发送消息的环形翻阅（按天持久化）。 */
 export class ComposerHistory {
   private items: string[] = [];
   /** 当前翻阅下标（-1 = 未在翻阅态）。 */
   private idx = -1;
   /** 进入翻阅态那一刻输入框里的文本（↓ 越过最新时归还）。 */
   private saved = '';
+  /** 当前历史所属日期键（跨天即清空重计）。 */
+  private day: string;
+  /** 持久化通道（undefined = 纯内存态）。 */
+  private readonly storage: HistoryStorage | undefined;
+  /** 时钟（注入以便判据模拟跨天）。 */
+  private readonly clock: () => Date;
 
   /**
-   * 追加一条已发送消息（连续重复去重；进入翻阅态即复位）。
+   * @param storage 持久化通道（缺省 undefined = 纯内存态）
+   * @param clock 时钟（缺省系统时间）
+   */
+  public constructor(storage?: HistoryStorage, clock?: () => Date) {
+    this.storage = storage;
+    this.clock = clock ?? (() => new Date());
+    this.day = dayKey(this.clock());
+    if (this.storage !== undefined) this.load();
+  }
+
+  /** 从通道装载当天的历史；隔天载荷 / 解析失败一律忽略（fail-soft 回内存态）。 */
+  private load(): void {
+    if (this.storage === undefined) return;
+    try {
+      const raw = this.storage.read(STORAGE_PREFIX + this.day);
+      if (raw === null) return;
+      const parsed = JSON.parse(raw) as Partial<StoredHistory>;
+      if (parsed.day !== this.day || !Array.isArray(parsed.items)) return;
+      this.items = parsed.items.filter((item): item is string => typeof item === 'string').slice(-MAX_ITEMS);
+    } catch {
+      // 损坏载荷不阻断输入框：静默当空历史。
+    }
+  }
+
+  /** 持久化当前列表（带日期键；通道异常静默吞掉——历史丢一页不致命）。 */
+  private persist(): void {
+    if (this.storage === undefined) return;
+    try {
+      this.storage.write(STORAGE_PREFIX + this.day, JSON.stringify({ day: this.day, items: this.items }));
+    } catch {
+      // quota / 隐私模式：内存态继续用。
+    }
+  }
+
+  /** 跨天滚动：日期键变化即清空重计（重启按天装载与会话内跨零点同规）。 */
+  private ensureDay(): void {
+    const today = dayKey(this.clock());
+    if (today !== this.day) {
+      this.day = today;
+      this.items = [];
+      this.idx = -1;
+      this.saved = '';
+    }
+  }
+
+  /**
+   * 追加一条已发送消息（连续重复去重；进入翻阅态即复位）并持久化。
    * @param text 已发送文本
    * @returns 无
    */
   public push(text: string): void {
+    this.ensureDay();
     const trimmed = text.trim();
     if (trimmed === '') return;
     if (this.items[this.items.length - 1] === trimmed) return;
     this.items.push(trimmed);
     if (this.items.length > MAX_ITEMS) this.items.shift();
     this.idx = -1;
+    this.persist();
   }
 
   /**
@@ -73,5 +177,5 @@ export class ComposerHistory {
   }
 }
 
-/** 应用级单例：Composer 不按会话重挂，但保持跨组件实例一致更稳（测试自建实例）。 */
-export const composerHistory = new ComposerHistory();
+/** 应用级单例：接浏览器 localStorage（按天档）；node/不可用环境自动退内存态。 */
+export const composerHistory = new ComposerHistory(browserStorage());

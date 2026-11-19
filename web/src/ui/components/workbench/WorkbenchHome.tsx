@@ -91,9 +91,8 @@ function WorkbenchHead(props: {
       <h2 className="wb-title" title={path}>
         {workspaceName(path)}
       </h2>
-      <div className="wb-path" title={path}>
-        {path === '' ? t('正在读取工作区…') : path}
-      </div>
+      {/* 完整绝对路径层已撤（2026-11-20 遗留 #10 去重口径）：与标题 basename 同面板重复显示
+          两层；全路径悬停 title 仍在，常驻路径见中栏页头面包屑（chat-project）。 */}
       <div className="wb-chips">
         {brief?.branch === undefined ? null : (
           <span className="wb-chip wb-chip--branch" title={t('当前分支')}>

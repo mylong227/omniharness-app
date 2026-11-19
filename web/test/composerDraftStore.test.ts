@@ -90,3 +90,63 @@ test('输入历史：连续重复去重 + break 退出', () => {
   assert.strictEqual(h.active(), false, '继续输入即退出翻阅态');
   assert.strictEqual(h.down(), null, '非翻阅态 ↓ 放行');
 });
+
+/** 注入式存储桩（不走 globalThis，直接喂通道）。 */
+function storageStub(): { storage: { read(key: string): string | null; write(key: string, value: string): void }; backing: Map<string, string> } {
+  const backing = new Map<string, string>();
+  return {
+    backing,
+    storage: {
+      read: (key) => backing.get(key) ?? null,
+      write: (key, value) => void backing.set(key, value),
+    },
+  };
+}
+
+test('输入历史按天档：同天重启找回（装载）+ 写入即落盘带日期键', () => {
+  const { storage, backing } = storageStub();
+  let now = new Date('2026-11-20T10:00:00');
+  const clock = (): Date => now;
+  const h = new ComposerHistory(storage, clock);
+  h.push('上午发的');
+  const raw = backing.get('omni.inputHistory.2026-11-20');
+  assert.ok(raw !== undefined && raw !== null, '写入即落盘且键带当天日期');
+  const parsed = JSON.parse(raw) as { day: string; items: string[] };
+  assert.strictEqual(parsed.day, '2026-11-20');
+  assert.deepEqual(parsed.items, ['上午发的']);
+  // 同天重启：新实例从通道找回。
+  const h2 = new ComposerHistory(storage, clock);
+  assert.strictEqual(h2.up(''), '上午发的', '同天重启找回历史');
+});
+
+test('输入历史按天档：隔天载荷不装入 + 会话内跨零点清空重计', () => {
+  const { storage, backing } = storageStub();
+  // 预置昨天的载荷：今天的新实例不得装入。
+  backing.set(
+    'omni.inputHistory.2026-11-20',
+    JSON.stringify({ day: '2026-11-20', items: ['昨天的旧任务语境'] }),
+  );
+  let now = new Date('2026-11-21T08:00:00');
+  const clock = (): Date => now;
+  const h = new ComposerHistory(storage, clock);
+  assert.strictEqual(h.up(''), null, '隔天历史不带入新的一天（原设计精神保留）');
+  // 会话内跨零点：下一次 push 触发滚动，旧列表清空。
+  h.push('跨零点前');           // 此时 ensureDay 以 11-21 记账，与预置键不同天不冲突
+  now = new Date('2026-11-22T00:01:00');
+  h.push('跨零点后');
+  assert.strictEqual(h.up(''), '跨零点后', '跨天滚动后只剩今天条目');
+  assert.strictEqual(h.up(''), '跨零点后', '旧条目已清空，到顶停住');
+  const raw = backing.get('omni.inputHistory.2026-11-22');
+  assert.ok(raw !== null && (JSON.parse(raw) as { items: string[] }).items.every((i) => i !== '跨零点前'), '新一天的落盘不含旧语境');
+});
+
+test('输入历史按天档：损坏载荷 fail-soft + 无通道纯内存', () => {
+  const { storage } = storageStub();
+  storage.write('omni.inputHistory.2026-11-20', '{not json');
+  const clock = (): Date => new Date('2026-11-20T10:00:00');
+  const h = new ComposerHistory(storage, clock);
+  assert.strictEqual(h.up(''), null, '损坏载荷当空历史，不阻断输入框');
+  const bare = new ComposerHistory(undefined, clock);
+  bare.push('无通道');
+  assert.strictEqual(bare.up(''), '无通道', '无通道退化为纯内存态（原判据路径不变）');
+});
