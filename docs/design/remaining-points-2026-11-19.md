@@ -31,4 +31,6 @@ hardcode-cleanup「HTTP 桥细分类」行（2026-11-20 查证：httpBridgeTrans
 
 **next-panels §13 三项「内核已承诺、前端未兑现」进展**：Router ✅（2026-11-19，
 358281f + c15c7a9 含 RoutePricing 单价展示）、**Memory Atlas ✅（2026-11-20，8fd2b02）**、
-Skill Lab ⏸（唯一剩余项——编辑面需 diff/回滚/差异测试三件套，留独立批次立项）。
+**Skill Lab ✅（2026-11-20，2d183be——skills 域模块 5 RPC + 编辑面，设计稿
+docs/design/skill-lab/README.md；CRISPR SPI 语义 app 侧落地，工作区文件面留 v2）**。
+三项全部兑现，§13 关闭。

@@ -13,8 +13,8 @@
 
 | 目录 | 内容 | 规模 |
 | ---- | ---- | ---- |
-| `src/` | **后端宿主**：HTTP/SSE、JSON-RPC（112 方法，18 个域模块声明式注册）、会话存储、审批/沙箱、插件宿主、CLI、MCP/ACP/AG-UI | `src/apps` + `src/host/kernel/`（19 域对接面）+ `src/host/extensions/`（app 自有扩展层） |
-| `web/` | **前端**：React 19 工作台（会话/工具/计划/变更/设置/审计/插件…） | 290 个源文件（含 14 个 en 词条分片）+ 187 个判据文件，合计 221 判据文件 / 1020 用例（后端 34 文件另计） |
+| `src/` | **后端宿主**：HTTP/SSE、JSON-RPC（116 方法，19 个域模块声明式注册）、会话存储、审批/沙箱、插件宿主、CLI、MCP/ACP/AG-UI | `src/apps` + `src/host/kernel/`（19 域对接面）+ `src/host/extensions/`（app 自有扩展层） |
+| `web/` | **前端**：React 19 工作台（会话/工具/计划/变更/设置/审计/插件…） | 292 个源文件（含 14 个 en 词条分片）+ 188 个判据文件，合计 223 判据文件 / 1028 用例（后端 35 文件另计） |
 | `desktop/` | **桌面端**：Electron 主进程 + preload（窗口/托盘/菜单/更新/侧车监督） | 32 个源文件，44 条纯逻辑判据 |
 
 运行形态：
@@ -24,7 +24,7 @@ Electron main（受信） ──spawn──▶ node dist/src/apps/cli/exec.js se
         │                              │  HTTP+SSE 127.0.0.1:<port>（Bearer + HttpOnly Cookie）
         └── BrowserWindow ──load──▶ http://127.0.0.1:<port>/?token=…
                                        ├─ GET  /            → web/dist（Vite 产物）
-                                       ├─ POST /rpc         → JSON-RPC 2.0（112 个方法）
+                                       ├─ POST /rpc         → JSON-RPC 2.0（116 个方法）
                                        ├─ GET  /events      → SSE 事件流
                                        ├─ GET  /files       → 工作区文件
                                        └─ GET  /healthz     → 运行时自述（含 previewPort）
@@ -90,7 +90,7 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 | ---- | ---- |
 | `npm run build` | 后端：`tsc` → `dist`（原子换入）+ 伴生资源/原生库镜像 |
 | `npm run build:web` / `web:dev` | 前端 Vite 构建 / 开发服务器 |
-| `npm run web:test` | 判据（前端 187 文件 + 后端 34 文件 / 共 1020 用例，文件级串行） |
+| `npm run web:test` | 判据（前端 188 文件 + 后端 35 文件 / 共 1028 用例，文件级串行） |
 | `npm run typecheck` | 后端 + 前端 + 桌面三份 strict 类型检查 |
 | `npm run kernel:check` | **内核边界门禁（9 条）**：vendored 钉定 / 无内嵌副本 / 对接面单点 / tarball 与锁文件一致 / 原生内核实载 / **对接面生成物不漂移** / **已承诺能力无同名副本** |
 | `npm run kernel:surface` | 从「业务代码实际 import + 内核包 .d.ts」生成 19 个域文件（新增符号无需手写 re-export） |
@@ -190,14 +190,14 @@ src/host/kernel/<域>.ts —— 19 个自动生成的分域 re-export，无实�
 | 检查 | 结果 |
 | ---- | ---- |
 | 三份 typecheck（后端 / 前端 / 桌面） | ✅ 0 error |
-| `npm run kernel:check` | ✅ 285 源文件 / 290 处包导入（19 域对接面，全部收敛）/ 内嵌副本 0 / tarball integrity 一致 / 原生内核实载 / 生成物一致 / extensions 无已承诺影子 |
+| `npm run kernel:check` | ✅ 287 源文件 / 290 处包导入（19 域对接面，全部收敛）/ 内嵌副本 0 / tarball integrity 一致 / 原生内核实载 / 生成物一致 / extensions 无已承诺影子 |
 | 后端构建 `npm run build` | ✅ dist 原子换入；原生内核可加载 |
 | 前端构建 `npm run build:web` | ✅ 单入口 + vendor-react / vendor-antd 分块 |
-| 判据 `npm run web:test` | ✅ 221 文件 / 1020 用例（含 parity/守卫/家具/嵌入 API/JCS golden/审计修复/影子扫描判据） |
+| 判据 `npm run web:test` | ✅ 223 文件 / 1028 用例（含 parity/守卫/家具/嵌入 API/JCS golden/审计修复/影子扫描判据） |
 | 端到端 `npm run smoke` | ✅ 7/7（banner token、`/healthz`、`/readyz`、`/` HTML、`/rpc config.get`、`sessions.list`、原生内核实载） |
 | 桌面 `desktop:build` + `desktop:test` | ✅ 44/44（含 ipcGuards 三组 + CSP 哈希门禁 + 配置告警码↔文案键 parity） |
 | 嵌入 API 实测 | ✅ `createOmniHarness` 启动 / healthz 200 / RPC 往返 / 优雅关闭（另有自动判据 tests/embedApi.test.ts） |
-| `rpc.list` 自描述 | ✅ 一次调用返回 105~112 个方法 → 归属模块/插件（打包/嵌入形态少 5 个市场方法属正常） |
+| `rpc.list` 自描述 | ✅ 一次调用返回 105~116 个方法 → 归属模块/插件（打包/嵌入形态少 5 个市场方法属正常） |
 
 ## 8. 与上游 / 内核仓的关系
 
@@ -206,7 +206,7 @@ src/host/kernel/<域>.ts —— 19 个自动生成的分域 re-export，无实�
 - 内核来自 `../omniharness-kernel` 的 `v0.1.0-alpha.33` tag；`vendor/*.tgz` 是它的发行物，
   **不是**第二份源码。重建用 `npm run kernel:vendor`（tag 缺省自 package.json 解析）。
 - 上游的 `tests/`、`crates/`、`third-party/`、看板与审计脚本没有切过来：本仓的判据是
-  1020 用例（web + 后端）+ 桌面 44 条 + 冒烟 9 条 + 内核边界 9 条。
+  1028 用例（web + 后端）+ 桌面 44 条 + 冒烟 9 条 + 内核边界 9 条。
 
 ## License
 

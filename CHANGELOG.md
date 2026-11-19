@@ -12,6 +12,18 @@
   `releaseManifest.mjs` 安装包文件名从写死 0.2.0 改为按 package.json 版本推导。
 
 ### Added（新增）
+- **技能实验室 Skill Lab v1（2026-11-20，next-panels §13 第三项兑现，§13 关闭）**：
+  新 skills 域模块（第 19 个域模块，RPC 112→116）——`skills.list`（**数据源修复**：旧读
+  `AppServerOptions.skills` 三组合根均未注入、生产态恒空；改为 skillRegistry 装配真值 ∪
+  `fileConfig().skills` 编辑面按名归并）/ `skills.get` / `skills.diff`（结构差异测试
+  dry-run，fail-closed）/ `skills.apply`（通过才落 `config.skills` 整段）/ `skills.delete`
+  （仅 config 内联可删）。`SkillEditorService` 纯逻辑层实现 CRISPR SPI 语义
+  （定点编辑=精确点名 + 差异测试 fail-closed + 回滚=不落盘无副作用；Report 本地同构——
+  `crisprEditReport.js` 不在内核 exports 承诺清单）。存储=config.skills[]（三条组合根
+  通用、无信任闸；工作区文件面在 serve 默认不装配，留 v2，见设计稿
+  docs/design/skill-lab/README.md）。SkillsTab 编辑面：来源列/覆盖徽标/编辑/删除 +
+  编辑器 + 本地行级 LCS diff 预览（SkillDiff 纯模型，单一 diff 实现）。生效 = 下一会话。
+  判据 tests/skillEditor + web/test/skillDiff + parity 116 + settingsPersistKeys。
 - **记忆时间图 Memory Atlas v1（2026-11-20，next-panels §13 第二项兑现）**：新 RPC
   `memory.facts`（111→112，memory 域）：`factsSnapshot` 纯函数窄转型探测
   `FileLongTermMemory.factGraph`（图是实现细节不进端口契约——探测消费，零内核改动），
