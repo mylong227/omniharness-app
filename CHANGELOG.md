@@ -5,7 +5,23 @@
 
 ## [Unreleased]
 
+### Changed（变更）
+- **桌面发布面账实收口（2026-11-19）**：electron-builder publish 与 `repositoryUrl`
+  （菜单「仓库」项同源）从上游旧仓 `OmniHarness` 改指本仓 `omniharness-app`（遗留总表
+  #12 收口；draft release 渠道不变，electron-updater 自动更新改订本仓 release）；
+  `releaseManifest.mjs` 安装包文件名从写死 0.2.0 改为按 package.json 版本推导。
+
 ### Added（新增）
+- **模型角色路由设置卡（2026-11-19，内核 #B4 接入，next-panels §13 Router 兑现）**：
+  设置「模型与厂商」栏新增「模型角色路由」卡——按角色给规划/执行/审查/压缩等工作负载
+  分配不同模型。未启用态引导 + 启用种子（默认模型 + 当前适配器做 entries[0]，未映射角色
+  先与不路由行为一致）；策略 7 档 / 条目（模型名+适配器）/ 角色映射 8 角色（executor/
+  planner/reviewer/compactor/memory/guardian/goal/subagent，仅 by-role 策略显示）；停用 =
+  整段发 null。服务端 `SECTION_REPLACE_KEYS` 收编 `modelRouter`（整段提交按段替换，
+  杜绝「roles 指到已删条目」的静默坏配置）；前端预挡四形态（空条目/缺模型名/重复/
+  角色目标缺失——内核 by-role fail-closed 的同构预挡）。诚实边界写进卡脚注：条目凭据
+  取自对应适配器环境变量（与 CLI 一致），主配置 API Key 不用于路由条目。纯逻辑层
+  `ModelRouterDraft` node 直测（web/test/modelRouterDraft.test.ts）；i18n 全词条补齐。
 - **内核升级 alpha.33（2026-11-19）**：vendored kernel 升到
   `v0.1.0-alpha.33`（R19 遗留总清偿轮：M112–M114 + 深度 review 收口 P1×1/P2×3/P3×9，
   0 P0）。**会话上下文贯穿**（`ToolContext` 增可选 `capflowSessionContext` 实时闭包：

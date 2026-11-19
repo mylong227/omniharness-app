@@ -16,7 +16,7 @@
 | 9 | 会话成本服务端单价表下发 | ux-audit 遗留 | ⏸ 前端参考价版已落地（ModelPricing，内置价表 + ≈ 声明）；服务端下发需后端先行 | 用户要精确账单口径时启动 |
 | 10 | 页头与右栏项目路径重复 | ux-audit 遗留 | ⏸ 挂起待用户口径（动中栏页头影响面大） | 用户给出口径后收口 |
 | 11 | 上游 tests/unit 判据移植 | README §8 声明 | ⏸ 上游 tests/ 未切过是仓间关系事实（本仓判据已自建 1005 用例全覆盖），非本仓可执行项 | — |
-| 12 | desktop electron-builder publish 指上游 | 记忆登记 | ⏸ 发布决策留用户（目标 repo / 渠道未定） | 用户给发布口径后收口 |
+| 12 | desktop electron-builder publish 指上游 | 记忆登记 | ✅ 已收口（2026-11-19 盘点升级轮，commit d32ff79）：publish + repositoryUrl 改指本仓 omniharness-app，draft 渠道不变 | 目标 repo 再变更时同步三处（builder.yml / desktop.config.json / defaults.ts） |
 | 13 | 内核 R18（resume 盲区收口） | 内核仓 | ✅ 已闭合：alpha.32（R18）+ alpha.33（R19 遗留总清偿）同日 vendored（commits c49bb34 / 9b030e1） | — |
 | 14 | 并行会话 UI 打磨 WIP（4 文件） | 工作树 | ⏸ 活跃中，保留不碰（2026-11-19 盘点轮已 review：tr-btn 拆类 + ctx-note 色轨撤除，改动自洽完整，验收结论无阻断） | 其会话自行收口后照常随分支推送 |
 

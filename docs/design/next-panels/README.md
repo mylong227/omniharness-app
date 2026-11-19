@@ -839,7 +839,7 @@ src/apps/server/modules/
 | 机会 | 用户问题 | 内核依据 | 为什么独立 |
 | --- | --- | --- | --- |
 | **记忆时间图 / Memory Atlas** | “这条偏好现在还有效吗？谁取代了谁？” | `TemporalFactGraph`、`TemporalFactCard`、`validFrom/validTo` | 属于长期记忆，和当前窗口的 Context Studio 不是同一层 |
-| **模型路由 / Router** | “规划、执行、审查、压缩该分别用哪个模型？成本差多少？” | `ModelRole`、`RoutePricing`、`BudgetedModel` | 是配置与成本面，不是运行监控面 |
+| **模型路由 / Router** | “规划、执行、审查、压缩该分别用哪个模型？成本差多少？” | `ModelRole`、`RoutePricing`、`BudgetedModel` | 是配置与成本面，不是运行监控面。**v1 已兑现（2026-11-19）**：设置「模型与厂商」栏路由卡（策略 7 档 / 条目 / 8 角色映射，commit 358281f）；「成本差多少」的 RoutePricing 定价展示仍留后续 |
 | **技能实验室 / Skill Lab** | “把这次经验沉淀成技能，怎么安全地改？” | `CRISPRSkillEditorPort`、`CrisprEditSpec`、差异测试 | 是编辑面，需要 diff/回滚/测试，不适合只读控制室 |
 
 ---
