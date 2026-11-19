@@ -12,6 +12,15 @@
   `releaseManifest.mjs` 安装包文件名从写死 0.2.0 改为按 package.json 版本推导。
 
 ### Added（新增）
+- **设置页 v2 专家能力卡（2026-11-20，settings-completion 扩展）**：运行时栏新增「专家能力」
+  卡——evolutionRlvr / decisionEngine / calibratedAutonomy / rbac 四结构段共 20 行叶子
+  （进化闭环开关/自动运行/七环编排/预算与门禁、决策引擎模式/热进程/trace/超时、校准
+  自主性开关/最少校准单元/三类风险预算 α、RBAC 开关/会话角色）。四段收编
+  `SECTION_REPLACE_KEYS` + `PERSISTABLE_KEYS`（整段提交按段替换，内核各自严格校验器
+  fail-closed）；needRestart 常驻标记（运行时装配在 boot 期）。路径语义字段
+  （ledgerDir/pythonPath/modelDir/repo）与 roles 角色表经配置文件设置——pickerUniformity
+  面约束的诚实边界，settings-completion 设计稿已回写。判据同步：settingsPane 字段全集
+  清单 +20、OPTION_LABELS 补决策引擎三档、settingsPersistKeys 四键、i18n 全词条。
 - **技能实验室 Skill Lab v1（2026-11-20，next-panels §13 第三项兑现，§13 关闭）**：
   新 skills 域模块（第 19 个域模块，RPC 112→116）——`skills.list`（**数据源修复**：旧读
   `AppServerOptions.skills` 三组合根均未注入、生产态恒空；改为 skillRegistry 装配真值 ∪

@@ -165,6 +165,13 @@ export const SECTION_REPLACE_KEYS: readonly string[] = [
   // 操作（skills.apply/delete 服务端整段提交）——数组深合并无法表达删除；同名覆盖编辑
   // 依赖「显式配置同名优先」内核语义，段替换保证旧值不残留。
   'skills',
+  // 2026-11-20 settings-completion v2 专家面（四结构段，运行时栏「专家能力」卡）：
+  // 进化闭环 / 决策引擎 / 校准自主性 / 角色门禁。内核各自有严格校验器（未知子键 /
+  // 类型不符 fail-closed），UI 整段提交、按段替换。
+  'evolutionRlvr',
+  'decisionEngine',
+  'calibratedAutonomy',
+  'rbac',
 ];
 
 /**

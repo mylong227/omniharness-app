@@ -22,8 +22,8 @@ export const EN_SETTINGS: Record<string, string> = {
   模型: 'Model',
   '厂商接入、API Key、默认模型与自定义端点': 'Providers, API keys, default model and custom endpoint',
   运行时: 'Runtime',
-  '适配器、沙箱、存储、步数与成本预算、模型熔断、上下文与检索、缓存与防火墙、长期记忆':
-    'Adapter, sandbox, storage, per-turn steps & cost budget, model circuit breaker, context & retrieval, cache & firewall, long-term memory',
+  '适配器、沙箱、存储、步数与成本预算、模型熔断、上下文与检索、缓存与防火墙、长期记忆、专家能力':
+    'Adapter, sandbox, storage, per-turn steps & cost budget, model circuit breaker, context & retrieval, cache & firewall, long-term memory, expert capabilities',
   // 缓存与防火墙（alpha.21）
   缓存与防火墙: 'Cache & firewall',
   '确定性读缓存与能力数据流防火墙；缺省全关，开启后按段生效。':
@@ -385,4 +385,69 @@ export const EN_SETTINGS: Record<string, string> = {
   安全审查与风险判定: 'Security review and risk verdicts',
   'goal 循环的模型': 'Model for the goal loop',
   'subagent 派生的模型': 'Model for spawned subagents',
+
+  // —— 专家能力卡（2026-11-20 settings-completion v2：evolutionRlvr/decisionEngine/
+  //    calibratedAutonomy/rbac 四结构段；label/hint/placeholder 值均入此表）——
+  专家能力: 'Expert capabilities',
+  '进化闭环、决策引擎、校准自主性与角色门禁；面向进阶场景，缺省全关，改动重启生效。':
+    'Evolution loop, decision engine, calibrated autonomy and RBAC; advanced scenarios, all off by default, changes need a restart.',
+  '进化闭环（RLVR）': 'Evolution loop (RLVR)',
+  '任务末沉淀候选补丁并用验证命令打分；缺省关闭（零破坏）':
+    'Collect candidate patches at task end and score them with a verify command; off by default (zero behavior change)',
+  任务末自动运行: 'Auto-run at task end',
+  '每任务结束自动跑一轮进化（需先启用闭环）': 'Run one evolution round when a task ends (requires the loop to be enabled)',
+  七环编排内核: 'Seven-ring kernel orchestration',
+  '启用 EvolutionKernel 七环编排与晋升台账（ADR-0008）':
+    'Enable the EvolutionKernel seven-ring orchestration and promotion ledger (ADR-0008)',
+  发现预算上限: 'Discovery budget cap',
+  '单轮候选补丁数上限': 'Max candidate patches per round',
+  每题采样数: 'Samples per prompt',
+  '每 prompt 的采样数': 'Samples taken per prompt',
+  最低保留分: 'Min reward to keep',
+  'RLVR 最低保留阈值（默认 0：仅保留 reward>0 的绿样本）':
+    'Min reward to keep (default 0: keep only green samples with reward>0)',
+  最小增益门禁: 'Min gain gate',
+  '门禁须超过基线的最小增益': 'Minimum gain over baseline required by the gate',
+  验证命令: 'Verify command',
+  '候选代码验证命令；路径语义字段（ledgerDir/repo 等）经配置文件设置':
+    'Command that verifies candidate code; path-like fields (ledgerDir/repo etc.) go through the config file',
+  验证文件扩展名: 'Verify file extension',
+  '验证临时文件扩展名（验证 JS 代码须传 .js）': 'Temp file extension for verification (use .js to verify JS code)',
+  决策引擎模式: 'Decision engine mode',
+  '本地 System-1 高频判断点：off=不装配 / shadow=跑记不改行为 / enforce=生效（库缺省 off；CLI 生产入口缺省 shadow；全程 fail-open）':
+    'Local System-1 fast judgments: off = not assembled / shadow = run & record without changing behavior / enforce = effective (library default off; CLI production default shadow; fail-open throughout)',
+  常驻热进程: 'Warm resident process',
+  '复用常驻热进程；关掉则每次决策单起子进程（单次可达数十秒）':
+    'Reuse a warm resident process; off = spawn a fresh process per decision (can take tens of seconds)',
+  '决策 trace 落盘': 'Persist decision traces',
+  'append-only JSONL，供 RLCD 温度校准；仅 mode≠off 时生效':
+    'Append-only JSONL for RLCD temperature calibration; only when mode≠off',
+  单次决策上限: 'Per-decision timeout',
+  '单发路径单次决策上限（毫秒）': 'Per-decision timeout on the single-shot path (ms)',
+  校准自主性: 'Calibrated autonomy',
+  '校准充分且风险分低于阈值的审批升级直接放行（缺省关闭；分布无关保证见 ConformalRiskCalibrator）':
+    'Auto-approve escalation prompts that are well-calibrated and below the risk budget (off by default; distribution-free guarantees in ConformalRiskCalibrator)',
+  最少校准单元: 'Min calibration units',
+  '每类校准单元不足该数不放权': 'No autonomy until each class has this many calibration units',
+  '只读类风险预算 α': 'Read-only risk budget α',
+  '状态变更类 α': 'State-mutating risk budget α',
+  '提权执行类 α': 'Privileged actuation α',
+  '0<r<1，越小越保守': '0<r<1; smaller is more conservative',
+  '角色门禁（RBAC）': 'Role gate (RBAC)',
+  '按角色表限制工具面；缺省不启用（零行为变更）；角色定义表 roles 经配置文件设置':
+    'Restrict the tool surface by role table; off by default (zero behavior change); the roles table goes through the config file',
+  会话角色: 'Session role',
+  '本次会话身份（运行时状态，与角色定义表分离）': 'This session’s identity (runtime state, separate from the roles table)',
+  // 专家面占位符
+  '默认 12': 'default 12',
+  '默认 8': 'default 8',
+  '默认 0': 'default 0',
+  '默认 0.05': 'default 0.05',
+  '默认 0.02': 'default 0.02',
+  '默认 0.01': 'default 0.01',
+  '默认 .ts': 'default .ts',
+  '默认 120000 毫秒': 'default 120000 ms',
+  '默认 30': 'default 30',
+  '含 %CODE_FILE% 占位符；留空 = 奖励恒 0（安全旁路）': 'contains %CODE_FILE%; empty = reward always 0 (safe bypass)',
+  '留空 = 未指定': 'empty = unspecified',
 };

@@ -171,6 +171,15 @@ test('设置页字段全集 === 内核可 UI 化标量键清单（settings-compl
     'contextPolicy.cacheGuard.hitRateFloor',
     // 运行时·缓存与防火墙（alpha.21）
     'toolCache.enabled', 'toolCache.maxEntries', 'capflow.mode', 'capflow.policyPath',
+    // 运行时·专家能力（2026-11-20 settings-completion v2：四结构段按段内路径逐行）
+    'evolutionRlvr.enabled', 'evolutionRlvr.autoRun', 'evolutionRlvr.kernel',
+    'evolutionRlvr.maxCandidates', 'evolutionRlvr.samplesPerPrompt', 'evolutionRlvr.minReward',
+    'evolutionRlvr.minGain', 'evolutionRlvr.verifyCommand', 'evolutionRlvr.verifyCodeFileExtension',
+    'decisionEngine.mode', 'decisionEngine.warm', 'decisionEngine.trace', 'decisionEngine.timeoutMs',
+    'calibratedAutonomy.enabled', 'calibratedAutonomy.minCalibration',
+    'calibratedAutonomy.alpha.readOnly', 'calibratedAutonomy.alpha.stateMutating',
+    'calibratedAutonomy.alpha.privilegedActuate',
+    'rbac.enabled', 'rbac.role',
     // 权限栏
     'approval', 'escalation', 'autoApprove',
   ];

@@ -81,6 +81,16 @@ export function SettingsRuntimePane(props: SettingsRuntimePaneProps): ReactEleme
         ))}
       </ConsoleCard>
       <ConsoleCard
+        title={t('专家能力')}
+        description={t(
+          '进化闭环、决策引擎、校准自主性与角色门禁；面向进阶场景，缺省全关，改动重启生效。',
+        )}
+      >
+        {fieldsOfGroup('runtime', 'expert').map((field) => (
+          <ConsoleSettingRow key={fieldId(field)} field={field} model={settings} />
+        ))}
+      </ConsoleCard>
+      <ConsoleCard
         title={t('工作区')}
         description={t(
           '工作区由启动参数或用户级配置决定（--workspace / ~/.omniharness/omniharness.json），界面内不提供切换。',

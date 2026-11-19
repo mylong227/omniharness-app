@@ -42,6 +42,11 @@ const NEW_KEYS = [
   'modelRouter',
   // 2026-11-20 Skill Lab（skills 内联数组；整段提交/按段替换）。
   'skills',
+  // 2026-11-20 settings-completion v2 专家面（四结构段）。
+  'evolutionRlvr',
+  'decisionEngine',
+  'calibratedAutonomy',
+  'rbac',
 ];
 
 test('PERSISTABLE_KEYS 覆盖设置页新增的全部内核键（漏一个 UI 就写不进配置文件）', () => {
@@ -62,7 +67,7 @@ test('白名单键全部在内核字段规格的类型白名单里（不会被 n
       // 特殊动作参数与结构化段（有各自 validator / 特殊路径，不走标量白名单）；
       // elevatedSandbox 例外地是**一等枚举**（ENUM_VALUES 里有），列在这里只因
       // 早期内核版本未进标量白名单——内核若已把它收进 ENUM 分支，本行兜底无害。
-      ['apiKey', 'providerKeys', 'autoApprove', 'permission', 'ssrfPolicy', 'limits', 'elevatedSandbox', 'longTermMemoryKeyFile', 'modelRouter', 'providerKeysDpapi', 'retrievalContext', 'semanticRecall', 'contextPolicy', 'toolCache', 'capflow', 'skills'].includes(key);
+      ['apiKey', 'providerKeys', 'autoApprove', 'permission', 'ssrfPolicy', 'limits', 'elevatedSandbox', 'longTermMemoryKeyFile', 'modelRouter', 'providerKeysDpapi', 'retrievalContext', 'semanticRecall', 'contextPolicy', 'toolCache', 'capflow', 'skills', 'evolutionRlvr', 'decisionEngine', 'calibratedAutonomy', 'rbac'].includes(key);
     assert.ok(known, `PERSISTABLE_KEYS 里的 ${key} 不是内核已登记的配置键`);
   }
 });
