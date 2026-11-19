@@ -6,12 +6,24 @@
 ## [Unreleased]
 
 ### Changed（变更）
-- **桌面发布面账实收口（2026-11-19）**：electron-builder publish 与 `repositoryUrl`
+- **桌面发布面账实收口（2026-11-20）**：electron-builder publish 与 `repositoryUrl`
   （菜单「仓库」项同源）从上游旧仓 `OmniHarness` 改指本仓 `omniharness-app`（遗留总表
   #12 收口；draft release 渠道不变，electron-updater 自动更新改订本仓 release）；
   `releaseManifest.mjs` 安装包文件名从写死 0.2.0 改为按 package.json 版本推导。
+- **metricsTabStale 判据硬化（2026-11-20）**：组件按 POLL_MS=2s 真实 setInterval 轮询，
+  满载并发（223 worker）下 interval 可在 settle 微任务窗口内开火、多打一次失败调用
+  让「健康时无陈旧提示」偶发翻车（单次实测 + 隔离恒绿取证）。判据改 fake timers：
+  冻结轮询、断言后显式推进恰好一档——轮询次数确定化，负载不再影响判定。
 
 ### Added（新增）
+- **内核升级 alpha.34（2026-11-20，R20 好用收口轮）+ mcpServers env/cwd 应用侧映射补全**：
+  vendored kernel 升到 `v0.1.0-alpha.34`（M115–M119 + review 收口；公共根导出面 60/60，
+  消费面零变化，kernel:check 287/290 复绿）。R20：厂商一键接线（embed `model` 字符串
+  快捷）、close 生命周期收口（drain 有界等待 + `drainTimeoutMs`）、配置孤儿清偿
+  （mcpServers 文件面补 env/cwd + `classifyInterjection` 接线）、配置错误自愈（未知键
+  did-you-mean）。**应用侧工单同轮清偿**：`argConfigDefaults` mcpServers 映射补
+  env/cwd 透传（连接器早已消费——此前用户在 omniharness.json 写了静默失效）；判据
+  configSectionWiring 钉住两种形态（stdio 透传 env/cwd / 远端形状归一）。
 - **设置页 v2 专家能力卡（2026-11-20，settings-completion 扩展）**：运行时栏新增「专家能力」
   卡——evolutionRlvr / decisionEngine / calibratedAutonomy / rbac 四结构段共 20 行叶子
   （进化闭环开关/自动运行/七环编排/预算与门禁、决策引擎模式/热进程/trace/超时、校准

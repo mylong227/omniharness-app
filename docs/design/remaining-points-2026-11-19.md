@@ -8,7 +8,7 @@
 
 | # | 项 | 来源 | 处置 | 复活条件 |
 | --- | --- | --- | --- | --- |
-| 1 | 内核新版本跟进 | deps-upgrade | ✅ 持续完成：alpha.24→**alpha.33**（R12→R19 七轮，消费面始终零变化） | alpha.34 发版 → `OMNI_KERNEL_TAG` vendored 例行公事 |
+| 1 | 内核新版本跟进 | deps-upgrade | ✅ 持续完成：alpha.24→**alpha.34**（R12→R20 八轮，消费面零变化）；R20 的应用侧工单（mcpServers env/cwd 映射补全）已同日清偿 | alpha.35 发版（R21 性能轮在研：M120–M123） → `OMNI_KERNEL_TAG` vendored 例行公事 |
 | 2 | 后端 RPC 错误码位化 | hardcode-cleanup 遗留 | ✅ 本轮完成：共享分类器 `core/rpcErrorCodes.ts`（WS/HTTP 同源），调用方参数问题判 **-32602**；前端 failureHint 增专属提示 | 域模块新增错误形态 → 扩 `CALLER_FAULT_RE`（判据钉住的三类形态外保持保守） |
 | 3 | fetchMetrics / SSE 分类 | hardcode-cleanup 遗留 | ✅ fetchMetrics 已 RpcError 化；**SSE 维持**（EventSource 原生重连、无错误对象可分类——设计上无抛错点） | 无（除非 SSE 换自定义重连实现） |
 | 4 | 桌面 DesktopConfigLoader 警告 i18n | hardcode-cleanup 遗留 | ✅ **2026-11-20 收口**（commit 451240f）：16 处硬编码文案码化为 `issues: ConfigIssue[]`（path+code+params 单漏斗），文案单一真源迁 `DesktopI18n` messages.ts（15 键 ×中英）；诊断对话框补「config issues: N」——告警首次有日志之外的出口。实测改动面远小于原登记预估（~15 处调用点实为单一漏斗 10 个辅助函数） | 新增告警码 → 同步 messages.ts 键（test.mjs parity 判据钉住） |

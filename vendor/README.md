@@ -4,7 +4,7 @@
 
 | 文件 | 说明 |
 | ---- | ---- |
-| `omniharness-kernel-0.1.0-alpha.33.tgz` | `@omniharness/kernel` 在 tag `v0.1.0-alpha.33` 的构建产物 + 应用 `native/omni_napi.node`（`NativeKernel` 从包根找它） |
+| `omniharness-kernel-0.1.0-alpha.34.tgz` | `@omniharness/kernel` 在 tag `v0.1.0-alpha.34` 的构建产物 + 应用 `native/omni_napi.node`（`NativeKernel` 从包根找它） |
 
 ## 重新生成
 
@@ -23,7 +23,15 @@ npm run kernel:check     # 9 条判据（含生成物不漂移 / 已承诺能力
 
 ## 版本史
 
-- **alpha.33**（当前）：R19 遗留总清偿轮（M112–M114 + 深度 review 收口 P1×1/P2×3/P3×9，
+- **alpha.34**（当前）：R20 好用收口轮（M115–M119 + 独立 review 收口 P0×1/P1×2/P2×3/P3×4；
+  公共根导出面仍 60/60）——**厂商一键接线**（embed `model: '厂商id:模型名'` 字符串快捷，
+  解析链单一真源：providers.json 预设 → env → 适配器注册表）、**close 生命周期收口**
+  （cancel → drain 有界等待回合收尾 → 收口，`drainTimeoutMs` 缺省 10s）、**配置孤儿清偿**
+  （mcpServers 文件面补 env/cwd + 未知键 fail-closed；`classifyInterjection` 全链接线）、
+  **配置错误自愈**（未知键 did-you-mean 建议、合法键出口改机读清单）。应用消费面零变化
+  （kernel:check 287/290 复绿）；**应用侧映射补全随本仓同日落地**（mcpServers env/cwd
+  进 argConfigDefaults，判据 configSectionWiring 钉住）。
+- **alpha.33**：R19 遗留总清偿轮（M112–M114 + 深度 review 收口 P1×1/P2×3/P3×9，
   0 P0）——**会话上下文贯穿**（`ToolContext` 增可选 `capflowSessionContext` 实时闭包：
   recorder 同源零滞后 + 继承指令信道 capflowInheritedTask，RunWorkflowTool resume 预检
   优先消费——review-r18 窗口滞后/派生会话继承源双收口）、**遗留台账总收口**（RESIDUAL.md
