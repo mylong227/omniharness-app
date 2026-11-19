@@ -46,8 +46,8 @@ describe('RPC parity 快照（coreModules）', () => {
   const entries = collectMethods(coreModules());
   const methods = entries.map((e) => e.method).sort();
 
-  it('方法总数 == 111（110 + model.pricing；有意识地增减并同步 web ApiClient）', () => {
-    expect(methods.length).toBe(111);
+  it('方法总数 == 112（111 + memory.facts；有意识地增减并同步 web ApiClient）', () => {
+    expect(methods.length).toBe(112);
   });
 
   it('全量方法清单（按域前缀分组快照）', () => {
@@ -110,6 +110,7 @@ describe('RPC parity 快照（coreModules）', () => {
         "kernel.health",
         "memory.add",
         "memory.delete",
+        "memory.facts",
         "memory.list",
         "memory.search",
         "memory.update",
@@ -194,6 +195,7 @@ describe('RPC parity 快照（coreModules）', () => {
     expect(byOwner.get('plugins.reload')).toBe('plugins');
     expect(byOwner.get('graph.resume')).toBe('graphs');
     expect(byOwner.get('memory.search')).toBe('memory');
+    expect(byOwner.get('memory.facts')).toBe('memory');
     expect(byOwner.get('model.pricing')).toBe('config');
     expect(byOwner.get('checkpoint.rollback')).toBe('checkpoints');
     expect(byOwner.get('changes.stageHunk')).toBe('review');

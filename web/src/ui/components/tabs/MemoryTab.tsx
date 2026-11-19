@@ -9,7 +9,7 @@ import { useApp } from '../../context.ts';
 import { ImportanceStars } from '../../models/ImportanceStars.ts';
 import { icon } from '../../models/Icon.ts';
 import { emptyState } from '../../format.ts';
-import type { MemoryFact } from '../../../types/models.ts';
+import type { MemoryFact, MemoryFactsResult, TemporalFactCard } from '../../../types/models.ts';
 import { t } from '../../i18n/i18n.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
 import Select from 'antd/es/select';
@@ -170,6 +170,106 @@ function useMemoryStore(reloadKey: number): MemoryStore {
   return { facts, count, query, setQuery, load, search };
 }
 
+/**
+ * 记忆时间图数据源（memory.facts，只读快照）：挂载与 reloadKey/sessionTick 变化时重拉。
+ * @param reloadKey 外部重载信号（SSE memory.changed 时自增）
+ * @returns 快照；装载中为 null（不渲染）
+ */
+function useMemoryFacts(reloadKey: number): MemoryFactsResult | null {
+  const { api, sessionTick } = useApp();
+  const [snap, setSnap] = React.useState<MemoryFactsResult | null>(null);
+  React.useEffect(() => {
+    let alive = true;
+    api
+      .memoryFacts()
+      .then((r) => {
+        if (alive) setSnap(r);
+      })
+      .catch(() => {
+        // 拉取失败如实降级为「无图」：时间图隐藏，不阻塞记忆面板其余功能。
+        if (alive) setSnap({ supported: false, cards: [], total: 0, active: 0 });
+      });
+    return () => {
+      alive = false;
+    };
+  }, [reloadKey, sessionTick, api]);
+  return snap;
+}
+
+/**
+ * 时间图事实卡行：三元组 + 生命状态（有效/已被取代/已过期）+ 起止日期。
+ * @param props 卡与当前时刻
+ * @returns 卡行节点
+ */
+function FactCardRow(props: { card: TemporalFactCard; now: number }): ReactElement {
+  const { card, now } = props;
+  const superseded = card.validTo !== undefined && card.validTo <= now;
+  const expired = !superseded && card.expiresAt !== undefined && card.expiresAt <= now;
+  const stale = superseded || expired;
+  const status = superseded ? t('已被取代') : expired ? t('已过期') : t('有效');
+  const fmt = (ms: number): string => new Date(ms).toLocaleString();
+  return (
+    <div className={'mt-card' + (stale ? ' mt-card--stale' : '')}>
+      <div className="mt-card-line">
+        <span className="mt-card-triple" title={card.text ?? undefined}>
+          {card.subject} · {card.predicate} · {card.object}
+        </span>
+        <span className={stale ? 'mt-card-status mt-card-status--stale' : 'mt-card-status'}>
+          {status}
+        </span>
+      </div>
+      {card.text !== undefined && card.text !== card.object ? (
+        <div className="mt-card-text">{card.text}</div>
+      ) : null}
+      <div className="mt-card-dates">
+        {t('起 {d}', { d: fmt(card.validFrom) })}
+        {card.validTo !== undefined ? (
+          <span>
+            {' · '}
+            {t('止 {d}', { d: fmt(card.validTo) })}
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 记忆时间图区（Memory Atlas v1，只读）：同主题+谓词的取代链按时间排布。
+ * 有效卡在前、被取代卡在后（组内按 validFrom 降序），一眼看清「现在有效的是哪条」。
+ * @param props 快照
+ * @returns 区块节点；无图（supported=false）不渲染
+ */
+function MemoryAtlas(props: { snap: MemoryFactsResult }): ReactElement | null {
+  const { snap } = props;
+  if (!snap.supported) return null;
+  const now = Date.now();
+  const isActive = (card: TemporalFactCard): boolean =>
+    (card.validTo === undefined || card.validTo > now) &&
+    (card.expiresAt === undefined || card.expiresAt > now);
+  const cards = [...snap.cards].sort(
+    (a, b) => Number(isActive(b)) - Number(isActive(a)) || b.validFrom - a.validFrom,
+  );
+  return (
+    <div className="pm-section" aria-label={t('记忆时间图')}>
+      <div className="pm-title">
+        {t('时间图')}
+        <span className="mem-atlas-count">
+          {t('{active}/{total} 有效', { active: snap.active, total: snap.total })}
+        </span>
+      </div>
+      <p className="mem-atlas-hint">
+        {t('同主题+谓词的新事实会取代旧事实（到点即失效）；此视图为只读时间线。')}
+      </p>
+      <div className="mem-atlas">
+        {cards.map((card) => (
+          <FactCardRow key={card.factId} card={card} now={now} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** useMemoryForm 的返回面（编辑态 + 表单操作）。 */
 interface MemoryFormOps {
   editingId: string | null;
@@ -326,6 +426,7 @@ function MemoryForm(props: {
 export function MemoryTab(props: MemoryTabProps): ReactElement {
   const { reloadKey } = props;
   const store = useMemoryStore(reloadKey);
+  const atlas = useMemoryFacts(reloadKey);
   const [values, setValues] = React.useState<MemoryFormValues>(EMPTY_FORM);
   /** 合并式更新：三个字段各自改自己的，不互相覆盖。 */
   const patchValues = React.useCallback((patch: Partial<MemoryFormValues>): void => {
@@ -368,6 +469,7 @@ export function MemoryTab(props: MemoryTabProps): ReactElement {
           <MemoryTable facts={store.facts} onEdit={form.startEdit} onDelete={(id) => void form.del(id)} />
         )}
       </div>
+      {atlas === null ? null : <MemoryAtlas snap={atlas} />}
     </div>
   );
 }

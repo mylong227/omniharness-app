@@ -297,4 +297,16 @@ export const EN_TABS_B: Record<string, string> = {
   '{n} 处': '{n} hits',
   '会话、内容与文件搜索结果': 'Session, content and file search results',
   '结果已截断（按最近会话优先扫描）': 'Results truncated (scanned newest sessions first)',
+
+  // —— 记忆时间图（2026-11-20 Memory Atlas v1，memory.facts 只读快照）——
+  记忆时间图: 'Memory Atlas',
+  时间图: 'Timeline',
+  '{active}/{total} 有效': '{active}/{total} active',
+  有效: 'Active',
+  已过期: 'Expired',
+  已被取代: 'Superseded',
+  '同主题+谓词的新事实会取代旧事实（到点即失效）；此视图为只读时间线。':
+    'A newer fact with the same subject + predicate supersedes the old one (stale once past its end). Read-only timeline view.',
+  '起 {d}': 'From {d}',
+  '止 {d}': 'Until {d}',
 };

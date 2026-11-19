@@ -809,6 +809,10 @@ export class ApiClient {
   public listMemory(): Promise<MemoryListResult> {
     return this.rpc('memory.list', {});
   }
+  /** 事实时间图快照（Memory Atlas，只读）：supported=false = 运行时无图，UI 如实隐藏。 */
+  public memoryFacts(): Promise<import('../types/models.ts').MemoryFactsResult> {
+    return this.rpc('memory.facts', {});
+  }
   public searchMemory(query: string, limit = 20): Promise<MemorySearchResult> {
     return this.rpc('memory.search', { query, limit });
   }

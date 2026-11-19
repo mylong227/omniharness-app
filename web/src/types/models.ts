@@ -65,6 +65,27 @@ export interface ThreadGetResult {
   error?: string;
 }
 
+/** 记忆事实卡（内核 TemporalFactCard 的 web 镜像；validTo/expiresAt 缺省 = 无此界）。 */
+export interface TemporalFactCard {
+  factId: string;
+  subject: string;
+  predicate: string;
+  object: string;
+  text?: string;
+  validFrom: number;
+  validTo?: number;
+  trust?: string;
+  expiresAt?: number;
+}
+
+/** `memory.facts` 响应：supported=false = 该运行时没有事实图（UI 如实隐藏时间图）。 */
+export interface MemoryFactsResult {
+  supported: boolean;
+  cards: TemporalFactCard[];
+  total: number;
+  active: number;
+}
+
 /** 模型路由条目（内核 #B4）：条目适配器缺省 mock；真实适配器凭据取自各自环境变量。 */
 export interface ModelRouterEntryConfig {
   model: string;
