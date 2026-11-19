@@ -55,3 +55,19 @@ test('缺省不写 partial：未配置段不产生任何键（零行为变更）
   assert.equal('toolCache' in partial, false);
   assert.equal('capflow' in partial, false);
 });
+
+test('mcpServers：env/cwd 内核 M117 文件面 → CLI 参数透传（漏映射 = 用户配置静默失效）', () => {
+  const file: FileConfig = {
+    mcpServers: [
+      { name: 'local', command: 'node', args: ['srv.js'], env: { TOKEN: 'x' }, cwd: '/srv' },
+      { name: 'remote', url: 'https://mcp.example.com', headers: { 'x-k': 'v' } },
+    ],
+  } as FileConfig;
+  const defaults = ArgParser.configDefaults(file);
+  assert.deepEqual(defaults.mcpServers?.[0], {
+    name: 'local', command: 'node', args: ['srv.js'], env: { TOKEN: 'x' }, cwd: '/srv',
+  }, 'stdio 形态 env/cwd 必须透传（内核连接器已消费）');
+  assert.deepEqual(defaults.mcpServers?.[1], {
+    name: 'remote', url: 'https://mcp.example.com', headers: { 'x-k': 'v' },
+  }, '远端形态不带 env/cwd（形状按声明归一）');
+});

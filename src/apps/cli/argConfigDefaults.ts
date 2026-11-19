@@ -21,10 +21,15 @@ export class ArgConfigDefaults {
       result.reasoning = file.reasoning;
     }
     if (file.mcpServers !== undefined) {
+      // env/cwd（内核 M117 文件面补全，2026-11-20 应用侧映射补全）：连接器早已消费——
+      // 此处不映射 = 用户在 omniharness.json 写了 env/cwd 静默失效（声明-校验-接线三缺的
+      // 接线缺）。判据 configSectionWiring 钉住。
       result.mcpServers = file.mcpServers.map((server) => ({
         ...(server.url !== undefined
           ? { name: server.name, url: server.url }
           : { name: server.name, command: server.command ?? '', args: server.args ?? [] }),
+        ...(server.env !== undefined ? { env: server.env } : {}),
+        ...(server.cwd !== undefined ? { cwd: server.cwd } : {}),
         ...(server.headers !== undefined ? { headers: server.headers } : {}),
         ...(server.auth !== undefined ? { auth: server.auth } : {}),
       }));
