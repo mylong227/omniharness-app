@@ -12,6 +12,7 @@
 import { t } from '../../i18n/i18n.ts';
 import type { SettingsModel } from '../../models/SettingsModel.ts';
 import { ConsoleCard, ConsoleSettingRow } from './ConsoleUI.tsx';
+import { ModelRouterCard } from './ModelRouterCard.tsx';
 import { ProviderTile } from '../settings/ProviderTile.tsx';
 import { ProviderEditor } from '../settings/ProviderEditor.tsx';
 import { fieldsOf } from './settingsFields.ts';
@@ -150,6 +151,7 @@ export function SettingsModelPane(props: SettingsModelPaneProps): ReactElement {
           <ConsoleSettingRow key={String(field.key)} field={field} model={props.settings} />
         ))}
       </ConsoleCard>
+      <ModelRouterCard cfg={props.cfg} settings={props.settings} />
       <Drawer
         open={editing !== null}
         onClose={() => catalog.setEditorOpen(null)}

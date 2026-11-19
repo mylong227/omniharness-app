@@ -1214,3 +1214,35 @@
   padding: 0 !important;
   color: inherit !important;
 }
+
+/* ---- 模型角色路由卡（2026-11-19 内核 #B4 接入）：条目/角色映射的行内编辑 ----
+   纯布局规则，颜色一律走语义 token（颜色纪律：非 theme.css 不带色相字面量）。 */
+.mr-entries,
+.mr-roles {
+  padding: 2px 0 6px;
+}
+.mr-entry,
+.mr-role {
+  width: 100%;
+}
+.mr-entry .csl-input,
+.mr-role .csl-input {
+  flex: 1;
+  min-width: 0;
+}
+.mr-entry-index {
+  flex: none;
+  min-width: 18px;
+  color: var(--faint);
+  font-size: 11px;
+  text-align: right;
+}
+.mr-role-label {
+  flex: none;
+  width: 72px;
+  color: var(--text);
+  font-size: 12px;
+}
+.mr-actions {
+  padding: 8px 0 2px;
+}

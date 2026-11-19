@@ -157,6 +157,10 @@ export const SECTION_REPLACE_KEYS: readonly string[] = [
   // alpha.21：读缓存 / 能力防火墙（内核文件面补齐；UI 整段提交、按段替换）。
   'toolCache',
   'capflow',
+  // 2026-11-19 模型角色路由卡（内核 #B4）：strategy/entries/roles 必须整段一致提交——
+  // roles 指到的模型名要在 entries 里（内核 by-role fail-closed），深合并会把旧条目
+  // 残留在段里造成「roles 指到已删条目」的静默坏配置；停用 = 整段发 null。
+  'modelRouter',
 ];
 
 /**

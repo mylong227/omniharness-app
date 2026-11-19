@@ -65,11 +65,29 @@ export interface ThreadGetResult {
   error?: string;
 }
 
+/** 模型路由条目（内核 #B4）：条目适配器缺省 mock；真实适配器凭据取自各自环境变量。 */
+export interface ModelRouterEntryConfig {
+  model: string;
+  adapter?: string;
+  pricing?: { inputPer1M: number; outputPer1M: number; cachedInputPer1M?: number };
+  maxContextTokens?: number;
+}
+
+/** 模型路由段（内核 #B4）：缺省未配置 = 单模型直连；by-role 按 roles 映射选条目。 */
+export interface ModelRouterConfig {
+  strategy: string;
+  entries: ModelRouterEntryConfig[];
+  taskField?: string;
+  roles?: Record<string, string>;
+}
+
 export interface Config {
   modelAdapter?: string;
   model?: string;
   /** 推理强度（#B6）：none/minimal/low/medium/high/xhigh/max（内核枚举 7 档）。 */
   reasoning?: string;
+  /** 模型路由段（内核 #B4，2026-11-19 设置页接入；缺省未配置 = 不路由）。 */
+  modelRouter?: ModelRouterConfig;
   approval?: string;
   sandbox?: string;
   /** 越权动作（提权命令等）的降级沙箱档：passthrough/policy/restricted。 */

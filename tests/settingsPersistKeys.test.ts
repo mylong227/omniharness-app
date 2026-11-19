@@ -38,6 +38,8 @@ const NEW_KEYS = [
   // alpha.21：读缓存 / 能力防火墙（内核文件面补齐）。
   'toolCache',
   'capflow',
+  // 2026-11-19 模型角色路由卡（内核 #B4；结构化段，整段提交/按段替换）。
+  'modelRouter',
 ];
 
 test('PERSISTABLE_KEYS 覆盖设置页新增的全部内核键（漏一个 UI 就写不进配置文件）', () => {

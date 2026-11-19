@@ -322,4 +322,67 @@ export const EN_SETTINGS: Record<string, string> = {
   // —— 厂商卡归属标签（2026-11-17 美化批次）——
   '本地': 'Local',
   '云端': 'Cloud',
+
+  // —— 模型角色路由卡（2026-11-19 内核 #B4 接入）——
+  模型角色路由: 'Model role routing',
+  '按角色给规划、执行、审查、压缩等工作负载分配不同模型；未配置时所有请求走默认模型。':
+    'Assign different models per role — planning, execution, review, compaction…; without it every request uses the default model.',
+  '启用后按角色映射选模型：同一会话里规划要强、执行要稳、压缩要便宜。':
+    'When enabled each role maps to its own model: strong for planning, steady for execution, cheap for compaction.',
+  启用角色路由: 'Enable role routing',
+  停用角色路由: 'Disable role routing',
+  策略: 'Strategy',
+  路由条目: 'Route entries',
+  '模型名 + 底层适配器；角色未映射或非 by-role 策略时用第一个条目。':
+    'Model name + underlying adapter; unmapped roles (and non by-role strategies) use the first entry.',
+  添加条目: 'Add entry',
+  角色映射: 'Role mapping',
+  '仅「按角色」策略消费；留空的角色回退首个条目。':
+    'Only consumed by the by-role strategy; empty roles fall back to the first entry.',
+  留空回退首个条目: 'Empty falls back to the first entry',
+  '{role} 的模型': 'Model for {role}',
+  '条目 {n} 模型名': 'Entry {n} model name',
+  '条目 {n} 适配器': 'Entry {n} adapter',
+  '模型名（如 deepseek-v4-flash）': 'Model name (e.g. deepseek-v4-flash)',
+  保存: 'Save',
+  '至少需要一个路由条目': 'At least one route entry is required',
+  '条目 {n} 缺模型名': 'Entry {n} is missing a model name',
+  '模型名重复：{model}': 'Duplicate model name: {model}',
+  '角色「{role}」映射的模型不在条目里': 'Role "{role}" maps to a model that is not among the entries',
+  '路由条目的凭据取自对应适配器的环境变量（与 CLI 一致），主配置的 API Key 不用于路由条目；定价与上下文上限经配置文件设置。':
+    'Entry credentials come from each adapter’s environment variables (same as the CLI); the configured API key is not used for route entries. Pricing and context limits go through the config file.',
+  // 策略标签与说明（ModelRouterDraft.ROUTER_STRATEGIES 的 label/hint 值）
+  按角色: 'By role',
+  最低成本: 'Least cost',
+  轮询: 'Round robin',
+  按任务: 'By task',
+  按上下文: 'By context',
+  健康回退: 'Health fallback',
+  '自适应（UCB1）': 'Adaptive (UCB1)',
+  '按请求角色查 roles 映射选条目；未映射回退首个条目':
+    'Pick the entry via the per-role mapping; unmapped roles fall back to the first entry',
+  '选累计花费最低的条目（条目需配 pricing，未配则退化为轮询）':
+    'Pick the cheapest accumulated entry (needs per-entry pricing; falls back to round robin)',
+  按顺序轮流使用条目: 'Use entries in turn',
+  '按消息里的任务关键词分派（写/代码 vs 推理/分析）':
+    'Dispatch by task keywords in the message (writing/code vs reasoning/analysis)',
+  '估算请求 token 后装得下的条目里取窗口最小者': 'Estimate tokens, then pick the smallest window that fits',
+  首选条目失败时按序回退到下一个: 'Fall back to the next entry when the preferred one fails',
+  '按成功与延迟自适应学习（多臂老虎机）': 'Learns from success and latency (multi-armed bandit)',
+  // 角色标签与说明（ModelRouterDraft.MODEL_ROLES 的 label/hint 值）
+  执行: 'Executor',
+  规划: 'Planner',
+  审查: 'Reviewer',
+  压缩: 'Compactor',
+  守卫: 'Guardian',
+  目标: 'Goal',
+  子代理: 'Subagent',
+  '工具调用与编码主力，要求稳': 'Tool calls and coding workhorse — favour stability',
+  '任务拆解与方案，要求强': 'Task decomposition and plans — favour capability',
+  '独立复核产出，与执行分离': 'Independently review outputs, separate from execution',
+  '上下文压缩改写，要便宜': 'Context compaction rewrites — favour cost',
+  长期记忆抽取与治理: 'Long-term memory extraction and governance',
+  安全审查与风险判定: 'Security review and risk verdicts',
+  'goal 循环的模型': 'Model for the goal loop',
+  'subagent 派生的模型': 'Model for spawned subagents',
 };
