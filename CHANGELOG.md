@@ -6,6 +6,11 @@
 ## [Unreleased]
 
 ### Changed（变更）
+- **桌面「快速提问」快捷键配置化（2026-11-20）**：全局快捷键从 main.ts 模块常量 +
+  menu.ts 内联 accelerator 两处硬编码，收进 `desktop.config.json` 的
+  `app.quickCaptureShortcut`（缺省 `CommandOrControl+Shift+Space` 不变；accelerator
+  形态校验 fail-closed 回落）——全局注册与菜单展示同源单一真源。
+  `releaseManifest.mjs` 产品名同步单一真源化（读 electron-builder.yml `productName`）。
 - **桌面发布面账实收口（2026-11-20）**：electron-builder publish 与 `repositoryUrl`
   （菜单「仓库」项同源）从上游旧仓 `OmniHarness` 改指本仓 `omniharness-app`（遗留总表
   #12 收口；draft release 渠道不变，electron-updater 自动更新改订本仓 release）；

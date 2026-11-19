@@ -798,13 +798,20 @@ test('托盘 busy 接线：omni:setProgress 的 2 / -1 驱动 setBusy，主进�
 
 test('快速提问接线：主进程注册全局键 + 托盘/菜单入口 + preload/桥订阅同源', () => {
   const main = readFileSync(join(process.cwd(), 'src', 'main', 'main.ts'), 'utf8');
-  assert.match(main, /QUICK_CAPTURE_SHORTCUT = 'CommandOrControl\+Shift\+Space'/u);
-  assert.match(main, /globalShortcut\.register\(QUICK_CAPTURE_SHORTCUT/u);
+  // 快捷键单一真源 = desktop.config 的 app.quickCaptureShortcut（2026-11-20 配置化集中；
+  // 缺省值由 defaults/config.json parity 判据钉住）——main 里不再有硬编码键串。
+  assert.match(main, /globalShortcut\.register\(config\.app\.quickCaptureShortcut/u);
+  assert.doesNotMatch(main, /QUICK_CAPTURE_SHORTCUT/u, '快捷键不得再以模块常量硬编码');
   assert.match(main, /quickCapture/u, '主进程必须定义 quickCapture');
   const tray = readFileSync(join(process.cwd(), 'src', 'main', 'tray.ts'), 'utf8');
   assert.match(tray, /tray\.quickCapture/u, '托盘菜单必须有快速提问入口');
   const menu = readFileSync(join(process.cwd(), 'src', 'main', 'menu.ts'), 'utf8');
   assert.match(menu, /menu\.quickCapture/u, '应用菜单必须有快速提问入口');
+  assert.match(
+    menu,
+    /accelerator: actions\.quickCaptureAccelerator/u,
+    '菜单 accelerator 与全局注册同源（desktop.config）',
+  );
   const preload = readFileSync(join(process.cwd(), 'src', 'preload', 'preload.ts'), 'utf8');
   assert.match(preload, /onQuickCapture:[\s\S]*omni:quickCapture/u);
   const bridge = readFileSync(

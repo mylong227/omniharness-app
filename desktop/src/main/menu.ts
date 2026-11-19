@@ -20,6 +20,8 @@ export interface MenuActions {
   isPackaged: boolean;
   /** 「帮助」菜单打开的仓库地址。 */
   readonly repositoryUrl: string;
+  /** 全局「快速提问」快捷键（desktop.config 的 app.quickCaptureShortcut；菜单展示与全局注册同源）。 */
+  readonly quickCaptureAccelerator: string;
   /** 本地化文案（中/英由配置决定）。 */
   readonly i18n: DesktopI18n;
 }
@@ -72,7 +74,8 @@ export function installMenu(actions: MenuActions): void {
           ? [
               {
                 label: actions.i18n.t('menu.quickCapture'),
-                accelerator: 'CmdOrCtrl+Shift+Space',
+                // 快捷键单一真源在 desktop.config（全局注册与菜单展示同源，2026-11-20 配置化集中）。
+                accelerator: actions.quickCaptureAccelerator,
                 click: actions.quickCapture,
               },
             ]

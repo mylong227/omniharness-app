@@ -31,13 +31,6 @@ import { createMainWindow, loadHarness } from './window.ts';
 app.setName('OmniHarness');
 
 /**
- * 全局「快速提问」快捷键（2026-11-10 桌面体验）：任何应用里按下都唤起工作台并聚焦输入框。
- * 固定在主进程，不开放配置——与 `showShortcut`（只显示窗口）分工明确：
- * 前者是「随手记一句」，后者是「回到应用」。
- */
-const QUICK_CAPTURE_SHORTCUT = 'CommandOrControl+Shift+Space';
-
-/**
  * 加载桌面配置（发布包文件 → 用户文件 → `OMNI_DESKTOP_CONFIG`）。
  *
  * 必须在 `app.setName` 之后（userData 路径取决于应用名）、`whenReady` 之前：
@@ -377,12 +370,15 @@ async function bootstrap(): Promise<void> {
   }
   // 快速提问是独立快捷键：注册失败只记日志，用户仍可从托盘/菜单进入。
   try {
-    const ok = globalShortcut.register(QUICK_CAPTURE_SHORTCUT, () => quickCapture());
+    // 全局「快速提问」（2026-11-10 桌面体验）：任何应用里按下都唤起工作台并聚焦输入框。
+    // 快捷键走 desktop.config 的 app.quickCaptureShortcut（2026-11-20 配置化集中）——
+    // 与 `showShortcut`（只显示窗口）分工明确：前者是「随手记一句」，后者是「回到应用」。
+    const ok = globalShortcut.register(config.app.quickCaptureShortcut, () => quickCapture());
     logger.write(
       'main',
       ok
-        ? `quick capture registered: ${QUICK_CAPTURE_SHORTCUT}`
-        : `quick capture unavailable: ${QUICK_CAPTURE_SHORTCUT}`,
+        ? `quick capture registered: ${config.app.quickCaptureShortcut}`
+        : `quick capture unavailable: ${config.app.quickCaptureShortcut}`,
     );
   } catch (error) {
     logger.write(
@@ -416,6 +412,7 @@ async function bootstrap(): Promise<void> {
     quit: () => app.quit(),
     isPackaged: app.isPackaged,
     repositoryUrl: config.app.repositoryUrl,
+    quickCaptureAccelerator: config.app.quickCaptureShortcut,
     i18n,
   });
   registerIpc({

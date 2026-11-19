@@ -172,6 +172,8 @@ export interface DesktopAppConfig {
   readonly repositoryUrl: string;
   /** 桌面壳语言：`system` 跟随系统，或固定 `zh-CN`/`en-US`。 */
   readonly language: 'system' | 'zh-CN' | 'en-US';
+  /** 全局「快速提问」快捷键（Electron accelerator 形态；至少一个修饰键 + 主键）。 */
+  readonly quickCaptureShortcut: string;
 }
 
 /** 桌面壳完整配置。 */

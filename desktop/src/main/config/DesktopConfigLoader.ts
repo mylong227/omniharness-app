@@ -362,6 +362,15 @@ export class DesktopConfigLoader {
         'app.repositoryUrl',
         v,
       ),
+      // 全局快速提问快捷键（2026-11-20 配置化集中：原 main.ts 模块常量 + menu.ts 内联
+      // accelerator 两处硬编码收进配置，单一真源）。accelerator 形态：至少一个修饰键 + 主键。
+      quickCaptureShortcut: DesktopConfigLoader.stringField(
+        raw['quickCaptureShortcut'],
+        base.quickCaptureShortcut,
+        /^[A-Za-z0-9]+(\+[A-Za-z0-9]+)+$/u,
+        'app.quickCaptureShortcut',
+        v,
+      ),
       language: DesktopConfigLoader.enumField(
         raw['language'],
         base.language,

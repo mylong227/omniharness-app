@@ -3,7 +3,8 @@
     "appId": "com.mylong227.omniharness",
     "protocol": "omniharness",
     "repositoryUrl": "https://github.com/mylong227/omniharness-app",
-    "language": "system"
+    "language": "system",
+    "quickCaptureShortcut": "CommandOrControl+Shift+Space"
   },
   "window": {
     "width": 1280,

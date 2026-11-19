@@ -7,6 +7,7 @@ export const DEFAULT_DESKTOP_CONFIG: DesktopConfig = {
     protocol: 'omniharness',
     repositoryUrl: 'https://github.com/mylong227/omniharness-app',
     language: 'system',
+    quickCaptureShortcut: 'CommandOrControl+Shift+Space',
   },
   window: {
     width: 1280,

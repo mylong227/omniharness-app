@@ -10,10 +10,26 @@ import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const release = join(root, 'release');
+/**
+ * 产品名单一真源 = electron-builder.yml 的 `productName`（NSIS 产物名由它决定，2026-11-20
+ * 配置化集中：manifest 的 product 与安装包文件名不再各自硬编码）。
+ * @returns 产品名（解析失败回落 OmniHarness）
+ */
+function productNameOf() {
+  try {
+    const m = /^productName:\s*['"]?([^'"\r\n]+?)['"]?\s*$/m.exec(
+      readFileSync(join(root, 'electron-builder.yml'), 'utf8'),
+    );
+    return m?.[1]?.trim() ?? 'OmniHarness';
+  } catch {
+    return 'OmniHarness';
+  }
+}
 // 安装包文件名随版本走（electron-builder NSIS 缺省产物名 `${productName} Setup ${version}.exe`，
 // 2026-11-19 盘点轮修：此前写死 0.2.0，版本推进后 manifest 对不上实际产物名）。
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
-const installerName = `OmniHarness Setup ${pkg.version}.exe`;
+const productName = productNameOf();
+const installerName = `${productName} Setup ${pkg.version}.exe`;
 const setup = join(release, installerName);
 const unpacked = join(release, 'win-unpacked');
 
@@ -65,7 +81,7 @@ const hash = createHash('sha256').update(readFileSync(setup)).digest('hex');
 const shaFile = `${setup}.sha256`;
 const declared = existsSync(shaFile) ? readFileSync(shaFile, 'utf8').trim().split(/\s+/u)[0] : null;
 const manifest = {
-  product: 'OmniHarness',
+  product: productName,
   version: pkg.version,
   builtAt: new Date().toISOString(),
   git: gitHead(),
