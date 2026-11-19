@@ -48,6 +48,7 @@ import { ShortcutActions } from './ShortcutActions.ts';
 import type { ChatMode } from '../models/ChatModePreference.ts';
 import type { QueuedMessage } from '../models/ChatMessageQueue.ts';
 import { ClipboardCopier } from '../models/ClipboardCopier.ts';
+import { ModelPricing } from '../models/ModelPricing.ts';
 import { SessionTranscript } from '../models/SessionTranscript.ts';
 import { TraceTranscript } from '../models/TraceTranscript.ts';
 import type { TraceRow } from '../models/TraceFilter.ts';
@@ -377,6 +378,7 @@ export class AppController {
     this.services.toastSvc.bind((message: string, kind?: ToastKind) => this.showToast(message, kind));
     this.services.dialogSvc.bind((state: DialogState) => this.host.patch({ dialog: state }));
     this.refreshModelCatalog();
+    this.refreshModelPricing();
     this.children.layout.initTheme();
     // 标签页标题也随语言走（index.html 里的静态 <title> 是中文，这里接管为 t() 文案）。
     document.title = t('OmniHarness 工作台');
@@ -664,6 +666,18 @@ export class AppController {
         // 缓存或为空，用户看着「没有可选模型」却不知道为什么。与挂起恢复失败同一口径：如实提示。
         const msg = e instanceof Error ? e.message : String(e);
         this.services.toast(t('模型清单读取失败：{msg}', { msg }), 'err');
+      });
+  }
+
+  /** 拉取服务端价表喂给 ModelPricing（#9；失败静默——内置表兜底，成本估算不中断）。 @returns 无 */
+  public refreshModelPricing(): void {
+    this.services.api
+      .modelPricing()
+      .then((table) => {
+        ModelPricing.setServerTable(table);
+      })
+      .catch(() => {
+        // 价表下发失败不打扰用户：内置参考价表兜底（≈ 口径不变），下一次刷新会话时重试。
       });
   }
 

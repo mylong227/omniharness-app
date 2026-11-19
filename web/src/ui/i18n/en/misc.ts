@@ -229,6 +229,12 @@ export const EN_MISC: Record<string, string> = {
   '统计当前已加载的会话区间': 'Stats cover the currently loaded portion of the session',
   '按内置参考价估算（{date} 快照）：未知单价的模型不计入，仅供量级参考，不是账单。':
     'Estimated with built-in reference prices (snapshot {date}); models without a listed price are not counted. Magnitude reference only, not a bill.',
+  '按服务端价表估算（内核价表）：未知单价的模型不计入，仅供量级参考，不是账单。':
+    'Estimated with the server price table (kernel); models without a listed price are not counted. Magnitude reference only, not a bill.',
+  '每 1M token 参考单价（≈，服务端价表）：输入/输出':
+    'Reference price per 1M tokens (≈, server table): input/output',
+  未收录单价: 'Unpriced',
+  '价表未收录该模型族': 'Model family not in the price table',
   回合: 'Turns',
   '{n} 次工具失败': '{n} tool failures',
   '工作区变更': 'Workspace changes',

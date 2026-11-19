@@ -169,10 +169,14 @@ function SessionLine(props: {
       {stats.costUsd === undefined || stats.costUsd <= 0 ? null : (
         <span
           className="wb-session-item"
-          title={t(
-            '按内置参考价估算（{date} 快照）：未知单价的模型不计入，仅供量级参考，不是账单。',
-            { date: PRICES_AS_OF },
-          )}
+          title={
+            ModelPricing.serverActive()
+              ? t('按服务端价表估算（内核价表）：未知单价的模型不计入，仅供量级参考，不是账单。')
+              : t(
+                  '按内置参考价估算（{date} 快照）：未知单价的模型不计入，仅供量级参考，不是账单。',
+                  { date: PRICES_AS_OF },
+                )
+          }
         >
           ≈ {ModelPricing.formatUsd(stats.costUsd)}
         </span>

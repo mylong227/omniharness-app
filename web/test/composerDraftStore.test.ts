@@ -137,7 +137,7 @@ test('输入历史按天档：隔天载荷不装入 + 会话内跨零点清空�
   assert.strictEqual(h.up(''), '跨零点后', '跨天滚动后只剩今天条目');
   assert.strictEqual(h.up(''), '跨零点后', '旧条目已清空，到顶停住');
   const raw = backing.get('omni.inputHistory.2026-11-22');
-  assert.ok(raw !== null && (JSON.parse(raw) as { items: string[] }).items.every((i) => i !== '跨零点前'), '新一天的落盘不含旧语境');
+  assert.ok(raw !== undefined && (JSON.parse(raw) as { items: string[] }).items.every((i) => i !== '跨零点前'), '新一天的落盘不含旧语境');
 });
 
 test('输入历史按天档：损坏载荷 fail-soft + 无通道纯内存', () => {

@@ -25,6 +25,7 @@ import {
   type RouterDraftIssue,
 } from '../../models/ModelRouterDraft.ts';
 import { ConsoleCard, ConsoleInput, ConsoleRow, ConsoleSelect } from './ConsoleUI.tsx';
+import { ModelPricing } from '../../models/ModelPricing.ts';
 import Alert from 'antd/es/alert';
 import Button from 'antd/es/button';
 import Flex from 'antd/es/flex';
@@ -86,6 +87,7 @@ function EntryRow(props: {
         onChange={(adapter) => update({ adapter })}
         width="130px"
       />
+      <EntryPriceHint model={entry.model} />
       <Button
         size="small"
         disabled={draft.entries.length <= 1}
@@ -97,6 +99,38 @@ function EntryRow(props: {
       </Button>
     </Flex>
   );
+}
+
+/**
+ * 条目单价提示：服务端价表命中的 ≈ 单价（成本差一栏的兑现；未命中如实说「未收录」）。
+ * @param props 模型名
+ * @returns 提示节点；模型名为空时 null
+ */
+function EntryPriceHint(props: { model: string }): ReactElement | null {
+  const model = props.model.trim();
+  if (model === '') return null;
+  const price = ModelPricing.priceOf(model);
+  if (price === null) {
+    return (
+      <span className="mr-entry-price mr-entry-price--unknown" title={t('价表未收录该模型族')}>
+        {t('未收录单价')}
+      </span>
+    );
+  }
+  const pair = `$${trim(price.inputUsd)}/$${trim(price.outputUsd)}`;
+  return (
+    <span
+      className="mr-entry-price"
+      title={t('每 1M token 参考单价（≈，服务端价表）：输入/输出')}
+    >
+      ≈{pair}
+    </span>
+  );
+}
+
+/** 去尾零的单价格式（0.28→"0.28"，2.5→"2.5"，10→"10"）。 */
+function trim(value: number): string {
+  return String(Number(value.toFixed(4)));
 }
 
 /**

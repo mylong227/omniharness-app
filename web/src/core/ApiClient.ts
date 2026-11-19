@@ -333,6 +333,10 @@ export class ApiClient {
   }> {
     return this.rpc('model.catalog', {});
   }
+  /** 单价表下发（#9）：服务端参考价单一真源；ModelPricing 服务端表优先、内置表兜底。 */
+  public modelPricing(): Promise<import('../types/models.ts').ModelPricingTable> {
+    return this.rpc('model.pricing', {});
+  }
   /** Token 消耗统计：按模型 / 按会话聚合调用次数与 token 用量。 */
   public usageStats(): Promise<{
     source: 'disk' | 'live';

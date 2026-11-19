@@ -73,12 +73,38 @@ export interface UsageLike {
   readonly cachedPromptTokens?: number;
 }
 
-/** 单价估算：内置参考价 + 最长前缀匹配，查不到的模型一律 null。 */
+/** 单价估算：服务端价表优先（#9 下发）+ 内置参考价兜底，最长前缀匹配，查不到一律 null。 */
 export class ModelPricing {
   private constructor() {}
 
+  /** 服务端下发的价表（#9，AppController 启动期注入；null = 未拉到，走内置表）。 */
+  private static serverTable: ReadonlyArray<{ readonly prefix: string; readonly price: ModelPrice }> | null = null;
+
   /**
-   * 按模型名取参考价（最长前缀命中，大小写不敏感）。
+   * 注入服务端价表（内核 DEFAULT_ROUTE_PRICING 形状 → ModelPrice 归一）。
+   * @param table `model.pricing` 响应
+   * @returns 无
+   */
+  public static setServerTable(table: import('../../types/models.ts').ModelPricingTable): void {
+    const entries = Object.entries(table.pricing ?? {});
+    if (entries.length === 0) return;
+    ModelPricing.serverTable = entries.map(([prefix, price]) => ({
+      prefix,
+      price: {
+        inputUsd: price.inputPer1M,
+        outputUsd: price.outputPer1M,
+        ...(price.cachedInputPer1M === undefined ? {} : { cachedInputUsd: price.cachedInputPer1M }),
+      },
+    }));
+  }
+
+  /** 是否已挂上服务端价表（展示层据此选 title 口径）。 */
+  public static serverActive(): boolean {
+    return ModelPricing.serverTable !== null;
+  }
+
+  /**
+   * 按模型名取参考价（服务端表优先、内置表兜底；最长前缀命中，大小写不敏感）。
    * @param model 模型名（如 `claude-sonnet-4-5-20260101`）
    * @returns 命中的单档；不在表内为 null
    */
@@ -87,6 +113,15 @@ export class ModelPricing {
     if (name === '') return null;
     let best: ModelPrice | null = null;
     let bestLen = 0;
+    for (const { prefix, price } of ModelPricing.serverTable ?? TABLE) {
+      if (name.startsWith(prefix) && prefix.length > bestLen) {
+        best = price;
+        bestLen = prefix.length;
+      }
+    }
+    if (ModelPricing.serverTable === null) return best;
+    if (best !== null) return best;
+    // 服务端表未命中：回落内置表（两表并扫，兜底窗口期不宁缺毋滥到 $0）。
     for (const { prefix, price } of TABLE) {
       if (name.startsWith(prefix) && prefix.length > bestLen) {
         best = price;

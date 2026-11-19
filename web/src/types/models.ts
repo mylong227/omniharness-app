@@ -81,6 +81,21 @@ export interface ModelRouterConfig {
   roles?: Record<string, string>;
 }
 
+/** 服务端单价（内核 RoutePrice，USD / 1M token）。 */
+export interface ServerRoutePrice {
+  inputPer1M: number;
+  outputPer1M: number;
+  cachedInputPer1M?: number;
+  cacheWriteInputPer1M?: number;
+}
+
+/** `model.pricing` 下发（内核 DEFAULT_ROUTE_PRICING 单一真源 + 故意不定价登记）。 */
+export interface ModelPricingTable {
+  pricing: Record<string, ServerRoutePrice>;
+  unpricedFamilies?: Record<string, string>;
+  fallback?: ServerRoutePrice;
+}
+
 export interface Config {
   modelAdapter?: string;
   model?: string;
