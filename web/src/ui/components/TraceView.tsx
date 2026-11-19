@@ -182,11 +182,12 @@ function TraceToolbar(props: {
         value={query}
         onChange={(e) => onQuery(e.target.value)}
       />
-      {/* 动作区（2026-11-17 粘性批次）：回到当前轮 + 导出——都在筛选/搜索语境里可用。 */}
+      {/* 动作区（2026-11-17 粘性批次）：回到当前轮 + 导出——都在筛选/搜索语境里可用。
+          用独立的 tr-btn：tr-act 是行内动作文本，此前按钮复用同类名，胶囊样式误伤全列。 */}
       {onJumpLatest === undefined ? null : (
         <button
           type="button"
-          className="tr-act"
+          className="tr-btn"
           title={t('回到当前轮')}
           aria-label={t('回到当前轮')}
           onClick={onJumpLatest}
@@ -197,7 +198,7 @@ function TraceToolbar(props: {
       {onExport === undefined ? null : (
         <button
           type="button"
-          className="tr-act"
+          className="tr-btn"
           title={t('导出当前轨迹为 Markdown')}
           aria-label={t('导出轨迹')}
           onClick={onExport}

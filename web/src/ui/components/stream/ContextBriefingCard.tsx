@@ -112,7 +112,8 @@ export function ContextBriefingCard(props: ContextBriefingCardProps): ReactEleme
   return (
     // 阻断冒泡：外层 `.ev.clickable` 会把点击上抛成「事件钻取」，而读摘要时点一下不该跳走。
     // spellCheck 关掉：卡里是命令 / 路径 / 工具名，红波浪线纯属噪音。
-    // kind 修饰类带出「身份色温」（--note-tint）：左侧色轨 + 图标 + chip 色点共用一个信号源。
+    // kind 修饰类带出「身份色温」（--note-tint）：图标 + 分节锚点共用一个信号源（左侧色轨已撤，
+    // 2026-11-18 用户反馈——高亮弧在圆角下读成「括号」，喧宾夺主）。
     <div
       className={`ctx-note ctx-note--${view.kind}` + (open ? ' ctx-note--open' : '')}
       spellCheck="false"

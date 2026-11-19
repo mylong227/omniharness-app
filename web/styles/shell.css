@@ -1332,8 +1332,11 @@ input[type='radio'] {
   color: var(--on-err);
 }
 
-/* ---- 轨迹动作区（2026-11-17 粘性批次）：回到当前轮 + 导出，与筛选 chips 同行不抢位 ---- */
-.tr-act {
+/* ---- 轨迹动作区按钮（2026-11-17 粘性批次）：回到当前轮 + 导出，与筛选 chips 同行不抢位 ----
+   2026-11-18 拆类名：此前按钮复用行内文本的 .tr-act，胶囊规则（margin-left:auto + 描边）
+   同时命中每一行的动作 span，整列被推成居中胶囊；现按钮独立为 .tr-btn，
+   .tr-act 回归纯行内文本（shell.css:674 的 flex:1 左对齐布局）。 */
+.tr-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1347,9 +1350,9 @@ input[type='radio'] {
   font-size: 11px;
   cursor: pointer;
 }
-.tr-act + .tr-act { margin-left: 0; }
-.tr-act:hover { color: var(--text); border-color: var(--border-strong); background: var(--hover); }
-.tr-act:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tr-btn + .tr-btn { margin-left: 0; }
+.tr-btn:hover { color: var(--text); border-color: var(--border-strong); background: var(--hover); }
+.tr-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* ---- 左栏空态一行化（2026-11-17 美化批次，ux-audit P2）：中栏已有完整主空态，
    左栏收成一行状态，不再挂大插画把同一句话说三遍。 ---- */
