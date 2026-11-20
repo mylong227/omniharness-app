@@ -23,7 +23,8 @@ import type { DesktopMessageKey } from './i18n/messages.ts';
 import { DesktopLogger } from './logger.ts';
 import { installMenu, refreshMenu } from './menu.ts';
 import { NotificationService } from './notifications.ts';
-import { installGlobalGuards, installSessionSecurity, setHarnessOrigin } from './security.ts';
+import { attachHarness } from './app/HarnessAttach.ts';
+import { installGlobalGuards } from './security.ts';
 import { TrayService } from './tray.ts';
 import { UpdateService } from './updateService.ts';
 import { createMainWindow, loadHarness } from './window.ts';
@@ -317,36 +318,45 @@ async function bootstrap(): Promise<void> {
     dialogs,
   };
   windows.attach(window);
+  // 共享动作单源（2026-11-20 抽取）：Tray/Menu/IPC 三方各取子集——新增动作只改这里，
+  // 消除「托盘有菜单没有」的三处同步漂移面。
+  const appActions = {
+    openWorkspace: () => {
+      void chooseWorkspace();
+    },
+    newWindow: openNewWindow,
+    quickCapture,
+    openLogs: () => {
+      void openLogs();
+    },
+    restartHarness: () => {
+      void restartHarness();
+    },
+    checkForUpdates: () => {
+      void checkForUpdates();
+    },
+    diagnostics: () => {
+      void showDiagnostics();
+    },
+    closeToTray: () => context?.state.get().closeToTray === true,
+    setCloseToTray: (enabled: boolean) => windows.setCloseToTray(enabled),
+    openAtLogin: () => context?.state.get().openAtLogin === true,
+    setOpenAtLogin: (enabled: boolean) => windows.setOpenAtLogin(enabled),
+    quit: () => app.quit(),
+  };
   const tray = new TrayService(
     join(__dirname, 'icon.png'),
     {
-      show: () => windows.show(),
-      newWindow: openNewWindow,
-      quickCapture,
-      openWorkspace: () => {
-        void chooseWorkspace();
+      ...appActions,
+      // 托盘的键名是 checkUpdates（menu/IPC 是 checkForUpdates）——同一动作两个键名。
+      checkUpdates: () => {
+        void checkForUpdates();
       },
+      show: () => windows.show(),
       recentWorkspaces: () => (context?.state.get().recentWorkspaces ?? []).slice(0, 5),
       openRecent: (path) => {
         void switchWorkspace(path);
       },
-      restartHarness: () => {
-        void restartHarness();
-      },
-      openLogs: () => {
-        void openLogs();
-      },
-      checkUpdates: () => {
-        void checkForUpdates();
-      },
-      diagnostics: () => {
-        void showDiagnostics();
-      },
-      setCloseToTray: (enabled) => windows.setCloseToTray(enabled),
-      setOpenAtLogin: (enabled) => windows.setOpenAtLogin(enabled),
-      quit: () => app.quit(),
-      closeToTray: () => context?.state.get().closeToTray === true,
-      openAtLogin: () => context?.state.get().openAtLogin === true,
     },
     config.tray,
     i18n,
@@ -391,25 +401,7 @@ async function bootstrap(): Promise<void> {
   updates.initialize();
   bindCrashHandler(supervisor);
   installMenu({
-    openWorkspace: () => {
-      void chooseWorkspace();
-    },
-    newWindow: openNewWindow,
-    quickCapture,
-    openLogs: () => {
-      void openLogs();
-    },
-    restartHarness: () => {
-      void restartHarness();
-    },
-    checkForUpdates: () => {
-      void checkForUpdates();
-    },
-    closeToTray: () => context?.state.get().closeToTray === true,
-    setCloseToTray: (enabled) => windows.setCloseToTray(enabled),
-    openAtLogin: () => context?.state.get().openAtLogin === true,
-    setOpenAtLogin: (enabled) => windows.setOpenAtLogin(enabled),
-    quit: () => app.quit(),
+    ...appActions,
     isPackaged: app.isPackaged,
     repositoryUrl: config.app.repositoryUrl,
     quickCaptureAccelerator: config.app.quickCaptureShortcut,
@@ -422,18 +414,16 @@ async function bootstrap(): Promise<void> {
     isTrustedContents: (contents) => secondary.owns(contents),
     workspace: () => context?.workspace ?? initial,
     language: () => context?.i18n.locale ?? i18n.locale,
+    ...appActions,
+    // IPC 侧三个动作要 Promise 形态（直接引用异步原函数，覆盖 spread 进来的 void 包装）。
+    openLogs,
+    restartHarness,
+    checkForUpdates,
     showDiagnostics: () => {
       void showDiagnostics();
     },
-    closeToTray: () => context?.state.get().closeToTray === true,
-    setCloseToTray: (enabled) => windows.setCloseToTray(enabled),
-    openAtLogin: () => context?.state.get().openAtLogin === true,
-    setOpenAtLogin: (enabled) => windows.setOpenAtLogin(enabled),
-    openLogs,
-    restartHarness,
     revealPath,
     notify: (input) => context?.notifications.show(input) === true,
-    checkForUpdates,
     downloadUpdate: () => context?.updates.download() ?? Promise.resolve(),
     installUpdate: () => context?.updates.install() ?? Promise.resolve(),
     updateStatus: () => context?.updates.current() ?? { state: 'idle' },
@@ -449,13 +439,8 @@ async function bootstrap(): Promise<void> {
     const handle = await supervisor.start();
     context.handle = handle;
     startup.mark('harness.ready');
-    setHarnessOrigin(handle.port, handle.host);
-    installSessionSecurity(session.defaultSession, handle.port, {
-      ...config.security,
-      host: handle.host,
-    });
+    attachHarness({ session: session.defaultSession, security: config.security, handle, window, secondary });
     state.rememberWorkspace(initial);
-    loadHarness(window, handle);
     startup.mark('ui.loading');
     logger.write('main', `UI loaded for workspace ${initial}`);
     if (launch.deepLink !== null) deepLinks.setPending(launch.deepLink);
@@ -586,14 +571,8 @@ async function switchWorkspace(path: string): Promise<void> {
     const handle = await next.start();
     ctx.handle = handle;
     ctx.workspace = absolute;
-    setHarnessOrigin(handle.port, handle.host);
-    installSessionSecurity(session.defaultSession, handle.port, {
-      ...config.security,
-      host: handle.host,
-    });
+    attachHarness({ session: session.defaultSession, security: config.security, handle, window: ctx.window, secondary });
     ctx.state.rememberWorkspace(absolute);
-    if (ctx.window !== null) loadHarness(ctx.window, handle);
-    secondary.reloadAll(handle);
   } catch (error) {
     // 旧 supervisor 已在上文 stop ⇒ ctx.handle 此刻指向一个**已死**的端口/令牌；
     // 不清空的话，托盘/菜单/新窗口路径仍会拿它去 loadHarness（连接拒答/401，2026-11-06 审计 P2）。
@@ -621,13 +600,7 @@ async function restartHarness(): Promise<void> {
     const handle = await ctx.supervisor?.start();
     if (handle === undefined) throw new Error('supervisor unavailable');
     ctx.handle = handle;
-    setHarnessOrigin(handle.port, handle.host);
-    installSessionSecurity(session.defaultSession, handle.port, {
-      ...config.security,
-      host: handle.host,
-    });
-    if (ctx.window !== null) loadHarness(ctx.window, handle);
-    secondary.reloadAll(handle);
+    attachHarness({ session: session.defaultSession, security: config.security, handle, window: ctx.window, secondary });
   } catch (error) {
     // 同 switchWorkspace：旧实例已停，悬挂的 handle 必须清空（2026-11-06 审计 P2）。
     ctx.handle = null;

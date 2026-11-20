@@ -14,11 +14,17 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
+import { t } from '../src/ui/i18n/i18n.ts';
+import { setLocalizer } from '../src/core/localize.ts';
 
 const { ApiClient, RpcError, SERVER_WAIT_TIMEOUT_CODE, INVALID_PARAMS_CODE } = await import(
   '../src/core/ApiClient.ts'
 );
 const { ComposerController } = await import('../src/ui/controllers/ComposerController.ts');
+
+// core 层文案接缝（2026-11-20 批次二 A1-2）：ApiClient 的用户可见串经 localize.L 出口，
+// node 判据环境无 AppController.mount ⇒ 这里显式注入与生产相同的翻译器。
+setLocalizer(t);
 
 /** 运行时导入的 RpcError 值的实例类型（静态 import type 会与解构绑定同名冲突）。 */
 type RpcErrorInstance = InstanceType<typeof RpcError>;

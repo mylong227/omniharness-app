@@ -30,7 +30,7 @@ import type {
   ApprovalRequest,
   QuestionRequest,
 } from '../types/models.ts';
-import { t } from '../ui/i18n/i18n.ts';
+import { L } from './localize.ts';
 
 interface JsonRpcError {
   code: number;
@@ -128,7 +128,7 @@ export class ApiClient {
       // fetch 自身失败 = 传输层不可达（服务未运行 / 断网 / 代理拒答）。此前落进通用
       // 「检查 API Key」提示是误导（2026-11-18 硬编码清理批次：网络失败首次可分类）。
       const reason = error instanceof Error ? error.message : String(error);
-      throw new RpcError('network', t('无法连接服务端（服务未运行或网络不可达）：{reason}', { reason }));
+      throw new RpcError('network', L('无法连接服务端（服务未运行或网络不可达）：{reason}', { reason }));
     }
     // 归因必须保住：只有「JSON-RPC error **对象**」才当作协议错误读它的 message。
     // 曾经无条件 `data.error.message || 'RPC 错误'`，而 HTTP 500 的兜底体是 `{"error":"internal"}`
@@ -141,7 +141,7 @@ export class ApiClient {
     if (data !== undefined && typeof data.error === 'object' && data.error !== null) {
       throw new RpcError(
         'rpc-error',
-        data.error.message || t('RPC 错误（code {code}）', { code: data.error.code }),
+        data.error.message || L('RPC 错误（code {code}）', { code: data.error.code }),
         undefined,
         data.error.code,
       );
@@ -154,14 +154,14 @@ export class ApiClient {
         window.dispatchEvent(new CustomEvent('omni:auth-required'));
         throw new RpcError(
           'auth',
-          t('需要授权：令牌缺失或已失效——请重新用服务端打印的带 token 地址打开'),
+          L('需要授权：令牌缺失或已失效——请重新用服务端打印的带 token 地址打开'),
           res.status,
         );
       }
-      throw new RpcError('http-status', t('RPC 请求失败：HTTP {status}', { status: res.status }), res.status);
+      throw new RpcError('http-status', L('RPC 请求失败：HTTP {status}', { status: res.status }), res.status);
     }
     if (data === undefined) {
-      throw new RpcError('bad-json', t('RPC 响应不是合法 JSON'));
+      throw new RpcError('bad-json', L('RPC 响应不是合法 JSON'));
     }
     return data.result as T;
   }
@@ -204,9 +204,9 @@ export class ApiClient {
       // 传输层不可达与其他 rpc() 路径同一分类口径（kind=network），消费方据此给
       // 「服务端不可达」类建议而不是误导性的换模型/查 Key（2026-11-18 硬编码清理批次延续）。
       const reason = error instanceof Error ? error.message : String(error);
-      throw new RpcError('network', t('无法连接服务端（服务未运行或网络不可达）：{reason}', { reason }));
+      throw new RpcError('network', L('无法连接服务端（服务未运行或网络不可达）：{reason}', { reason }));
     }
-    if (!res.ok) throw new RpcError('http-status', t('metrics 请求失败：{status}', { status: res.status }), res.status);
+    if (!res.ok) throw new RpcError('http-status', L('metrics 请求失败：{status}', { status: res.status }), res.status);
     const text = await res.text();
     const metrics: Metrics = { sessions: 0, eventsByType: {} };
     const labelOf = (line: string, key: string): string | undefined => {

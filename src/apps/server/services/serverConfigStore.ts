@@ -2,7 +2,7 @@ import { existsSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { configFile, type FileConfig } from '../../../host/kernel/config.ts';
 import { ConfigError } from '../../../host/kernel/config.ts';
-import { PERSISTABLE_KEYS, SECTION_REPLACE_KEYS } from '../core/appServerState.ts';
+import { PERSISTABLE_KEYS, SECTION_REPLACE_KEYS } from './configPersistKeys.ts';
 import { ProviderPresets, type ProviderPreset } from './providerPresets.ts';
 import { UserLevelConfigStore } from './userLevelConfigStore.ts';
 

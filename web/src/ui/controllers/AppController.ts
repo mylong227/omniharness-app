@@ -49,6 +49,7 @@ import type { ChatMode } from '../models/ChatModePreference.ts';
 import type { QueuedMessage } from '../models/ChatMessageQueue.ts';
 import { ClipboardCopier } from '../models/ClipboardCopier.ts';
 import { ModelPricing } from '../models/ModelPricing.ts';
+import { setLocalizer } from '../../core/localize.ts';
 import { SessionTranscript } from '../models/SessionTranscript.ts';
 import { TraceTranscript } from '../models/TraceTranscript.ts';
 import type { TraceRow } from '../models/TraceFilter.ts';
@@ -375,6 +376,9 @@ export class AppController {
 
   /** 挂载：绑定 toast / 对话框服务、拉取目录/配置、初始化主题、连接 SSE、刷新会话。 @returns 无 */
   public mount(): void {
+    // core 层文案接缝注入（2026-11-20 批次二 A1-2）：ApiClient/DialogService 经 localize.L
+    // 出口本地化——core 不再 import ui/i18n，方向恢复单向；任何 RPC 都晚于本注入。
+    setLocalizer(t);
     this.services.toastSvc.bind((message: string, kind?: ToastKind) => this.showToast(message, kind));
     this.services.dialogSvc.bind((state: DialogState) => this.host.patch({ dialog: state }));
     this.refreshModelCatalog();

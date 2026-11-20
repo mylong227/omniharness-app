@@ -8,7 +8,7 @@ import { test } from 'vitest';
 import { createRequire } from 'node:module';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PERSISTABLE_KEYS } from '../src/apps/server/core/appServerState.ts';
+import { PERSISTABLE_KEYS } from '../src/apps/server/services/configPersistKeys.ts';
 import { ConfigError } from '@omniharness/kernel/kernel/config/configError.js';
 
 const KERNEL_DIST = join(
