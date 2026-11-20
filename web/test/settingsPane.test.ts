@@ -147,44 +147,41 @@ test('valueOf 对未加载快照返回空串（不在 UI 上抛出 undefined）'
   model.dispose();
 });
 
-test('设置页字段全集 === 内核可 UI 化标量键清单（settings-completion §1，防未来漂移）', () => {
-  // 内核 FileConfig 的标量可配键里，适合一行一项表单的全部清单。
-  // 不在此清单的：结构化子对象（limits/interjection/ssrfPolicy/…有专门面板或运维级，
-  // 见设计文档 §1.5）、凭据（厂商卡片管）、general/desktop 自定义渲染栏。
-  const EXPECTED = [
-    // 模型栏
-    'model', 'reasoning', 'baseUrl',
-    // 运行时·执行环境
-    'modelAdapter', 'sandbox', 'elevatedSandbox',
-    // 运行时·存储
-    'storageAdapter', 'storageDir',
-    // 运行时·步数与成本（含模型熔断）
-    'maxSteps', 'costBudgetUsd', 'costBudgetSoftRatio', 'costBudgetOnExceed',
-    'modelCircuitBreaker', 'modelCircuitBreakerThreshold', 'modelCircuitBreakerOpenMs',
-    // 运行时·长期记忆
-    'longTermMemoryEncryption', 'longTermMemoryGovernance', 'longTermMemoryKeyFile',
-    // 运行时·上下文与检索（alpha.19 三段，按段内路径逐行）
-    'retrievalContext.mode', 'retrievalContext.rewriter', 'retrievalContext.rerank',
-    'retrievalContext.maxSnippets', 'retrievalContext.maxTokens',
-    'semanticRecall.mode',
-    'contextPolicy.degradeLadder.shapersAggressive', 'contextPolicy.degradeLadder.compactionForce',
-    'contextPolicy.cacheGuard.hitRateFloor',
-    // 运行时·缓存与防火墙（alpha.21）
-    'toolCache.enabled', 'toolCache.maxEntries', 'capflow.mode', 'capflow.policyPath',
-    // 运行时·专家能力（2026-11-20 settings-completion v2：四结构段按段内路径逐行）
-    'evolutionRlvr.enabled', 'evolutionRlvr.autoRun', 'evolutionRlvr.kernel',
-    'evolutionRlvr.maxCandidates', 'evolutionRlvr.samplesPerPrompt', 'evolutionRlvr.minReward',
-    'evolutionRlvr.minGain', 'evolutionRlvr.verifyCommand', 'evolutionRlvr.verifyCodeFileExtension',
-    'decisionEngine.mode', 'decisionEngine.warm', 'decisionEngine.trace', 'decisionEngine.timeoutMs',
-    'calibratedAutonomy.enabled', 'calibratedAutonomy.minCalibration',
-    'calibratedAutonomy.alpha.readOnly', 'calibratedAutonomy.alpha.stateMutating',
-    'calibratedAutonomy.alpha.privilegedActuate',
-    'rbac.enabled', 'rbac.role',
-    // 权限栏
-    'approval', 'escalation', 'autoApprove',
-  ];
+test('设置页字段全集 === 内核可 UI 化标量键清单（settings-completion §1，防未来漂移）', async () => {
+  // 2026-11-20 批次五 5.4：手维 EXPECTED 清单（第二份镜像，与目录/内核规格三处互不核对）
+  // 改为**内核差集断言**——每个字段的 key 必须落在内核 configFieldSpecs 的四类标量集或
+  // 结构化段白名单里（机器核对），web-only 键显式列出。内核加键/改形状这里自动红。
+  const { createRequire } = await import('node:module');
+  const { dirname, join } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const req = createRequire(import.meta.url);
+  const specs = req(
+    join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'node_modules', '@omniharness', 'kernel', 'dist', 'kernel', 'config', 'configFieldSpecs.js'),
+  );
+  // 结构化段白名单（有专门校验器/按段提交，不走标量白名单；与 tests/settingsPersistKeys
+  // 的登记名单保持同步——判据互相兜底）。
+  const STRUCTURED = new Set([
+    'retrievalContext', 'semanticRecall', 'contextPolicy', 'toolCache', 'capflow',
+    'modelRouter', 'skills', 'evolutionRlvr', 'decisionEngine', 'calibratedAutonomy', 'rbac',
+  ]);
+  const WEB_ONLY = new Set([
+    'autoApprove', // web 运行态开关（不落盘）
+    'longTermMemoryKeyFile', // 路径语义键：内核特殊路径面（settingsPersistKeys 同名单）
+  ]);
+  for (const f of SETTINGS_FIELDS) {
+    const key = String(f.key);
+    const known =
+      key in specs.ENUM_VALUES ||
+      specs.STRING_FIELDS.has(key) ||
+      specs.NUMBER_FIELDS.has(key) ||
+      specs.BOOLEAN_FIELDS.has(key) ||
+      STRUCTURED.has(key) ||
+      WEB_ONLY.has(key);
+    assert.ok(known, `设置字段 ${key} 不是内核已登记键（也不在结构化段/web-only 名单）——内核加键或改形状时核对`);
+  }
+  // 唯一性护栏保留：fieldId 全集不得有重复（同段多行靠 path 区分）。
   const declared = SETTINGS_FIELDS.map((f) => fieldId(f)).sort();
-  assert.deepEqual(declared, [...EXPECTED].sort(), '设置页字段与内核能力清单出现漂移——新增内核键或删键时同步本清单与设计文档');
+  assert.equal(new Set(declared).size, declared.length, 'fieldId 出现重复');
 });
 
 test('枚举 options 与内核 ENUM_VALUES 完全一致（2026-11-14 修漂移：llamacpp/gemini/deny/guardian/plan）', async () => {

@@ -50,6 +50,7 @@ import type { QueuedMessage } from '../models/ChatMessageQueue.ts';
 import { ClipboardCopier } from '../models/ClipboardCopier.ts';
 import { ModelPricing } from '../models/ModelPricing.ts';
 import { setLocalizer } from '../../core/localize.ts';
+import { EFFORTS_BY_MODEL, MODEL_OPTIONS, PROVIDER_LABEL } from '../models/StorageKeys.ts';
 import { SessionTranscript } from '../models/SessionTranscript.ts';
 import { TraceTranscript } from '../models/TraceTranscript.ts';
 import type { TraceRow } from '../models/TraceFilter.ts';
@@ -669,9 +670,9 @@ export class AppController {
             effortsByModel: active.effortsByModel,
           });
           try {
-            localStorage.setItem('omni-model-options', JSON.stringify(active.models));
-            localStorage.setItem('omni-provider-label', active.label);
-            localStorage.setItem('omni-efforts-by-model', JSON.stringify(active.effortsByModel ?? {}));
+            localStorage.setItem(MODEL_OPTIONS, JSON.stringify(active.models));
+            localStorage.setItem(PROVIDER_LABEL, active.label);
+            localStorage.setItem(EFFORTS_BY_MODEL, JSON.stringify(active.effortsByModel ?? {}));
           } catch {
             /* 忽略 */
           }

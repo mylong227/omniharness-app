@@ -1,5 +1,6 @@
 import { readdirSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
+import { SEARCH_MAX_VISITED } from './appLimits.ts';
 
 /** 搜索命中条目（文件 / 聊天标题 / 对话内容）。 */
 export interface SearchHit {
@@ -48,7 +49,7 @@ const MAX_HITS = 20;
 const MAX_DEPTH = 6;
 
 /** 访问条目数上限（防止超大仓库把一次搜索拖成秒级）。 */
-const MAX_VISITED = 6000;
+const MAX_VISITED = SEARCH_MAX_VISITED;
 
 /** 遍历时跳过的目录名（VCS / 依赖 / 构建产物 / 本工具自身产物）。 */
 const SKIP_DIRS = new Set([

@@ -3,9 +3,10 @@ import type { Dirent } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { MimeType } from '../../../host/kernel/util.ts';
+import { ATTACH_FILE_MAX_BYTES, ATTACH_TOTAL_MAX_BYTES } from './appLimits.ts';
 
 /** 单文件附加大小上限（20MB）。 */
-const MAX_ATTACH_BYTES = 20 * 1024 * 1024;
+const MAX_ATTACH_BYTES = ATTACH_FILE_MAX_BYTES;
 /** 单次附加文件个数上限。 */
 const MAX_ATTACH_COUNT = 50;
 /**
@@ -15,7 +16,7 @@ const MAX_ATTACH_COUNT = 50;
  * 允许一次 RPC 读入 ~1 GB 并全部转成 base64 驻留内存（再叠加 JSON 序列化放大 ~1.37×）⇒ 单请求 OOM。
  * 32 MiB 对「多张截图/短片」仍有余量，同时把这条路径封死。
  */
-const MAX_ATTACH_TOTAL_BYTES = 32 * 1024 * 1024;
+const MAX_ATTACH_TOTAL_BYTES = ATTACH_TOTAL_MAX_BYTES;
 /** 允许附加的 mediaType 前缀白名单（凭扩展名推断后的二次校验）。 */
 const ALLOWED_MEDIA_PREFIXES: readonly string[] = [
   'image/',

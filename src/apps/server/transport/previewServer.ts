@@ -40,6 +40,7 @@ import sirv, { type RequestHandler } from 'sirv';
 import { SafeFs } from '../services/safeFs.ts';
 import { runtimeLimits } from '../../../host/kernel/util.ts';
 import type { PreviewLimits } from '../../../host/kernel/contracts.ts';
+import { PREVIEW_SOURCE_MAX_BYTES } from '../services/appLimits.ts';
 
 /** 预览源选项。 */
 export interface PreviewServerOptions {
@@ -55,7 +56,7 @@ export interface PreviewServerOptions {
 }
 
 /** 单文件上限（字节）：与 SafeFs 的硬上限一致（大产物不会把内存读爆）。 */
-const MAX_PREVIEW_BYTES = 64 * 1024 * 1024;
+const MAX_PREVIEW_BYTES = PREVIEW_SOURCE_MAX_BYTES;
 
 /** sirv 的扩展名回落（`/login` → `login.html` / `login.htm`；目录同样回落到 index）。 */
 const EXTENSIONS: readonly string[] = ['html', 'htm'];

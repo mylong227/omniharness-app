@@ -15,6 +15,7 @@ import {
 } from '../models/ThemePreference.ts';
 import { RightPanePreference, RIGHT_COLLAPSED_STORAGE_KEY } from '../models/RightPanePreference.ts';
 import type { ThemeScheme } from '../theme/palette.ts';
+import { EFFORTS_BY_MODEL, MODEL_OPTIONS, PROVIDER_LABEL } from '../models/StorageKeys.ts';
 
 /** 布局 / 主题偏好控制器。 */
 export class LayoutController {
@@ -58,8 +59,8 @@ export class LayoutController {
     applyScheme(scheme);
     this.host.patch({ theme, themePref: pref, scheme });
     try {
-      const cachedOptions = localStorage.getItem('omni-model-options');
-      const cachedLabel = localStorage.getItem('omni-provider-label');
+      const cachedOptions = localStorage.getItem(MODEL_OPTIONS);
+      const cachedLabel = localStorage.getItem(PROVIDER_LABEL);
       if (cachedOptions) {
         const parsed = JSON.parse(cachedOptions) as string[];
         if (Array.isArray(parsed) && parsed.length > 0) this.host.patch({ modelOptions: parsed });
@@ -68,7 +69,7 @@ export class LayoutController {
       // 每模型档位表与模型清单同缓存口径（adaptive-reasoning）：刷新后首屏（catalog RPC
       // 返回前）没有它，deepseek-chat/gpt-4o 这类"确证不支持"的模型会先按厂商档画出假
       // 进度条。只接受纯对象（形状不符就丢弃——缓存值可能被旧版本写成别的）。
-      const cachedEfforts = localStorage.getItem('omni-efforts-by-model');
+      const cachedEfforts = localStorage.getItem(EFFORTS_BY_MODEL);
       if (cachedEfforts) {
         const parsedEfforts = JSON.parse(cachedEfforts) as unknown;
         const plain =

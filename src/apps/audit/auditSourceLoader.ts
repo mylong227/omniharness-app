@@ -7,6 +7,7 @@ import { ClaudeCodeParser } from './claudeCodeParser.ts';
 import { CodexSessionParser } from './codexSessionParser.ts';
 import { OmniSessionParser } from './omniSessionParser.ts';
 import type { AuditLoadedSource, AuditParseResult, AuditSourceFormat } from './auditTypes.ts';
+import { AUDIT_SOURCE_MAX_BYTES, AUDIT_SOURCE_MAX_FILES } from '../../apps/server/services/appLimits.ts';
 
 /**
  * 审计来源加载器：读文件 → 识别格式 → 交给对应解析器。
@@ -18,10 +19,10 @@ import type { AuditLoadedSource, AuditParseResult, AuditSourceFormat } from './a
  */
 export class AuditSourceLoader {
   /** 单文件最大字节数（64 MiB；正常会话远小于此）。 */
-  public static readonly MAX_BYTES = 64 * 1024 * 1024;
+  public static readonly MAX_BYTES = AUDIT_SOURCE_MAX_BYTES;
 
   /** 目录展开的最大文件数（防误把仓库根目录传进来）。 */
-  public static readonly MAX_FILES = 2000;
+  public static readonly MAX_FILES = AUDIT_SOURCE_MAX_FILES;
 
   /** 可识别的扩展名（目录展开时使用）。 */
   private static readonly EXTENSIONS = ['.jsonl', '.ndjson', '.json'];
