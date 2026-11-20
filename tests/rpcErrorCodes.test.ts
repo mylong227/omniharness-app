@@ -2,6 +2,7 @@
 // 码位是前端 failureHint 分类与嵌入调用方排查的协议面契约，形态变化必须过这里。
 // 真实形态样本取自域模块既有 throw（「X 需要 Y」参数缺失 / 「未找到 X」资源不存在 /
 // 「X 拒绝」校验拒绝 / RPC 超时 / 内部故障）。
+// [互链] 同一契约的前端：web/test/rpcFailureMessage.test.ts（同码位的前端归因/文案表现）。
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import {

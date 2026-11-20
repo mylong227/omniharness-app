@@ -12,6 +12,7 @@
 //   ③ 建议语按原因分流：超时给「回合可能仍在后台」而不是「换模型查 Key」。
 // 直跑 web/dist（web:build 编译后），node --test web/test/*.test.mjs。
 
+// [互链] 同一契约的服务端：tests/rpcErrorCodes.test.ts（-32002/-32602 码位真源）。
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import { t } from '../src/ui/i18n/i18n.ts';

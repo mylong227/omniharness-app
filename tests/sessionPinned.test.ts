@@ -7,6 +7,7 @@
 // ③ 取消置顶 / 重复置顶去重 / 非法 id 拒绝且不落盘。
 //
 // 直跑：npm run web:test（vitest 的 tests/** 项目）。
+// [互链] 同一功能的 web 端：web/test/sessionPins.test.ts（SessionGrouper 浮顶 + pinned 进 SessionEntry）。
 import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';

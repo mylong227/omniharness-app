@@ -1,6 +1,7 @@
 // 会话内容搜索判据（2026-11-14，docs/design/session-search/ §5）：
 // 命中 / 大小写不敏感 / 每会话片段与计数封顶 / 扫描会话上限截断 / 查询越界判别拒绝 /
 // 单会话读取失败不拖垮整次搜索（fail-soft）。
+// [互链] 同一功能的 web 端：web/test/sessionSearch.test.ts（分组/排序/高亮/防抖）。
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import {

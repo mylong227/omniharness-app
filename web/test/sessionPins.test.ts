@@ -8,6 +8,7 @@
 // ④ 接线守卫：App → SessionPanel → 行菜单，且面板不再持 localStorage 副本。
 //
 // 直跑：npm run web:test
+// [互链] 同一功能的服务端：tests/sessionPinned.test.ts（侧车写读、跨实例一致）。
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import type { AppHost, AppServices } from '../src/ui/controllers/AppController.ts';
