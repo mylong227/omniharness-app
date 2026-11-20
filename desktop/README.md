@@ -314,8 +314,9 @@ $env:OMNI_SMOKE_OUT='D:\tmp\smoke.json'; npm run smoke # 指定结果落盘位�
 
 ## 8. 下一步（2026-11-20 账实：终态登记）
 
-1. **GUI 冒烟常态化** ✅：真实桌面验收已跑通（[docs/DESKTOP-SMOKE.md](../docs/DESKTOP-SMOKE.md)，
-   2026-11-04 8/8）；CI 已接 `workflow_dispatch` 手动门，发版前触发一次即可。
+1. **GUI 冒烟常态化** ✅：真实桌面验收已跑通（2026-11-04 8/8；验收记录文档已随
+   2026-11-20 文档库清理退役，验收动作本身在 `desktop:smoke` 可重复执行）；CI 已接
+   `workflow_dispatch` 手动门，发版前触发一次即可。
 2. **安装包** ⏸ 外部条件项（非代码遗留）：代码签名需要证书采购决策；N-1 升级实跑需要
    两个历史版本的真实安装环境——均属发布运维，代码侧已就绪（publish 已指本仓 omniharness-app，
    releaseManifest 按版本推导；2026-11-20 收口）。卸载保留 `~/.omniharness` 与高 DPI 验收
@@ -338,7 +339,7 @@ $env:OMNI_SMOKE_OUT='D:\tmp\smoke.json'; npm run smoke # 指定结果落盘位�
 - 当前直接复用现有 Web 工作台；**还不是 Codex 式的全新 React UI**。
 - 托盘/通知/深链/开机启动/更新已接线，但 GUI 级验证需真实桌面；本会话 Electron 沙箱不允许。
 - 自动更新/安装包未签名，未完成 N-1 实跑；`npm run dist` 需要 electron-builder 下载 NSIS/winCodeSign。
-- GUI 冒烟验收已脚本化（§7.1）且真实桌面已跑通（2026-11-04 8/8，见 docs/DESKTOP-SMOKE.md）；
+- GUI 冒烟验收已脚本化（§7.1）且真实桌面已跑通（2026-11-04 8/8）；
   本仓受限 shell 里 Electron 仍起不来；macOS/Linux 未验证；`stageHarness`/`nodeBinary` 已按
   平台分支，但 electron-builder 配置目前只配 Windows。
 
