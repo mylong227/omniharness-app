@@ -22,10 +22,10 @@ export interface DesktopState {
   window?: WindowBounds;
   /** 页面缩放级别（Ctrl+滚轮 / 菜单缩放；Electron zoomLevel，缺省 0）。 */
   zoom?: number;
-  /** 关闭窗口时最小化到托盘（默认 true，长任务不中断）。 */
-  closeToTray?: boolean;
-  /** 开机启动（默认 false）。 */
-  openAtLogin?: boolean;
+  /** 关闭窗口时最小化到托盘（默认 true，长任务不中断；read() 对旧存档永远回填默认 ⇒ 内存态必设）。 */
+  closeToTray: boolean;
+  /** 开机启动（默认 false；read() 对旧存档永远回填默认 ⇒ 内存态必设）。 */
+  openAtLogin: boolean;
 }
 
 const DEFAULT_STATE: DesktopState = {
