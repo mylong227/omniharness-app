@@ -36,6 +36,7 @@ import { KeyboardShortcuts } from '../models/KeyboardShortcuts.ts';
 import type { BrowserView, FileView, LiveInput, SessionEntry, ToolResultView, ToastState } from '../shared.ts';
 import type { ComposerSeed } from '../shared.ts';
 import { AppReducers } from './AppReducers.ts';
+import { routeStreamMessage } from './StreamEventRouter.ts';
 import { formatProfilePluginToast } from '../notify.ts';
 import { desktopBridge, notifyDesktop } from '../../core/desktop/DesktopBridge.ts';
 import { SessionController } from './SessionController.ts';
@@ -475,79 +476,75 @@ export class AppController {
    * @param msg SSE 信封。
    * @returns 无
    */
+  /** SSE 分流（2026-11-20 批次六抽出纯分发表 StreamEventRouter；业务处理器在下方）。 */
   private routeStreamMessage(msg: SseEnvelope): void {
-    const params = msg.params as Record<string, unknown>;
-    switch (msg.method) {
-      case 'thread.event':
-        this.children.sessions.handleEvent(params.event as ThreadEvent);
-        break;
-      case 'approval.request': {
-        const incoming = params as unknown as ApprovalRequest;
-        // 单槽 UI 不变量（见 restorePendingCards）：槽位被占用时**不覆盖**——服务端可同时挂起
-        // 多条审批（多线程并行回合），此前无条件 patch 会把用户正在看的 A 卡静默顶掉（B 的
-        // 工具挂起却无人可见）。后到请求仍在服务端挂起表排队，当前卡片处置成功后的
-        // restorePendingCards 会把它接续重建；这里只补一条应用内提示让排队可见。
-        const queued = this.host.getState().approval !== null;
-        this.host.patch((s) => (s.approval ? {} : { approval: incoming }));
-        if (queued) {
-          this.services.toast(t('已有一条审批在等待：新请求已排队，处理完当前卡片后自动接续'), 'info');
-        }
-        notifyDesktop({
-          title: t('需要你的确认'),
-          body: t('有一个工具调用等待审批，请回到 OmniHarness 处理。'),
-          ...(typeof params['threadId'] === 'string' ? { sessionId: params['threadId'] } : {}),
-        });
-        break;
-      }
-      case 'question.request': {
-        // 与 approval.request 同一单槽纪律：占用时不覆盖（服务端挂起表为真源）。
-        const queuedQuestion = this.host.getState().question !== null;
-        this.host.patch((s) => (s.question ? {} : { question: params as unknown as QuestionRequest }));
-        if (queuedQuestion) {
-          this.services.toast(t('已有一个提问在等待：新提问已排队，回答完当前后自动接续'), 'info');
-        }
-        notifyDesktop({
-          title: t('需要你的回答'),
-          body: t('Agent 正在等待你的回答。'),
-          ...(typeof params['threadId'] === 'string' ? { sessionId: params['threadId'] } : {}),
-        });
-        break;
-      }
-      case 'memory.changed': {
-        // 300ms 去抖（2026-11-20 批次四 4.2）：蒸馏类连续写 N 条记忆会产生 N 次通知，
-        // 面板每次重拉都是全量 list——去抖合并为一个刷新信号。
-        if (this.memoryReloadTimer !== null) clearTimeout(this.memoryReloadTimer);
-        this.memoryReloadTimer = setTimeout(() => {
-          this.memoryReloadTimer = null;
-          this.host.patch((s) => ({ memoryReloadKey: s.memoryReloadKey + 1 }));
-        }, 300);
-        break;
-      }
-      case 'profile.event':
-        this.host.patch((s) => ({ profilesReloadKey: s.profilesReloadKey + 1 }));
-        break;
-      case 'profile.applied':
+    routeStreamMessage(msg, {
+      threadEvent: (event) => this.children.sessions.handleEvent(event),
+      approvalRequest: (params) => this.onApprovalRequest(params),
+      questionRequest: (params) => this.onQuestionRequest(params),
+      memoryChanged: () => this.onMemoryChanged(),
+      profilesReload: () => this.host.patch((s) => ({ profilesReloadKey: s.profilesReloadKey + 1 })),
+      profileApplied: (params) => {
         this.host.patch((s) => ({ profilesReloadKey: s.profilesReloadKey + 1 }));
         this.applyProfilePluginToast('profile.applied', params);
-        break;
-      case 'profile.error':
-      case 'plugin.loaded':
-      case 'plugin.loadError':
-        this.applyProfilePluginToast(msg.method, params);
-        break;
-      case 'thread.tool_input':
-        this.children.sessions.updateToolInput(params);
-        break;
-      case 'thread.text_delta':
-        this.children.sessions.appendTextDelta(params);
-        break;
-      case 'graph.progress':
-        this.children.graph.applyGraphProgress(params as unknown as GraphProgress);
-        break;
-      case 'graph.done':
-        this.children.graph.applyGraphDone(params as unknown as GraphDone);
-        break;
+      },
+      profilePluginToast: (method, params) => this.applyProfilePluginToast(method, params),
+      toolInput: (params) => this.children.sessions.updateToolInput(params),
+      textDelta: (params) => this.children.sessions.appendTextDelta(params),
+      graphProgress: (params) => this.children.graph.applyGraphProgress(params as unknown as GraphProgress),
+      graphDone: (params) => this.children.graph.applyGraphDone(params as unknown as GraphDone),
+    });
+  }
+
+  /**
+   * 审批卡到达：单槽 UI 不变量（见 restorePendingCards）——槽位被占用时**不覆盖**（服务端
+   * 可同时挂起多条审批），后到请求在服务端挂起表排队；这里只补一条应用内提示让排队可见。
+   * @param params 通知载荷
+   * @returns 无返回值
+   */
+  private onApprovalRequest(params: Record<string, unknown>): void {
+    const incoming = params as unknown as ApprovalRequest;
+    const queued = this.host.getState().approval !== null;
+    this.host.patch((s) => (s.approval ? {} : { approval: incoming }));
+    if (queued) {
+      this.services.toast(t('已有一条审批在等待：新请求已排队，处理完当前卡片后自动接续'), 'info');
     }
+    notifyDesktop({
+      title: t('需要你的确认'),
+      body: t('有一个工具调用等待审批，请回到 OmniHarness 处理。'),
+      ...(typeof params['threadId'] === 'string' ? { sessionId: params['threadId'] } : {}),
+    });
+  }
+
+  /**
+   * 提问卡到达：与 approval.request 同一单槽纪律（占用时不覆盖，服务端挂起表为真源）。
+   * @param params 通知载荷
+   * @returns 无返回值
+   */
+  private onQuestionRequest(params: Record<string, unknown>): void {
+    const queuedQuestion = this.host.getState().question !== null;
+    this.host.patch((s) => (s.question ? {} : { question: params as unknown as QuestionRequest }));
+    if (queuedQuestion) {
+      this.services.toast(t('已有一个提问在等待：新提问已排队，回答完当前后自动接续'), 'info');
+    }
+    notifyDesktop({
+      title: t('需要你的回答'),
+      body: t('Agent 正在等待你的回答。'),
+      ...(typeof params['threadId'] === 'string' ? { sessionId: params['threadId'] } : {}),
+    });
+  }
+
+  /**
+   * 记忆重载信号：300ms 去抖（2026-11-20 批次四 4.2）——蒸馏类连续写 N 条记忆会产生
+   * N 次通知，面板每次重拉都是全量 list，去抖合并为一个刷新信号。
+   * @returns 无返回值
+   */
+  private onMemoryChanged(): void {
+    if (this.memoryReloadTimer !== null) clearTimeout(this.memoryReloadTimer);
+    this.memoryReloadTimer = setTimeout(() => {
+      this.memoryReloadTimer = null;
+      this.host.patch((s) => ({ memoryReloadKey: s.memoryReloadKey + 1 }));
+    }, 300);
   }
 
   /** 连接 SSE 并把各消息方法路由到对应子控制器。 @returns 无 */
