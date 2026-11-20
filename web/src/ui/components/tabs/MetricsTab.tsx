@@ -160,6 +160,8 @@ export function MetricsTab(): ReactElement {
   const [metricsFailed, setMetricsFailed] = React.useState(false);
 
   // 挂载即拉一次并按 POLL_MS 轮询；卸载即停表且不再回写（清理对称）。
+  // 后台标签页闸（2026-11-20 批次四 4.3，与 useFleet 同纪律）：document.hidden 时
+  // 轮询空转（每 tick 两个 RPC + usage.stats 全目录 stat），回到前台立刻补拉一次。
   React.useEffect(() => {
     let alive = true;
     /** 拉取指标与用量；失败保持上一帧＋标记失败（不许让用户对着无限陈旧的快照毫无感知）。 */
@@ -180,11 +182,19 @@ export function MetricsTab(): ReactElement {
         /* 静默：统计 RPC 不可用时保持上一帧（metrics 是门面数据，它的失败已另行提示） */
       }
     };
+    const onVisible = (): void => {
+      if (document.visibilityState === 'visible') void refresh();
+    };
     void refresh();
-    const timer = setInterval(() => void refresh(), POLL_MS);
+    const timer = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      void refresh();
+    }, POLL_MS);
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       alive = false;
       clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, [api, sessionTick]);
 

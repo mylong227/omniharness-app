@@ -224,11 +224,9 @@ export class LayoutController {
    */
   public onLeftWidthChange(w: number): void {
     this.host.patch({ leftWidth: w });
-    try {
-      localStorage.setItem('omni-left-width', String(w));
-    } catch {
-      /* 忽略 */
-    }
+    // localStorage 落盘 rAF 合并（2026-11-20 批次四 4.6）：拖拽中每个 mousemove 都会进来，
+    // 同步写盘 + 整树 patch 已在 patch 侧；持久化每帧一次足够。
+    this.scheduleWidthPersist('omni-left-width', w);
   }
 
   /**
@@ -238,10 +236,33 @@ export class LayoutController {
    */
   public onRightWidthChange(w: number): void {
     this.host.patch({ rightWidth: w });
-    try {
-      localStorage.setItem('omni-right-width', String(w));
-    } catch {
-      /* 忽略 */
-    }
+    this.scheduleWidthPersist('omni-right-width', w);
+  }
+
+  /** 待落盘的宽度（键 → 值；rAF 合并一次性写）。 */
+  private pendingWidthWrites = new Map<string, number>();
+  /** 已排程的 rAF 句柄（null = 无挂起）。 */
+  private widthPersistFrame: number | null = null;
+
+  /**
+   * rAF 合并持久化宽度：同帧多次变更只写一次盘。
+   * @param key localStorage 键
+   * @param value 最新宽度
+   * @returns 无返回值
+   */
+  private scheduleWidthPersist(key: string, value: number): void {
+    this.pendingWidthWrites.set(key, value);
+    if (this.widthPersistFrame !== null) return;
+    this.widthPersistFrame = requestAnimationFrame(() => {
+      this.widthPersistFrame = null;
+      for (const [k, v] of this.pendingWidthWrites) {
+        try {
+          localStorage.setItem(k, String(v));
+        } catch {
+          /* 忽略 */
+        }
+      }
+      this.pendingWidthWrites.clear();
+    });
   }
 }

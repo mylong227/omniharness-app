@@ -273,6 +273,14 @@ export class CliBuildConfig extends CliCredentialBuild {
     const model = this.buildModel(args, {
       allowUnconfigured: overrides.allowUnconfiguredModel === true,
     });
+    // 三个相互独立的装配分支并行（2026-11-20 批次四 4.7）：各自是磁盘 IO（自定义工具目录
+    // 扫描 / 存档目录就绪）与模型路由文件读取——串行时每个都挡 readyz。hydrateCredentials
+    // 必须先于 buildModel（env 读取顺序），但这三支与两者无序。
+    const [storage, extraTools, modelRouter] = await Promise.all([
+      this.buildStorage(args),
+      this.loadCustomTools(args.toolFiles),
+      this.resolveModelRouter(args),
+    ]);
     const { ConfigFactory } = await import('../../host/kernel/config.ts');
     const config = ConfigFactory.build({
       workspaceRoot: args.workspace,
@@ -308,13 +316,13 @@ export class CliBuildConfig extends CliCredentialBuild {
         return skills.length > 0 ? { skills } : {};
       })(),
       model,
-      storage: await this.buildStorage(args),
+      storage,
       approvals: this.buildApproval(args, model),
       sandbox: this.buildSandbox(args),
       escalation: this.buildEscalation(args),
       elevatedSandbox: this.buildElevatedSandbox(args),
       events: CliEventPort.of(args, overrides.events),
-      extraTools: await this.loadCustomTools(args.toolFiles),
+      extraTools,
       compactionMaxTokens:
         args.compactionMax ??
         (args.contextWindow !== undefined ? Math.floor(args.contextWindow * 0.75) : undefined),
@@ -323,7 +331,7 @@ export class CliBuildConfig extends CliCredentialBuild {
         workers: this.buildWorkers(args),
         lspServer: this.parseLsp(args.lsp),
       }),
-      modelRouter: await this.resolveModelRouter(args),
+      modelRouter,
       // 系统提示：编码 Agent 取向（详见 DefaultPromptFragments 的类注释——原文案禁止连续探索、
       // 禁止跑 build/tsc，与「改代码」这一主场景直接冲突）。
       fragments: DefaultPromptFragments.codingAgent(),

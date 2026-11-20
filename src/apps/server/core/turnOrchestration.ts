@@ -69,8 +69,13 @@ export class TurnOrchestration {
     return this.threadResult(result);
   }
 
+  /** threads.get 无 limit 参数时的缺省页大小（2026-11-20 兼容洞闭合：不再无界返回全部）。 */
+  private static readonly DEFAULT_PAGE_LIMIT = 500;
+
   /**
-   * 获取线程事件（threads.get）：默认返回全部；可选 `limit`/`before` 分页（S2，2026-10-25）。
+   * 获取线程事件（threads.get）：可选 `limit`/`before` 分页（S2，2026-10-25）；
+   * 无 limit 时缺省封顶 500（2026-11-20 闭合「无 limit 返回全部」的兼容洞——
+   * 大会话全量序列化是 O(N) IO+传输，前端分页本来就以 300 为页）。
    * @param params `{ threadId, limit?, before? }` — 目标线程与可选分页
    * @returns `{ threadId, items, hasMore?, oldestId?, error? }`
    */
@@ -87,11 +92,11 @@ export class TurnOrchestration {
         : typeof rawLimit === 'string' && rawLimit.trim() !== ''
           ? Number(rawLimit)
           : Number.NaN;
-    const limit = Number.isFinite(numericLimit) && numericLimit > 0 ? numericLimit : undefined;
+    const limit =
+      Number.isFinite(numericLimit) && numericLimit > 0
+        ? numericLimit
+        : TurnOrchestration.DEFAULT_PAGE_LIMIT;
     const before = typeof params['before'] === 'string' ? params['before'] : undefined;
-    if (limit === undefined) {
-      return { threadId, items: events, hasMore: false };
-    }
     const page = ThreadPage.slice(events, limit, before);
     return {
       threadId,

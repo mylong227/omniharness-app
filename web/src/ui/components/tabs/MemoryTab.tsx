@@ -128,7 +128,7 @@ interface MemoryStore {
  * @returns facts 记忆列表；count 服务端计数；query/setQuery 检索词；load 全量列出；search 检索
  */
 function useMemoryStore(reloadKey: number): MemoryStore {
-  const { api, toast, sessionTick } = useApp();
+  const { api, toast } = useApp();
   const [facts, setFacts] = React.useState<MemoryFact[]>([]);
   const [count, setCount] = React.useState<number>(0);
   const [query, setQuery] = React.useState<string>('');
@@ -146,10 +146,10 @@ function useMemoryStore(reloadKey: number): MemoryStore {
     }
   };
 
-  // 挂载装载 + reloadKey 变化重载（deps 只有 reloadKey，load 只读 ref/闭包外的服务）。
+  // 挂载装载 + reloadKey 变化重载（deps 只有 reloadKey；sessionTick 已移除——记忆不随回合推进变化，4.2 批次收窄）。
   React.useEffect(() => {
     void load();
-  }, [reloadKey, sessionTick]);
+  }, [reloadKey]);
 
   /** 检索：空查询回落为全量列出。 */
   const search = async (): Promise<void> => {
@@ -176,7 +176,7 @@ function useMemoryStore(reloadKey: number): MemoryStore {
  * @returns 快照；装载中为 null（不渲染）
  */
 function useMemoryFacts(reloadKey: number): MemoryFactsResult | null {
-  const { api, sessionTick } = useApp();
+  const { api } = useApp();
   const [snap, setSnap] = React.useState<MemoryFactsResult | null>(null);
   React.useEffect(() => {
     let alive = true;
@@ -192,7 +192,7 @@ function useMemoryFacts(reloadKey: number): MemoryFactsResult | null {
     return () => {
       alive = false;
     };
-  }, [reloadKey, sessionTick, api]);
+  }, [reloadKey, api]);
   return snap;
 }
 

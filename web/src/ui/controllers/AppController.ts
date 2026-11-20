@@ -216,6 +216,8 @@ export class AppController {
   private readonly host: AppHost;
   /** 共享服务与纯归约器集合（组合根注入）。 */
   private readonly services: AppServices;
+  /** memory.changed 的去抖定时器（null = 无挂起刷新）。 */
+  private memoryReloadTimer: ReturnType<typeof setTimeout> | null = null;
   /** 按职责拆出的子控制器与协作件（会话 / 输入框 / graph / 快捷键解析与执行）。 */
   private readonly children: {
     sessions: SessionController;
@@ -407,9 +409,13 @@ export class AppController {
            结果是首帧本地缓存生效，语义仍正确。 */
       });
     this.connectStream();
-    // 启动时**连归档一起读一次**：此后日常刷新走快速路径（跳过归档文件的逐个扫描），而归档行已在内存
-    // ⇒ `mergeSessions` 会一直保留它们（「已归档」组不会因为快速刷新而消失）。
-    void this.children.sessions.refreshSessions(true);
+    // 启动装载两拍（2026-11-20 批次四 4.4）：第一拍走快速路径（跳过归档逐个扫描，侧栏立即
+    // 出列表）；归档补扫延后一拍——此后日常刷新走快速路径，而归档行已在内存 ⇒ `mergeSessions`
+    // 会一直保留它们（「已归档」组不会因为快速刷新而消失）。
+    void this.children.sessions.refreshSessions(false);
+    setTimeout(() => {
+      void this.children.sessions.refreshSessions(true);
+    }, 1000);
     // F8：应用初始深链（面板 + 会话）并订阅浏览器前进 / 后退。
     this.routeBinding.start();
     // 桌面端：点击原生通知/深链后聚焦到对应会话（浏览器下 desktopBridge() 为 null，自动 no-op）。
@@ -506,9 +512,16 @@ export class AppController {
         });
         break;
       }
-      case 'memory.changed':
-        this.host.patch((s) => ({ memoryReloadKey: s.memoryReloadKey + 1 }));
+      case 'memory.changed': {
+        // 300ms 去抖（2026-11-20 批次四 4.2）：蒸馏类连续写 N 条记忆会产生 N 次通知，
+        // 面板每次重拉都是全量 list——去抖合并为一个刷新信号。
+        if (this.memoryReloadTimer !== null) clearTimeout(this.memoryReloadTimer);
+        this.memoryReloadTimer = setTimeout(() => {
+          this.memoryReloadTimer = null;
+          this.host.patch((s) => ({ memoryReloadKey: s.memoryReloadKey + 1 }));
+        }, 300);
         break;
+      }
       case 'profile.event':
         this.host.patch((s) => ({ profilesReloadKey: s.profilesReloadKey + 1 }));
         break;

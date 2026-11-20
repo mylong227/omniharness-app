@@ -687,12 +687,14 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
         );
       }
     }
-    // 启动 + 周期维护巡检（2026-10-26，磁盘爆炸收口）：编排与播报都在 MaintenanceRunner.startup。
-    MaintenanceRunner.startup(process.stderr, config.limits?.maintenance);
     const binding = await this.startHttpServer(server, port, serveArgs.includes('--take-port'));
     if (binding.ok !== true) {
       return binding.code;
     }
+    // 启动 + 周期维护巡检（2026-10-26，磁盘爆炸收口；编排与播报都在
+    // MaintenanceRunner.startup）。2026-11-20 批次四 4.7：挪到 listen 之后——startup 是
+    // 同步清扫（readdir/unlink/read），挡 readyz 数百 ms；巡检是 best-effort，晚一拍无碍。
+    MaintenanceRunner.startup(process.stderr, config.limits?.maintenance);
     const announced = ServeAnnounce.announce(
       app,
       serveHost,
