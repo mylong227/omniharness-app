@@ -183,16 +183,22 @@ describe('RPC parity 快照（coreModules）', () => {
     expect(byOwner.get('workspace.switch')).toBe('workspace');
     expect(byOwner.get('sessions.reorder')).toBe('sessions');
     expect(byOwner.get('sessions.setPinned')).toBe('sessions');
-    expect(byOwner.get('context.usage')).toBe('surface');
-    expect(byOwner.get('fleet.list')).toBe('control');
-    expect(byOwner.get('fleet.cancel')).toBe('control');
-    expect(byOwner.get('fleet.applyPatch')).toBe('control');
-    expect(byOwner.get('context.compact')).toBe('control');
-    expect(byOwner.get('context.handoff.add')).toBe('control');
-    expect(byOwner.get('fleet.patch')).toBe('control');
-    expect(byOwner.get('proof.verify')).toBe('control');
-    expect(byOwner.get('context.studio')).toBe('control');
-    expect(byOwner.get('proof.build')).toBe('control');
+    // 2026-11-20 批次三按域重排：control 三拆（fleet/contextStudio/proof），
+    // surface 清仓（quota→observability、modes→threads、setWorkspace→sessions）。
+    expect(byOwner.get('context.usage')).toBe('contextStudio');
+    expect(byOwner.get('fleet.list')).toBe('fleet');
+    expect(byOwner.get('fleet.cancel')).toBe('fleet');
+    expect(byOwner.get('fleet.applyPatch')).toBe('fleet');
+    expect(byOwner.get('context.compact')).toBe('contextStudio');
+    expect(byOwner.get('context.handoff.add')).toBe('contextStudio');
+    expect(byOwner.get('fleet.patch')).toBe('fleet');
+    expect(byOwner.get('proof.verify')).toBe('proof');
+    expect(byOwner.get('context.studio')).toBe('contextStudio');
+    expect(byOwner.get('proof.build')).toBe('proof');
+    expect(byOwner.get('modes.get')).toBe('threads');
+    expect(byOwner.get('modes.set')).toBe('threads');
+    expect(byOwner.get('quota.get')).toBe('observability');
+    expect(byOwner.get('sessions.setWorkspace')).toBe('sessions');
     expect(byOwner.get('decision.session')).toBe('decision');
     expect(byOwner.get('decision.configure')).toBe('decision');
     expect(byOwner.get('decision.export')).toBe('decision');

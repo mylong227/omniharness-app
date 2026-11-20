@@ -8,7 +8,7 @@ import type {
 import type { ServerModule } from '../core/serverModule.ts';
 
 /**
- * 只读可观测模块（Web 交付项，2026-10-11）：`daemon.status`、`doctor.report`、`audit.query`
+ * 只读可观测模块（Web 交付项，2026-10-11；2026-11-20 批次三并入 quota.* 日预算读写）：`daemon.status`、`doctor.report`、`audit.query`
  * 与只读 trace 自省 `trace.read`（T4.5）。
  *
  * 两条纪律（都在钉"没有就是没有"）：
@@ -23,6 +23,16 @@ export function observabilityModule(): ServerModule {
     register(ctx) {
       const s = ctx.services;
       ctx.rpc('daemon.status', () => Promise.resolve(new DaemonController().status()));
+      // 日预算读写（2026-11-20 批次三从 surface.ts 按域归位）：与 usage/metrics 同属可观测面。
+      ctx.rpc('quota.get', async () => s.quota.status());
+      ctx.rpc('quota.set', async (params) => {
+        const patch: { dailyTokens?: number } = {};
+        // `plan` 不再受理（2026-10-17）：档位由当前模型自动识别（QuotaPlans.forModel）。
+        // 旧客户端若仍传 plan，这里**忽略并照常返回状态**——而不是报错打断它。
+        const daily = params['dailyTokens'];
+        if (typeof daily === 'number') patch.dailyTokens = daily;
+        return s.quota.update(patch);
+      });
       ctx.rpc('doctor.report', async (params) => {
         const provided = s.options.doctorReport;
         if (provided === undefined) {

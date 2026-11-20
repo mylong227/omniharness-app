@@ -1,4 +1,5 @@
 import type { ServerModule } from '../core/serverModule.ts';
+import { stringOf } from './rpcParams.ts';
 
 /**
  * 线程与回合模块：`threads.*`（创建/续跑/分叉/读取/回退）与 `turns.*`（运行/steering/插话/中断）。
@@ -19,6 +20,21 @@ export function threadsModule(): ServerModule {
       ctx.rpc('turns.steer', (params) => s.turns.steerTurn(params));
       ctx.rpc('turns.interject', (params) => s.turns.interjectTurn(params));
       ctx.rpc('turns.abort', async (params) => s.turns.abortTurns(params));
+      // 每线程界面模式（2026-11-20 批次三从 surface.ts 按域归位）：goal/planMode/sketchMode
+      // 都挂在 threadId 上，与线程域同源。
+      ctx.rpc('modes.get', async (params) => s.modes.get(stringOf(params['threadId'])));
+      ctx.rpc('modes.set', async (params) => {
+        const threadId = stringOf(params['threadId']);
+        if (threadId === '') throw new Error('modes.set 需要 threadId');
+        const patch: { goal?: string; planMode?: boolean; sketchMode?: boolean } = {};
+        const goal = params['goal'];
+        if (typeof goal === 'string') patch.goal = goal;
+        const planMode = params['planMode'];
+        if (typeof planMode === 'boolean') patch.planMode = planMode;
+        const sketchMode = params['sketchMode'];
+        if (typeof sketchMode === 'boolean') patch.sketchMode = sketchMode;
+        return s.modes.set(threadId, patch);
+      });
     },
   };
 }
