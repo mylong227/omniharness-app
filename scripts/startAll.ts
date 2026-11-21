@@ -29,7 +29,7 @@
  * - **零第三方依赖**：只用 `node:child_process`，与本仓"依赖按准入"的口径一致。
  * - **`--open` 是"就绪后"打开而不是"起了就"打开**：判据走 `/readyz`（不是恒 200 的 `/healthz`），
  *   且**端口上是别人**时坚决不开浏览器（否则会把别人的页面当成本项目的工作台）；
- *   纯逻辑在 `scripts/lib/launchReadiness.ts`，由 `tests/unit/launchReadiness.test.ts` 钉住。
+ *   纯逻辑在 `scripts/lib/launchReadiness.ts`，由 `tests/launchReadiness.test.ts` 钉住。
  * - **退出码要说人话**：区分"按了 Ctrl+C"与"失败退出"（Windows 双击场景里这是唯一线索）。
  */
 import { spawnSync, spawn } from 'node:child_process';
@@ -44,6 +44,7 @@ import {
   readinessUrl,
   resolveServePort,
   waitForReady,
+  type ReadyKind,
 } from './lib/launchReadiness.ts';
 import { resolveDevAddress } from './devConfig.ts';
 
@@ -56,10 +57,10 @@ const SERVE_ENTRY = join(REPO, 'dist', 'src', 'apps', 'cli', 'exec.js');
  * **Windows 上必须 `shell: true`**：Node 自 2024 起（CVE-2024-27980 缓解）禁止不经 shell 直接 spawn
  * `.cmd`/`.bat`，于是 `spawnSync('npm.cmd', …)` 会**静默失败**（`status === null`、无任何输出）——
  * 本脚本第一版就踩了这个坑：`npm start` 只打印"npm run build 失败（退出码 null）"便中止。
- * @param {string} script 脚本名（如 'build'）。
- * @returns {void}
+ * @param script 脚本名（如 'build'）。
+ * @returns void
  */
-function runNpm(script) {
+function runNpm(script: string): void {
   process.stdout.write(`\n▶ npm run ${script}\n`);
   const isWin = process.platform === 'win32';
   const r = spawnSync(isWin ? 'npm.cmd' : 'npm', ['run', script], {
@@ -84,7 +85,7 @@ function runNpm(script) {
  * @param url 就绪探针地址。
  * @returns 分类标签（`classifyReadyProbe` 的取值）。
  */
-async function probeOnce(url) {
+async function probeOnce(url: string): Promise<ReadyKind> {
   try {
     const response = await fetch(url, { signal: AbortSignal.timeout(1000) });
     const bodyText = await response.text().catch(() => '');
@@ -108,7 +109,7 @@ async function probeOnce(url) {
  * @param uiUrlRef 已捕获的带 token UI URL（serve 横幅解析结果；未捕获为 undefined）
  * @returns 无返回值（fire-and-forget，绝不阻塞服务进程）。
  */
-async function openWhenReady(port, uiUrlRef) {
+async function openWhenReady(port: number, uiUrlRef: { value: string | undefined }): Promise<void> {
   const url = readinessUrl(port);
   const result = await waitForReady({ probe: () => probeOnce(url) });
   process.stdout.write(`\n${describeReadyOutcome(result.outcome, port)}\n`);
@@ -144,7 +145,7 @@ async function openWhenReady(port, uiUrlRef) {
   });
 }
 
-const args = process.argv.slice(2);
+const args: string[] = process.argv.slice(2);
 const skipBuild = args.includes('--no-build');
 const openBrowser = args.includes('--open');
 // `--open` / `--no-build` 是**本脚本**的旗标，绝不能透传给 serve：serve 对未知旗标是 fail-closed 退出，
@@ -162,10 +163,15 @@ if (!skipBuild) {
 // 启动前清一次**超过 7 天**的本仓临时产物（Chrome profile / worktree 副本 / A/B 目录）。
 // 只清本仓前缀且超龄，不会碰另一个正在运行的进程；失败只告警，不阻断启动。
 try {
-  const { TmpSweep } = await import(
+  // dist 产物不经 TS 解析（脚本区与 src 解耦）——这里钉的是内核 TmpSweep.run 的稳定契约形状。
+  const maintenance = (await import(
     pathToFileURL(join(REPO, 'dist', 'src', 'host', 'kernel', 'maintenance.js')).href
-  );
-  const sweep = TmpSweep.run({ olderThanMs: 7 * 24 * 60 * 60 * 1000 });
+  )) as {
+    TmpSweep: {
+      run(options: { olderThanMs: number }): { matched: unknown[]; removed: number; scanned: number };
+    };
+  };
+  const sweep = maintenance.TmpSweep.run({ olderThanMs: 7 * 24 * 60 * 60 * 1000 });
   if (sweep.matched.length > 0) {
     process.stdout.write(
       `▶ 清理陈年临时产物：${String(sweep.removed)} 项（扫描 ${String(sweep.scanned)}）\n`,
@@ -183,7 +189,7 @@ const child = spawn(process.execPath, [SERVE_ENTRY, 'serve', ...serveArgs], {
   stdio: ['inherit', 'pipe', 'inherit'],
 });
 /** serve 横幅里的 UI URL（带临时 token；未捕获前为 undefined）。 */
-const uiUrlRef = { value: undefined };
+const uiUrlRef: { value: string | undefined } = { value: undefined };
 child.stdout.on('data', (chunk) => {
   const text = chunk.toString('utf8');
   process.stdout.write(text);
@@ -199,6 +205,6 @@ child.on('exit', (code) => {
   process.stdout.write(`\n${describeServeExit(code)}\n`);
   process.exit(code ?? 0);
 });
-for (const sig of ['SIGINT', 'SIGTERM']) {
+for (const sig of ['SIGINT', 'SIGTERM'] as const) {
   process.on(sig, () => child.kill(sig));
 }

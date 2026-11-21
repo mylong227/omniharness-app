@@ -29,6 +29,7 @@
  */
 
 import { mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import type { SpawnOptions } from 'node:child_process';
 import { hostname } from 'node:os';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -318,22 +319,15 @@ export class WorkspaceLease {
   private static readOwnerAt(dir: string): LeaseOwner | undefined {
     try {
       const parsed: unknown = JSON.parse(readFileSync(join(dir, 'owner.json'), 'utf8'));
-      if (
-        parsed === null ||
-        typeof parsed !== 'object' ||
-        !('token' in parsed) ||
-        !('at' in parsed) ||
-        typeof parsed.token !== 'number' ||
-        typeof parsed.at !== 'number'
-      ) {
-        return undefined;
-      }
+      if (typeof parsed !== 'object' || parsed === null) return undefined;
+      const record = parsed as Record<string, unknown>;
+      if (typeof record['token'] !== 'number' || typeof record['at'] !== 'number') return undefined;
       return {
-        token: parsed.token,
-        pid: typeof parsed.pid === 'number' ? parsed.pid : 0,
-        host: typeof parsed.host === 'string' ? parsed.host : '',
-        at: parsed.at,
-        label: typeof parsed.label === 'string' ? parsed.label : '',
+        token: record['token'],
+        pid: typeof record['pid'] === 'number' ? record['pid'] : 0,
+        host: typeof record['host'] === 'string' ? record['host'] : '',
+        at: record['at'],
+        label: typeof record['label'] === 'string' ? record['label'] : '',
       };
     } catch {
       return undefined;
@@ -418,11 +412,9 @@ if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.a
     console.log(`[lease] 已获取 ${lease.lockDir}（token=${String(lease.token)}）；按 Ctrl-C 释放`);
   } else {
     const { spawn } = await import('node:child_process');
-    const child = spawn(command[0], [...command.slice(1)], {
-      stdio: 'inherit',
-      cwd: root,
-      shell: process.platform === 'win32',
-    });
+    const cmd = command[0]!;
+    const opts: SpawnOptions = { stdio: 'inherit', cwd: root, shell: process.platform === 'win32' };
+    const child = spawn(cmd, [...command.slice(1)], opts);
     child.on('exit', (code, signal) => {
       lease.release();
       process.exit(signal === null ? (code ?? 1) : 1);

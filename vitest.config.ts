@@ -36,7 +36,7 @@ function collectChromeTests(): string[] {
     if (!isChrome) {
       // 一层传递闭包：./helper 形式的本地导入，helper 内容命中也算 Chrome 判据。
       const importsLocal = [...src.matchAll(/from\s+['"](\.[^'"]+)['"]/g)].some((m) => {
-        const target = resolve(dir, m[1]);
+        const target = resolve(dir, m[1]!);
         for (const candidate of [target, `${target}.ts`, `${target}.tsx`]) {
           try {
             if (CHROME_MARKERS.test(readFileSync(candidate, 'utf8'))) return true;
@@ -80,9 +80,12 @@ export default defineConfig({
           ],
           environment: 'node',
           fileParallelism: true,
-          // fork 并发上限：无界并发会把机器打满、worker 启动超时（实测 7 个文件
+          // worker 并发上限：无界并发会把机器打满、worker 启动超时（实测 7 个文件
           // 「Failed to start forks worker」）——限到 CPU 的一半量级，稳定优先。
-          poolOptions: { forks: { maxForks: 6, minForks: 1 } },
+          // （2026-11-21 修：原写法是 Vitest 4 的 `poolOptions.forks.maxForks`——Vitest 5 已删
+          // 该键并静默忽略，限幅实际一直未生效；继任选项是 `maxWorkers`（forks/threads 池统一）。
+          // chrome 项目 fileParallelism:false 串行，不受此限影响。）
+          maxWorkers: 6,
         },
       },
     ],

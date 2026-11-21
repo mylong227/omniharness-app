@@ -26,9 +26,9 @@ const ENTRY = join(ROOT, 'dist', 'src', 'apps', 'cli', 'exec.js');
 const keep = process.argv.includes('--keep');
 const workspace = mkdtempSync(join(tmpdir(), 'omni-app-smoke-'));
 
-const failures = [];
+const failures: string[] = [];
 /** 记录一条判据结果（失败不中断，最后统一退出）。 */
-function check(name, ok, detail) {
+function check(name: string, ok: boolean, detail?: string): void {
   process.stdout.write(`${ok ? '✓' : '✗'} ${name}${detail === undefined ? '' : `：${detail}`}\n`);
   if (!ok) failures.push(name);
 }
@@ -68,15 +68,22 @@ child.stderr.on('data', (chunk) => process.stderr.write(chunk.toString('utf8')))
 // 顶层 reject 直接终止脚本，serve 子进程与临时工作区双双泄漏（孤儿进程 + omni-app-smoke-* 残目录）。
 // 现在整段收纳进 try/finally，任何失败路径都会走同一份清理。
 try {
+  /** 横幅解析出的 UI 地址与一次性 token。 */
+  interface BannerInfo {
+    /** UI 地址（含 token）。 */
+    url: string;
+    /** 一次性 token。 */
+    token: string;
+  }
   /** 等横幅出现（最多 90s；serve 首次启动要读默认策略表）。 */
-  const uiUrl = await new Promise((resolvePromise, rejectPromise) => {
+  const uiUrl = await new Promise<BannerInfo>((resolvePromise, rejectPromise) => {
     const timer = setTimeout(() => rejectPromise(new Error('等待 serve 启动横幅超时')), 90_000);
     const tick = setInterval(() => {
       const match = banner.match(/OmniHarness UI:\s*(https?:\/\/\S+\?token=([0-9a-fA-F]+))/u);
       if (match !== null) {
         clearTimeout(timer);
         clearInterval(tick);
-        resolvePromise({ url: match[1], token: match[2] });
+        resolvePromise({ url: match[1]!, token: match[2]! });
       }
     }, 100);
     child.on('exit', (code) => {
@@ -106,19 +113,28 @@ try {
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${uiUrl.token}` },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'config.get', params: {} }),
   });
-  const rpcBody = await rpc.json().catch(() => ({}));
+  const rpcBody = (await rpc.json().catch(() => ({}))) as unknown;
   check(
     'POST /rpc config.get 有 result',
     rpc.status === 200 && rpcBody !== null && typeof rpcBody === 'object' && 'result' in rpcBody,
-    `HTTP ${String(rpc.status)}${'error' in rpcBody ? ` error=${JSON.stringify(rpcBody.error)}` : ''}`,
+    `HTTP ${String(rpc.status)}${typeof rpcBody === 'object' && rpcBody !== null && 'error' in rpcBody ? ` error=${JSON.stringify(rpcBody.error)}` : ''}`,
   );
 
+  /** JSON-RPC 响应的宽松形状（冒烟只判形状，不判语义）。 */
+  interface RpcShape {
+    result?: {
+      sessions?: unknown[];
+      sections?: unknown[];
+      summary?: unknown;
+    };
+    error?: unknown;
+  }
   const sessionsRpc = await fetch(`${origin}/rpc`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${uiUrl.token}` },
     body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'sessions.list', params: {} }),
   });
-  const sessionsBody = await sessionsRpc.json().catch(() => ({}));
+  const sessionsBody = (await sessionsRpc.json().catch(() => ({}))) as RpcShape | null;
   check(
     'POST /rpc sessions.list 有数组',
     sessionsRpc.status === 200 &&
@@ -131,7 +147,7 @@ try {
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${uiUrl.token}` },
     body: JSON.stringify({ jsonrpc: '2.0', id: 3, method: 'kernel.health', params: {} }),
   });
-  const healthBodyJson = await healthRpc.json().catch(() => ({}));
+  const healthBodyJson = (await healthRpc.json().catch(() => ({}))) as RpcShape | null;
   const sections = healthBodyJson?.result?.sections;
   check(
     'POST /rpc kernel.health 有七分区',
@@ -151,7 +167,8 @@ try {
     `${native.modulePath()} ping=${JSON.stringify(pong)}`,
   );
 } catch (error) {
-  process.stderr.write(`✗ 冒烟异常：${String(error?.message ?? error)}\n`);
+  const message = (error as { message?: unknown } | undefined)?.message;
+  process.stderr.write(`✗ 冒烟异常：${String(message ?? error)}\n`);
   failures.push('exception');
 } finally {
   child.kill();

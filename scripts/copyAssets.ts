@@ -17,11 +17,11 @@
  *   未跟踪草稿（如 `sortingAlgorithms.ts.bak`）带进 `dist`。
  * - 保持 `src` 内相对目录结构。
  *
- * 用法：`node scripts/copyAssets.mjs [DIST_ROOT]`（默认 `src` → `dist/src`；
- * 传 `dist.next` 即镜像进暂存目录，供 `scripts/buildDist.mjs` 的原子构建使用）。
+ * 用法：`node scripts/copyAssets.ts [DIST_ROOT]`（默认 `src` → `dist/src`；
+ * 传 `dist.next` 即镜像进暂存目录，供 `scripts/buildDist.ts` 的原子构建使用）。
  */
 import { copyFileSync, mkdirSync, readdirSync, statSync } from 'node:fs';
-import { dirname, join, relative, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -39,7 +39,7 @@ const SKIP_SUFFIXES = ['.bak', '.tmp', '.swp', '.orig'];
  * @param name 文件名。
  * @returns 应拷贝为 true。
  */
-function shouldCopy(name) {
+function shouldCopy(name: string): boolean {
   if (name.endsWith('.ts') || name.endsWith('.d.ts')) return false;
   if (SKIP_SUFFIXES.some((s) => name.endsWith(s))) return false;
   if (name.endsWith('~')) return false;
@@ -51,7 +51,7 @@ function shouldCopy(name) {
  * @param dir 当前源目录。
  * @param rel 相对 `src` 的路径（用于镜像到 `dist/src`）。
  */
-function mirror(dir, rel) {
+function mirror(dir: string, rel: string): void {
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
     if (statSync(full).isDirectory()) {
@@ -78,7 +78,7 @@ console.log(`[copyAssets] 已镜像 src 非 TS 资源 → dist/src`);
 // ---- 原生内核二进制：`dist/native/omni_napi.node` ----
 //
 // 迁移到内核包后，`NativeKernel` 的实现位于 `node_modules/@omniharness/kernel`，它从**包根**
-// 找 `native/omni_napi.node`；因此内核 tarball 自带这份二进制（见 `scripts/vendorKernel.mjs`）。
+// 找 `native/omni_napi.node`；因此内核 tarball 自带这份二进制（见 `scripts/vendorKernel.ts`）。
 // 这里仍把应用根的 `native/*.node` 镜像进 `dist/native`：打包态 `resources/harness/native`
 // 与其它按仓库布局取原生库的脚本共用它，属于部署资产，不是内核加载路径。
 const nativeSrc = join(ROOT, 'native');

@@ -56,7 +56,11 @@ await lease.acquire({ timeoutMs: 30 * 60_000, label: 'buildDist' });
 process.on('exit', () => lease.release());
 
 /** 逐文件收集（仓库相对 staging 的路径），跳过草稿/备份后缀。 */
-function collect(dir, base = dir, out = new Map()) {
+function collect(
+  dir: string,
+  base: string = dir,
+  out: Map<string, string> = new Map<string, string>(),
+): Map<string, string> {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const abs = join(dir, entry.name);
     if (entry.isDirectory()) {
@@ -69,19 +73,19 @@ function collect(dir, base = dir, out = new Map()) {
 }
 
 /** 尽力删除（失败返回错误码，不抛）。 */
-function tryRemove(abs) {
+function tryRemove(abs: string): string | number | undefined {
   try {
     rmSync(abs, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
     return undefined;
   } catch (error) {
-    return error?.code ?? String(error);
+    return (error as NodeJS.ErrnoException)?.code ?? String(error);
   }
 }
 
 /** 跑一步子命令，失败即清理暂存并退出（绝不触碰 dist；保留子进程输出便于定位）。 */
-function run(label, file, args) {
+function run(label: string, file: string, args: readonly string[]): void {
   process.stdout.write(`[build] ${label} ...\n`);
-  const result = spawnSync(file, args, { cwd: ROOT, stdio: 'inherit' });
+  const result = spawnSync(file, [...args], { cwd: ROOT, stdio: 'inherit' });
   if (result.status !== 0) {
     tryRemove(STAGING);
     process.stderr.write(
@@ -97,7 +101,7 @@ tryRemove(STAGING);
 const tsc = join(ROOT, 'node_modules', 'typescript', 'bin', 'tsc');
 run('tsc → dist.next', process.execPath, [tsc, '-p', 'tsconfig.json', '--outDir', 'dist.next']);
 run('伴生资源 → dist.next', process.execPath, [
-  join(ROOT, 'scripts', 'copyAssets.mjs'),
+  join(ROOT, 'scripts', 'copyAssets.ts'),
   'dist.next',
 ]);
 
@@ -129,7 +133,7 @@ try {
     }
   }
   process.stdout.write(
-    `[build] 目标被占用（${error?.code ?? String(error)}）⇒ 退化为逐文件覆盖同步（非原子）\n`,
+    `[build] 目标被占用（${String((error as NodeJS.ErrnoException)?.code ?? String(error))}）⇒ 退化为逐文件覆盖同步（非原子）\n`,
   );
 }
 
@@ -145,16 +149,16 @@ if (!swapped) {
     copyFileSync(abs, dest);
   }
   // 陈旧清理：dist 里有、本次没产出的文件（旧语义里 cleanDist 会整树删掉它们）
-  const stale = [];
+  const stale: { rel: string; abs: string }[] = [];
   if (existsSync(TARGET)) {
     for (const [rel, abs] of collect(TARGET)) {
       if (!produced.has(rel)) stale.push({ rel, abs });
     }
   }
-  const failed = [];
+  const failed: string[] = [];
   for (const { rel, abs } of stale) {
     const code = tryRemove(abs);
-    if (code !== undefined) failed.push(`${rel}（${code}）`);
+    if (code !== undefined) failed.push(`${rel}（${String(code)}）`);
   }
   process.stdout.write(
     `[build] 覆盖同步完成：写入 ${String(produced.size)} 个文件，清理陈旧 ${String(stale.length - failed.length)}/${String(stale.length)}\n`,
@@ -185,7 +189,7 @@ if (existsSync(BACKUP)) {
     process.stdout.write('[build] ✓ 已清理上一版产物 dist.old\n');
   } else {
     process.stderr.write(
-      `[build] ⚠ dist.old 未能删除（${code}）——它只是上一版副本，不影响本次构建；` +
+      `[build] ⚠ dist.old 未能删除（${String(code)}）——它只是上一版副本，不影响本次构建；` +
         '停掉占用进程后重跑本脚本即会清掉。\n',
     );
   }

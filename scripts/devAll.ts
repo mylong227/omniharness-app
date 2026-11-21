@@ -40,8 +40,8 @@ import { resolveDevAddress } from './devConfig.ts';
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const isWin = process.platform === 'win32';
 const npm = isWin ? 'npm.cmd' : 'npm';
-/** Windows 上 `npm.cmd` 必须经 shell 启动（Node 的 `.cmd` 防护，见 `startAll.mjs` 同名注释）。 */
-const npmOpts = { cwd: REPO, stdio: 'inherit', ...(isWin ? { shell: true } : {}) };
+/** Windows 上 `npm.cmd` 必须经 shell 启动（Node 的 `.cmd` 防护，见 `startAll` 同名注释）。 */
+const npmOpts = { cwd: REPO, stdio: 'inherit' as const, ...(isWin ? { shell: true } : {}) };
 
 process.stdout.write('\n▶ 首次构建（仅服务端；前端由 Vite dev server 现编）\n');
 const built = spawnSync(npm, ['run', 'build'], npmOpts);
@@ -53,7 +53,7 @@ if (built.status !== 0) {
   process.exit(built.status ?? 1);
 }
 
-const serveArgs = process.argv.slice(2);
+const serveArgs: string[] = process.argv.slice(2);
 // 端口契约（见文件头）：透传的 `--port N` 优先；否则注入 devConfig 解析的后端端口，
 // 并把最终端口写进环境变量——vite 子进程经 vite.config 的 resolveDevAddress 读到**同一个值**。
 const userPort = serveArgs.includes('--port')
@@ -87,10 +87,10 @@ let stopping = false;
 /**
  * Windows 树杀：`kill()` 只能收掉直接子进程——vite 经 `shell:true` 起在 `cmd.exe` 包装里，
  * 杀 cmd 不会杀孙进程，vite 会存活占住 5173（2026-11-08 审计）。`taskkill /T /PID` 收整棵树。
- * @param {number} pid 进程 id。
- * @returns {void}
+ * @param pid 进程 id。
+ * @returns void
  */
-function treeKill(pid) {
+function treeKill(pid: number): void {
   if (isWin) {
     spawnSync('taskkill', ['/T', '/F', '/PID', String(pid)], { stdio: 'ignore' });
   } else {
@@ -100,10 +100,10 @@ function treeKill(pid) {
 
 /**
  * 把两个子进程一起收走（任何一个先退出都不留孤儿进程）。
- * @param {number} code 退出码。
- * @returns {void}
+ * @param code 退出码。
+ * @returns void
  */
-function stopAll(code) {
+function stopAll(code: number): void {
   if (stopping) return;
   stopping = true;
   for (const c of children) {
@@ -117,4 +117,4 @@ function stopAll(code) {
   process.exit(code);
 }
 for (const c of children) c.on('exit', (code) => stopAll(code ?? 0));
-for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => stopAll(0));
+for (const sig of ['SIGINT', 'SIGTERM'] as const) process.on(sig, () => stopAll(0));
