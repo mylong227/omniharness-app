@@ -6,7 +6,7 @@
  */
 import type { AppServer } from '../server/core/appServer.ts';
 import { API_VERSION } from '../../version.ts';
-import { ServeInstance } from '../../host/extensions/kernel/util/serveInstance.ts';
+import { ServeInstance } from '../../host/kernel/maintenance.ts';
 import { ServeReadyFile } from './serveReadyFile.ts';
 
 /** 启动收尾结果。 */

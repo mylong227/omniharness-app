@@ -14,3 +14,5 @@ export { WorkflowRunLog } from '@omniharness/kernel/kernel/autonomy/workflowRunL
 export { WorkflowRunner } from '@omniharness/kernel/kernel/autonomy/workflowRunner.js';
 export type { GraphNodeStatus } from '@omniharness/kernel/kernel/autonomy/workflowRunner.js';
 export type { WorkflowDef } from '@omniharness/kernel/kernel/autonomy/workflowTypes.js';
+export type { GraphSummary } from '@omniharness/kernel/contracts/ports/autonomy/graphSummary.js';
+export { GraphStore } from '@omniharness/kernel/kernel/autonomy/graphStore.js';

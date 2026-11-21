@@ -96,7 +96,7 @@ if (!existsSync(linkedModules)) {
 }
 
 // 3. 构建 + 注入原生内核 + 补 files
-run(process.execPath, ['scripts/build.mjs'], worktree);
+run(process.execPath, ['scripts/build.ts'], worktree);
 const nativeSource = join(ROOT, 'native', 'omni_napi.node');
 if (!existsSync(nativeSource)) throw new Error(`应用原生内核不存在：${nativeSource}`);
 mkdirSync(join(worktree, 'native'), { recursive: true });

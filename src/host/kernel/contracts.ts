@@ -18,7 +18,7 @@ export type { FileConfig } from '@omniharness/kernel/contracts/ports/config/file
 export type { OmniHarnessConfig } from '@omniharness/kernel/contracts/ports/config/omniHarnessConfig.js';
 export type { RbacConfig } from '@omniharness/kernel/contracts/ports/config/rbacConfig.js';
 export type { ResolvedConfig } from '@omniharness/kernel/contracts/ports/config/resolvedConfig.js';
-export type { MaintenanceLimits, PreviewLimits, ResolvedRuntimeLimits, RuntimeLimitsConfig } from '@omniharness/kernel/contracts/ports/config/runtimeLimits.js';
+export type { PreviewLimits, ResolvedRuntimeLimits, RuntimeLimitsConfig } from '@omniharness/kernel/contracts/ports/config/runtimeLimits.js';
 export type { DecisionEngine } from '@omniharness/kernel/contracts/ports/decision/decisionEngine.js';
 export type { McpInputRequiredContext, McpInputRequiredDecision, McpInputRequiredPort } from '@omniharness/kernel/contracts/ports/mcp/mcpInputRequiredPort.js';
 export type { KvPort } from '@omniharness/kernel/contracts/ports/memory/kv.js';

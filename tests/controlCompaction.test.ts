@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import type { SessionEvent } from '../src/host/kernel/contracts.ts';
 import { ContextCompactionService } from '../src/apps/server/services/context/contextCompactionService.ts';
-import { CompactionMarkerReader } from '../src/host/extensions/kernel/context/compactionMarkerReader.ts';
+import { CompactionStateCodec } from '../src/host/kernel/context.ts';
 
 /** 构造一条最小事件。 */
 function event(index: number, type: SessionEvent['type'], content: string): SessionEvent {
@@ -47,7 +47,7 @@ test('ContextCompactionService：强制压缩写回可解码的 OMNI_COMPACTION_
   const last = saved[saved.length - 1]!;
   assert.equal(last.type, 'system');
   const content = (last.payload as { content: string }).content;
-  const decoded = CompactionMarkerReader.decode(content);
+  const decoded = CompactionStateCodec.decode(content);
   assert.ok(decoded !== undefined);
   assert.equal(decoded?.compactedUpTo, result.compactedUpTo);
   assert.ok((decoded?.summary.length ?? 0) > 0);

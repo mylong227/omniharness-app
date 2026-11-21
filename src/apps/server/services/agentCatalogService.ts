@@ -1,4 +1,4 @@
-import type { GraphSummary } from '../../../host/extensions/kernel/autonomy/graphStore.ts';
+import type { GraphSummary } from '../../../host/kernel/autonomy.ts';
 import type { PluginManifest } from '../../../host/kernel/plugin.ts';
 import { BUILTIN_AGENT_PERSONAS } from '../../../host/extensions/kernel/subagent/agentPersonas.ts';
 

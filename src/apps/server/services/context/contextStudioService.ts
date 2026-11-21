@@ -1,6 +1,6 @@
 import type { SessionEvent } from '../../../../host/kernel/contracts.ts';
 import { COMPACTION_MARKER } from '../../../../host/kernel/context.ts';
-import { CompactionMarkerReader } from '../../../../host/extensions/kernel/context/compactionMarkerReader.ts';
+import { CompactionStateCodec } from '../../../../host/kernel/context.ts';
 import type { ContextUsageService, ContextUsageReport } from '../contextUsageService.ts';
 import { kernelContextOff, type KernelContextView } from './kernelContextView.ts';
 import type { CompactionMark, ContextStudioSnapshot, HandoffNote } from './contextStudioSnapshot.ts';
@@ -30,9 +30,9 @@ export interface ContextStudioDeps {
  * ## 取数口径
  *
  *  - 六类构成**直接复用** {@link ContextUsageService}（同源，不重投影两次——设计 §7.3）；
- *  - 压缩记录：事件流里 content 以 `OMNI_COMPACTION_V1` 开头的 **system 事件**，用应用侧
- *    `CompactionMarkerReader` 解码游标（与内核 encode 逐字节对齐；vendored alpha.21 的
- *    exports 仍只承诺 `contextCompactor.js`，codec 深路径未进承诺面）；
+ *  - 压缩记录：事件流里 content 以 `OMNI_COMPACTION_V1` 开头的 **system 事件**，用内核
+ *    `CompactionStateCodec.decode` 解码（R26 起内核承诺 codec 深路径——2026-11-11 的
+ *    extensions 登记件 CompactionMarkerReader 已删除、消费点改指对接面，登记表清条）；
  *  - 压缩证据（alpha.21）：内核把 `stateAudit` / `signals` 随游标持久化（header `evidence=`），
  *    本服务解码后原样上抛；旧游标没有证据时 `auditRecorded` 为 false（不伪造通过）；
  *  - `turnIndex`：压缩事件之前的 user 事件数（第几轮之后发生的压缩，与凭证回合切分同口径）；
@@ -168,14 +168,13 @@ export class ContextStudioService {
   /**
    * 解码压缩游标文本（fail-closed：格式不符返回 undefined，由调用方跳过）。
    *
-   * 为什么不直接用内核 `CompactionStateCodec`：vendored alpha.21 的 package exports 仍只
-   * 承诺 `contextCompactor.js`，codec 深路径不在清单里。解析实现收在应用侧自有件
-   * {@link CompactionMarkerReader}（extensions 登记，口径与内核 encode 逐字节对齐）。
+   * R26 起经对接面消费内核 `CompactionStateCodec`（codec 深路径已进承诺面——2026-11-11
+   * 的 extensions 登记件 CompactionMarkerReader 删除，登记表清条）。
    * @param content system 事件文本。
    * @returns 压缩游标；不可解析时 undefined。
    */
-  private static decodeOf(content: string): ReturnType<typeof CompactionMarkerReader.decode> {
-    return CompactionMarkerReader.decode(content);
+  private static decodeOf(content: string): ReturnType<typeof CompactionStateCodec.decode> {
+    return CompactionStateCodec.decode(content);
   }
 
   /**

@@ -6,7 +6,7 @@ import type { SkillRegistry } from '../../../host/kernel/platform.ts';
 import type { SupervisorPort } from '../../../host/kernel/contracts.ts';
 import { Runtime } from '../../composition/runtime.ts';
 import { Agent } from '../../../host/kernel/core.ts';
-import { GraphStore } from '../../../host/extensions/kernel/autonomy/graphStore.ts';
+import { GraphStore } from '../../../host/kernel/autonomy.ts';
 import { SubagentPorts } from '../../../host/extensions/kernel/subagent/subagentPorts.ts';
 
 import { AUTO_ALLOW, DENY_ALL, RULES_DEFAULT } from './appServerState.ts';

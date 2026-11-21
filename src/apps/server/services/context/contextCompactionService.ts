@@ -1,7 +1,7 @@
 import { ContextAssembler, ContextCompactor } from '../../../../host/kernel/context.ts';
 import type { SessionEvent, ToolDefinition } from '../../../../host/kernel/contracts.ts';
 import { Id } from '../../../../host/kernel/util.ts';
-import { CompactionMarkerReader } from '../../../../host/extensions/kernel/context/compactionMarkerReader.ts';
+import { CompactionStateCodec } from '../../../../host/kernel/context.ts';
 
 /** 单次手动压缩的结果。 */
 export interface ContextCompactionResult {
@@ -158,7 +158,7 @@ export class ContextCompactionService {
       type: 'system',
       timestamp: new Date().toISOString(),
       seq: ContextCompactionService.nextSeq(events),
-      payload: { content: CompactionMarkerReader.encode(state) },
+      payload: { content: CompactionStateCodec.encode(state) },
     };
     try {
       await this.deps.save(threadId, [...events, marker]);

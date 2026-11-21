@@ -1,6 +1,33 @@
 import type { ContextUsageReport } from '../contextUsageService.ts';
 import type { KernelContextView } from './kernelContextView.ts';
-import type { CompactionAuditLike, CompactionSignalsLike } from '../../../../host/extensions/kernel/context/compactionMarkerReader.ts';
+
+/** 压缩状态审计证据的应用侧形状（镜像内核 `CompactionAuditEvidence`——UI 契约面）。 */
+export interface CompactionAuditLike {
+  /** 四类关键状态是否全部在场。 */
+  readonly ok: boolean;
+  /** 缺失项（可读描述）。 */
+  readonly missing: readonly string[];
+  /** 各类被核对的状态条数。 */
+  readonly checked: {
+    readonly editedFiles: number;
+    readonly commands: number;
+    readonly openTodos: number;
+  };
+}
+
+/** 压缩触发信号证据的应用侧形状（镜像内核 `CompactionSignalEvidence`——UI 契约面）。 */
+export interface CompactionSignalsLike {
+  /** 估算 token / 生效预算。 */
+  readonly budgetRatio: number;
+  /** user 消息条数（轮数下界）。 */
+  readonly turns: number;
+  /** 工具消息字符数 / 全部消息字符数。 */
+  readonly toolResultShare: number;
+  /** 重复（工具 + 目标）调用数 / 总调用数。 */
+  readonly repetitionRate: number;
+  /** 组合规则（参考实现）是否建议触发。 */
+  readonly combinedWouldTrigger: boolean;
+}
 
 /**
  * 上下文工作室快照（`context.studio` RPC 的返回体，设计 §5.2）。
