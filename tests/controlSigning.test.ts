@@ -1,3 +1,4 @@
+// [互链] 同一域的两端：web/test/proofSemantics.test.tsx（未验签口径渲染）。
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';

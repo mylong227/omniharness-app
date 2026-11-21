@@ -1,3 +1,4 @@
+// [互链] 同一域的两端：web/test/proofSemantics.test.tsx（凭证语义渲染）。
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import type { SessionEvent, ToolDefinition } from '../src/host/kernel/contracts.ts';

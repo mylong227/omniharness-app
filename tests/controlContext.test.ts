@@ -1,3 +1,4 @@
+// [互链] 同一域的两端：web/test/contextMode.test.ts（上下文工作室面板模式）。
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import type { SessionEvent } from '../src/host/kernel/contracts.ts';

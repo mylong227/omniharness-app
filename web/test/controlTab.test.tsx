@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+// [互链] 同一功能的服务端：tests/controlRoom.test.ts（fleet/context/proof 快照与写路径）。
 import assert from 'node:assert/strict';
 import { afterEach, test } from 'vitest';
 import * as React from 'react';

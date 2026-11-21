@@ -1,3 +1,4 @@
+// [互链] 同一功能的两端：web/test/controlTab.test.tsx（控制室面板渲染/路由）。
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import type { SessionEvent } from '../src/host/kernel/contracts.ts';

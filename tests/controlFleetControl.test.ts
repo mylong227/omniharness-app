@@ -1,3 +1,4 @@
+// [互链] 同一域的两端：web/test/controlTab.test.tsx（编队车道取消 UI）。
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import type { ToolCall, ToolContext, ToolPort, ToolResult } from '../src/host/kernel/contracts.ts';

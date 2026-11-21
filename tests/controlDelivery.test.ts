@@ -1,3 +1,4 @@
+// [互链] 同一功能的两端：web/test/controlDeliveryUi.test.tsx（交付面板 UI）。
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
