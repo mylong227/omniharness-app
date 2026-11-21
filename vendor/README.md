@@ -23,7 +23,10 @@ npm run kernel:check     # 9 条判据（含生成物不漂移 / 已承诺能力
 
 ## 版本史
 
-- **alpha.38**（当前）：R27 worker 域收编轮——`CliWorker` / `ExternalCliWorker` / `WindowsShim`\n  上内核 worker 域（三条深路径承诺 + 23 条判据），应用侧接收后删除 extensions 三件 461 行；\n  内核 17 门全绿（cross:check 应用侧影子清零后复绿）。\n- **alpha.34**：R20 好用收口轮（M115–M119 + 独立 review 收口 P0×1/P1×2/P2×3/P3×4；
+- **alpha.38**（当前）：R27 worker 域收编轮——`CliWorker` / `ExternalCliWorker` / `WindowsShim`
+  上内核 worker 域（三条深路径承诺 + 23 条判据），应用侧接收后删除 extensions 三件 461 行；
+  内核 17 门全绿（cross:check 应用侧影子清零后复绿）。
+- **alpha.37**：R26 应用侧收编轮——`compactionStateCodec` 深路径 + maintenance/autonomy 四件\n  （ServeInstance/MaintenanceRunner/GraphStore/GraphSummary，947 行）上内核；应用接收提交 `b477365`。\n- **alpha.35–36**：R21–R24 内容并入 alpha.37 发布（未单独 publish）。\n- **alpha.34**：R20 好用收口轮（M115–M119 + 独立 review 收口 P0×1/P1×2/P2×3/P3×4；
   公共根导出面仍 60/60）——**厂商一键接线**（embed `model: '厂商id:模型名'` 字符串快捷，
   解析链单一真源：providers.json 预设 → env → 适配器注册表）、**close 生命周期收口**
   （cancel → drain 有界等待回合收尾 → 收口，`drainTimeoutMs` 缺省 10s）、**配置孤儿清偿**
