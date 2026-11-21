@@ -110,14 +110,14 @@
 桥接 React，无 store 库）/ `ui/components/`（137 件 ~22,800 行）/ `ui/models/`（96 件 ~9,600 行
 纯模型）/ `types/models.ts`（1278 行手维 RPC 类型镜像，126 条 export）。
 
-**结构性债务（按证据列）**：
+**结构性债务（按证据列；下表是 2026-11-21 盘点底稿——十项均已在批次十~十三落地，状态见执行进度与终态清单）**：
 | # | 债务 | 证据 |
 |---|---|---|
 | 1 | 126 条手维 RPC 类型**零逐字段 parity**（只有方法名 parity：apiClientParity / serverModulesParity 总数钉 117） | `types/models.ts:1-3`、`tests/apiClientParity.test.ts`、`tests/serverModulesParity.test.ts` |
 | 2 | `settingsCatalog.ts` 816 行纯数据**全仓 0 判据提及**（控制台最高频触达面） | grep 全测试无命中；settingsPane.test 已改内核差集断言但只对账枚举 |
 | 3 | 面板 key **三处手维**：Router VALID_PANES(21) + PanelRegistry PANELS(21) + App paneOf switch(22 case)；lazy 声明与预取表又各一份 20 项 | `core/Router.ts:23-47`、`ui/components/PanelRegistry.ts`、`ui/App.ts:59-148,253-332` |
 | 4 | ApiClient **上帝类**：1058 行单类 114 处 this.rpc，服务端已域重排（21 模块）客户端未跟 | `core/ApiClient.ts` |
-| 5 | 资源钩子 5 份变体未收编：useDecisionLedger(197)/useFleet(178)/useContextStudio/useChangesReview(456)/useProviderCatalog(504) 各自维护 seq/quiet/轮询/缓存 | `ui/hooks/useSessionResource.ts:6-8` 自述边界 |
+| 5 | 资源钩子 5 份变体未收编：useDecisionLedger(197)/useFleet(178)/useContextStudio/useChangesReview(456)/useProviderCatalog(504) 各自维护 seq/quiet/轮询/缓存 | ✅ W5 已收编（`useSessionResource` 增强核 + `LatestRequest`） |
 | 6 | FilePicker(694)+FolderPicker(515) 疑似大面积重复（各配 FileTree/FileTreeFlattener/FsPickerLazy，判据各仅 1 条） | 待 diff 评估 |
 | 7 | `ui/models/Icon.ts` 364 行 import React 产 JSX——models 层唯一越界 | Icon.ts:18 |
 | 8 | format.ts `legacyRenderMarkdown`（:682-707）生产不可达，按依赖政策有意保留但未隔离 | `ui/format.ts:682`、`ui/markdown.ts:20-23` |
@@ -168,12 +168,12 @@ B3(语言五层) 批次八已清。**仍在册/新发现**：
 |---|---|---|
 | L1 | decisionLedgerService / DesktopConfigLoader 内聚单类切分（缓偿登记） | 2026-11-21 已开始拆，未完 |
 | L2 | `web/test/format.test.ts` 未提交改动（1 行 unused `beforeAll` import 清理，上轮 B2/B1 判据适配残留） | 工作树现存 |
-| L3 | **serveInstance 双副本**（本次盘点新发现）：`src/apps/cli/serveInstance.ts` ≡ `src/host/extensions/kernel/util/serveInstance.ts` 229 行逐字节同体（diff 仅 import 一行），消费分裂 6 处（cli 5 文件 + maintenanceRunner）——gate 9 盲区内的 app 内单点真源违例 | 未清偿 |
+| L3 | **serveInstance 双副本**（本次盘点新发现）：`src/apps/cli/serveInstance.ts` ≡ `src/host/extensions/kernel/util/serveInstance.ts` 229 行逐字节同体（diff 仅 import 一行），消费分裂 6 处（cli 5 文件 + maintenanceRunner）——gate 9 盲区内的 app 内单点真源违例 | ✅ 已清偿（K3 + K2 副本清零） |
 | L4 | src/apps/cli 悬空脚本引用（runGates/auditStandards/check/buildAuditBin） | ✅ 裁定 B（2026-11-22）：boost 命令族删除，-1609 行 |
 | L5 | eventsOf 内核侧缓存（缓偿登记「等 R22」——R22 已发未兑现；app 侧双缓存已兜） | 待判定：关闭登记或升内核提案 |
 | L6 | markdown legacy/full 混渲统一重渲设计（缓偿登记） | 待判定 |
 | L7 | 语言双真源互通（桌面 IPC+壳层重建设计，缓偿登记；B3 已五层收敛主体） | ✅ 终态关闭：web→桌面已通，桌面无运行期语言入口 ⇒ 反向事件触发条件不成立 |
-| L8 | childRunFailure.mjs 孤儿（并入批次 T 处置） | 未清偿 |
+| L8 | childRunFailure.mjs 孤儿（并入批次 T 处置） | ✅ 已删除（批次 T） |
 | L9 | 零消费导出批量收敛（B5 判定「纯噪音」不做） | 维持不做，除非 knip 扫描出新证据 |
 
 ---
