@@ -39,18 +39,20 @@ interface HostStub {
   getState(): TestState;
 }
 
-/** makeApi 的 api 桩形状（runTurn / rewindThread / abortTurn + 调用记录）。 */
+/** makeApi 的 api 桩形状（W4 域拆分后：runTurn/abortTurn 挂 threads 组 + rewindThread + 调用记录）。 */
 interface ApiStub {
   runTurnCalls: { threadId?: string; prompt: string }[];
   rewindCalls: { threadId: string; keepEventId: string }[];
   abortCalls: number;
   abortArgs: (string | undefined)[];
-  runTurn(params: { threadId?: string; prompt: string }): Promise<{ threadId: string; finalText?: string }>;
-  rewindThread(
-    threadId: string,
-    keepEventId: string,
-  ): Promise<{ ok: boolean; kept?: number; dropped?: number; error?: string }>;
-  abortTurn(threadId?: string): Promise<{ ok: boolean }>;
+  readonly threads: {
+    runTurn(params: { threadId?: string; prompt: string }): Promise<{ threadId: string; finalText?: string }>;
+    rewindThread(
+      threadId: string,
+      keepEventId: string,
+    ): Promise<{ ok: boolean; kept?: number; dropped?: number; error?: string }>;
+    abortTurn(threadId?: string): Promise<{ ok: boolean }>;
+  };
 }
 
 /** 一个可控的延迟（用于模拟「回合仍在飞」）。 */
@@ -113,7 +115,7 @@ type AppStateLike = Record<string, unknown>;
  * @param api API 桩
  * @returns 控制器
  */
-function makeController(host: HostStub, api: Pick<ApiStub, 'runTurn'>, toasts: string[] = []) {
+function makeController(host: HostStub, api: Pick<ApiStub, 'threads'>, toasts: string[] = []) {
   const services = {
     api,
     toast: (message: string) => {
@@ -152,25 +154,28 @@ function makeController(host: HostStub, api: Pick<ApiStub, 'runTurn'>, toasts: s
 
 /** 构造可用的 API 桩（runTurn 立即成功；rewindThread 默认成功——重生成先回退服务端）。 */
 function makeApi(): ApiStub {
-  return {
-    runTurnCalls: [],
-    rewindCalls: [],
+  const stub = {
+    runTurnCalls: [] as { threadId?: string; prompt: string }[],
+    rewindCalls: [] as { threadId: string; keepEventId: string }[],
     abortCalls: 0,
-    abortArgs: [],
-    async runTurn(params) {
-      this.runTurnCalls.push(params);
-      return { threadId: 't1' };
-    },
-    async rewindThread(threadId, keepEventId) {
-      this.rewindCalls.push({ threadId, keepEventId });
-      return { ok: true, kept: 1, dropped: 1 };
-    },
-    abortTurn(threadId) {
-      this.abortCalls += 1;
-      this.abortArgs.push(threadId);
-      return Promise.resolve({ ok: true });
+    abortArgs: [] as (string | undefined)[],
+    threads: {
+      async runTurn(params: { threadId?: string; prompt: string }) {
+        stub.runTurnCalls.push(params);
+        return { threadId: 't1' };
+      },
+      async rewindThread(threadId: string, keepEventId: string) {
+        stub.rewindCalls.push({ threadId, keepEventId });
+        return { ok: true, kept: 1, dropped: 1 };
+      },
+      abortTurn(threadId?: string) {
+        stub.abortCalls += 1;
+        stub.abortArgs.push(threadId);
+        return Promise.resolve({ ok: true });
+      },
     },
   };
+  return stub;
 }
 
 /** 取出流里的 system 提示文案。 */
@@ -187,7 +192,7 @@ test('abortTurn 调用 turns.abort RPC', async () => {
     return { json: async () => ({ jsonrpc: '2.0', id: 1, result: { ok: true } }) } as unknown as Response;
   }) as typeof fetch;
   const api = new ApiClient();
-  const res = await api.abortTurn();
+  const res = await api.threads.abortTurn();
   assert.deepEqual(res, { ok: true });
   assert.strictEqual(calls.length, 1);
   const body = JSON.parse(String(calls[0].init.body));
@@ -199,7 +204,7 @@ test('stop：在飞回合立即停 UI（清流式与忙碌 + 写已中止）并�
   const { host, state } = makeHost([{ id: 'u1', type: 'user', payload: { content: '问题' } }]);
   const api = makeApi();
   const gate = deferred<{ threadId: string; finalText?: string }>();
-  api.runTurn = (params) => {
+  api.threads.runTurn = (params) => {
     api.runTurnCalls.push(params);
     return gate.promise;
   };
@@ -238,7 +243,7 @@ test('stop：后端以正常响应收尾时不补最终回复（避免「停了�
   const { host, state } = makeHost([{ id: 'u1', type: 'user', payload: { content: '问题' } }]);
   const api = makeApi();
   const gate = deferred<{ threadId: string; finalText?: string }>();
-  api.runTurn = (params) => {
+  api.threads.runTurn = (params) => {
     api.runTurnCalls.push(params);
     return gate.promise;
   };
@@ -259,7 +264,7 @@ test('stop：无在飞回合时不误触后端，后续真实失败仍按失败�
   ctrl.stop();
   assert.strictEqual(api.abortCalls, 0, '空闲时 stop 不得调 turns.abort');
 
-  api.runTurn = async () => {
+  api.threads.runTurn = async () => {
     throw new Error('boom');
   };
   await ctrl.send('会失败的回合', [], []);
@@ -320,7 +325,7 @@ test('regenerate：服务端回退失败 ⇒ 不重发、不假装成功（toast
   /** toast 调用记录（文案 + 级别）。 */
   const toasts: { m?: string; kind?: string }[] = [];
   const api = makeApi();
-  api.rewindThread = async (threadId, keepEventId) => {
+  api.threads.rewindThread = async (threadId: string, keepEventId: string) => {
     api.rewindCalls.push({ threadId, keepEventId });
     return { ok: false, error: '该会话有回合正在运行：请先中止再回退' };
   };
@@ -337,7 +342,11 @@ test('regenerate：服务端回退失败 ⇒ 不重发、不假装成功（toast
   const ctrl = new ComposerController(
     host as unknown as AppHost,
     services as unknown as AppServices,
-    { async refreshSessions() {}, streamPhase() {} } as unknown as SessionController,
+    {
+      async refreshSessions() {},
+      streamPhase() {},
+      viewAttachment: { attach: () => 0, epoch: () => 0, detached: false },
+    } as unknown as SessionController,
   );
   await ctrl.regenerate();
 
@@ -394,7 +403,7 @@ test('regenerate 在飞回合时拒绝重入', async () => {
   const { host } = makeHost([{ id: 'u1', type: 'user', payload: { content: '问题' } }]);
   const api = makeApi();
   const gate = deferred<{ threadId: string; finalText?: string }>();
-  api.runTurn = (params) => {
+  api.threads.runTurn = (params) => {
     api.runTurnCalls.push(params);
     return gate.promise;
   };
@@ -485,7 +494,19 @@ test('回合进行中点「新建」：收尾不得把旧会话拽回视图（�
   });
   const navigated: Partial<AppRoute>[] = [];
   const services = {
-    api: { async runTurn() { return { threadId: 't-new', finalText: '旧回合的答复' }; } },
+    api: {
+      threads: {
+        async runTurn() {
+          return { threadId: 't-new', finalText: '旧回合的答复' };
+        },
+        rewindThread() {
+          return Promise.resolve({ ok: true });
+        },
+        abortTurn() {
+          return Promise.resolve({ ok: true });
+        },
+      },
+    },
     toast: () => {},
     reducers: { appendFinalText: (events: unknown) => events, ingestEvent: (s: unknown) => s },
     stream: {},
@@ -532,7 +553,7 @@ test('send：回合进行中再次发送不覆盖在飞回合（进入队列，�
   const { host, state } = makeHost([{ id: 'u1', type: 'user', payload: { content: '第一问' } }]);
   const api = makeApi();
   const gate = deferred<{ threadId: string; finalText?: string }>();
-  api.runTurn = (params) => {
+  api.threads.runTurn = (params) => {
     api.runTurnCalls.push(params);
     return gate.promise;
   };

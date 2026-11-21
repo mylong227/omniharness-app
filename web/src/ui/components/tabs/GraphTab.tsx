@@ -246,7 +246,7 @@ function useGraphDraft(): GraphDraft {
    */
   const openGraph = async (id: string): Promise<void> => {
     try {
-      const def = await api.getGraph(id);
+      const def = await api.graph.getGraph(id);
       setName(def.name || id);
       setSteps(
         (def.steps || []).map((s) => ({
@@ -271,7 +271,7 @@ function useGraphDraft(): GraphDraft {
 function useGraphList(): { graphs: GraphSummary[]; load: () => Promise<void> } {
   const { api } = useApp();
   const load = React.useCallback(async (): Promise<GraphSummary[]> => {
-    const listed = await api.listGraphs();
+    const listed = await api.graph.listGraphs();
     // 同理：非数组（桩/异常响应）按空列表处理，别让 .map 抛错。
     return Array.isArray(listed) ? listed : [];
   }, [api]);
@@ -311,7 +311,7 @@ function useGraphRun(
       return;
     }
     try {
-      const res = await api.saveGraph(def);
+      const res = await api.graph.saveGraph(def);
       toast(t('已保存：{id}', { id: res.id }), 'ok');
       await load();
     } catch (e) {
@@ -327,7 +327,7 @@ function useGraphRun(
       return;
     }
     try {
-      const res = await api.runGraph(def);
+      const res = await api.graph.runGraph(def);
       onRunStart(res.runId, def.name);
     } catch (e) {
       toast(t('运行失败：{msg}', { msg: (e as Error).message }), 'err');
@@ -341,7 +341,7 @@ function useGraphRun(
    */
   const runById = async (id: string, gname: string): Promise<void> => {
     try {
-      const res = await api.runGraphById(id);
+      const res = await api.graph.runGraphById(id);
       onRunStart(res.runId, gname);
     } catch (e) {
       toast(t('运行失败：{msg}', { msg: (e as Error).message }), 'err');
@@ -360,7 +360,7 @@ function useGraphRun(
     });
     if (!ok) return;
     try {
-      await api.deleteGraph(id);
+      await api.graph.deleteGraph(id);
       await load();
     } catch (e) {
       toast(t('删除失败：{msg}', { msg: (e as Error).message }), 'err');

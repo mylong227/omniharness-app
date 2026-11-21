@@ -73,7 +73,7 @@ function useChangesList(api: ApiClient, sessionTick: number) {
     setLoaded(false);
     setError(null);
     try {
-      setData(await api.listChanges());
+      setData(await api.review.listChanges());
       setLoaded(true);
     } catch (e) {
       setError((e as Error).message);
@@ -122,7 +122,7 @@ function useChangesPatch(
     setPatch('');
     clearDraft();
     try {
-      const r = await api.listChanges(path);
+      const r = await api.review.listChanges(path);
       if (seq !== patchSeq.current) return;
       setPatch(r.patch ?? '');
     } catch (e) {
@@ -142,7 +142,7 @@ function useChangesPatch(
     await refresh();
     await refreshComments();
     try {
-      const r = await api.listChanges(path);
+      const r = await api.review.listChanges(path);
       // 期间用户可能已切到别的文件 / 收起：迟到内容不得写进当前视图。
       if (seq !== patchSeq.current) return;
       setPatch(r.patch ?? '');
@@ -165,7 +165,7 @@ function useDiffComments(api: ApiClient, toast: (message: string, kind?: 'err' |
   /** 拉取行内评论；失败静默（评论不可用不阻断 diff 展示）。 */
   const refreshComments = async (): Promise<void> => {
     try {
-      const r = await api.listDiffComments();
+      const r = await api.review.listDiffComments();
       setComments(r.comments ?? []);
     } catch {
       /* 静默 */
@@ -176,7 +176,7 @@ function useDiffComments(api: ApiClient, toast: (message: string, kind?: 'err' |
   const saveDraft = async (): Promise<void> => {
     if (!draft || draftText.trim() === '') return;
     try {
-      await api.addDiffComment(draft.path, draft.side, draft.line, draftText.trim());
+      await api.review.addDiffComment(draft.path, draft.side, draft.line, draftText.trim());
       setDraft(null);
       setDraftText('');
       await refreshComments();
@@ -191,7 +191,7 @@ function useDiffComments(api: ApiClient, toast: (message: string, kind?: 'err' |
    */
   const deleteComment = async (id: string): Promise<void> => {
     try {
-      await api.deleteDiffComment(id);
+      await api.review.deleteDiffComment(id);
       await refreshComments();
     } catch (e) {
       toast(t('删除失败：{msg}', { msg: (e as Error).message }), 'err');
@@ -246,7 +246,7 @@ function useReviewOps(
 
   /** stage 整个文件。 */
   const stageFile = (path: string): void => {
-    void runOp('sf:' + path, () => api.stageFile(path), t('已 stage：{path}', { path }), path);
+    void runOp('sf:' + path, () => api.review.stageFile(path), t('已 stage：{path}', { path }), path);
   };
 
   /** 丢弃整个文件的工作区改动（先经 DialogService 确认）。 */
@@ -257,14 +257,14 @@ function useReviewOps(
       danger: true,
     });
     if (!ok) return;
-    await runOp('rf:' + path, () => api.revertFile(path), t('已还原：{path}', { path }), path);
+    await runOp('rf:' + path, () => api.review.revertFile(path), t('已还原：{path}', { path }), path);
   };
 
   /** stage 单个 hunk。 */
   const stageHunk = (path: string, hunk: string, isNew: boolean, idx: number): void => {
     void runOp(
       'sh:' + path + ':' + idx,
-      () => api.stageHunk(path, hunk, isNew),
+      () => api.review.stageHunk(path, hunk, isNew),
       t('已 stage 该块'),
       path,
     );
@@ -278,7 +278,7 @@ function useReviewOps(
       danger: true,
     });
     if (!ok) return;
-    await runOp('rh:' + path + ':' + idx, () => api.revertHunk(path, hunk), t('已还原该块'), path);
+    await runOp('rh:' + path + ':' + idx, () => api.review.revertHunk(path, hunk), t('已还原该块'), path);
   };
 
   return { busyAct, stageFile, revertFile, stageHunk, revertHunk };

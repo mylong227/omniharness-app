@@ -1,3 +1,4 @@
+import { flatApiStub } from './rtlHarness.ts';
 // @vitest-environment jsdom
 // [互链] 同一功能的服务端：tests/controlDelivery.test.ts（交付写路径）。
 import assert from 'node:assert/strict';
@@ -31,13 +32,17 @@ const SNAPSHOT: FleetSnapshotLike = {
   ],
 };
 
-/** 构造只满足 FleetMode 调用的 App 上下文。 */
-function contextOf(patchResult: FleetPatchResultLike): AppContextValue {
+/** 构造只满足 FleetMode 调用的 App 上下文（快照可覆盖：flatApiStub 的 flat 表是闭包，
+ *  渲染后再赋值不会生效——必须在构造时给到）。 */
+function contextOf(
+  patchResult: FleetPatchResultLike,
+  snapshot: FleetSnapshotLike = SNAPSHOT,
+): AppContextValue {
   return {
-    api: {
-      fleetList: () => Promise.resolve(SNAPSHOT),
+    api: flatApiStub({
+      fleetList: () => Promise.resolve(snapshot),
       fleetPatch: () => Promise.resolve(patchResult),
-    } as unknown as AppContextValue['api'],
+    }) as unknown as AppContextValue['api'],
     toast: () => {},
     dialog: {} as AppContextValue['dialog'],
     sessionId: 'sess_parent',
@@ -75,8 +80,7 @@ test('FleetMode：patch 不可取回时不显示查看入口', async () => {
     ...SNAPSHOT,
     nodes: [{ ...SNAPSHOT.nodes[0]!, writesUnrecoverable: true }],
   };
-  const value = contextOf({ ok: false, code: 'patch_forbidden', message: 'x' });
-  value.api.fleetList = () => Promise.resolve(snapshot);
+  const value = contextOf({ ok: false, code: 'patch_forbidden', message: 'x' }, snapshot);
   render(
     <AppContext.Provider value={value}>
       <FleetMode threadId="sess_parent" active />
@@ -105,7 +109,7 @@ test('ProofMode：导入本地证据包后展示结构自洽与未验签口径',
     },
   };
   const value: AppContextValue = {
-    api: {
+    api: flatApiStub({
       proofTurns: () => Promise.resolve([
         {
           sessionId: 'sess_test',
@@ -126,7 +130,7 @@ test('ProofMode：导入本地证据包后展示结构自洽与未验签口径',
         errors: [],
       }),
       proofVerify: () => Promise.resolve(verify),
-    } as unknown as AppContextValue['api'],
+    }) as unknown as AppContextValue['api'],
     toast: () => {},
     dialog: {} as AppContextValue['dialog'],
     sessionId: 'sess_test',
@@ -165,13 +169,13 @@ test('FleetMode：运行中车道可单独取消并调用 fleet.cancel', async (
     nodes: [{ ...SNAPSHOT.nodes[0]!, status: 'running', callId: 'call_live', childSessionId: undefined, patchPath: undefined }],
   };
   const value: AppContextValue = {
-    api: {
+    api: flatApiStub({
       fleetList: () => Promise.resolve(running),
       fleetCancel: (callId: string) => {
         calls.push(callId);
         return Promise.resolve({ ok: true as const, callId });
       },
-    } as unknown as AppContextValue['api'],
+    }) as unknown as AppContextValue['api'],
     toast: () => {},
     dialog: { confirm: () => Promise.resolve(true) } as unknown as AppContextValue['dialog'],
     sessionId: 'sess_parent',

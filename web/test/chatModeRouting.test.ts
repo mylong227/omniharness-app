@@ -36,11 +36,15 @@ interface ApiStub {
   readonly runCalls: Record<string, unknown>[];
   readonly interjectCalls: Record<string, unknown>[];
   readonly configCalls: Record<string, unknown>[];
-  runTurn: (params: Record<string, unknown>) => Promise<TurnRunResult>;
-  interjectTurn: (params: Record<string, unknown>) => Promise<unknown>;
-  steerTurn: () => Promise<{ ok: boolean }>;
-  abortTurn: () => Promise<{ ok: boolean }>;
-  updateConfig: (patch: Record<string, unknown>) => Promise<unknown>;
+  readonly threads: {
+    runTurn: (params: Record<string, unknown>) => Promise<TurnRunResult>;
+    interjectTurn: (params: Record<string, unknown>) => Promise<unknown>;
+    steerTurn: () => Promise<{ ok: boolean }>;
+    abortTurn: () => Promise<{ ok: boolean }>;
+  };
+  readonly config: {
+    updateConfig: (patch: Record<string, unknown>) => Promise<unknown>;
+  };
 }
 
 /**
@@ -81,23 +85,27 @@ function makeController(mode: 'queue' | 'steer') {
     runCalls: [],
     interjectCalls: [],
     configCalls: [],
-    async runTurn(params) {
-      api.runCalls.push(params);
-      return { threadId: 't1' };
+    threads: {
+      async runTurn(params) {
+        api.runCalls.push(params);
+        return { threadId: 't1' };
+      },
+      async interjectTurn(params) {
+        api.interjectCalls.push(params);
+        return { ok: true, action: 'steered' };
+      },
+      async steerTurn() {
+        return { ok: true };
+      },
+      async abortTurn() {
+        return { ok: true };
+      },
     },
-    async interjectTurn(params) {
-      api.interjectCalls.push(params);
-      return { ok: true, action: 'steered' };
-    },
-    async steerTurn() {
-      return { ok: true };
-    },
-    async abortTurn() {
-      return { ok: true };
-    },
-    async updateConfig(patch) {
-      api.configCalls.push(patch);
-      return { ok: true };
+    config: {
+      async updateConfig(patch) {
+        api.configCalls.push(patch);
+        return { ok: true };
+      },
     },
   };
   const services = {
@@ -134,7 +142,7 @@ test('队列模式：回合中发送只入队，收尾后按 FIFO 依次发送�
   const { state, ctrl, api, toasts } = makeController('queue');
   const gates = [deferred<TurnRunResult>(), deferred<TurnRunResult>()];
   let call = 0;
-  api.runTurn = (params) => {
+  api.threads.runTurn = (params) => {
     api.runCalls.push(params);
     return gates[call++]!.promise;
   };
@@ -173,7 +181,7 @@ test('队列模式：回合中发送只入队，收尾后按 FIFO 依次发送�
 test('「停止」暂停队列：回合收尾后不自动续发，resume 才继续', async () => {
   const { state, ctrl, api } = makeController('queue');
   const gate = deferred<TurnRunResult>();
-  api.runTurn = (params) => {
+  api.threads.runTurn = (params) => {
     api.runCalls.push(params);
     return gate.promise;
   };
@@ -199,7 +207,7 @@ test('「停止」暂停队列：回合收尾后不自动续发，resume 才继�
 test('插话模式 · 相关：走 turns.interject 并入当前回合，附件一起送，不入队', async () => {
   const { state, ctrl, api, toasts } = makeController('steer');
   const gate = deferred<TurnRunResult>();
-  api.runTurn = (params) => {
+  api.threads.runTurn = (params) => {
     api.runCalls.push(params);
     return gate.promise;
   };
@@ -227,11 +235,11 @@ test('插话模式 · 相关：走 turns.interject 并入当前回合，附件�
 test('插话模式 · 无关：服务端判定 interrupted 后，本条内容成为新任务并保住附件', async () => {
   const { state, ctrl, api, toasts } = makeController('steer');
   const gate = deferred<TurnRunResult>();
-  api.runTurn = (params) => {
+  api.threads.runTurn = (params) => {
     api.runCalls.push(params);
     return api.runCalls.length === 1 ? gate.promise : Promise.resolve({ threadId: 't1' });
   };
-  api.interjectTurn = async (params) => {
+  api.threads.interjectTurn = async (params) => {
     api.interjectCalls.push(params);
     return { ok: true, action: 'interrupted', reason: 'interrupt-marker' };
   };
@@ -270,7 +278,7 @@ test('远端回合（打开在跑会话）：send() 分流不并发开跑；stop
   // loadThread 打开「正在运行」的会话写入的远端忙碌：inFlight=false、busy=true。
   state.busy = true;
   const aborts: unknown[] = [];
-  api.abortTurn = (id?: unknown) => {
+  api.threads.abortTurn = (id?: unknown) => {
     aborts.push(id);
     return Promise.resolve({ ok: true });
   };

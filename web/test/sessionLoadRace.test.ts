@@ -99,10 +99,14 @@ function makeEnv(threadId: string | null, sessionIds: string[]) {
   };
   const services = {
     api: {
-      // 每条加载各自一个闸：测试要精确控制「谁先落地」。
-      getThread: (id: string) => gateFor(id).promise,
-      listSessions: async () => ({ sessions: [] }),
-      modesSet: async () => ({ ok: true }),
+      threads: {
+        // 每条加载各自一个闸：测试要精确控制「谁先落地」。
+        getThread: (id: string) => gateFor(id).promise,
+        modesSet: async () => ({ ok: true }),
+      },
+      sessions: {
+        listSessions: async () => ({ sessions: [] }),
+      },
     },
     toast: () => {},
     navigate: (route: { threadId: string | null }) => navigations.push(route),

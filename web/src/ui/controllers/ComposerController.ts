@@ -52,7 +52,7 @@ export class ComposerController {
     this.sessions = sessions;
     this.queueController = new ChatQueueController({
       host: this.host,
-      api: this.services.api,
+      api: this.services.api.config,
       toast: (message, kind) => this.services.toast(message, kind),
       // 在飞判定 = 本地回合 + 远端回合（打开在跑会话）。远端用 SessionController 的同步
       // 登记字段（hasRemoteBusy），不读 state.busy——它经 React setState 异步提交，本地回合
@@ -199,7 +199,7 @@ export class ComposerController {
     this.host.patch({ busy: true, activeTool: null, streamText: '', finalizedStreamText: '' });
     void desktopBridge()?.setProgress?.(2);
     try {
-      const res = await this.services.api.runTurn(params);
+      const res = await this.services.api.threads.runTurn(params);
       // 用户已中止：即使后端以正常响应收尾（取消在飞请求后的回落），也不再补最终文本，
       // 统一走 finally 的中止收口，避免「停了又冒出一条回复」。
       if (this.abortRequested) return;
@@ -257,11 +257,11 @@ export class ComposerController {
     }
     let result: InterjectResult;
     try {
-      result = await this.services.api.interjectTurn({ threadId, prompt, images, files });
+      result = await this.services.api.threads.interjectTurn({ threadId, prompt, images, files });
     } catch {
       // RPC 不可用：回退到旧 steering（只做并入；失败就排队，等本回合结束后再发）。
       const steered = await this.services.api
-        .steerTurn(threadId, prompt, images, files)
+        .threads.steerTurn(threadId, prompt, images, files)
         .then((r) => r.ok === true)
         .catch(() => false);
       if (steered) this.services.toast(t('已并入当前任务，下一步生效'), 'info');
@@ -335,7 +335,7 @@ export class ComposerController {
       this.sessions.clearRemoteBusy();
       this.queueController.pauseIfPending(threadId);
       this.settleRound(true);
-      void this.services.api.abortTurn(threadId ?? undefined).catch(() => {});
+      void this.services.api.threads.abortTurn(threadId ?? undefined).catch(() => {});
       return;
     }
     // 「停止」要停的是**这一串**：队列里还有待发项时一并暂停，避免回合收尾时自动续发，
@@ -347,7 +347,7 @@ export class ComposerController {
     // 带上当前 threadId：服务端允许多回合并行，不带 id 会退化成「取消全部在跑回合」
     // （2026-09-22 修：此前不带 id，并发会话下会误停别的会话）。
     void this.services.api
-      .abortTurn(threadId ?? undefined)
+      .threads.abortTurn(threadId ?? undefined)
       .catch(() => {});
   }
 
@@ -409,7 +409,7 @@ export class ComposerController {
     const threadId = this.host.getState().currentThreadId;
     if (threadId !== null) {
       const outcome = await this.services.api
-        .rewindThread(threadId, last.id)
+        .threads.rewindThread(threadId, last.id)
         .catch((e: unknown) => ({ ok: false, error: (e as Error).message || t('未知错误') }));
       if (!outcome.ok) {
         this.services.toast(t('重生成失败（服务端未回退）：{reason}', { reason: outcome.error ?? t('未知原因') }), 'err');
@@ -567,7 +567,7 @@ export class ComposerController {
     if (clamped !== state.reasoning) patch.reasoning = clamped;
     this.host.patch(patch);
     try {
-      await this.services.api.updateConfig(patch);
+      await this.services.api.config.updateConfig(patch);
     } catch (e) {
       this.services.toast(t('切换模型失败：{msg}', { msg: (e as Error).message }), 'err');
     }
@@ -581,7 +581,7 @@ export class ComposerController {
   public async changeReasoning(v: string): Promise<void> {
     this.host.patch({ reasoning: v });
     try {
-      await this.services.api.updateConfig({ reasoning: v });
+      await this.services.api.config.updateConfig({ reasoning: v });
     } catch (e) {
       this.services.toast(t('切换推理强度失败：{msg}', { msg: (e as Error).message }), 'err');
     }
@@ -595,7 +595,7 @@ export class ComposerController {
   public async changePermission(v: string): Promise<void> {
     this.host.patch({ permission: v });
     try {
-      await this.services.api.updateConfig({ approval: v });
+      await this.services.api.config.updateConfig({ approval: v });
     } catch (e) {
       this.services.toast(t('切换权限等级失败：{msg}', { msg: (e as Error).message }), 'err');
     }

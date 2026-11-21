@@ -188,7 +188,7 @@ export function GovernanceTab(): ReactElement {
   const { data, error, loading, refresh } = useSessionResource<GovernanceHistory>({
     enabled: true,
     followTick: false,
-    load: React.useCallback(async () => api.governanceHistory<GovernanceHistory>(), [api]),
+    load: React.useCallback(async () => api.governance.governanceHistory<GovernanceHistory>(), [api]),
   });
 
   if (loading && data === null) return <div className="governance-tab">{t('载入晋升台账…')}</div>;

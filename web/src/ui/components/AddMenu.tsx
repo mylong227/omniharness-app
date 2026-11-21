@@ -256,7 +256,7 @@ function useAddMenuSearch(
     setSearching(true);
     searchTimer.current = setTimeout(() => {
       api
-        .searchAll(value.trim())
+        .config.searchAll(value.trim())
         .then((r) => {
           if (seq !== searchSeq.current) return;
           setFiles(r.files);

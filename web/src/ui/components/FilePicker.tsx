@@ -159,7 +159,7 @@ function useLazyFsFiles(api: ApiClient): {
     }));
     const path = fsPathOf(key) ?? undefined;
     try {
-      const r: BrowseWithFiles = await api.browseFs(path, true);
+      const r: BrowseWithFiles = await api.workspace.browseFs(path, true);
       const [children, files] = resultOf(key, r);
       setNodes((prev) => ({
         ...prev,
@@ -502,7 +502,12 @@ function useFilePreview(api: ApiClient): {
     setPreview({ path, loading: true, text: null, binary: false, error: null });
     // fail-closed：老桩/未接线后端没有 fs.read 时，预览给明确提示，绝不抛未处理异常
     //（2026-10-30：其它用例的 api 桩没这个方法，无守卫时会变成 unhandled rejection）。
-    const read = typeof api.readFs === 'function' ? api.readFs.bind(api) : null;
+    // 不用 `.bind(api)`：W4 后域对象是普通对象，但测试桩是递归 Proxy——`.bind` 会被
+    // 代理 get 截获成下一层代理而非函数；直接闭包调用对两种宿主都稳。
+    const read =
+      typeof api.workspace.readFs === 'function'
+        ? (p: string) => api.workspace.readFs(p)
+        : null;
     if (read === null) {
       setPreview({
         path,

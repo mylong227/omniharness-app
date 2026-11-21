@@ -1,3 +1,4 @@
+import { flatApiStub } from './rtlHarness.ts';
 // 控制器「方法绑定」门禁：防止「方法当裸引用传给子组件却忘了绑定」这类**静默失效**复发。
 //
 // ## 缺陷形态（2026-09-27 用户报「会话删除无效」的实测根因）
@@ -88,7 +89,7 @@ test('② 行为：会话控制器的删除/改名/复制脱离实例调用也�
   const calls: unknown[][] = [];
   const sessions = [{ id: 's1', label: 'l', workspace: 'w', updatedAt: '', turns: 1, running: false }];
   const services = {
-    api: {
+    api: flatApiStub({
       deleteSession: async (id: string) => {
         calls.push(['delete', id]);
         return { ok: true };
@@ -102,7 +103,7 @@ test('② 行为：会话控制器的删除/改名/复制脱离实例调用也�
         return { ok: true };
       },
       listSessions: async () => ({ sessions }),
-    },
+    }),
     toast: (message: string) => calls.push(['toast', message]),
     reducers: {
       ingestEvent: (s: unknown) => s,
@@ -145,12 +146,12 @@ test('② 行为：会话控制器的删除/改名/复制脱离实例调用也�
 test('②-b 行为：文件控制器的 openFile 脱离实例调用也必须到达 api 并写回视图（async 裸引用高危类）', async () => {
   const calls: unknown[][] = [];
   const services = {
-    api: {
+    api: flatApiStub({
       readFs: async (path: string) => {
         calls.push(['readFs', path]);
         return { path, content: 'export {}', size: 10, isBinary: false, truncated: false };
       },
-    },
+    }),
     toast: (message: string) => calls.push(['toast', message]),
     navigate: (partial: Partial<AppState> & { pane?: string }) => calls.push(['navigate', partial.pane]),
     reducers: {},
@@ -183,7 +184,7 @@ test('②-c 行为：打开静态网页时自动回调预览；打开代码文�
   // 再让用户去路径栏点「预览」。这里钉住 openFile 的自动回调，且不能误伤代码文件。
   const previews: string[] = [];
   const services = {
-    api: {
+    api: flatApiStub({
       readFs: async (path: string) => ({
         path,
         content: '<h1>x</h1>',
@@ -191,7 +192,7 @@ test('②-c 行为：打开静态网页时自动回调预览；打开代码文�
         isBinary: false,
         truncated: false,
       }),
-    },
+    }),
     toast: () => {},
     navigate: () => {},
     reducers: {},

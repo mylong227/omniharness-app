@@ -91,7 +91,7 @@ export class SessionController {
   public constructor(host: AppHost, services: AppServices) {
     this.host = host;
     this.services = services;
-    this.modes = new DeferredModes((id, patch) => services.api.modesSet(id, patch));
+    this.modes = new DeferredModes((id, patch) => services.api.threads.modesSet(id, patch));
     // 默认**挂载**：刷新 / 深链 / 全新控制器都要能收流式事件，只有点「新建」才摘。
     this.viewAttachment = new ViewAttachment();
     this.ticker = new SessionTicker(() => {
@@ -213,7 +213,7 @@ export class SessionController {
     try {
       // 显示范围来自本机偏好（当前项目 / 全部项目）：服务端据此过滤或全量返回。
       const scope = SessionsScope.read();
-      const r = await this.services.api.listSessions({
+      const r = await this.services.api.sessions.listSessions({
         includeArchived,
         ...(SessionsScope.workspaceParam(scope) !== undefined
           ? { workspace: SessionsScope.workspaceParam(scope) }
@@ -323,7 +323,7 @@ export class SessionController {
         await this.refreshSessions();
       }
       if (generation !== this.loadGeneration) return;
-      const r = await this.services.api.getThread(id, { limit: HISTORY_PAGE_SIZE });
+      const r = await this.services.api.threads.getThread(id, { limit: HISTORY_PAGE_SIZE });
       if (generation !== this.loadGeneration) return;
       const items = r.items || [];
       // 历史会话的**工具结果**必须从事件里重建：卡片状态只来自实时 `tool_result` 通知，而加载历史时
@@ -409,7 +409,7 @@ export class SessionController {
     }
     this.host.patch({ historyLoading: true });
     try {
-      const r = await this.services.api.getThread(threadId, {
+      const r = await this.services.api.threads.getThread(threadId, {
         limit: HISTORY_PAGE_SIZE,
         before: oldest,
       });
@@ -499,7 +499,7 @@ export class SessionController {
    */
   public async renameSession(id: string, title: string): Promise<void> {
     try {
-      const r = await this.services.api.renameSession(id, title);
+      const r = await this.services.api.sessions.renameSession(id, title);
       if (!r.ok) {
         this.services.toast(t('重命名失败：{msg}', { msg: r.error ?? '' }), 'err');
         return;
@@ -517,7 +517,7 @@ export class SessionController {
    */
   public async deleteSession(id: string): Promise<void> {
     try {
-      const r = await this.services.api.deleteSession(id);
+      const r = await this.services.api.sessions.deleteSession(id);
       if (!r.ok && r.error !== 'session_not_found') {
         // 「运行中拒绝删除」是服务端的有意设计（避免删掉正在写盘的会话）——把**下一步动作**一并说清，
         // 否则用户只看到一句「无法删除」不知道该怎么办。
@@ -557,7 +557,7 @@ export class SessionController {
       sessions: before.map((x) => (x.id === id ? { ...x, pinned } : x)),
     });
     try {
-      const r = await this.services.api.setSessionPinned(id, pinned);
+      const r = await this.services.api.sessions.setSessionPinned(id, pinned);
       if (!r.ok) {
         this.host.patch({ sessions: before });
         this.services.toast(t('置顶失败：{msg}', { msg: r.error ?? '' }), 'err');
@@ -576,7 +576,7 @@ export class SessionController {
    */
   public async archiveSession(id: string, archived: boolean): Promise<void> {
     try {
-      const r = await this.services.api.archiveSession(id, archived);
+      const r = await this.services.api.sessions.archiveSession(id, archived);
       if (!r.ok) {
         this.services.toast(t('归档失败：{msg}', { msg: r.error ?? '' }), 'err');
         return;
@@ -596,7 +596,7 @@ export class SessionController {
   public async reorderSessions(ordered: SessionEntry[]): Promise<void> {
     this.host.patch({ sessions: ordered });
     try {
-      await this.services.api.reorderSessions(ordered.map((s) => s.id));
+      await this.services.api.sessions.reorderSessions(ordered.map((s) => s.id));
     } catch (e) {
       this.services.toast(t('排序保存失败：{msg}', { msg: (e as Error).message }), 'err');
     }
@@ -609,7 +609,7 @@ export class SessionController {
    */
   public async forkSession(id: string): Promise<void> {
     try {
-      const r = await this.services.api.forkSession(id);
+      const r = await this.services.api.sessions.forkSession(id);
       if (!r.ok) {
         this.services.toast(t('复制失败：{msg}', { msg: r.error ?? '' }), 'err');
         return;
@@ -691,13 +691,13 @@ export class SessionController {
     let checkpointLabel: string | null = null;
     try {
       const stamp = CheckpointNamer.auto().replace(/^checkpoint-/u, '');
-      const checkpoint = await this.services.api.createCheckpoint(threadId, 'rewind-' + stamp);
+      const checkpoint = await this.services.api.sessions.createCheckpoint(threadId, 'rewind-' + stamp);
       if (checkpoint.ok) checkpointLabel = checkpoint.checkpoint.label;
     } catch {
       checkpointLabel = null;
     }
     try {
-      const r = await this.services.api.rewindThread(threadId, eventId);
+      const r = await this.services.api.threads.rewindThread(threadId, eventId);
       if (!r.ok) {
         this.services.toast(t('回退失败：{msg}', { msg: r.error ?? t('未知原因') }), 'err');
         return false;

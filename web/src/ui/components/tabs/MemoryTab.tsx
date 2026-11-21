@@ -140,14 +140,14 @@ function useMemoryStore(reloadKey: number): MemoryStore {
     const q = queryRef.current.trim();
     try {
       if (q === '') {
-        const r = await api.listMemory();
+        const r = await api.memory.listMemory();
         // 服务端响应做形状归一（2026-10-19：桩/异常响应曾让 facts.map 抛错误边界）。
         return {
           count: typeof r.count === 'number' ? r.count : 0,
           facts: Array.isArray(r.facts) ? r.facts : [],
         };
       }
-      const r = await api.searchMemory(q, 20);
+      const r = await api.memory.searchMemory(q, 20);
       return {
         count: typeof r.count === 'number' ? r.count : 0,
         facts: Array.isArray(r.results) ? r.results : [],
@@ -177,7 +177,7 @@ function useMemoryFacts(reloadKey: number): MemoryFactsResult | null {
   const { api } = useApp();
   const load = React.useCallback(async (): Promise<MemoryFactsResult> => {
     try {
-      return await api.memoryFacts();
+      return await api.memory.memoryFacts();
     } catch {
       // 拉取失败如实降级为「无图」：时间图隐藏，不阻塞记忆面板其余功能。
       return { supported: false, cards: [], total: 0, active: 0 };
@@ -315,8 +315,8 @@ function useMemoryForm(
     const topic = values.topic.trim() || undefined;
     const importance = parseInt(values.imp, 10) || 3;
     try {
-      if (editingId) await api.updateMemory({ id: editingId, text, topic, importance });
-      else await api.addMemory({ text, topic, importance });
+      if (editingId) await api.memory.updateMemory({ id: editingId, text, topic, importance });
+      else await api.memory.addMemory({ text, topic, importance });
       toast(editingId ? t('已更新记忆') : t('已保存记忆'), 'ok');
       reset();
       await reload();
@@ -337,7 +337,7 @@ function useMemoryForm(
     });
     if (!ok) return;
     try {
-      await api.deleteMemory(id);
+      await api.memory.deleteMemory(id);
       toast(t('已删除'), 'ok');
       await reload();
     } catch (e) {

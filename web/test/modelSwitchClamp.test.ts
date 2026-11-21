@@ -1,3 +1,4 @@
+import { flatApiStub } from './rtlHarness.ts';
 // 切模型即钳强度判据（2026-11-14，docs/design/adaptive-reasoning/ §5 交互面）：
 //  越界值 → 钳到最近支持档并随**同一次** config.update 写回；
 //  合法值 → patch 不带 reasoning 字段（不产生多余写回）；
@@ -23,12 +24,12 @@ function rigOf(initial: { model: string; reasoning: string; effortsByModel?: Rec
     getState: () => state,
   } as unknown as AppHost;
   const services = {
-    api: {
+    api: flatApiStub({
       updateConfig: async (patch: Record<string, unknown>) => {
         calls.push(['updateConfig', patch]);
         return { ok: true };
       },
-    },
+    }),
     toast: (message: string) => calls.push(['toast', message]),
   } as unknown as AppServices;
   // 第三个参数是会话子控制器（changeModel 不触会话，桩为空壳即可）。
@@ -105,12 +106,12 @@ test('changeModel：写回失败仍单条 toast（不因钳制重复打扰）', 
     getState: () => state,
   } as unknown as AppHost;
   const services = {
-    api: {
+    api: flatApiStub({
       updateConfig: async () => {
         calls.push(['updateConfig']);
         throw new Error('offline');
       },
-    },
+    }),
     toast: (message: string) => calls.push(['toast', message]),
   } as unknown as AppServices;
   await new ComposerController(host, services, {} as unknown as SessionController).changeModel('b');

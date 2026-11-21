@@ -36,7 +36,7 @@ export function useContextStudio(threadId: string | null, active: boolean): UseC
     const seq = ++seqRef.current;
     setLoading(true);
     api
-      .contextStudio(threadId)
+      .context.contextStudio(threadId)
       .then((snapshot) => {
         if (seq !== seqRef.current) return;
         setSnapshot(snapshot);

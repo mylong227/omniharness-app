@@ -142,7 +142,7 @@ export function TraceTab(props: TraceTabProps): ReactElement {
     enabled: sessionId !== '',
     load: React.useCallback(async () => {
       const parsed = Number.parseInt(limit, 10);
-      return api.traceRead({
+      return api.observability.traceRead({
         session: sessionId,
         ...(kindFilter === '' ? {} : { kind: kindFilter }),
         ...(Number.isFinite(parsed) && parsed > 0 ? { limit: parsed } : {}),

@@ -241,7 +241,7 @@ export function PermissionTab(): ReactElement {
     setLoading(true);
     setError(null);
     try {
-      const config = await api.getConfig();
+      const config = await api.config.getConfig();
       const current = rulesOf(config);
       setRules(current);
       setSaved(current);
@@ -263,7 +263,7 @@ export function PermissionTab(): ReactElement {
     setError(null);
     setNotice(null);
     try {
-      await api.updateConfig({ permission: { rules: toWireRules(rules) } });
+      await api.config.updateConfig({ permission: { rules: toWireRules(rules) } });
       setSaved(rules);
       setNotice(t('已保存（服务端已校验并落盘）'));
     } catch (e) {

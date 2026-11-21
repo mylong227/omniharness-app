@@ -94,7 +94,7 @@ export function useWorkspaceChangeBrief(
     setLoading(true);
     setError(null);
     api
-      .listChanges()
+      .review.listChanges()
       .then((value) => {
         if (!alive) return;
         setBrief(toBrief(value));

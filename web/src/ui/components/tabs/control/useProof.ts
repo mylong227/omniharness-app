@@ -68,7 +68,7 @@ export function useProof(threadId: string | null, active: boolean): UseProofResu
     const seq = ++seqRef.current;
     setLoadingTurns(true);
     api
-      .proofTurns(threadId)
+      .proof.proofTurns(threadId)
       .then((result) => {
         if (seq !== seqRef.current) return;
         if (isFailure(result)) {
@@ -119,7 +119,7 @@ export function useProof(threadId: string | null, active: boolean): UseProofResu
       setBuilding(true);
       setBuildError(null);
       api
-        .proofBuild(threadId, turnIndex)
+        .proof.proofBuild(threadId, turnIndex)
         .then((result) => {
           if (seq !== buildSeqRef.current) return;
           if (isFailure(result)) {
@@ -155,7 +155,7 @@ export function useProof(threadId: string | null, active: boolean): UseProofResu
       return t('先选择一个回合，再导出证据包。');
     }
     try {
-      const result = await api.proofExport(threadId, selectedTurn);
+      const result = await api.proof.proofExport(threadId, selectedTurn);
       if (isFailure(result)) return result.message;
       return result;
     } catch (e) {

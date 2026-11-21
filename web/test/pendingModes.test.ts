@@ -1,3 +1,4 @@
+import { flatApiStub } from './rtlHarness.ts';
 ﻿// 会话模式的「建会话前先暂存」时序：真机报错「模式切换失败：modes.set 需要 threadId」的回归判据。
 //
 // ## 现场（2026-10-06 用户截图）
@@ -58,12 +59,12 @@ function makeApi() {
   const calls: ModesSetCall[] = [];
   return {
     calls,
-    api: {
+    api: flatApiStub({
       modesSet: (threadId: string, patch: ModesSetCall['patch']) => {
         calls.push({ threadId, patch });
         return Promise.resolve({ goal: '', planMode: false, sketchMode: false, ...patch });
       },
-    },
+    }),
   };
 }
 

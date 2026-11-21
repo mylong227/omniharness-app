@@ -189,7 +189,7 @@ export function ProofMode(props: ProofModeProps): ReactElement {
       setVerifyName(path.split(/[\\/]/).pop() ?? path);
       setVerifying(true);
       void api
-        .attachRead([path])
+        .workspace.attachRead([path])
         .then((r) => {
           if (r.errors.length > 0) {
             setVerifyError(t('读取证据包失败：{msg}', { msg: r.errors[0]?.error ?? '' }));
@@ -214,7 +214,7 @@ export function ProofMode(props: ProofModeProps): ReactElement {
             setVerifyError(t('证据包不是合法 JSON。'));
             return;
           }
-          return api.proofVerify(bundle).then((result) => setVerify(result));
+          return api.proof.proofVerify(bundle).then((result) => setVerify(result));
         })
         .catch((e: unknown) => setVerifyError(e instanceof Error ? e.message : String(e)))
         .finally(() => setVerifying(false));

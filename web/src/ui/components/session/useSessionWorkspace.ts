@@ -75,7 +75,7 @@ function makeWorkspaceSwitcher(d: WorkspaceOpsDeps): WorkspaceSwitchOps {
   const switchProject = async (path: string): Promise<boolean> => {
     if (path === d.wsPath) return true;
     try {
-      await d.api.switchWorkspace(path);
+      await d.api.workspace.switchWorkspace(path);
       applyWorkspace(path);
       d.onWorkspaceSwitched?.();
       return true;
@@ -95,9 +95,9 @@ function makeWorkspaceSwitcher(d: WorkspaceOpsDeps): WorkspaceSwitchOps {
   const pickProject = async (path: string): Promise<void> => {
     d.setPicking(false);
     try {
-      const res = await d.api.addWorkspace(path);
+      const res = await d.api.workspace.addWorkspace(path);
       d.setProjects(res.workspaces);
-      await d.api.switchWorkspace(path);
+      await d.api.workspace.switchWorkspace(path);
       applyWorkspace(path);
       d.onWorkspaceSwitched?.();
     } catch (e) {
@@ -130,7 +130,7 @@ function makeProjectOps(d: WorkspaceOpsDeps): ProjectOps {
       return;
     }
     try {
-      await d.api.setSessionWorkspace(sessionId, d.wsPath);
+      await d.api.sessions.setSessionWorkspace(sessionId, d.wsPath);
       d.toast(t('已归入当前项目'));
       d.onWorkspaceSwitched?.();
     } catch (e) {
@@ -199,7 +199,7 @@ export function useSessionWorkspace(deps: SessionWorkspaceDeps): SessionWorkspac
   // 拉取工作区清单（当前路径 + 已添加项目）：挂载时一次，**项目身份变化时再来一次**。
   React.useEffect(() => {
     api
-      .listWorkspaces()
+      .workspace.listWorkspaces()
       .then((r) => {
         setWsPath(r.current);
         setProjects(r.workspaces);
@@ -214,7 +214,7 @@ export function useSessionWorkspace(deps: SessionWorkspaceDeps): SessionWorkspac
   React.useEffect(() => {
     let alive = true;
     api
-      .listFs(3)
+      .workspace.listFs(3)
       .then((r) => {
         if (alive) {
           setTree(r.tree || []);

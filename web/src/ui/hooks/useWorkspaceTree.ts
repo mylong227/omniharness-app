@@ -36,7 +36,7 @@ export function useWorkspaceTree(api: ApiClient): WorkspaceTreeState & { refresh
     const mine = ++seq.current;
     setState((prev) => ({ ...prev, loading: true, error: null }));
     try {
-      const r = await api.listFs(DEPTH);
+      const r = await api.workspace.listFs(DEPTH);
       if (mine !== seq.current) return;
       if (!Array.isArray(r?.tree)) {
         // fail-closed：形状不合法 ⇒ 当作读取失败，绝不把 undefined 灌进树。

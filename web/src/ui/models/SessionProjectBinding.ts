@@ -42,13 +42,13 @@ export class SessionProjectBinding {
     if (deps.host.getState().sessions.some((s) => s.id === id)) return false;
     try {
       const [all, workspaces] = await Promise.all([
-        deps.api.listSessions({ includeArchived: false, workspace: '*' }),
-        deps.api.listWorkspaces(),
+        deps.api.sessions.listSessions({ includeArchived: false, workspace: '*' }),
+        deps.api.workspace.listWorkspaces(),
       ]);
       const owner = all.sessions.find((s) => s.sessionId === id)?.workspace ?? '';
       const current = workspaces.current ?? '';
       if (owner === '' || WorkspacePath.same(owner, current)) return false;
-      await deps.api.switchWorkspace(owner);
+      await deps.api.workspace.switchWorkspace(owner);
       deps.toast(t('已切到该会话所属项目：{name}', { name: WorkspacePath.label(owner) }));
       return true;
     } catch {

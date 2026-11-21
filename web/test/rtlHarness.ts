@@ -88,7 +88,12 @@ export interface UiRender {
 
 /**
  * 造一个"任何方法都成功"的假 api，并记录调用。
- * @param responses 按方法名覆盖返回值
+ *
+ * W4 域拆分（2026-11-21）后消费形态是两层 `api.<domain>.<method>(...)`——桩改为**递归 Proxy**：
+ * 属性访问返回下一层可调用代理（记录访问路径），**调用**时以路径末段为方法名（`responses` 的
+ * 既有扁平键 `listSessions` 等零迁移），`calls.method` 亦记末段——扁平调用 `api.listSessions()`
+ * 与域调用 `api.sessions.listSessions()` 同样命中。
+ * @param responses 按方法名（末段）覆盖返回值
  * @param calls 调用记录数组（由调用方持有，便于断言）
  * @returns 假 ApiClient
  */
@@ -98,7 +103,7 @@ function makeFakeApi(
   firstResponse?: unknown,
 ): AppContextValue['api'] {
   let firstDone = false;
-  const fallback = (method: string) => (...args: unknown[]): Promise<unknown> => {
+  const invoke = (method: string, args: unknown[]): Promise<unknown> => {
     calls.push({ method, args });
     const key = Object.prototype.hasOwnProperty.call(responses ?? {}, method) ? method : undefined;
     if (key !== undefined) {
@@ -114,12 +119,46 @@ function makeFakeApi(
     }
     return Promise.resolve({});
   };
-  return new Proxy({} as AppContextValue['api'], {
-    get: (_t, prop) => {
-      if (typeof prop !== 'string') return undefined;
-      return fallback(prop);
-    },
-  });
+  const makeLevel = (path: readonly string[]): AppContextValue['api'] =>
+    new Proxy((...args: unknown[]) => invoke(path[path.length - 1] ?? '', args), {
+      get: (_t, prop) => {
+        if (typeof prop !== 'string') return undefined;
+        // then/catch/finally 不可枚举地挂上去会破坏 await 语义——未调用即 await 时让宿主走默认。
+        if (prop === 'then' || prop === 'catch' || prop === 'finally') return undefined;
+        return makeLevel([...path, prop]);
+      },
+    }) as unknown as AppContextValue['api'];
+  return makeLevel([]);
+}
+
+/**
+ * 把测试里手写的**扁平方法表**包成可递归代理的 api（W4 域拆分配套，2026-11-21）。
+ *
+ * 自建桩的判据（不经 {@link makeFakeApi} 的那些）用最少改动获得域调用兼容：
+ * `api: { getThread, listSessions }` → `api: flatApiStub({ getThread, listSessions })`——
+ * 之后 `api.threads.getThread(...)` 与 `api.getThread(...)` 都命中同一个函数。
+ * @param flat 扁平方法表（键 = 方法名，值 = 函数或直值）
+ * @returns 递归代理的假 ApiClient
+ */
+export function flatApiStub(flat: Record<string, unknown>): AppContextValue['api'] {
+  const makeLevel = (path: readonly string[]): unknown =>
+    new Proxy(
+      (...args: unknown[]) => {
+        const method = path[path.length - 1] ?? '';
+        const fn = flat[method];
+        if (typeof fn === 'function') return (fn as (...a: unknown[]) => unknown)(...args);
+        return Promise.resolve({});
+      },
+      {
+        get: (_t, prop) => {
+          if (typeof prop !== 'string' || prop === 'then' || prop === 'catch' || prop === 'finally') {
+            return undefined;
+          }
+          return makeLevel([...path, prop]);
+        },
+      },
+    );
+  return makeLevel([]) as AppContextValue['api'];
 }
 
 /**
@@ -282,7 +321,7 @@ export function renderElement(element: React.ReactNode): { readonly node: Facade
 /**
  * 渲染组件、**等一次微任务落地**后再快照成外观节点。
  *
- * 为什么需要它：真实 React 下 effect 里发起的请求（`api.listChanges()` 等）会在下一个微任务
+ * 为什么需要它：真实 React 下 effect 里发起的请求（`api.review.listChanges()` 等）会在下一个微任务
  * resolve 并触发 setState；`render` 返回时首帧仍是"读取中"，此时断言"数据区存在"必然假红。
  * 用 `act(async …)` 冲一次队列，让"假 api（Promise.resolve）→ setState → 重渲染"落地。
  *

@@ -96,7 +96,7 @@ function useAttachmentLoaders(
   const addRemoteFiles = async (paths: string[]): Promise<void> => {
     setPickerErr(null);
     try {
-      const r = await api.attachRead(paths);
+      const r = await api.workspace.attachRead(paths);
       if (r.files.length === 0 && r.errors.length > 0) {
         setPickerErr(r.errors[0]?.error ?? t('附件读取失败'));
         return;

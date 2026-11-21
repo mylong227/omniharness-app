@@ -147,7 +147,7 @@ export function FleetMode(props: FleetModeProps): ReactElement {
       setPatchError(null);
       setPatchLoading(true);
       api
-        .fleetPatch(path)
+        .fleet.fleetPatch(path)
         .then((result) => {
           if (seq === patchSeqRef.current) setPatch(result);
         })
@@ -183,7 +183,7 @@ export function FleetMode(props: FleetModeProps): ReactElement {
       if (!ok) return;
       setCancelling(node.callId);
       try {
-        const result = await api.fleetCancel(node.callId);
+        const result = await api.fleet.fleetCancel(node.callId);
         if (result.ok) {
           toast(t('已发送取消信号；状态会在下一次刷新时更新。'), 'info');
           refresh();
@@ -219,7 +219,7 @@ export function FleetMode(props: FleetModeProps): ReactElement {
           if (!ok) return;
           setApplying(true);
           return api
-            .fleetApplyPatch(path)
+            .fleet.fleetApplyPatch(path)
             .then((result) => {
               if (!result.ok) {
                 toast(result.message, 'err');

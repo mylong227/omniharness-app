@@ -176,7 +176,7 @@ export function MetricsTab(): ReactElement {
         if (alive) setMetricsFailed(true);
       }
       try {
-        const u = await api.usageStats();
+        const u = await api.observability.usageStats();
         if (alive) setUsage(u);
       } catch {
         /* 静默：统计 RPC 不可用时保持上一帧（metrics 是门面数据，它的失败已另行提示） */

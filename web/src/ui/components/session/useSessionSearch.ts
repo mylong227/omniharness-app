@@ -46,7 +46,7 @@ function useSearchMirror(api: ApiClient, scheduleSearch?: ScheduleFn): SearchMir
   const searchRef = React.useRef<SessionSearch | null>(null);
   if (searchRef.current === null) {
     searchRef.current = new SessionSearch({
-      search: (q: string) => api.searchAll(q),
+      search: (q: string) => api.config.searchAll(q),
       onUpdate: () => {
         const s = searchRef.current;
         if (s === null) return;

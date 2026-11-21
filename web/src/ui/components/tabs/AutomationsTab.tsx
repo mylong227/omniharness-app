@@ -171,7 +171,7 @@ function useAutomationRows(api: ReturnType<typeof useApp>['api']): {
     enabled: true,
     followTick: false,
     load: React.useCallback(async () => {
-      const list = await api.listAutomations();
+      const list = await api.automations.listAutomations();
       return Array.isArray(list) ? list : [];
     }, [api]),
   });
@@ -200,7 +200,7 @@ export function AutomationsTab(): React.ReactElement {
     setBusy(true);
     setError('');
     try {
-      await api.createAutomation({
+      await api.automations.createAutomation({
         name,
         prompt,
         intervalMinutes: Number(minutes),
@@ -226,10 +226,10 @@ export function AutomationsTab(): React.ReactElement {
     setBusy(true);
     setError('');
     try {
-      if (action === 'toggle') await api.setAutomationEnabled(row.id, !row.enabled);
-      else if (action === 'run') await api.runAutomation(row.id);
+      if (action === 'toggle') await api.automations.setAutomationEnabled(row.id, !row.enabled);
+      else if (action === 'run') await api.automations.runAutomation(row.id);
       else if (await dialog.confirm(t('删除自动化「{name}」？', { name: row.name }))) {
-        await api.deleteAutomation(row.id);
+        await api.automations.deleteAutomation(row.id);
       }
       refresh();
     } catch (cause) {

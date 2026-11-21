@@ -100,7 +100,7 @@ export function AuditTab(): ReactElement {
     enabled: true,
     followTick: false,
     load: React.useCallback(
-      async () => api.auditQuery(typeFilter === '' ? {} : { type: typeFilter }),
+      async () => api.observability.auditQuery(typeFilter === '' ? {} : { type: typeFilter }),
       [api, typeFilter],
     ),
   });

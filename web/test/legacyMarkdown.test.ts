@@ -24,7 +24,7 @@ describe('legacyRenderMarkdown 引用面锁死（生产不可达的兜底资产�
         }
       }
     }
-    const normalized = hits.map((p) => p.replaceAll('\\', '/'));
+    const normalized = hits.map((p) => p.split('\\').join('/'));
     // 允许面：format.ts（定义 + 兜底分支）、markdown.ts（legacy/full 混渲的回退调用点，L6 登记）、
     // format.test.ts（直测）、本判据文件（自引用字符串）。
     const allowed = normalized.filter((p) =>

@@ -93,8 +93,8 @@ async function doAction(
     if (!name) return;
     setBusy(name);
     try {
-      if (kind === 'install') await api.installPlugin(name);
-      else await api.removePlugin(name);
+      if (kind === 'install') await api.plugins.installPlugin(name);
+      else await api.plugins.removePlugin(name);
       toast(kind === 'install' ? t('已安装 {name}', { name }) : t('已卸载 {name}', { name }), 'ok');
       await refresh();
     } catch (e) {
@@ -126,7 +126,7 @@ async function reload(
 ): Promise<void> {
     setBusy('__reload__');
     try {
-      const res = await api.reloadPlugins();
+      const res = await api.plugins.reloadPlugins();
       if (res && res.ok && res.loaded && res.loaded.length) {
         toast(t('已加载 {count} 个插件', { count: res.loaded.length }), 'ok');
       }
@@ -180,7 +180,7 @@ function usePluginsTab(api: ReturnType<typeof useApp>['api'], toast: ReturnType<
     async (): Promise<{ installed: PluginManifest[]; available: PluginSearchEntry[] }> => {
       try {
         return await (async () => {
-          const [inst, all] = await Promise.all([api.listPlugins(), api.searchPlugins(debouncedQuery)]);
+          const [inst, all] = await Promise.all([api.plugins.listPlugins(), api.plugins.searchPlugins(debouncedQuery)]);
       // 形状归一（同 MemoryTab）：非数组响应按空列表处理，避免 .map 崩溃。
       const list = Array.isArray(inst) ? inst : [];
       const instSet = new Set(list.map((m) => m.name));

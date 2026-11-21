@@ -167,7 +167,7 @@ export function ActivityTab(props: ActivityTabProps): React.ReactElement {
   React.useEffect(() => {
     let alive = true;
     api
-      .listChanges()
+      .review.listChanges()
       .then((next: ChangesSummary) => {
         if (alive) {
           setChanges(next);

@@ -95,7 +95,7 @@ function useMentionCompletions(o: CompletionsOptions): MentionCompletions {
       return;
     }
     o.api
-      .listFs(4)
+      .workspace.listFs(4)
       .then((r) => {
         const paths = FileTreeFlattener.collect(r.tree ?? []);
         setFileCache(paths);
@@ -153,7 +153,7 @@ function useSlashCompletions(
       return true;
     }
     o.api
-      .listSkills()
+      .skills.listSkills()
       .then((r) => {
         const skills = r.skills ?? [];
         setSkillCache(skills);

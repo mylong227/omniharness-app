@@ -99,13 +99,16 @@ async function textWith(daemon: unknown, doctor: unknown, snapshot: unknown = he
 }
 
 test('① ApiClient 的方法名与 RPC 名一致（改错名字 ⇒ 面板永远空着而无人知）', async () => {
-  const source = readFileSync('web/src/core/ApiClient.ts', 'utf8');
-  assert.match(source, /this\.rpc\('daemon\.status'/u, 'daemonStatus 必须调 daemon.status');
-  assert.match(source, /this\.rpc\('doctor\.report'/u, 'doctorReport 必须调 doctor.report');
-  assert.match(source, /this\.rpc\('kernel\.health'/u, 'kernelHealth 必须调 kernel.health');
+  // W4 域拆分后方法体迁移到 core/api/（observability 域承载本面板三方法）——按目录扫描。
+  const readApi = (name: string): string =>
+    readFileSync(`web/src/core/api/${name}Api.ts`, 'utf8');
+  const observability = readApi('observability');
+  assert.match(observability, /this\.rpc\('daemon\.status'/u, 'daemonStatus 必须调 daemon.status');
+  assert.match(observability, /this\.rpc\('doctor\.report'/u, 'doctorReport 必须调 doctor.report');
+  assert.match(observability, /this\.rpc\('kernel\.health'/u, 'kernelHealth 必须调 kernel.health');
   // 正对照：把方法名换掉必须被本检查的谓词识别（防"只要文件里有这串就算过"）。
-  const mutated = source.replace("this.rpc('doctor.report'", "this.rpc('doctor.reportTypo'");
-  assert.notStrictEqual(mutated, source, '正对照变异未命中 ⇒ 判据锚点漂了');
+  const mutated = observability.replace("this.rpc('doctor.report'", "this.rpc('doctor.reportTypo'");
+  assert.notStrictEqual(mutated, observability, '正对照变异未命中 ⇒ 判据锚点漂了');
   assert.doesNotMatch(mutated, /this\.rpc\('doctor\.report'/u, '改错 RPC 名却检不出来 ⇒ 判据①恒真');
 });
 

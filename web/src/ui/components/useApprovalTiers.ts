@@ -18,7 +18,7 @@ export function useApprovalTiers(api: ApiClient): readonly ApprovalTier[] | unde
   React.useEffect(() => {
     let alive = true;
     api
-      .approvalTiers()
+      .control.approvalTiers()
       .then((r) => {
         if (alive) setTiers(r.tiers);
       })

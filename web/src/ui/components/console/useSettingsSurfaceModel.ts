@@ -52,11 +52,11 @@ const EMPTY_SNAPSHOT: SettingsSnapshot = {
  */
 export function createSettingsModel(ctx: SettingsModelContext): SettingsModel {
   return new SettingsModel({
-    getConfig: () => ctx.api.getConfig(),
-    updateConfig: (patch) => ctx.api.updateConfig(patch),
-    listProfiles: () => ctx.api.listProfiles() as Promise<Profile[]>,
-    getActiveProfile: () => ctx.api.getActiveProfile(),
-    applyProfile: (id) => ctx.api.applyProfile(id),
+    getConfig: () => ctx.api.config.getConfig(),
+    updateConfig: (patch) => ctx.api.config.updateConfig(patch),
+    listProfiles: () => ctx.api.profile.listProfiles() as Promise<Profile[]>,
+    getActiveProfile: () => ctx.api.profile.getActiveProfile(),
+    applyProfile: (id) => ctx.api.profile.applyProfile(id),
     refreshModelCatalog: ctx.refreshModelCatalog,
     toast: (message, kind) => ctx.toast(message, kind),
   });

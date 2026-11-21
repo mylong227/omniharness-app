@@ -166,7 +166,7 @@ export function ContextMode(props: ContextModeProps): ReactElement {
     if (text === '' || noteBusy) return;
     setNoteBusy(true);
     api
-      .contextHandoffAdd(text, ['handoff'])
+      .context.contextHandoffAdd(text, ['handoff'])
       .then((note) => {
         if (note === null) {
           toast(t('便签通道未接线，写入失败。'), 'err');
@@ -200,7 +200,7 @@ export function ContextMode(props: ContextModeProps): ReactElement {
         if (!ok) return;
         setCompacting(true);
         return api
-          .contextCompact(props.threadId ?? '')
+          .context.contextCompact(props.threadId ?? '')
           .then((result) => {
             if (!result.ok) {
               toast(result.message, 'err');

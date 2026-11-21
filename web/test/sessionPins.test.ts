@@ -1,3 +1,4 @@
+import { flatApiStub } from './rtlHarness.ts';
 // 会话置顶（2026-11-06：服务端侧车唯一真源）的算术与接线门禁（零 DOM、确定性）。
 //
 // ## 覆盖什么
@@ -94,13 +95,13 @@ function makeEnv(diskSessions: ReturnType<typeof disk>[], pinResult: { ok: boole
     getState: () => state,
   };
   const services = {
-    api: {
+    api: flatApiStub({
       listSessions: async () => ({ sessions: diskSessions }),
       setSessionPinned: async (id: string, pinned: boolean) => {
         calls.push({ id, pinned });
         return pinResult;
       },
-    },
+    }),
     toast: (m: string) => toasts.push(m),
     navigate: () => {},
     reducers: { mergeSessions: (_prev: SessionEntry[], fromDisk: SessionEntry[]) => [...fromDisk] },
@@ -157,11 +158,11 @@ test('setPinned：网络异常 ⇒ 同样回滚并 toast 异常消息', async ()
     getState: () => state,
   };
   const services = {
-    api: {
+    api: flatApiStub({
       setSessionPinned: async () => {
         throw new Error('network down');
       },
-    },
+    }),
     toast: (m: string) => toasts.push(m),
     navigate: () => {},
     reducers: { mergeSessions: (_prev: SessionEntry[], fromDisk: SessionEntry[]) => [...fromDisk] },
@@ -173,14 +174,19 @@ test('setPinned：网络异常 ⇒ 同样回滚并 toast 异常消息', async ()
 });
 
 test('接线守卫：服务端唯一真源（面板不再读 localStorage），App 与行菜单都接上', async () => {
-  const { readFileSync } = await import('node:fs');
+  const { readdirSync, readFileSync } = await import('node:fs');
   const { dirname, join } = await import('node:path');
   const { fileURLToPath } = await import('node:url');
   const here = dirname(fileURLToPath(import.meta.url));
   const read = (p: string) => readFileSync(join(here, '..', 'src', 'ui', p), 'utf8');
   const panel = read('components/SessionPanel.tsx');
   const app = read('App.ts');
-  const api = readFileSync(join(here, '..', 'src', 'core', 'ApiClient.ts'), 'utf8');
+  // W4 域拆分后 sessions 域方法在 core/api/sessionsApi.ts——按目录聚合源码扫描。
+  const apiDir = join(here, '..', 'src', 'core', 'api');
+  const api = readdirSync(apiDir)
+    .filter((f) => f.endsWith('.ts'))
+    .map((f) => readFileSync(join(apiDir, f), 'utf8'))
+    .join('\n');
   assert.doesNotMatch(panel, /SessionPins/u, '面板不得再持 localStorage 置顶副本（服务端侧车为唯一真源）');
   assert.match(panel, /sessions\.filter\(\(x\) => x\.pinned === true\)/u, '置顶集合必须从会话条目的 pinned 字段派生');
   assert.match(app, /onTogglePin: \(id, pinned\) => void ctrl\.sessions\.setPinned\(id, pinned\)/u, 'App 必须把置顶接到控制器');

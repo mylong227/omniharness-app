@@ -154,7 +154,7 @@ function useCatalogLoad(api: AppContextValue['api'], tab: SettingsTabKey): Catal
     setCatalogStatus('loading');
     setCatalogError('');
     api
-      .modelCatalog()
+      .config.modelCatalog()
       .then((result) => {
         if (request !== catalogReqRef.current) return;
         setProviders(result.providers);
@@ -167,7 +167,7 @@ function useCatalogLoad(api: AppContextValue['api'], tab: SettingsTabKey): Catal
         setCatalogStatus('error');
       });
     api
-      .getConfig()
+      .config.getConfig()
       .then((config: Config) => {
         const keys = (config as unknown as Record<string, unknown>)['providerKeys'];
         setMaskedKeys(keys !== undefined && typeof keys === 'object' ? (keys as Record<string, string>) : {});
@@ -299,7 +299,7 @@ function useProviderDrafts(options: ProviderDraftOptions): ProviderDrafts {
     }
     options.markBusy(preset.id, 'key');
     try {
-      await options.api.updateConfig({ setProviderKey: { vendor: preset.id, key } });
+      await options.api.config.updateConfig({ setProviderKey: { vendor: preset.id, key } });
       setDrafts((prev) => ({ ...prev, [preset.id]: '' }));
       options.toast(t('{name} Key 已保存（服务端打码存储）', { name: preset.label }), 'ok');
       options.reloadProviders();
@@ -352,7 +352,7 @@ function useProviderProbes(options: ProviderProbeOptions): ProviderProbes {
   const probe = async (preset: ProviderPreset): Promise<void> => {
     options.markBusy(preset.id, 'probe');
     try {
-      const result = (await options.api.probeModels(preset.id)).providers[0];
+      const result = (await options.api.config.probeModels(preset.id)).providers[0];
       if (result === undefined) {
         options.toast(t('检测失败：厂商未返回结果'), 'err');
         return;
@@ -427,7 +427,7 @@ function useProviderEnable(options: ProviderEnableOptions): {
     }
     options.markBusy(preset.id, 'enable');
     try {
-      await options.api.updateConfig({ enableProvider: preset.id, model });
+      await options.api.config.updateConfig({ enableProvider: preset.id, model });
       options.toast(t('{name} 已启用（模型 {model}），下一条消息即生效', { name: preset.label, model }), 'ok');
       options.reloadProviders();
       await options.onReloadSettings();

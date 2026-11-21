@@ -110,7 +110,7 @@ function useLazyFs(api: ApiClient): {
     }));
     const path = fsPathOf(key) ?? undefined;
     try {
-      const r: BrowseResult = await api.browseFs(path);
+      const r: BrowseResult = await api.workspace.browseFs(path);
       let children: TreeDataNode[];
       if (r.level === 'drives') {
         const roots = Array.isArray(r.roots) ? r.roots : [];
@@ -459,7 +459,7 @@ function useFolderPickerSelection(
     }
     setCreate((prev) => ({ ...prev, creatingErr: null }));
     try {
-      const r = await api.mkdirFs(selectedPath, name);
+      const r = await api.workspace.mkdirFs(selectedPath, name);
       setCreate({ creating: false, newName: '', creatingErr: null });
       onPick(r.path);
     } catch (e) {

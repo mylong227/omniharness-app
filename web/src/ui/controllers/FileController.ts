@@ -46,7 +46,7 @@ export class FileController {
    */
   public async openFile(path: string): Promise<boolean> {
     try {
-      const r = await this.services.api.readFs(path);
+      const r = await this.services.api.workspace.readFs(path);
       const tag = r.isBinary ? t('二进制文件') : r.truncated ? t('已截断（>200KB）') : '';
       const meta =
         tag === ''
@@ -100,7 +100,7 @@ export class FileController {
    */
   public async exists(path: string): Promise<boolean> {
     try {
-      return await this.services.api.fileExists(path);
+      return await this.services.api.workspace.fileExists(path);
     } catch {
       return true;
     }

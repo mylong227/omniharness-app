@@ -165,7 +165,7 @@ export function DiagnosticsTab(): ReactElement {
     enabled: true,
     followTick: false,
     load: React.useCallback(async () => {
-      return Promise.all([api.daemonStatus(), api.doctorReport(), api.kernelHealth()] as const);
+      return Promise.all([api.observability.daemonStatus(), api.observability.doctorReport(), api.observability.kernelHealth()] as const);
     }, [api]),
   });
   const daemon = data?.[0] ?? null;

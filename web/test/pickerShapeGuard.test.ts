@@ -17,7 +17,7 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import { renderFacadeAsync } from './rtlHarness.ts';
+import { flatApiStub, renderFacadeAsync } from './rtlHarness.ts';
 import { allText, byTag, facadeOf } from './domFacade.ts';
 
 const { FolderPicker } = await import('../src/ui/components/FolderPicker.tsx');
@@ -35,13 +35,18 @@ const { FilePicker } = await import('../src/ui/components/FilePicker.tsx');
  */
 function apiWith(browseResult: unknown) {
   return {
-    calls: [] as { path: string | undefined; includeFiles: boolean | undefined }[],
     async browseFs(path?: string, includeFiles?: boolean) {
-      this.calls.push({ path, includeFiles });
+      void path;
+      void includeFiles;
       return browseResult;
     },
     async mkdirFs() {
       return { path: '/tmp/new' };
+    },
+    // FolderPicker 的「工作区」树另走 fs.list（drives 层与工作区层是两个数据源）；
+    // 本组判据只关心 fs.browse 的回包形状，工作区树给一份空树的合法回包即可。
+    async listFs() {
+      return { tree: [] };
     },
   };
 }
@@ -58,7 +63,9 @@ async function renderAfterLoad(
   props: Record<string, unknown>,
   api: unknown,
 ) {
-  const ui = await renderFacadeAsync(Component, { props: { ...props, api } });
+  const ui = await renderFacadeAsync(Component, {
+    props: { ...props, api: flatApiStub(api as Record<string, unknown>) },
+  });
   // 2026-10-29：选择器浮层换 antd Modal（portal 到 body）⇒ 断言面从 render 容器改为 body。
   void ui;
   return facadeOf(document.body);

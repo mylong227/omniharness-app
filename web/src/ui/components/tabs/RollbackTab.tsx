@@ -208,7 +208,7 @@ function useRollback(
   const load = React.useCallback(
     async (): Promise<CheckpointMeta[]> => {
       if (sessionId === null) return [];
-      const r = await api.listCheckpoints(sessionId);
+      const r = await api.sessions.listCheckpoints(sessionId);
       return r.checkpoints ?? [];
     },
     [api, sessionId],
@@ -230,7 +230,7 @@ function useRollback(
     const name = CheckpointNamer.resolve(label);
     setBusy(true);
     try {
-      const r = await api.createCheckpoint(sessionId, name);
+      const r = await api.sessions.createCheckpoint(sessionId, name);
       toast(t('已创建检查点：{label}', { label: r.checkpoint.label }), 'ok');
       setLabel('');
       await refresh(sessionId);
@@ -253,7 +253,7 @@ function useRollback(
     if (!ok) return;
     setBusy(true);
     try {
-      const r = await api.rollbackCheckpoint(sessionId, target);
+      const r = await api.sessions.rollbackCheckpoint(sessionId, target);
       toast(t('已回滚到：{label}', { label: r.checkpoint.label }), 'ok');
       onRolledBack(sessionId);
       await refresh(sessionId);

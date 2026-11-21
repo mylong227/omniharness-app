@@ -10,7 +10,7 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import { act, cleanup, fireEvent, renderFacade, screen } from './rtlHarness.ts';
+import { act, cleanup, fireEvent, flatApiStub, renderFacade, screen } from './rtlHarness.ts';
 import { allText, facadeOf, walk } from './domFacade.ts';
 import type { Facade, FacadeNode } from './domFacade.ts';
 
@@ -46,20 +46,12 @@ const isTag = (name: string) => (n: FacadeNode) => n.type === name;
  * 打开菜单/挂载选择器就会真的取数，缺方法会直接 TypeError。这里只实现**断言所依赖的**方法，
  * 返回值按组件既有防御口径给空集合。
  */
-const API = {
-  async modesGet() {
-    return { goal: '', planMode: false, sketchMode: false };
-  },
-  async listPlugins() {
-    return [];
-  },
-  async agentsList() {
-    return { agents: [] };
-  },
-  async approvalTiers() {
-    return { tiers: [] };
-  },
-};
+const API = flatApiStub({
+  modesGet: async () => ({ goal: '', planMode: false, sketchMode: false }),
+  listPlugins: async () => [],
+  agentsList: async () => ({ agents: [] }),
+  approvalTiers: async () => ({ tiers: [] }),
+});
 
 const ADD_MENU_PROPS = {
   threadId: 't-1',

@@ -57,7 +57,7 @@ export function useAddMenuData(options: AddMenuDataOptions): AddMenuData {
     // 没有会话时不发 `modes.get`：模式按会话持久化，此时服务端必然拒（省掉一次注定失败的 RPC）。
     if (threadId !== '') {
       void api
-        .modesGet(threadId)
+        .threads.modesGet(threadId)
         .then((m: SessionModes) => {
           setGoal(m.goal);
           setPlanMode(m.planMode);
@@ -71,7 +71,7 @@ export function useAddMenuData(options: AddMenuDataOptions): AddMenuData {
     }
     setPluginsLoading(true);
     api
-      .listPlugins()
+      .plugins.listPlugins()
       .then((list) => {
         // 防御：响应形状不符（旧版服务端没有该方法 ⇒ 回落成 `{}`）时给空列表，而不是把
         // `undefined` 塞进 state——那会让 `sections()` 在 `.length`/`.map` 上抛错，React 直接把
@@ -82,7 +82,7 @@ export function useAddMenuData(options: AddMenuDataOptions): AddMenuData {
       .catch(() => setPluginsLoading(false));
     setAgentsLoading(true);
     api
-      .agentsList()
+      .control.agentsList()
       .then((r) => {
         setAgents(Array.isArray(r.agents) ? r.agents : []);
         setAgentsLoading(false);

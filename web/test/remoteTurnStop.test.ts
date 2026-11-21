@@ -1,3 +1,4 @@
+import { flatApiStub } from './rtlHarness.ts';
 // 远端回合（打开「正在运行」的会话）的生命周期判据（2026-11-17 全面 review）。
 //
 // ## 缺陷形态
@@ -82,11 +83,11 @@ function makeEnv(
     getState: () => state,
   };
   const services = {
-    api: {
+    api: flatApiStub({
       getThread: async () => ({ items: [] as TestEvent[], hasMore: false }),
       listSessions: async () => ({ sessions: listResult }),
       modesSet: async () => ({ ok: true }),
-    },
+    }),
     toast: () => {},
     navigate: () => {},
     reducers: {

@@ -78,7 +78,7 @@ function viewWithOneFailure() {
  * 渲染治理面板并等一次 `governance.history` 取数落地。
  *
  * 迁移说明（2026-10-18）：旧写法用 hook 槽位直接摆"已取到的数据"。真实 React 下改成
- * **让组件真的去取**——槽位 0 变成 `api.governanceHistory()` 的返回值，槽位 1（错误）
+ * **让组件真的去取**——槽位 0 变成 `api.governance.governanceHistory()` 的返回值，槽位 1（错误）
  * 变成一次抛错，于是判据不但复现同一场景，还顺带覆盖了真实取数/错误路径。
  * （2026-11-01：组件从直发 `api.rpc` 改走 ApiClient 封装，mock key 随之换成方法名。）
  *

@@ -156,7 +156,7 @@ function useVaultTab(api: ReturnType<typeof useApp>['api']): {
   const { data, error: fetchError, loading, refresh } = useSessionResource<VaultListResult>({
     enabled: true,
     followTick: false,
-    load: React.useCallback(async () => api.vaultList(), [api]),
+    load: React.useCallback(async () => api.vault.vaultList(), [api]),
   });
   // 动作失败（写入 / 删除）与取数失败分帐：动作错误不顶掉列表，取数错误不清动作提示。
   const error = actionError ?? fetchError;
@@ -166,7 +166,7 @@ function useVaultTab(api: ReturnType<typeof useApp>['api']): {
     setActionError(null);
     setNotice(null);
     try {
-      const result = await api.vaultSet(name, secret);
+      const result = await api.vault.vaultSet(name, secret);
       if (!result.ok) {
         setActionError(result.reason);
         return;
@@ -186,7 +186,7 @@ function useVaultTab(api: ReturnType<typeof useApp>['api']): {
       setActionError(null);
       setNotice(null);
       try {
-        const result = await api.vaultDelete(target);
+        const result = await api.vault.vaultDelete(target);
         if (!result.ok) {
           setActionError(result.reason);
           return;

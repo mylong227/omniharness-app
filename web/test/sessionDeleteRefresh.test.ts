@@ -1,3 +1,4 @@
+import { flatApiStub } from './rtlHarness.ts';
 ﻿// 删除会话的**列表刷新**门禁（零 DOM、真 reducer）：用户报「删除并未刷新」+「删除失败: session_not_found」。
 //
 // ## 缺陷形态（2026-09-27 截图）
@@ -56,10 +57,10 @@ function makeEnv(diskSessions: ReturnType<typeof disk>[], deleteResult: { ok: bo
     getState: () => state,
   };
   const services = {
-    api: {
+    api: flatApiStub({
       deleteSession: async () => deleteResult,
       listSessions: async () => ({ sessions: diskSessions }),
-    },
+    }),
     toast: (m: string) => toasts.push(m),
     navigate: () => {},
     reducers: {

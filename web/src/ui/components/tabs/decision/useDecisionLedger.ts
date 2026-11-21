@@ -70,7 +70,7 @@ export function useDecisionLedger(threadId: string | null): UseDecisionLedgerRes
       else setLoading(true);
       setError(null);
       api
-        .decisionSession(threadId)
+        .decision.decisionSession(threadId)
         .then((result) => {
           if (seq !== seqRef.current) return;
           if (isFailure(result)) {
@@ -135,7 +135,7 @@ export function useDecisionLedger(threadId: string | null): UseDecisionLedgerRes
       const seq = ++detailSeqRef.current;
       setDetailLoading(true);
       api
-        .decisionDetail(threadId, recordId)
+        .decision.decisionDetail(threadId, recordId)
         .then((result) => {
           if (seq !== detailSeqRef.current) return;
           if (isFailure(result)) {
@@ -158,7 +158,7 @@ export function useDecisionLedger(threadId: string | null): UseDecisionLedgerRes
   const exportEvidence = React.useCallback(async (): Promise<DecisionExportResultLike | string> => {
     if (threadId === null || threadId === '') return t('先选择一个会话，再导出 AAT。');
     try {
-      const result = await api.decisionExport(threadId);
+      const result = await api.decision.decisionExport(threadId);
       return isFailure(result) ? result.message : result;
     } catch (e) {
       return e instanceof Error ? e.message : String(e);
@@ -168,7 +168,7 @@ export function useDecisionLedger(threadId: string | null): UseDecisionLedgerRes
   const configure = React.useCallback(
     async (enabled: boolean, principal: string | undefined): Promise<DecisionSettingsLike | string> => {
       try {
-        const result = await api.decisionConfigure(enabled, principal);
+        const result = await api.decision.decisionConfigure(enabled, principal);
         if ('ok' in result && result.ok === false) return result.message;
         if (!('settings' in result)) return t('保存失败：服务端未返回设置。');
         load(true);

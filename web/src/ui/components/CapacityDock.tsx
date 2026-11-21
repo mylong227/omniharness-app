@@ -271,7 +271,7 @@ function BudgetEditor(props: BudgetEditorProps): ReactElement {
     }
     setSaving(true);
     try {
-      await api.quotaSet({ dailyTokens: Math.floor(parsed) });
+      await api.observability.quotaSet({ dailyTokens: Math.floor(parsed) });
       props.onSaved();
       toast(t('已更新今日预算'), 'ok');
     } catch (e) {

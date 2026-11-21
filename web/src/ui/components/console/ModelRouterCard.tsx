@@ -148,7 +148,7 @@ export function ModelRouterCard(props: ModelRouterCardProps): ReactElement {
   React.useEffect(() => {
     let alive = true;
     api
-      .modelAdapters()
+      .config.modelAdapters()
       .then((r) => {
         if (alive) setAdapters(r.adapters);
       })

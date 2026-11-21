@@ -146,7 +146,7 @@ function useProfilesStore(reloadKey: number): ProfilesStore {
   const { api, toast } = useApp();
   const load = React.useCallback(async (): Promise<{ profiles: Profile[]; active: ActivePlugins }> => {
     try {
-      const [list, act] = await Promise.all([api.listProfiles(), api.getActiveProfile()]);
+      const [list, act] = await Promise.all([api.profile.listProfiles(), api.profile.getActiveProfile()]);
       // 形状归一（同 MemoryTab）：异常/桩响应可能不是数组，别让 .map 触发错误边界。
       return {
         profiles: Array.isArray(list) ? list : [],
@@ -197,9 +197,9 @@ function useProfileActions(
       toast(t('请填写配置集名称'), 'err');
       return;
     }
-    const act = await api.getActiveProfile();
+    const act = await api.profile.getActiveProfile();
     try {
-      await api.saveProfile({
+      await api.profile.saveProfile({
         name,
         plugins: act.plugins ?? [],
         description: t('保存于 Web 控制台'),
@@ -218,7 +218,7 @@ function useProfileActions(
    */
   const applyProfile = async (id: string): Promise<void> => {
     try {
-      const r = await api.applyProfile(id);
+      const r = await api.profile.applyProfile(id);
       toast(
         t('已应用配置集：{name}（载入 {loaded}，停用 {unloaded}）', {
           name: r.name || id,
@@ -245,7 +245,7 @@ function useProfileActions(
     });
     if (!ok) return;
     try {
-      await api.deleteProfile(id);
+      await api.profile.deleteProfile(id);
       toast(t('已删除'), 'ok');
       await reload();
     } catch (e) {
@@ -282,7 +282,7 @@ function useBundleActions(
     const id = bundleProfileRef.current ? bundleProfileRef.current.value.trim() : '';
     const params = id ? { id } : { profile: { name: 'current', plugins: active.plugins ?? [] } };
     try {
-      const r = await api.packBundle(params);
+      const r = await api.profile.packBundle(params);
       if (bundleZipRef.current) bundleZipRef.current.value = r.path;
       toast(t('已打包：{path}', { path: r.path }), 'ok');
     } catch (e) {
@@ -298,7 +298,7 @@ function useBundleActions(
       return;
     }
     try {
-      const r = await api.unpackBundle(zip);
+      const r = await api.profile.unpackBundle(zip);
       toast(
         r.patchFile
           ? t('已解包：安装 {count} 个插件，补丁层已写 {path}', { count: (r.installed || []).length, path: r.patchFile })

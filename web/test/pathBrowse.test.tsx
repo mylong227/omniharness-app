@@ -4,7 +4,7 @@
 // @vitest-environment jsdom
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import { act, fireEvent } from './rtlHarness.ts';
+import { act, fireEvent, flatApiStub } from './rtlHarness.ts';
 import { renderUi } from './rtlHarness.ts';
 
 const { PathBrowseControl } = await import('../src/ui/components/console/PathBrowseControl.tsx');
@@ -40,7 +40,7 @@ test('dir 形态：点「选择…」→ FolderPicker → 确认目录 → 值�
       onDraft: () => {},
       onCommitDraft: () => {},
     },
-    app: { api },
+    app: { api: flatApiStub(api) },
   });
   const browse = ui.container.querySelector('button.path-browse-btn');
   assert.ok(browse instanceof HTMLElement, '找不到「选择…」按钮');
@@ -86,12 +86,12 @@ test('file 形态：点「选择…」→ FilePicker → 勾选文件确认 → 
       onCommitDraft: () => {},
     },
     app: {
-      api: {
+      api: flatApiStub({
         ...api,
         listFs: async () => ({
           tree: [{ name: 'mem.key', path: 'D:/workspace/mem.key', type: 'file' }],
         }),
-      },
+      }),
     },
   });
   const browse = ui.container.querySelector('button.path-browse-btn');

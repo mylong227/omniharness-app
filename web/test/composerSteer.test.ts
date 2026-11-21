@@ -7,14 +7,12 @@ import { test } from 'vitest';
 import { fireEvent, renderFacadeAsync } from './rtlHarness.ts';
 import { byClass, byTag, facadeOf } from './domFacade.ts';
 import { Composer } from '../src/ui/components/Composer.tsx';
+import { flatApiStub } from './rtlHarness.ts';
 import type { ApiClient } from '../src/core/ApiClient.ts';
 import type { ChatQueueView } from '../src/ui/models/ChatMessageQueue.ts';
 import type { FileAttachment } from '../src/types/models.ts';
 
-const api = new Proxy(
-  {},
-  { get: () => () => Promise.resolve({}) },
-) as unknown as ApiClient;
+const api = flatApiStub({}) as unknown as ApiClient;
 
 /**
  * 构造一个最小的队列视图（Composer 只用 mode 决定文案）。

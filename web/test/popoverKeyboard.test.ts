@@ -20,7 +20,7 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import { act, fireEvent, renderUi, screen } from './rtlHarness.ts';
+import { act, fireEvent, renderUi, screen, flatApiStub } from './rtlHarness.ts';
 
 const { ModelPicker } = await import('../src/ui/components/ModelPicker.tsx');
 const { PermissionPicker } = await import('../src/ui/components/PermissionPicker.tsx');
@@ -99,7 +99,7 @@ test('PermissionPicker：触发器可聚焦，Enter 展开，档位项 Enter 选
     props: {
       permission: 'ask',
       onPick: (v: string) => picked.push(v),
-      api: { approvalTiers: async () => ({ tiers: [] }) },
+      api: flatApiStub({ approvalTiers: async () => ({ tiers: [] }) }),
     },
   });
   await flush();
@@ -123,12 +123,12 @@ test('AddMenu：Enter 展开菜单，首项 Enter 触发附加（onAttach）', a
   const ui = renderUi(AddMenu, {
     props: {
       threadId: '',
-      api: {
+      api: flatApiStub({
         modesGet: async () => ({ goal: '', planMode: false, sketchMode: false }),
         listPlugins: async () => [],
         agentsList: async () => ({ agents: [] }),
         searchAll: async () => ({ files: [], chats: [] }),
-      },
+      }),
       onAttach: () => calls.push('attach'),
       onToast: () => {},
       onOpenTab: () => {},
@@ -161,11 +161,11 @@ test('FilePicker：模态语义齐全，焦点进入弹窗，勾选复选框即�
   const picked: string[][] = [];
   const ui = renderUi(FilePicker, {
     props: {
-      api: {
+      api: flatApiStub({
         listFs: async () => ({
           tree: [{ name: 'a.txt', path: 'a.txt', type: 'file' }],
         }),
-      },
+      }),
       onCancel: () => {},
       onPick: (files: string[]) => picked.push(files),
     },
@@ -259,7 +259,7 @@ test('ModelPicker：↑/↓/Home/End 移动焦点（环绕），Esc 收起并归
 
 test('PermissionPicker：↓/↑ 在档位间移动，roving tabindex 只有一个落点', async () => {
   const ui = renderUi(PermissionPicker, {
-    props: { permission: 'ask', onPick: () => {}, api: { approvalTiers: async () => ({ tiers: [] }) } },
+    props: { permission: 'ask', onPick: () => {}, api: flatApiStub({ approvalTiers: async () => ({ tiers: [] }) }) },
   });
   await flush();
   fireEvent.keyDown(ui.root as HTMLElement, { key: 'Enter' });
@@ -276,12 +276,12 @@ test('AddMenu：↓ 从触发器进入首项、↑ 环绕到末项，禁用项�
   const ui = renderUi(AddMenu, {
     props: {
       threadId: '',
-      api: {
+      api: flatApiStub({
         modesGet: async () => ({ goal: '', planMode: false, sketchMode: false }),
         listPlugins: async () => [],
         agentsList: async () => ({ agents: [] }),
         searchAll: async () => ({ files: [], chats: [] }),
-      },
+      }),
       onAttach: () => {},
       onToast: () => {},
       onOpenTab: () => {},
@@ -317,7 +317,7 @@ test('FilePicker：Tab 被陷阱接管（焦点不出弹窗），卸载后焦点
   try {
     const ui = renderUi(FilePicker, {
       props: {
-        api: { listFs: async () => ({ tree: [{ name: 'a.txt', path: 'a.txt', type: 'file' }] }) },
+        api: flatApiStub({ listFs: async () => ({ tree: [{ name: 'a.txt', path: 'a.txt', type: 'file' }] }) }),
         onCancel: () => {},
         onPick: () => {},
       },
@@ -347,7 +347,7 @@ test('FolderPicker：Tab 被陷阱接管，卸载后焦点归还 opener', async 
   try {
     const ui = renderUi(FolderPicker, {
       props: {
-        api: { browseFs: async () => ({ level: 'dir', path: 'C:/w', dirs: [], files: [], parent: 'C:/' }) },
+        api: flatApiStub({ browseFs: async () => ({ level: 'dir', path: 'C:/w', dirs: [], files: [], parent: 'C:/' }) }),
         onCancel: () => {},
         onPick: () => {},
       },

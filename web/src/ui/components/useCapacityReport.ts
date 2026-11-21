@@ -57,7 +57,7 @@ export function useCapacityReport(active: boolean = true): CapacityReportState {
     const run = async (): Promise<void> => {
       setLoading(true);
       try {
-        const [u, q] = await Promise.all([api.contextUsage(sessionId ?? ''), api.quotaGet()]);
+        const [u, q] = await Promise.all([api.context.contextUsage(sessionId ?? ''), api.observability.quotaGet()]);
         if (!alive) return;
         setUsage(u);
         setQuota(q);

@@ -57,7 +57,7 @@ export function useFleet(threadId: string | null, active: boolean): UseFleetResu
     const seq = ++seqRef.current;
     setLoading(true);
     api
-      .fleetList(threadId)
+      .fleet.fleetList(threadId)
       .then((snapshot) => {
         if (seq !== seqRef.current) return;
         fetchedAtRef.current = Date.now();

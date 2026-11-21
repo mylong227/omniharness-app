@@ -4,6 +4,7 @@ import * as React from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { AppContext, type AppContextValue } from '../src/ui/context.ts';
+import { flatApiStub } from './rtlHarness.ts';
 import { DecisionTab } from '../src/ui/components/tabs/DecisionTab.tsx';
 import type {
   DecisionDetailViewLike,
@@ -112,12 +113,12 @@ const DETAIL: DecisionDetailViewLike = {
 
 /** 最小 App 上下文：只实现面板实际调用的 API。 */
 function contextOf(): AppContextValue {
-  const api = {
+  const api = flatApiStub({
     decisionSession: () => Promise.resolve(VIEW),
     decisionDetail: () => Promise.resolve(DETAIL),
     decisionExport: () => Promise.resolve({ ok: false, code: 'export_blocked', message: 'test' }),
     decisionConfigure: () => Promise.resolve({ ok: false, code: 'config_write_failed', message: 'test' }),
-  } as unknown as AppContextValue['api'];
+  }) as unknown as AppContextValue['api'];
   return {
     api,
     toast: () => {},

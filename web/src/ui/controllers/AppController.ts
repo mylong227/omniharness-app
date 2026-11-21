@@ -394,7 +394,7 @@ export class AppController {
     // 标签页标题也随语言走（index.html 里的静态 <title> 是中文，这里接管为 t() 文案）。
     document.title = t('OmniHarness 工作台');
     this.services.api
-      .getConfig()
+      .config.getConfig()
       .then((c) => {
         this.host.patch((s) => ({
           adapter: (c.modelAdapter || 'mock') + (c.model ? ' · ' + c.model : ''),
@@ -630,7 +630,7 @@ export class AppController {
    */
   private restorePendingCards(): void {
     this.services.api
-      .pendingApprovals()
+      .control.pendingApprovals()
       .then((list) => {
         const first = list[0];
         if (first !== undefined) this.host.patch((s) => (s.approval ? {} : { approval: first }));
@@ -641,7 +641,7 @@ export class AppController {
         this.services.toast(t('挂起审批恢复失败，可刷新页面重试'), 'err');
       });
     this.services.api
-      .pendingQuestions()
+      .control.pendingQuestions()
       .then((list) => {
         const first = list[0];
         if (first !== undefined) {
@@ -659,7 +659,7 @@ export class AppController {
   /** 拉取当前厂商可用模型清单并写入状态 / 持久化（含推理强度档位）。 @returns 无 */
   public refreshModelCatalog(): void {
     this.services.api
-      .modelCatalog()
+      .config.modelCatalog()
       .then((cat) => {
         const active = cat.active;
         if (active) {
@@ -690,7 +690,7 @@ export class AppController {
   /** 拉取服务端价表喂给 ModelPricing（#9；失败静默——内置表兜底，成本估算不中断）。 @returns 无 */
   public refreshModelPricing(): void {
     this.services.api
-      .modelPricing()
+      .config.modelPricing()
       .then((table) => {
         ModelPricing.setServerTable(table);
       })
@@ -857,10 +857,10 @@ export class AppController {
     if (!req) return;
     try {
       if (always) {
-        await this.services.api.updateConfig({ autoApprove: true });
+        await this.services.api.config.updateConfig({ autoApprove: true });
         decision = 'allow';
       }
-      await this.services.api.respondApproval(req.requestId, decision);
+      await this.services.api.control.respondApproval(req.requestId, decision);
       // **成功后才收卡片**：与 answerQuestion 同一纪律。先收卡片再发 RPC 会在失败时
       // 丢掉挂起（回合永久等待），而用户只看到一行 toast。
       this.host.patch({ approval: null });
@@ -886,7 +886,7 @@ export class AppController {
     const request = this.host.getState().question;
     if (!request) return;
     try {
-      const ack = await this.services.api.respondQuestion(request.requestId, answers);
+      const ack = await this.services.api.control.respondQuestion(request.requestId, answers);
       if (!ack.ok) {
         if (ack.error === 'unknown_request') {
           this.host.patch({ question: null });

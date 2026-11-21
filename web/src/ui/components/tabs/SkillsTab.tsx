@@ -151,7 +151,7 @@ export function SkillsTab(): React.ReactElement {
   // 目录装载（2026-11-21 批次六 A1 收编 useSessionResource）：data=null=装载中、
   // error=整页错误态、refresh=应用/删除后的重拉（返回在飞 Promise）。
   const load = React.useCallback(async (): Promise<SkillListRow[]> => {
-    const r = await api.listSkills();
+    const r = await api.skills.listSkills();
     return r.skills ?? [];
   }, [api]);
   const { data: fetchedSkills, error: loadError, refresh: reload } = useSessionResource({
@@ -165,7 +165,7 @@ export function SkillsTab(): React.ReactElement {
   /** 进入编辑态：拉单条完整视图回填表单。 */
   const startEdit = (row: SkillListRow): void => {
     api
-      .getSkill(row.name)
+      .skills.getSkill(row.name)
       .then((skill) => {
         setEditor({
           mode: 'edit',
@@ -194,12 +194,12 @@ export function SkillsTab(): React.ReactElement {
     };
     setEditor({ ...editor, busy: true, issues: [] });
     try {
-      const report = await api.diffSkill(draft);
+      const report = await api.skills.diffSkill(draft);
       if (report.issues !== undefined && report.issues.length > 0) {
         setEditor({ ...editor, busy: false, issues: report.issues });
         return;
       }
-      await api.applySkill(draft);
+      await api.skills.applySkill(draft);
       toast(t('已应用，下一会话生效'), 'ok');
       setEditor(null);
       reload();
@@ -217,7 +217,7 @@ export function SkillsTab(): React.ReactElement {
     });
     if (!ok) return;
     try {
-      await api.deleteSkill(row.name);
+      await api.skills.deleteSkill(row.name);
       toast(t('已删除，下一会话生效'), 'ok');
       reload();
     } catch (cause: unknown) {
