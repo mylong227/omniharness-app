@@ -11,6 +11,7 @@ import * as React from 'react';
 import { t } from '../../i18n/i18n.ts';
 import type { SettingsTabKey } from '../../models/SettingsModel.ts';
 import type { AppContextValue } from '../../context.ts';
+import { useSessionResource } from '../../hooks/useSessionResource.ts';
 import type { Config, ProviderPreset, ProviderProbeResult } from '../../../types/models.ts';
 
 /** 厂商目录装载态：把「读取中 / 读取失败 / 目录真的为空」分开。 */
@@ -130,44 +131,28 @@ interface CatalogLoad {
 }
 
 /**
- * 拉厂商目录与打码 Key（含竞态防护）。
+ * 拉厂商目录与打码 Key（W5：目录流收编进 useSessionResource，票号/错误/清空语义单源）。
+ *
+ * 目录失败**不静默**：写进 status/error，由模型页显示原因 + 重试；刷新失败保留上一帧卡片。
+ * 打码 Key 是旁路流：失败静默（配置错误由设置页 loadError 统一提示），不阻断目录。
+ *
  * @param api 服务端客户端
  * @param tab 当前设置页
  * @returns 目录数据与重试入口
  */
 function useCatalogLoad(api: AppContextValue['api'], tab: SettingsTabKey): CatalogLoad {
-  const [providers, setProviders] = React.useState<ProviderPreset[]>([]);
-  const [activeId, setActiveId] = React.useState<string | undefined>(undefined);
   const [maskedKeys, setMaskedKeys] = React.useState<Record<string, string>>({});
-  const [catalogStatus, setCatalogStatus] = React.useState<CatalogStatus>('idle');
-  const [catalogError, setCatalogError] = React.useState('');
-  const catalogReqRef = React.useRef(0);
+  const loadCatalog = React.useCallback(() => api.config.modelCatalog(), [api]);
+  const catalog = useSessionResource({
+    enabled: tab === 'model',
+    load: loadCatalog,
+    followTick: false,
+  });
 
-  /**
-   * 拉厂商目录与打码 Key。
-   *
-   * 目录失败**不静默**：写进状态，由模型页显示原因 + 重试；刷新失败保留上一帧卡片。
-   * @returns 无
-   */
-  const reloadProviders = React.useCallback((): void => {
-    const request = ++catalogReqRef.current;
-    setCatalogStatus('loading');
-    setCatalogError('');
-    api
-      .config.modelCatalog()
-      .then((result) => {
-        if (request !== catalogReqRef.current) return;
-        setProviders(result.providers);
-        setActiveId(result.active?.id);
-        setCatalogStatus('ready');
-      })
-      .catch((cause: unknown) => {
-        if (request !== catalogReqRef.current) return;
-        setCatalogError(cause instanceof Error ? cause.message : String(cause));
-        setCatalogStatus('error');
-      });
-    api
-      .config.getConfig()
+  /** 打码 Key 旁路取数：失败静默、保留上一帧。 */
+  const reloadKeys = React.useCallback((): void => {
+    api.config
+      .getConfig()
       .then((config: Config) => {
         const keys = (config as unknown as Record<string, unknown>)['providerKeys'];
         setMaskedKeys(keys !== undefined && typeof keys === 'object' ? (keys as Record<string, string>) : {});
@@ -178,10 +163,33 @@ function useCatalogLoad(api: AppContextValue['api'], tab: SettingsTabKey): Catal
   }, [api]);
 
   React.useEffect(() => {
-    if (tab === 'model') reloadProviders();
-  }, [tab, reloadProviders]);
+    if (tab === 'model') reloadKeys();
+  }, [tab, reloadKeys]);
 
-  return { providers, activeId, maskedKeys, catalogStatus, catalogError, reloadProviders };
+  /** 重新拉厂商目录与打码 Key（动作后统一入口）。 */
+  const reloadProviders = React.useCallback((): void => {
+    void catalog.refresh();
+    reloadKeys();
+  }, [catalog.refresh, reloadKeys]);
+
+  /** 三态映射：error 优先，其次「有数据 = ready」，首取中 = loading。 */
+  const catalogStatus: CatalogStatus =
+    catalog.error !== null
+      ? 'error'
+      : catalog.data !== null
+        ? 'ready'
+        : catalog.loading
+          ? 'loading'
+          : 'idle';
+
+  return {
+    providers: catalog.data?.providers ?? [],
+    activeId: catalog.data?.active?.id,
+    maskedKeys,
+    catalogStatus,
+    catalogError: catalog.error ?? '',
+    reloadProviders,
+  };
 }
 
 /**

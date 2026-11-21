@@ -1,12 +1,17 @@
 // 编队数据钩子：2s 轮询（仅 tab 活跃时）+ 迟到响应守卫（设计 CR-05/CR-06）。
 //
 // 轮询口径（设计 §7.2）：编队允许活跃 tab 下 2s 轮询 `fleet.list`；`document.hidden`
-// 或 tab 不活跃时停止。用「请求序号守卫」而不是 AbortController：ApiClient.rpc 不支持
-// abort，序号守卫同样保证「迟到响应不覆盖新状态」。
+// 或 tab 不活跃时停止。用「请求票号守卫」而不是 AbortController：ApiClient.rpc 不支持
+// abort，票号守卫同样保证「迟到响应不覆盖新状态」。
+//
+// 2026-11-22 W5：取数骨架收编进 useSessionResource（pollMs/cacheTtlMs/resetKey +
+// keepDataWhenDisabled 覆盖了「活跃轮询 / 30s 缓存 / 切会话复位 / 不活跃保留旧快照」）。
+// 本文件只保留业务映射与「已过期」读数。
 
 import * as React from 'react';
 import { useApp } from '../../../context.ts';
 import { useNow } from '../../../hooks/useNow.ts';
+import { useSessionResource } from '../../../hooks/useSessionResource.ts';
 import type { FleetSnapshotLike } from '../../../../types/models.ts';
 
 /** 轮询间隔（毫秒）。 */
@@ -14,6 +19,9 @@ const POLL_MS = 2_000;
 
 /** 同会话快照缓存有效期（毫秒；过期才重发请求）。 */
 const CACHE_TTL_MS = 30_000;
+
+/** 「已过期」读数刷新间隔（毫秒；不驱动 RPC）。 */
+const STALE_TICK_MS = 30_000;
 
 /** 编队数据钩子的返回值。 */
 export interface UseFleetResult {
@@ -36,75 +44,42 @@ export interface UseFleetResult {
  * @returns 快照与状态。
  */
 export function useFleet(threadId: string | null, active: boolean): UseFleetResult {
-  const { api, sessionTick } = useApp();
-  const [snapshot, setSnapshot] = React.useState<FleetSnapshotLike | null>(null);
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  /** 请求序号守卫：只让最新请求的结果落地。 */
-  const seqRef = React.useRef(0);
-  /** 上次成功请求的时刻（缓存窗口起点）。 */
-  const fetchedAtRef = React.useRef(0);
-  /** 上一次请求的会话（切会话时清空旧快照与缓存窗口）。 */
-  const lastThreadRef = React.useRef<string | null>(null);
-  /** 「已过期」标注用的当前时刻（低频跳动，不驱动轮询）：useNow 收编（2026-11-17 review）。 */
-  const tick = useNow(active, 30_000);
-  /** 刚拉到新快照时把时钟顶到当前（否则 collectedAt 缺失的快照会立刻被标成最长 30s 的「已过期」）。 */
-  const [freshTick, setFreshTick] = React.useState(() => Date.now());
-  const nowTick = Math.max(tick, freshTick);
-
-  const load = React.useCallback((): void => {
-    if (threadId === null || threadId === '') return;
-    const seq = ++seqRef.current;
-    setLoading(true);
-    api
-      .fleet.fleetList(threadId)
-      .then((snapshot) => {
-        if (seq !== seqRef.current) return;
-        fetchedAtRef.current = Date.now();
-        setSnapshot(snapshot);
-        setError(null);
-        setFreshTick(Date.now());
-      })
-      .catch((e: unknown) => {
-        if (seq !== seqRef.current) return;
-        setError(e instanceof Error ? e.message : String(e));
-      })
-      .finally(() => {
-        if (seq === seqRef.current) setLoading(false);
-      });
+  const { api } = useApp();
+  const enabled = threadId !== null && threadId !== '' && active;
+  const load = React.useCallback((): Promise<FleetSnapshotLike> => {
+    // enabled 已挡住空会话；这里只是把「调用处必须给 threadId」表达成类型安全的分支。
+    if (threadId === null || threadId === '') return Promise.reject(new Error('未选择会话'));
+    return api.fleet.fleetList(threadId);
   }, [api, threadId]);
+  const { data, loading, error, updatedAt, refresh } = useSessionResource({
+    enabled,
+    load,
+    resetKey: threadId,
+    pollMs: POLL_MS,
+    cacheTtlMs: CACHE_TTL_MS,
+    // tab 不活跃 ≠ 没有会话：切走再切回先显示旧快照（原实现的「静默保留」口径）。
+    keepDataWhenDisabled: true,
+  });
 
-  // 首次进入 / 会话切换 / 版本号推进：超过缓存窗口才真正发请求。
-  React.useEffect(() => {
-    if (threadId === null || threadId === '') {
-      lastThreadRef.current = null;
-      setSnapshot(null);
-      setError(null);
-      setLoading(false);
-      return;
-    }
-    if (lastThreadRef.current !== threadId) {
-      lastThreadRef.current = threadId;
-      fetchedAtRef.current = 0;
-      setSnapshot(null);
-      setError(null);
-    }
-    if (!active) return;
-    if (Date.now() - fetchedAtRef.current > CACHE_TTL_MS) load();
-  }, [active, load, sessionTick, threadId]);
-
-  // 活跃时 2s 轮询；不活跃 / 页面隐藏时停（CR-06：后台不产生持续 RPC）。
-  React.useEffect(() => {
-    if (!active || threadId === null || threadId === '') return;
-    const timer = setInterval(() => {
-      if (typeof document !== 'undefined' && document.hidden) return;
-      load();
-    }, POLL_MS);
-    return () => clearInterval(timer);
-  }, [active, load, threadId]);
-
+  /** 「已过期」标注用的当前时刻（低频跳动，不驱动轮询）：useNow 收编（2026-11-17 review）。 */
+  const tick = useNow(active, STALE_TICK_MS);
+  /**
+   * 新快照落地时 updatedAt 即当前时刻，用它把时钟顶到当前——
+   * 否则 collectedAt 缺失的快照会立刻被标成最长 30s 的「已过期」。
+   */
+  const nowTick = Math.max(tick, updatedAt);
   const staleMs =
-    snapshot === null ? 0 : Math.max(0, nowTick - Date.parse(snapshot.collectedAt || String(fetchedAtRef.current)));
+    data === null
+      ? 0
+      : Math.max(0, nowTick - Date.parse(data.collectedAt || String(updatedAt)));
 
-  return { snapshot, loading, error, staleMs, refresh: load };
+  return {
+    snapshot: data,
+    loading,
+    error,
+    staleMs,
+    refresh: () => {
+      void refresh();
+    },
+  };
 }

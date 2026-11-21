@@ -1,6 +1,13 @@
+// 决策账本数据钩子：会话视图 + 按需详情（两流各自「后发必胜」）。
+//
+// 2026-11-22 W5：两条流收编进 useSessionResource——视图跟 sessionTick + 切会话复位；
+// 详情 followTick=false、按选中记录取数、切记录/切会话即复位。原实现的两套 seq ref
+// 与两段 effect 复位逻辑删除，静默刷新（refreshing）由核心提供。
+
 import * as React from 'react';
 import { useApp } from '../../../context.ts';
 import { t } from '../../../i18n/i18n.ts';
+import { useSessionResource } from '../../../hooks/useSessionResource.ts';
 import type {
   DecisionDetailViewLike,
   DecisionExportResultLike,
@@ -49,111 +56,58 @@ export interface UseDecisionLedgerResult {
  * @returns 视图、详情与动作。
  */
 export function useDecisionLedger(threadId: string | null): UseDecisionLedgerResult {
-  const { api, sessionTick } = useApp();
-  const [view, setView] = React.useState<DecisionSessionViewLike | null>(null);
-  const [loading, setLoading] = React.useState(false);
-  const [refreshing, setRefreshing] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { api } = useApp();
   const [selectedRecordId, setSelectedRecordId] = React.useState<string | null>(null);
-  const [detail, setDetail] = React.useState<DecisionDetailViewLike | null>(null);
-  const [detailLoading, setDetailLoading] = React.useState(false);
-  const [detailError, setDetailError] = React.useState<string | null>(null);
-  const seqRef = React.useRef(0);
-  const detailSeqRef = React.useRef(0);
-  const lastThreadRef = React.useRef<string | null>(null);
+  const enabled = threadId !== null && threadId !== '';
 
-  const load = React.useCallback(
-    (quiet: boolean): void => {
-      if (threadId === null || threadId === '') return;
-      const seq = ++seqRef.current;
-      if (quiet) setRefreshing(true);
-      else setLoading(true);
-      setError(null);
-      api
-        .decision.decisionSession(threadId)
-        .then((result) => {
-          if (seq !== seqRef.current) return;
-          if (isFailure(result)) {
-            setError(result.message);
-            setView(null);
-            return;
-          }
-          setView(result);
-          setSelectedRecordId((current) => {
-            if (current === null) return null;
-            return result.rows.some((row) => row.recordId === current) ? current : null;
-          });
-        })
-        .catch((e: unknown) => {
-          if (seq !== seqRef.current) return;
-          setError(e instanceof Error ? e.message : String(e));
-          setView(null);
-        })
-        .finally(() => {
-          if (seq !== seqRef.current) return;
-          setLoading(false);
-          setRefreshing(false);
-        });
-    },
-    [api, threadId],
-  );
+  /** 视图取数：失败结果统一转异常，交给核心的 error 通道。 */
+  const loadView = React.useCallback(async (): Promise<DecisionSessionViewLike> => {
+    if (threadId === null || threadId === '') throw new Error('未选择会话');
+    const result = await api.decision.decisionSession(threadId);
+    if (isFailure(result)) throw new Error(result.message);
+    return result;
+  }, [api, threadId]);
+  const view = useSessionResource({
+    enabled,
+    load: loadView,
+    resetKey: threadId,
+  });
 
+  // 会话切换：选中记录属于上一个会话，必须清掉（详情流随之禁用）。
   React.useEffect(() => {
-    if (threadId === null || threadId === '') {
-      lastThreadRef.current = null;
-      setView(null);
-      setError(null);
-      setSelectedRecordId(null);
-      setDetail(null);
-      setDetailError(null);
-      setLoading(false);
-      return;
-    }
-    if (lastThreadRef.current !== threadId) {
-      lastThreadRef.current = threadId;
-      setView(null);
-      setSelectedRecordId(null);
-      setDetail(null);
-      setDetailError(null);
-      setError(null);
-    }
-    load(false);
-  }, [load, sessionTick, threadId]);
+    setSelectedRecordId(null);
+  }, [threadId]);
 
-  const selectRecord = React.useCallback(
-    (recordId: string): void => {
-      if (threadId === null || threadId === '') return;
-      if (recordId === '') {
-        setSelectedRecordId(null);
-        setDetail(null);
-        setDetailError(null);
-        return;
-      }
-      setSelectedRecordId(recordId);
-      setDetail(null);
-      setDetailError(null);
-      const seq = ++detailSeqRef.current;
-      setDetailLoading(true);
-      api
-        .decision.decisionDetail(threadId, recordId)
-        .then((result) => {
-          if (seq !== detailSeqRef.current) return;
-          if (isFailure(result)) {
-            setDetailError(result.message);
-            return;
-          }
-          setDetail(result);
-        })
-        .catch((e: unknown) => {
-          if (seq !== detailSeqRef.current) return;
-          setDetailError(e instanceof Error ? e.message : String(e));
-        })
-        .finally(() => {
-          if (seq === detailSeqRef.current) setDetailLoading(false);
-        });
-    },
-    [api, threadId],
-  );
+  // 视图刷新后选中记录可能已不在账本里：主动清空，避免详情指向消失的行。
+  React.useEffect(() => {
+    const data = view.data;
+    if (data === null) return;
+    setSelectedRecordId((current) => {
+      if (current === null) return null;
+      return data.rows.some((row) => row.recordId === current) ? current : null;
+    });
+  }, [view.data]);
+
+  /** 详情取数：同样把失败结果转异常。 */
+  const loadDetail = React.useCallback(async (): Promise<DecisionDetailViewLike> => {
+    if (threadId === null || threadId === '' || selectedRecordId === null) {
+      throw new Error('未选择记录');
+    }
+    const result = await api.decision.decisionDetail(threadId, selectedRecordId);
+    if (isFailure(result)) throw new Error(result.message);
+    return result;
+  }, [api, threadId, selectedRecordId]);
+  const detail = useSessionResource({
+    enabled: enabled && selectedRecordId !== null,
+    load: loadDetail,
+    followTick: false,
+    // 记录或会话一变就复位：旧详情不得挂在新选择上。
+    resetKey: selectedRecordId === null ? null : `${threadId ?? ''}:${selectedRecordId}`,
+  });
+
+  const selectRecord = React.useCallback((recordId: string): void => {
+    setSelectedRecordId(recordId === '' ? null : recordId);
+  }, []);
 
   const exportEvidence = React.useCallback(async (): Promise<DecisionExportResultLike | string> => {
     if (threadId === null || threadId === '') return t('先选择一个会话，再导出 AAT。');
@@ -166,31 +120,33 @@ export function useDecisionLedger(threadId: string | null): UseDecisionLedgerRes
   }, [api, threadId]);
 
   const configure = React.useCallback(
-    async (enabled: boolean, principal: string | undefined): Promise<DecisionSettingsLike | string> => {
+    async (enabledFlag: boolean, principal: string | undefined): Promise<DecisionSettingsLike | string> => {
       try {
-        const result = await api.decision.decisionConfigure(enabled, principal);
+        const result = await api.decision.decisionConfigure(enabledFlag, principal);
         if ('ok' in result && result.ok === false) return result.message;
         if (!('settings' in result)) return t('保存失败：服务端未返回设置。');
-        load(true);
+        void view.refresh();
         return result.settings;
       } catch (e) {
         return e instanceof Error ? e.message : String(e);
       }
     },
-    [api, load],
+    [api, view],
   );
 
   return {
-    view,
-    loading,
-    refreshing,
-    error,
+    view: view.data,
+    loading: view.loading,
+    refreshing: view.refreshing,
+    error: view.error,
     selectedRecordId,
-    detail,
-    detailLoading,
-    detailError,
+    detail: detail.data,
+    detailLoading: detail.loading,
+    detailError: detail.error,
     selectRecord,
-    refresh: () => load(true),
+    refresh: () => {
+      void view.refresh();
+    },
     exportEvidence,
     configure,
   };

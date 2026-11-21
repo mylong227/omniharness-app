@@ -6,6 +6,8 @@
 
 import * as React from 'react';
 import { useApp } from '../../context.ts';
+import { useLatestRequest } from '../../hooks/LatestRequest.ts';
+import { useSessionResource } from '../../hooks/useSessionResource.ts';
 import { DiffHunkSplitter } from '../../models/DiffHunkSplitter.ts';
 import { ReviewCursor } from '../../models/ReviewCursor.ts';
 import { ReviewKeyboard } from '../../models/ReviewKeyboard.ts';
@@ -62,32 +64,24 @@ export interface ChangesReview {
   onReviewKey: (e: React.KeyboardEvent) => void;
 }
 
-/** 拉取变更清单（进入面板 / sessionTick 变化时刷新）。 */
+/** 拉取变更清单（进入面板 / sessionTick 变化时刷新；W5 收编进 useSessionResource）。 */
 function useChangesList(api: ApiClient, sessionTick: number) {
-  const [data, setData] = React.useState<ChangesData | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
-  const [loaded, setLoaded] = React.useState<boolean>(false);
-
-  /** 拉取变更清单。 */
-  const refresh = async (): Promise<void> => {
-    setLoaded(false);
-    setError(null);
-    try {
-      setData(await api.review.listChanges());
-      setLoaded(true);
-    } catch (e) {
-      setError((e as Error).message);
-      setLoaded(true);
-    }
-  };
-
-  // 挂载拉取清单（[] 有意：只在进入该页时拉一次；sessionTick 变化时重取）。
-  React.useEffect(() => {
-    void refresh();
-  }, [sessionTick]);
-
+  const load = React.useCallback((): Promise<ChangesData> => api.review.listChanges(), [api]);
+  const { data, error, settled, refresh } = useSessionResource({
+    enabled: true,
+    load,
+    followTick: false,
+    reloadTick: sessionTick,
+  });
   const files = data?.files ?? [];
-  return { data, error, loaded, files, isGit: data?.source === 'git', refresh };
+  return {
+    data,
+    error,
+    loaded: settled,
+    files,
+    isGit: data?.source === 'git',
+    refresh,
+  };
 }
 
 /** patch 展开状态（含请求代际护栏：迟到响应不得覆盖后点的文件）。 */
@@ -101,8 +95,8 @@ function useChangesPatch(
   const [expanded, setExpanded] = React.useState<string | null>(null);
   const [patch, setPatch] = React.useState<string>('');
   const [patchLoading, setPatchLoading] = React.useState<boolean>(false);
-  /** patch 加载请求代际：连点两个文件时，先发的慢响应不得覆盖后点的文件。 */
-  const patchSeq = React.useRef<number>(0);
+  /** patch 加载请求守卫：连点两个文件时，先发的慢响应不得覆盖后点的文件（W5 单一实现）。 */
+  const request = useLatestRequest();
 
   /**
    * 展开 / 收起某文件的 patch。
@@ -111,25 +105,25 @@ function useChangesPatch(
   const openPatch = async (path: string): Promise<void> => {
     if (expanded === path) {
       // 收起也作废在途请求：否则迟到的 patch 会把「已收起」的文件内容重新填进来。
-      patchSeq.current++;
+      request.invalidate();
       setExpanded(null);
       setPatch('');
       return;
     }
-    const seq = ++patchSeq.current;
+    const ticket = request.begin();
     setExpanded(path);
     setPatchLoading(true);
     setPatch('');
     clearDraft();
     try {
       const r = await api.review.listChanges(path);
-      if (seq !== patchSeq.current) return;
+      if (!request.isCurrent(ticket)) return;
       setPatch(r.patch ?? '');
     } catch (e) {
-      if (seq !== patchSeq.current) return;
+      if (!request.isCurrent(ticket)) return;
       setPatch(t('读取失败：{msg}', { msg: (e as Error).message }));
     } finally {
-      if (seq === patchSeq.current) setPatchLoading(false);
+      if (request.isCurrent(ticket)) setPatchLoading(false);
     }
   };
 
@@ -138,13 +132,13 @@ function useChangesPatch(
    * @param path 当前展开的文件路径
    */
   const reloadAfter = async (path: string): Promise<void> => {
-    const seq = ++patchSeq.current;
+    const ticket = request.begin();
     await refresh();
     await refreshComments();
     try {
       const r = await api.review.listChanges(path);
       // 期间用户可能已切到别的文件 / 收起：迟到内容不得写进当前视图。
-      if (seq !== patchSeq.current) return;
+      if (!request.isCurrent(ticket)) return;
       setPatch(r.patch ?? '');
     } catch {
       /* patch 刷新失败保留旧内容 */

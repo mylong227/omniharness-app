@@ -1,7 +1,11 @@
-// 上下文工作室数据钩子：打开时取一次，`sessionTick` 推进后重取；不轮询（设计 CR-06）。
+// 上下文工作室数据钩子：tab 活跃时取一次，`sessionTick` 推进后重取；不轮询（设计 CR-06）。
+//
+// 2026-11-22 W5：取数骨架收编进 useSessionResource（票号守卫 / 失败保留旧数据 / 切会话复位
+// 全部由核心负责）。本文件只保留业务映射：活跃门控 + RPC 方法。
 
 import * as React from 'react';
 import { useApp } from '../../../context.ts';
+import { useSessionResource } from '../../../hooks/useSessionResource.ts';
 import type { ContextStudioSnapshotLike } from '../../../../types/models.ts';
 
 /** 上下文工作室数据钩子的返回值。 */
@@ -23,51 +27,24 @@ export interface UseContextStudioResult {
  * @returns 快照与状态。
  */
 export function useContextStudio(threadId: string | null, active: boolean): UseContextStudioResult {
-  const { api, sessionTick } = useApp();
-  const [snapshot, setSnapshot] = React.useState<ContextStudioSnapshotLike | null>(null);
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const seqRef = React.useRef(0);
-  /** 上一次请求的会话（切会话时清掉旧快照，避免短暂串会话）。 */
-  const lastThreadRef = React.useRef<string | null>(null);
-
-  const load = React.useCallback((): void => {
-    if (threadId === null || threadId === '') return;
-    const seq = ++seqRef.current;
-    setLoading(true);
-    api
-      .context.contextStudio(threadId)
-      .then((snapshot) => {
-        if (seq !== seqRef.current) return;
-        setSnapshot(snapshot);
-        setError(null);
-      })
-      .catch((e: unknown) => {
-        if (seq !== seqRef.current) return;
-        setError(e instanceof Error ? e.message : String(e));
-      })
-      .finally(() => {
-        if (seq === seqRef.current) setLoading(false);
-      });
+  const { api } = useApp();
+  const enabled = active && threadId !== null && threadId !== '';
+  const load = React.useCallback((): Promise<ContextStudioSnapshotLike> => {
+    // enabled 已挡住空会话；这里只是把「调用处必须给 threadId」表达成类型安全的分支。
+    if (threadId === null || threadId === '') return Promise.reject(new Error('未选择会话'));
+    return api.context.contextStudio(threadId);
   }, [api, threadId]);
-
-  React.useEffect(() => {
-    if (threadId === null || threadId === '') {
-      lastThreadRef.current = null;
-      setSnapshot(null);
-      setError(null);
-      setLoading(false);
-      return;
-    }
-    if (lastThreadRef.current !== threadId) {
-      lastThreadRef.current = threadId;
-      setSnapshot(null);
-      setError(null);
-    }
-    // 只有上下文 tab 活跃才请求：切到编队/凭证时不在后台产生 RPC。
-    if (!active) return;
-    load();
-  }, [load, sessionTick, active, threadId]);
-
-  return { snapshot, loading, error, refresh: load };
+  const { data, loading, error, refresh } = useSessionResource({
+    enabled,
+    load,
+    resetKey: threadId,
+  });
+  return {
+    snapshot: data,
+    loading,
+    error,
+    refresh: () => {
+      void refresh();
+    },
+  };
 }
