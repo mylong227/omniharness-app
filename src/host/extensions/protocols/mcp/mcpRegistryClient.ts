@@ -28,7 +28,7 @@ export interface McpRegistrySearchOptions {
 }
 
 /** 官方 registry 基址。 */
-export const MCP_REGISTRY_URL = 'https://registry.modelcontextprotocol.io';
+const MCP_REGISTRY_URL = 'https://registry.modelcontextprotocol.io';
 
 /**
  * MCP Registry 只读客户端。

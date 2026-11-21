@@ -120,7 +120,7 @@ export function StreamFeed(props: StreamFeedProps): React.ReactElement {
  * @param props 组件入参（与 StreamFeed 同一份）
  * @returns 内层节点
  */
-export function StreamInner(props: StreamFeedProps): React.ReactElement {
+function StreamInner(props: StreamFeedProps): React.ReactElement {
   const { liveInputs, onLoadEarlier, historyHasMore, historyLoading } = props.stream;
   const blockElsRef = props.blockElsRef;
   const visible = props.blocks.slice(props.win.start, props.win.end);

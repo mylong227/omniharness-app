@@ -132,9 +132,3 @@ export class FleetPatchReader {
     return { ok: false, code, message };
   }
 }
-
-/** 供测试/文档使用的上限（不是运行期可变配置）。 */
-export const FLEET_PATCH_MAX_BYTES = PATCH_MAX_BYTES;
-
-/** 供测试/文档使用的目录常量。 */
-export const FLEET_PATCH_DIR = PATCH_DIR;

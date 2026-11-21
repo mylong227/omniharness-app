@@ -11,7 +11,7 @@ import type { ApprovalTier } from '../../types/models.ts';
  * 兜底表少一档，用户会以为该档不存在；兜底表自行改写某档语义，则会出现
  * 「界面说完全访问，实际只是按规则放行」这类权限误判。改动任一档时两处必须同步。
  */
-export const FALLBACK_APPROVAL_TIERS: readonly ApprovalTier[] = [
+const FALLBACK_APPROVAL_TIERS: readonly ApprovalTier[] = [
   {
     value: 'rules',
     label: '默认',

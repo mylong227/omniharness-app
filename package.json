@@ -47,6 +47,7 @@
     "typecheck:tests": "tsc -p tsconfig.tests.json --noEmit",
     "kernel:check": "node scripts/checkKernelBoundary.ts",
     "kernel:surface": "node scripts/kernelSurface.ts",
+    "check:exports": "knip --include exports",
     "kernel:vendor": "node scripts/vendorKernel.ts",
     "desktop:build": "npm --prefix desktop run build",
     "desktop:start": "npm --prefix desktop start",
@@ -56,7 +57,7 @@
     "desktop:dist": "npm --prefix desktop run dist",
     "test": "npm run web:test",
     "smoke": "node scripts/smoke.ts",
-    "verify": "npm run kernel:check && npm run typecheck && npm run web:test && npm run build && npm run build:web && npm run smoke && npm run desktop:build && npm run desktop:test"
+    "verify": "npm run kernel:check && npm run typecheck && npm run check:exports && npm run web:test && npm run build && npm run build:web && npm run smoke && npm run desktop:build && npm run desktop:test"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.0",
@@ -97,6 +98,7 @@
     "axe-core": "^4.14.1",
     "esbuild": "^0.28.2",
     "jsdom": "^29.1.1",
+    "knip": "^6.47.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",
     "vitest": "^5.1.1"

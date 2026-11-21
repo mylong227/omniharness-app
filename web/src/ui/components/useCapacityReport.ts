@@ -12,7 +12,7 @@ import { useApp } from '../context.ts';
 import type { ContextUsageReport, QuotaStatus } from '../../types/models.ts';
 
 /** 兜底刷新间隔（毫秒）：介于"实时"与"别回放事件日志"之间。 */
-export const CAPACITY_POLL_MS = 5000;
+const CAPACITY_POLL_MS = 5000;
 
 /** 容量面板的数据状态。 */
 export interface CapacityReportState {

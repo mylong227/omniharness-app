@@ -1,0 +1,12 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["web/src/main.ts"],
+  "project": ["src/**/*.ts", "web/src/**/*.{ts,tsx}", "scripts/**/*.ts"],
+  "ignore": ["web/test/**", "tests/**", "**/*.test.ts", "**/*.test.tsx"],
+  "ignoreIssues": {
+    "src/host/kernel/contracts.ts": ["exports"],
+    "src/host/extensions/contracts/ports/index.ts": ["exports"],
+    "src/apps/enterprise/index.ts": ["exports"],
+    "src/apps/enterprise/legacyOidcFlow.ts": ["exports"]
+  }
+}

@@ -2,7 +2,6 @@ import { timeOf } from '../../../format.ts';
 import { t } from '../../../i18n/i18n.ts';
 import type {
   DecisionBasisLike,
-  DecisionCheckLike,
   DecisionDispositionLike,
   DecisionEffectClassLike,
   DecisionRowLike,
@@ -81,22 +80,6 @@ export function effectClassLabel(effectClass: DecisionEffectClassLike | undefine
       return 'PRIVILEGED_ACTUATE';
     default:
       return '—';
-  }
-}
-
-/**
- * 单项复核状态文案。
- * @param status 状态。
- * @returns 文案。
- */
-export function checkStatusLabel(status: DecisionCheckLike['status']): string {
-  switch (status) {
-    case 'pass':
-      return t('通过');
-    case 'warn':
-      return t('未证明');
-    default:
-      return t('失败');
   }
 }
 

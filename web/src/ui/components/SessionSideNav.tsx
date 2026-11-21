@@ -10,7 +10,7 @@ import { t } from '../i18n/i18n.ts';
  * 新建会话的平台快捷键文案（与 KeyboardShortcuts 的 Ctrl/Cmd+N 同一口径）。
  * @returns `⌘N`（Mac）或 `Ctrl+N`
  */
-export function newChatKbd(): string {
+function newChatKbd(): string {
   return /Mac|iPod|iPhone|iPad/.test(navigator.platform) ? '⌘N' : 'Ctrl+N';
 }
 

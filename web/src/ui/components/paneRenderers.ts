@@ -94,7 +94,7 @@ import { FileTab } from './tabs/FileTab.tsx';
 export { ConsoleView };
 
 /** 默认面板（首屏 / 非法 pane 回落）。 */
-export const DEFAULT_PANE: PaneKey = 'tools';
+const DEFAULT_PANE: PaneKey = 'tools';
 
 /** 一个面板的渲染器：拿组合根与根状态，产出该面板元素（props 各面板不同，故是函数不是组件）。 */
 type PaneRenderer = (ctrl: AppController, s: AppState) => ReactElement;
@@ -103,7 +103,7 @@ type PaneRenderer = (ctrl: AppController, s: AppState) => ReactElement;
  * 面板渲染器表（`Record<PaneKey, …>` = 编译期完整性：PANELS 里的每个 key 都必须有渲染器）。
  * 各分支语义注释随迁移原样保留。
  */
-export const PANE_RENDERERS: Readonly<Record<PaneKey, PaneRenderer>> = {
+const PANE_RENDERERS: Readonly<Record<PaneKey, PaneRenderer>> = {
   control: (ctrl, s) =>
     // 控制室（2026-11-10）：编队/上下文/凭证三模式 tab；view 从路由读（深链可恢复 tab）。
     React.createElement(ControlTab, {

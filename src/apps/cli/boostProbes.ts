@@ -30,10 +30,10 @@ import { join } from 'node:path';
 export const PROBES_DIR = 'tools/probes';
 
 /** 缺省视为"判据类结论"的退出码（与 `tools/probes/README.md` 一致）。 */
-export const DEFAULT_MEASUREMENT_EXIT_CODES: readonly number[] = [3, 4];
+const DEFAULT_MEASUREMENT_EXIT_CODES: readonly number[] = [3, 4];
 
 /** 数值比对的浮点容差：末位差不算"变化"。 */
-export const SCALAR_EPSILON = 1e-12;
+const SCALAR_EPSILON = 1e-12;
 
 /** 探针元数据（成本 / 是否需网络 / 默认入参 / 哪些退出码算结论）。 */
 export interface BoostProbeMeta {

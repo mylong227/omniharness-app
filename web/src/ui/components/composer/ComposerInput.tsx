@@ -23,7 +23,7 @@ export interface SlashSuggestionPopProps {
  * @param props 组件入参
  * @returns 弹层节点；无补全时为 null
  */
-export function SlashSuggestionPop(props: SlashSuggestionPopProps): ReactElement | null {
+function SlashSuggestionPop(props: SlashSuggestionPopProps): ReactElement | null {
   const { slash, onPick } = props;
   if (slash === null) return null;
   return (
@@ -61,7 +61,7 @@ export interface MentionSuggestionPopProps {
  * @param props 组件入参
  * @returns 弹层节点；无补全时为 null
  */
-export function MentionSuggestionPop(props: MentionSuggestionPopProps): ReactElement | null {
+function MentionSuggestionPop(props: MentionSuggestionPopProps): ReactElement | null {
   const { mention, onPick } = props;
   if (mention === null) return null;
   return (

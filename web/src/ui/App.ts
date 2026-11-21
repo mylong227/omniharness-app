@@ -599,7 +599,7 @@ function renderBody(
  * 应用根组件：消费容器控制器 AppController 的全部状态与回调，装配三栏布局树。
  * @returns 根渲染树（含 AppContext.Provider）
  */
-export function App(): ReactElement {
+function App(): ReactElement {
   const [state, setState] = React.useState<AppState>(initialState);
   // 最新状态镜像：供控制器同步读取（getState），避免闭包读到陈旧快照。
   const stateRef = React.useRef<AppState>(state);

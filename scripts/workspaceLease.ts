@@ -35,13 +35,13 @@ import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 /** 默认租约 TTL（毫秒）。 */
-export const DEFAULT_TTL_MS = 120_000;
+const DEFAULT_TTL_MS = 120_000;
 /** 默认最长等待（毫秒）。 */
-export const DEFAULT_WAIT_MS = 30 * 60_000;
+const DEFAULT_WAIT_MS = 30 * 60_000;
 /** 默认轮询（毫秒）。 */
-export const DEFAULT_POLL_MS = 50;
+const DEFAULT_POLL_MS = 50;
 /** 默认心跳（毫秒）。 */
-export const DEFAULT_HEARTBEAT_MS = 15_000;
+const DEFAULT_HEARTBEAT_MS = 15_000;
 
 /** 持锁者信息。 */
 export interface LeaseOwner {
@@ -357,42 +357,6 @@ export class WorkspaceLease {
     return new Promise((resolve) => {
       setTimeout(resolve, Math.max(0, ms));
     });
-  }
-}
-
-/** withWorkspaceLease 的选项。 */
-export interface WithWorkspaceLeaseOptions {
-  /** 租约名。 */
-  name?: string;
-  /** 最长等待（毫秒）。 */
-  timeoutMs?: number;
-  /** 人类可读标签。 */
-  label?: string;
-}
-
-/**
- * 在租约内跑一个异步任务。
- * @param root 工作区根。
- * @param task 持锁期间执行的异步任务。
- * @param options 租约参数。
- * @returns 任务结果。
- */
-export async function withWorkspaceLease<T>(
-  root: string,
-  task: () => Promise<T>,
-  options: WithWorkspaceLeaseOptions = {},
-): Promise<T> {
-  const lease = new WorkspaceLease(root, {
-    ...(options.name !== undefined ? { name: options.name } : {}),
-  });
-  await lease.acquire({
-    ...(options.timeoutMs !== undefined ? { timeoutMs: options.timeoutMs } : {}),
-    ...(options.label !== undefined ? { label: options.label } : {}),
-  });
-  try {
-    return await task();
-  } finally {
-    lease.release();
   }
 }
 

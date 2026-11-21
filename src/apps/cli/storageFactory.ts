@@ -23,10 +23,10 @@ import type { SqliteStorage } from '../../host/kernel/adapters-misc.ts';
 export type StorageHandle = MemoryStorage | JsonlStorage | SqliteStorage;
 
 /** 会话存储：缺省 sqlite 落盘文件名（未给 `--storage-dir` 时落在工作目录）。 */
-export const DEFAULT_SQLITE_FILE = 'omniharness.db';
+const DEFAULT_SQLITE_FILE = 'omniharness.db';
 
 /** 会话存储后端工厂（无状态）。 */
-export class StorageFactory {
+class StorageFactory {
   /**
    * 按后端名构造存储端口（单一实现来源）。
    *

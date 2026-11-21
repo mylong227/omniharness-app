@@ -45,7 +45,7 @@ import { GATE_SURFACE, SURFACE_AUDIT_DATE } from './boostGateSurface.ts';
 export const SURFACE_SNAPSHOT_REL = '.omniharness/boost/gate-surface.json';
 
 /** 快照格式版本：结构变动必须 +1，否则旧快照会被误判为"一致"。 */
-export const SURFACE_SNAPSHOT_VERSION = 1;
+const SURFACE_SNAPSHOT_VERSION = 1;
 
 /** 一条门禁的静态取证结果。 */
 export interface GateSurfaceFinding {

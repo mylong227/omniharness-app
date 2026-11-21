@@ -314,7 +314,7 @@ function FilePane(props: {
  * @param ctx 快照（tabs / 标题表 / 浏览器态 / 回调）。
  * @returns 无
  */
-export function tabKeyNav(
+function tabKeyNav(
   e: React.KeyboardEvent,
   ctx: {
   readonly tabs: readonly HTMLElement[];

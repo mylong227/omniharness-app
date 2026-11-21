@@ -187,6 +187,3 @@ export class ProofVerifier {
     return { ok: false, code, message };
   }
 }
-
-/** 供测试/文档使用的大小上限。 */
-export const PROOF_BUNDLE_MAX_BYTES = BUNDLE_MAX_BYTES;

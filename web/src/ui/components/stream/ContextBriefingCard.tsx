@@ -104,7 +104,7 @@ export function SystemNoteNode(props: SystemNoteNodeProps): ReactElement {
  * @param props 视图模型
  * @returns 卡片节点
  */
-export function ContextBriefingCard(props: ContextBriefingCardProps): ReactElement {
+function ContextBriefingCard(props: ContextBriefingCardProps): ReactElement {
   const { view } = props;
   const [open, setOpen] = React.useState(false);
   const bodyId = React.useId();

@@ -10,7 +10,6 @@
 // `WorkspaceGuard.isInside` 为 false ⇒ 属漏用既有守卫，不是策略差异）。
 // 现改为复用 {@link WorkspaceGuard.resolveSafe}：词法判定 + realpath 判定两层一致。
 import { closeSync, openSync, readSync, statSync } from 'node:fs';
-import { join } from 'node:path';
 import { WorkspaceGuard } from '../../../host/kernel/util.ts';
 
 /**
@@ -150,6 +149,3 @@ export class SafeFs {
 export type SafeReadResult =
   | { readonly ok: true; readonly buffer: Buffer; readonly size: number }
   | { readonly error: string; readonly ok: false };
-
-/** join 工具（与 path.join 一致，导出仅为测试方便）。 */
-export const pathJoin = join;

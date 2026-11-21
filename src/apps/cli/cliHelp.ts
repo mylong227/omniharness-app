@@ -26,7 +26,7 @@ import {
  * 值**全部来自 `cliEnums`**（解析期校验用的同一批常量）⇒ 帮助里展示的枚举不可能与行为不一致。
  * 此前帮助把 `--storage-adapter memory|jsonl` 手写在代码里，而白名单早已是 `memory|jsonl|sqlite`。
  */
-export const HELP_ENUM_SOURCES: Readonly<Record<string, readonly string[]>> = {
+const HELP_ENUM_SOURCES: Readonly<Record<string, readonly string[]>> = {
   modelAdapters: MODEL_ADAPTERS,
   reasonings: REASONINGS,
   storageAdapters: STORAGE_ADAPTERS,
@@ -83,7 +83,7 @@ interface HelpEntry {
  *
  * 两段共用描述列 `36`：spec 补空白对齐到该列；spec 过长（补不出间隔）则追加 3 个空格。
  */
-export class CliHelp {
+class CliHelp {
   /** 标题行。 */
   private readonly title: string;
   /** 用法行（`用法: omniharness exec …`）。 */

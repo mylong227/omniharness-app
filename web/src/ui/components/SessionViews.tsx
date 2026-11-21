@@ -18,7 +18,7 @@ import { SessionRowMeta } from '../models/SessionRowMeta.ts';
 import { t } from '../i18n/i18n.ts';
 
 /** 每组默认展示条数。 */
-export const PAGE = 10;
+const PAGE = 10;
 
 /**
  * 会话行的键盘模型（2026-10-29 W3，键盘扫描补项）。
@@ -34,7 +34,7 @@ export const PAGE = 10;
  * @param ctx 行上下文（取 onSelect / onContextMenu）
  * @returns 无
  */
-export function onSessionRowKeyDown(
+function onSessionRowKeyDown(
   e: React.KeyboardEvent<Element>,
   id: string,
   ctx: { onSelect: (id: string) => void; onContextMenu?: (id: string, x: number, y: number) => void },
@@ -106,7 +106,7 @@ export interface ListCtx extends RowCtx {
  * @param query 搜索关键字（trim 后）
  * @returns 过滤后的会话列表（空关键字返回原列表副本）
  */
-export function filterSessions(items: readonly SessionEntry[], query: string): SessionEntry[] {
+function filterSessions(items: readonly SessionEntry[], query: string): SessionEntry[] {
   const q = query.trim().toLowerCase();
   if (q === '') return items.slice();
   return items.filter((s) => {
@@ -271,7 +271,7 @@ function SessionActions(props: { s: SessionEntry; ctx: RowCtx }): ReactElement {
  * @param ctx 行内交互上下文
  * @returns 渲染节点
  */
-export function renderSessionBody(s: SessionEntry, ctx: RowCtx): ReactElement {
+function renderSessionBody(s: SessionEntry, ctx: RowCtx): ReactElement {
   if (ctx.renamingId === s.id) return <SessionRename s={s} ctx={ctx} />;
   if (ctx.confirmDeleteId === s.id) return <SessionConfirm s={s} ctx={ctx} />;
   return (
@@ -300,7 +300,7 @@ export function renderSessionBody(s: SessionEntry, ctx: RowCtx): ReactElement {
  * @param now 参照时刻（毫秒）
  * @returns 时间节点；不可得时为 null
  */
-export function renderSessionTime(s: SessionEntry, now: number): ReactElement | null {
+function renderSessionTime(s: SessionEntry, now: number): ReactElement | null {
   const when = SessionRowMeta.inlineTime(s, now);
   if (when === '') return null;
   // 文本同时进 aria-label：读屏用户与"悬停不方便"的场景拿得到同一信息。

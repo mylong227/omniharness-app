@@ -355,22 +355,6 @@ export function ConsoleSegmented<V extends string>(props: ConsoleSegmentedProps<
     />
   );
 }
-/** 键帽。 */
-export interface ConsoleKeycapProps {
-  /** 按键组合（如 `Ctrl/Cmd+P`）。 */
-  combo: string;
-}
-
-/**
- * 键帽（快捷键页用）。
- * @param props 组件入参
- * @returns 键帽节点
- */
-export function ConsoleKeycap(props: ConsoleKeycapProps): ReactElement {
-  const { combo } = props;
-  return <kbd className="csl-kbd">{combo}</kbd>;
-}
-
 /**
  * 把一个设置字段渲染成控制台行（下拉 / 文本 / 开关 / 数字）。
  *

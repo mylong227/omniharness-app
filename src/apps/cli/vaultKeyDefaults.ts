@@ -26,7 +26,7 @@ import { join } from 'node:path';
 import { OmniHome } from '../../host/kernel/util.ts';
 
 /** 默认主密钥文件（用户级归属根下；归属根由 `OmniHome` 裁决，`OMNI_HOME` 可整体搬盘）。 */
-export const DEFAULT_VAULT_KEY_FILE: string = join(OmniHome.dir(), 'vault.key');
+const DEFAULT_VAULT_KEY_FILE: string = join(OmniHome.dir(), 'vault.key');
 
 /** 关闭保险库的环境变量（置 `0`/`off`/`false` 生效）。 */
 const VAULT_ENABLED_ENV = 'OMNIHARNESS_VAULT';

@@ -352,7 +352,7 @@ export function hostOf(u: string): string {
 }
 
 /** 回合内过程事件类型：收进「思考轨迹」时间线。 */
-export const PROCESS_TYPES = new Set(['reasoning', 'tool_call', 'tool_result']);
+const PROCESS_TYPES = new Set(['reasoning', 'tool_call', 'tool_result']);
 
 /** 单个事件块（结果类直接展示）。 */
 export interface SingleBlock {
@@ -435,7 +435,7 @@ export function collectToolCallIds(events: readonly ThreadEvent[]): ReadonlySet<
  * @param toolCallIds 已被内联的工具调用 id 集合（`collectToolCallIds`）
  * @returns 会渲染出可见内容为 true
  */
-export function isRenderedEvent(ev: ThreadEvent, toolCallIds: ReadonlySet<string>): boolean {
+function isRenderedEvent(ev: ThreadEvent, toolCallIds: ReadonlySet<string>): boolean {
   if (ev.type === 'session_meta' || ev.type === 'model') return false;
   if (ev.type === 'tool_result') {
     return !toolCallIds.has(EventFields.rawCallId(ev));

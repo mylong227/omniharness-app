@@ -23,7 +23,7 @@ interface BrowserGlobals {
 }
 
 /** 前端鉴权令牌来源：解析应随请求发送的 Bearer 令牌。 */
-export class AuthToken {
+class AuthToken {
   /** 显式覆盖（运行时设置 / 测试注入）；null 表示未设置，回退到持久化来源。 */
   private override: string | null = null;
 

@@ -6,7 +6,7 @@
 import { paletteOf, type ThemeName } from './palette.ts';
 
 /** #rgb/#rrggbb → [r,g,b]；非法输入返回 null（判据用它 fail-closed）。 */
-export function hexToRgb(hex: string): [number, number, number] | null {
+function hexToRgb(hex: string): [number, number, number] | null {
   let h = hex.replace('#', '').trim();
   if (h.length === 3) h = h.split('').map((c) => c + c).join('');
   if (!/^[0-9a-f]{6}$/i.test(h)) return null;
@@ -24,7 +24,7 @@ function channel(c: number): number {
 }
 
 /** WCAG 相对亮度（0=黑，1=白）。 */
-export function relativeLuminance(hex: string): number | null {
+function relativeLuminance(hex: string): number | null {
   const rgb = hexToRgb(hex);
   if (rgb === null) return null;
   const [r, g, b] = rgb.map(channel);

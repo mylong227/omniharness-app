@@ -36,7 +36,7 @@ export interface QuotaPlan {
 }
 
 /** 缺省档位 id：模型未知 / 未接入 / 本地模型都落这一档。 */
-export const QUOTA_DEFAULT_ID = 'free';
+const QUOTA_DEFAULT_ID = 'free';
 
 /** 档位表：**顺序即从宽到紧**（首个匹配命中的即最终档位）。 */
 const PLANS: readonly QuotaPlan[] = [

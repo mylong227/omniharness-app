@@ -19,7 +19,7 @@ export interface SessionModes {
 }
 
 /** 未设置任何模式的初始态。 */
-export const EMPTY_SESSION_MODES: SessionModes = { goal: '', planMode: false, sketchMode: false };
+const EMPTY_SESSION_MODES: SessionModes = { goal: '', planMode: false, sketchMode: false };
 
 /** 落盘目录（相对工作区，与 `.omniharness/sessions` 同约定）。 */
 const MODE_DIR = '.omniharness';

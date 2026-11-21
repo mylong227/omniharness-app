@@ -77,10 +77,10 @@ export interface BrowserOpenCommand {
 export const DEFAULT_SERVE_PORT = DEV_DEFAULTS.backendPort;
 
 /** 就绪轮询的缺省节奏（毫秒）。 */
-export const DEFAULT_POLL_MS = 400;
+const DEFAULT_POLL_MS = 400;
 
 /** 就绪轮询的缺省上限（毫秒）。首次 `npm start` 要现编前后端，给足三分钟。 */
-export const DEFAULT_TIMEOUT_MS = 180_000;
+const DEFAULT_TIMEOUT_MS = 180_000;
 
 /**
  * 从透传给 `serve` 的参数里解析监听端口。

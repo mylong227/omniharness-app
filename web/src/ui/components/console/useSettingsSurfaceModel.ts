@@ -50,7 +50,7 @@ const EMPTY_SNAPSHOT: SettingsSnapshot = {
  * @param ctx 应用上下文
  * @returns 模型实例（调用方负责 dispose）
  */
-export function createSettingsModel(ctx: SettingsModelContext): SettingsModel {
+function createSettingsModel(ctx: SettingsModelContext): SettingsModel {
   return new SettingsModel({
     getConfig: () => ctx.api.config.getConfig(),
     updateConfig: (patch) => ctx.api.config.updateConfig(patch),
