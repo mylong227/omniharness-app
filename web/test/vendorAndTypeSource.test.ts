@@ -165,26 +165,34 @@ test('markdown 渲染路径确实用 highlight.js（npm import，不再是 windo
   //
   // 2026-10-18 收紧：入口从 `lib/common`（36 种语言，实测 291 KB 原始 / 94 KB gzip）
   // 换成 `lib/core` + **显式注册的子集**（省 ~143 KB 原始 / ~46 KB gzip）。
-  // 判据随之改为「core 入口 + 注册表里关键语言在列」——比只盯入口更严：
-  // 只换入口而忘了注册，代码块会静默退回不着色。
+  // 2026-11-21 批次六 B2：core/语言/markdown-it 再改**惰性动态 import**（首屏不背
+  // markdown 管线）——判据形态随之改为动态 import 在列（照 katex 先例），
+  // 并禁止退回静态引入。
   assert.match(
     md,
-    /from 'highlight\.js\/lib\/core'/,
+    /import\('highlight\.js\/lib\/core'\)/,
     'highlight.js 必须用 core 入口 + 显式注册（common 子集多带 36 门语言）',
+  );
+  assert.doesNotMatch(
+    md,
+    /from 'highlight\.js/u,
+    'highlight.js 不得退回静态 import（首屏不背 markdown 管线）',
   );
   for (const lang of ['bash', 'json', 'markdown', 'python', 'rust', 'shell', 'sql', 'typescript', 'yaml']) {
     assert.match(
       md,
-      new RegExp(`from 'highlight\\.js/lib/languages/${lang}'`),
+      new RegExp(`import\\('highlight\\.js/lib/languages/${lang}'\\)`),
       `highlight.js 必须注册 ${lang}（未注册 ⇒ 该语言代码块退回自动识别）`,
     );
-    assert.match(
-      md,
-      new RegExp(`registerLanguage\\('${lang}'`),
-      `${lang} 必须真的 registerLanguage（只 import 不注册 = 静默失效）`,
-    );
   }
-  assert.match(md, /from 'markdown-it'/, 'markdown-it 必须 npm import');
+  assert.match(
+    md,
+    /registerLanguage\(name, lang\.default\)/u,
+    '语言必须真的 registerLanguage（只 import 不注册 = 静默失效）',
+  );
+  assert.match(md, /ensureMarkdownLibs/u, '惰性装载入口必须存在（mount 预热调用点）');
+  assert.doesNotMatch(md, /from 'markdown-it'/, 'markdown-it 必须动态 import（B2 惰性化）');
+  assert.match(md, /import\('markdown-it'\)/, 'markdown-it 必须通过动态 import 懒加载');
   // KaTeX 自 2026-10-18 起是**动态 import**（首屏不背 266 KB 公式引擎）：
   // 断言形态从静态 import 改为动态 import，并禁止退回静态引入。
   assert.match(md, /import\('katex'\)/, 'katex 必须通过动态 import 懒加载');

@@ -260,6 +260,12 @@ async function bootstrap(): Promise<void> {
     closeToTray: config.state.defaultCloseToTray,
     openAtLogin: config.state.defaultOpenAtLogin,
   });
+  // B3 语言收敛：web 设置跟随记录（desktopState.locale）优先于 system 解析——
+  // 用户在 web 改过语言后，重启的壳层也跟随；config.app.language 显式值仍最高。
+  const savedLocale = state.get().locale;
+  if (savedLocale !== undefined && config.app.language === 'system') {
+    i18n.setLocale(savedLocale);
+  }
   const launch = parseLaunchArgs(process.argv, config.app.protocol);
   const linkedWorkspace =
     launch.deepLink !== null
@@ -341,8 +347,18 @@ async function bootstrap(): Promise<void> {
     openAtLogin: () => context?.state.get().openAtLogin === true,
     setOpenAtLogin: (enabled: boolean) => windows.setOpenAtLogin(enabled),
     quit: () => app.quit(),
+    // B3 语言收敛（2026-11-21）：web 设置改语言 → IPC → 持久化 + i18n 运行时切换 +
+    // 菜单重建 + 托盘重建（标签随新语言再生）。desktopState.locale 让下次启动也跟随。
+    setLocale: (locale: 'zh-CN' | 'en-US') => {
+      if (context === null) return;
+      state.setLocale(locale);
+      i18n.setLocale(locale);
+      refreshMenu();
+      trayService.destroy();
+      context.tray = trayService.create() ? trayService : null;
+    },
   };
-  const tray = new TrayService(
+  const trayService = new TrayService(
     join(__dirname, 'icon.png'),
     {
       ...appActions,
@@ -359,7 +375,7 @@ async function bootstrap(): Promise<void> {
     config.tray,
     i18n,
   );
-  context.tray = tray.create() ? tray : null;
+  context.tray = trayService.create() ? trayService : null;
   if (config.window.showShortcut !== '') {
     try {
       const ok = globalShortcut.register(config.window.showShortcut, () => windows.show());

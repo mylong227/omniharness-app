@@ -19,6 +19,7 @@
 // 本文件只保留**读写通道**（SettingsModel 类）。全部目录符号经下方重导出保持既有导入面。
 
 import type { Config } from '../../types/models.ts';
+import { desktopBridge } from '../../core/desktop/DesktopBridge.ts';
 import { t } from '../i18n/i18n.ts';
 import {
   CATALOG_KEYS,
@@ -242,6 +243,10 @@ export class SettingsModel {
     this.set({ saving: true, error: '' });
     try {
       await this.deps.updateConfig(patch);
+      // B3 语言收敛：壳层语言跟随 web 设置（桌面桥可用时；浏览器/旧 preload no-op）。
+      if (patch['locale'] === 'zh-CN' || patch['locale'] === 'en-US') {
+        desktopBridge()?.setDesktopLocale?.(patch['locale']);
+      }
       this.flashSaved(t('已保存'), savedField);
       await this.reload();
       if (Object.keys(patch).some((k) => CATALOG_KEYS.includes(k))) this.deps.refreshModelCatalog?.();

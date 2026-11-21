@@ -51,6 +51,7 @@ import type { QueuedMessage } from '../models/ChatMessageQueue.ts';
 import { ClipboardCopier } from '../models/ClipboardCopier.ts';
 import { ModelPricing } from '../models/ModelPricing.ts';
 import { setLocalizer } from '../../core/localize.ts';
+import { ensureMarkdownLibs } from '../markdown.ts';
 import { EFFORTS_BY_MODEL, MODEL_OPTIONS, PROVIDER_LABEL } from '../models/StorageKeys.ts';
 import { SessionTranscript } from '../models/SessionTranscript.ts';
 import { TraceTranscript } from '../models/TraceTranscript.ts';
@@ -385,6 +386,8 @@ export class AppController {
     setLocalizer(t);
     this.services.toastSvc.bind((message: string, kind?: ToastKind) => this.showToast(message, kind));
     this.services.dialogSvc.bind((state: DialogState) => this.host.patch({ dialog: state }));
+    // markdown 惰性库预热（批次六 B2）：chunk 与首屏并行下载，未就绪窗口内走 legacy 渲染。
+    void ensureMarkdownLibs();
     this.refreshModelCatalog();
     this.refreshModelPricing();
     this.children.layout.initTheme();

@@ -37,6 +37,8 @@ const api = Object.freeze({
   apiVersion: API_VERSION,
   getInfo: () => ipcRenderer.invoke('omni:getInfo'),
   setCloseToTray: (enabled: boolean) => ipcRenderer.invoke('omni:setCloseToTray', enabled),
+  // B3 语言收敛（纯增量能力，旧 UI 不调用无害）：跟随 web 设置切换壳层语言。
+  setDesktopLocale: (locale: 'zh-CN' | 'en-US') => ipcRenderer.invoke('omni:setLocale', locale),
   setOpenAtLogin: (enabled: boolean) => ipcRenderer.invoke('omni:setOpenAtLogin', enabled),
   openLogs: () => ipcRenderer.invoke('omni:openLogs'),
   showDiagnostics: () => ipcRenderer.invoke('omni:showDiagnostics'),

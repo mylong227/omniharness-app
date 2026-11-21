@@ -51,6 +51,8 @@ export interface DesktopBridge {
   openLogs(): Promise<void>;
   /** 打开诊断信息（新版 preload 才提供）。 */
   showDiagnostics?(): Promise<void>;
+  /** 壳层语言跟随（B3；新版 preload 才提供；浏览器无桥）。 */
+  setDesktopLocale?(locale: 'zh-CN' | 'en-US'): Promise<void>;
   /** 任务栏进度（-1 清除，0–1 进度，2 不确定；新版 preload 才提供）。 */
   setProgress?(value: number): Promise<void>;
   /** 拖入文件的真实系统路径（新版 preload 才提供；Electron ≥32 已移除 File.path）。 */
@@ -121,6 +123,9 @@ export function desktopBridge(): DesktopBridge | null {
     openLogs: () => call<void>('openLogs'),
     ...(typeof raw['showDiagnostics'] === 'function'
       ? { showDiagnostics: () => call<void>('showDiagnostics') }
+      : {}),
+    ...(typeof raw['setDesktopLocale'] === 'function'
+      ? { setDesktopLocale: (locale: 'zh-CN' | 'en-US') => call<void>('setDesktopLocale', locale) }
       : {}),
     ...(typeof raw['setProgress'] === 'function'
       ? { setProgress: (value: number) => call<void>('setProgress', value) }
