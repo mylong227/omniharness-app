@@ -28,6 +28,11 @@
     （手维 EXPECTED 三处镜像 → 机器核对）。
   · **批次六（结构打磨）**：SSE 分流纯函数化 StreamEventRouter（node 直测判据 ×2）；
     desktop 令牌脱敏统一 DesktopLogger.redact；两端契约判据互链注记。
+  · **批次七（2026-11-21 钩子收编 + model.adapters）**：useSessionResource 补 reloadTick
+    option + refresh 返回在飞 Promise；六面板收编（Graph/Profiles/Skills/Rollback/Memory
+    双钩子/Plugins 裸奔补 toast）——三处注释与代码不符顺带修正；model.adapters RPC
+    （116→117）+ Router 卡凭据实时预检；--reasoning 旗标三通道补齐（自查抓到 handler
+    误放 --model 分支内单独使用被吞 → 拆独立条目 + 行为判据三例）；三配置面写入者清单。
   · **缓偿登记**（理由在案）：eventsOf 读档缓存（内核 jsonlStorage，等 R22 内核侧）；
     markdown 惰性（legacy/full 混渲需统一重渲设计）；语言双真源互通（IPC+壳层重建
     设计）；decisionLedgerService/DesktopConfigLoader 切分（内聚单类，判据已钉行为）；
