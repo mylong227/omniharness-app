@@ -57,7 +57,6 @@ export class ExecLocal extends CliDataCmds {
     if (command === 'audit') return this.runAudit(argv.slice(1));
     if (command === 'trace') return this.runTrace(argv.slice(1));
     if (command === 'sdk') return this.runSdk(argv.slice(1));
-    if (command === 'boost') return this.runBoost(argv.slice(1));
     if (command === 'auth') return this.runAuth(argv.slice(1));
     return undefined;
   }

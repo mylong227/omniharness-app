@@ -25,8 +25,6 @@ import { TraceCommand } from './traceCommand.ts';
 import { SdkCommand } from './sdkCommand.ts';
 import { GcCommand } from './gcCommand.ts';
 import { InitCommand } from './initCommand.ts';
-import { BoostCommand, BOOST_PROBE_TIMEOUT_MS, type BoostOptions } from './boostCommand.ts';
-import { CliArgReader } from './cliArgReader.ts';
 
 /** 数据 / 存储 / 插件类子命令（薄分发门面）。 */
 export class CliDataCmds extends CliMcpCmds {
@@ -57,8 +55,6 @@ export class CliDataCmds extends CliMcpCmds {
   private readonly initCommand = new InitCommand();
   /** sdk 子命令（连 app-server WS 端点发 JSON-RPC）。 */
   private readonly sdkCommand = new SdkCommand();
-  /** boost 子命令（探针归档比对 / 按改动挑门禁子集；只读外部脚本，不改它们）。 */
-  private readonly boostCommand = new BoostCommand(process.cwd());
 
   /**
    * session 子命令入口。
@@ -157,94 +153,5 @@ export class CliDataCmds extends CliMcpCmds {
    */
   protected async runSdk(args: readonly string[]): Promise<number> {
     return this.sdkCommand.run(args);
-  }
-
-  /**
-   * boost 子命令入口（`boost probe …` / `boost gate …`）。
-   *
-   * 旗标在本层用 `CliArgReader` **字面量读取**，命令类只收一个已解析的选项对象：
-   * 这样做的直接理由是本仓的 `上游判据 knownFlags.test.ts（本仓未随迁）` 判据③——登记进 `KNOWN_EXTRA_FLAGS`
-   * 的旗标必须在 `src/apps/cli/**` 里被真实读取，否则判"白名单腐化"。把读取放在本层，
-   * "登记了、也有人读"这件事就在同一处可核。
-   * @param args 子命令参数（已去掉 `boost`）。
-   * @returns 进程退出码（由命令类决定；用法错误 2）。
-   */
-  protected async runBoost(args: readonly string[]): Promise<number> {
-    const options = this.readBoostOptions(args);
-    if (options === null) {
-      process.stderr.write(
-        '用法: omniharness boost probe [list] [--boost-probe NAME] [--boost-arg VALUE] [--boost-network]\n' +
-          '      [--boost-diff] [--boost-dir DIR] [--boost-timeout-ms N]\n' +
-          '       omniharness boost gate [--boost-mode staged|worktree] [--boost-tier fast|typed|all]\n' +
-          '      [--boost-run] [--boost-explain] [--boost-dir DIR]\n' +
-          '       omniharness boost audit-surface [--boost-run] [--boost-dir DIR]\n',
-      );
-      return 2;
-    }
-    return this.boostCommand.run(options);
-  }
-
-  /**
-   * 读取 boost 子命令旗标（值旗标一律 `--flag VALUE` 两 token 形式，与全仓其它子命令一致）。
-   * @param args 子命令参数（已去掉 `boost`）。
-   * @returns 选项对象；用法错误（未知子动作 / 非法取值）返回 `null`。
-   */
-  private readBoostOptions(args: readonly string[]): BoostOptions | null {
-    const reader = new CliArgReader(args);
-    const action = reader.at(0) ?? 'probe';
-    if (action !== 'probe' && action !== 'gate' && action !== 'audit-surface') return null;
-    // 位置参数**只认** `probe list`（帮助文本里就是这么写的：`boost probe [list] …`）；其余一律用法错误。
-    //
-    // 旧实现在这里静默忽略位置参数 ⇒ `boost probe list` 被当成 `boost probe` **跑完全部 6 个探针**
-    // （2026-10-11 实测 70 秒，且探针可能有网络/归档副作用），而调用方以为自己只是要看清单——
-    // 正是本仓反复治的"拼错/写错 = 静默做了别的事"。真正的开关当时是 `--boost-list`，帮助里没提它。
-    //
-    // 只在"该 token 不是旗标"时按位置参数判定（`at()` 是**裸下标**，第 2 个 token 常常是旗标本身，
-    // 例如 `boost probe --boost-list`；把旗标误当位置参数会让正常用法被拒）。
-    const positional = reader.at(1);
-    const isList = action === 'probe' && positional === 'list';
-    if (positional !== undefined && !positional.startsWith('-') && !isList) return null;
-    const trailing = reader.at(2);
-    if (isList && trailing !== undefined && !trailing.startsWith('-')) return null;
-    const tier = reader.value('--boost-tier') ?? 'fast';
-    if (!['fast', 'typed', 'all'].includes(tier)) return null;
-    const mode = reader.value('--boost-mode') ?? 'staged';
-    if (mode !== 'staged' && mode !== 'worktree') return null;
-    const timeout = reader.number('--boost-timeout-ms');
-    const boostDir = reader.value('--boost-dir');
-    const probes = this.splitCsv(reader.value('--boost-probe'));
-    return {
-      action,
-      // 两种写法等价：位置参数 `list`（帮助口径）与 `--boost-list`（旗标口径，历史保留）。
-      list: reader.has('--boost-list') || isList,
-      probes,
-      args: reader.values('--boost-arg'),
-      network: reader.has('--boost-network'),
-      diff: reader.has('--boost-diff'),
-      tier,
-      mode,
-      run: reader.has('--boost-run'),
-      explain: reader.has('--boost-explain'),
-      ...(boostDir === undefined ? {} : { outDir: boostDir }),
-      timeoutMs:
-        timeout === undefined || !Number.isFinite(timeout) ? BOOST_PROBE_TIMEOUT_MS : timeout,
-    };
-  }
-
-  /**
-   * 逗号分隔取值切分（去空、去重、保序）。
-   * @param raw 原始取值；缺省返回空数组。
-   * @returns 切分结果。
-   */
-  private splitCsv(raw: string | undefined): readonly string[] {
-    if (raw === undefined) return [];
-    return [
-      ...new Set(
-        raw
-          .split(',')
-          .map((s) => s.trim())
-          .filter((s) => s !== ''),
-      ),
-    ];
   }
 }

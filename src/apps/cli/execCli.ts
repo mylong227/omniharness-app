@@ -53,7 +53,7 @@ const AUDIT_FLAGS: readonly string[] = ['--audit-dir', '--audit-file', '--audit-
 export class ExecCli extends CliAgentCmds {
   /**
    * 链基半段的分发器（**组合，不是继承**）：`server`/`serve`/`schema`/`session`/`plugin`/`profile`/
-   * `bundle`/`doctor`/`mcp`/`kv`/`vault`/`identity`/`daemon`/`audit`/`trace`/`sdk`/`boost`/`auth`。
+   * `bundle`/`doctor`/`mcp`/`kv`/`vault`/`identity`/`daemon`/`audit`/`trace`/`sdk`/`auth`。
    *
    * 为什么是组合：单继承链是**线性的**，`ExecCli` 必须继承链顶才能拿到 `goal`/`workflow`/`execute`
    * 等链顶方法；若让它去继承链基（`ExecLocal`）就会丢掉链顶。故这里持有一个实例并按需委托，
@@ -97,8 +97,8 @@ export class ExecCli extends CliAgentCmds {
     }
     // 检索默认档**只对真正的 agent 路径**生效（2026-10-11 收窄：此前它在 `run()` 开头无条件调用）。
     //
-    // **实测边界（别把收益说大）**：挪到这里**不会**让非 agent 子命令变快——`boost probe list`
-    // 改前 1.67s、改后 1.72s（那 ~2s 是整条命令继承链的加载与配置分层，与本变量无关，已另立登记项）。
+    // **实测边界（别把收益说大）**：挪到这里**不会**让非 agent 子命令变快——`trace` 改前 1.67s、
+    // 改后 1.72s（那 ~2s 是整条命令继承链的加载与配置分层，与本变量无关）。
     // 它换来的是**影响面**：`kv` / `session` / 用法提示这类根本不碰检索的路径，不再顺手把一个
     // 进程级默认打开（该默认只对检索栈有意义）。agent 路径语义**完全不变**：仍默认开，
     // 原注释里的两关判定依据、三重安全垫与 `OMNI_SEMANTIC_RECALL=0` 的关闭权全部保留。
