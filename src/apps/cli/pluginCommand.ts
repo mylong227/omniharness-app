@@ -10,13 +10,13 @@
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { Container } from '../../host/kernel/core.ts';
-import { PluginManager } from '../../host/kernel/plugin.js';
-import { Manifest } from '../../host/kernel/plugin.js';
-import { PermissionGate, PermissionDeniedError } from '../../host/kernel/plugin.js';
-import { Permission } from '../../host/kernel/plugin.js';
-import type { PluginPermission } from '../../host/kernel/plugin.js';
-import type { Plugin } from '../../host/kernel/plugin.js';
-import type { PluginRegistry } from '../../host/kernel/plugin.js';
+import { PluginManager } from '../../host/kernel/plugin.ts';
+import { Manifest } from '../../host/kernel/plugin.ts';
+import { PermissionGate, PermissionDeniedError } from '../../host/kernel/plugin.ts';
+import { Permission } from '../../host/kernel/plugin.ts';
+import type { PluginPermission } from '../../host/kernel/plugin.ts';
+import type { Plugin } from '../../host/kernel/plugin.ts';
+import type { PluginRegistry } from '../../host/kernel/plugin.ts';
 import { ArgParser } from './argParser.ts';
 import { CliArgReader } from './cliArgReader.ts';
 

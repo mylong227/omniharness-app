@@ -6,7 +6,7 @@ import { ServerServices } from './serverServices.ts';
 import { coreModules } from '../modules/index.ts';
 import type { ServerAutomations } from '../services/serverAutomations.ts';
 import { providerPresets } from '../services/providerPresets.ts';
-import type { PluginProfile, ApplyProfileResult } from '../../../host/kernel/plugin.js';
+import type { PluginProfile, ApplyProfileResult } from '../../../host/kernel/plugin.ts';
 
 export type { AppServerOptions } from './appServerState.ts';
 

@@ -9,7 +9,7 @@ import type {
   SsrfPolicyConfig,
 } from '../../host/kernel/config.ts';
 import type { ModelAdapterId } from '../../host/kernel/contracts.ts';
-import type { MediaAnalysisConfig } from '../../host/kernel/plugin.js';
+import type { MediaAnalysisConfig } from '../../host/kernel/plugin.ts';
 import type { CapabilityConfig } from '../../host/kernel/contracts.ts';
 import type { RbacConfig } from '../../host/kernel/contracts.ts';
 import type { DecisionEngineConfig } from '../../host/kernel/contracts.ts';

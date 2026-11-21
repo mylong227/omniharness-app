@@ -9,7 +9,7 @@
 
 import { join } from 'node:path';
 import { configFile } from '../../host/kernel/config.ts';
-import { PluginProfileStore } from '../../host/kernel/plugin.js';
+import { PluginProfileStore } from '../../host/kernel/plugin.ts';
 import { CliArgReader } from './cliArgReader.ts';
 
 /** profile 用法提示。 */

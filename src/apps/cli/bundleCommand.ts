@@ -11,18 +11,18 @@
 
 import { join } from 'node:path';
 import { OmniHome } from '../../host/kernel/util.ts';
-import { PluginProfileStore } from '../../host/kernel/plugin.js';
+import { PluginProfileStore } from '../../host/kernel/plugin.ts';
 import { FeatureEntitlements } from '../license/featureEntitlements.ts';
 import type { EntitlementPort } from './../../host/contracts/ports/license/entitlement.ts';
-import { PluginBundler } from '../../host/kernel/plugin.js';
-import { PrivateSkillSource } from '../../host/kernel/plugin.js';
-import { BundleCodec } from '../../host/kernel/plugin.js';
-import { PackGrader } from '../../host/kernel/plugin.js';
+import { PluginBundler } from '../../host/kernel/plugin.ts';
+import { PrivateSkillSource } from '../../host/kernel/plugin.ts';
+import { BundleCodec } from '../../host/kernel/plugin.ts';
+import { PackGrader } from '../../host/kernel/plugin.ts';
 import { IsolationLadderFactory } from '../../host/kernel/adapters-sandbox.ts';
 import { ArgParser } from './argParser.ts';
 import { CliArgReader } from './cliArgReader.ts';
-import type { PackCapability } from '../../host/kernel/plugin.js';
-import type { SandboxLegVerdict } from '../../host/kernel/plugin.js';
+import type { PackCapability } from '../../host/kernel/plugin.ts';
+import type { SandboxLegVerdict } from '../../host/kernel/plugin.ts';
 import type { PluginRegistryFactory } from './pluginCommand.ts';
 
 /** bundle 用法提示。 */

@@ -1,12 +1,12 @@
 import { Container } from '../../../host/kernel/core.ts';
 import { ServiceKeys } from '../../composition/runtime.ts';
-import { PluginManager } from '../../../host/kernel/plugin.js';
-import { PluginLoader } from '../../../host/kernel/plugin.js';
+import { PluginManager } from '../../../host/kernel/plugin.ts';
+import { PluginLoader } from '../../../host/kernel/plugin.ts';
 import { PluginHostPermissions } from './pluginHostPermissions.ts';
 import { PluginProfileStore,
   type PluginProfile,
-  type ApplyProfileResult, } from '../../../host/kernel/plugin.js';
-import type { PluginRegistry } from '../../../host/kernel/plugin.js';
+  type ApplyProfileResult, } from '../../../host/kernel/plugin.ts';
+import type { PluginRegistry } from '../../../host/kernel/plugin.ts';
 import { jsonRpc } from '../../../host/kernel/runtime.ts';
 import type { Transport } from '../../../host/kernel/runtime.ts';
 import type { ResolvedConfig } from '../../../host/kernel/contracts.ts';

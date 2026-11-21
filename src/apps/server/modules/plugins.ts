@@ -1,7 +1,7 @@
-import { PluginLoader } from '../../../host/kernel/plugin.js';
-import { PluginProfileStore, type PluginProfile } from '../../../host/kernel/plugin.js';
-import { PluginBundler } from '../../../host/kernel/plugin.js';
-import type { PluginRegistry } from '../../../host/kernel/plugin.js';
+import { PluginLoader } from '../../../host/kernel/plugin.ts';
+import { PluginProfileStore, type PluginProfile } from '../../../host/kernel/plugin.ts';
+import { PluginBundler } from '../../../host/kernel/plugin.ts';
+import type { PluginRegistry } from '../../../host/kernel/plugin.ts';
 import type { ServerModule } from '../core/serverModule.ts';
 import type { ServerServices } from '../core/serverServices.ts';
 
