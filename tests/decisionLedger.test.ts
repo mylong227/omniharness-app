@@ -1,3 +1,4 @@
+// web/test/decisionTab.test.tsx
 import { describe, expect, it } from 'vitest';
 import { AuditRecorder } from '../src/host/kernel/util.ts';
 import type {

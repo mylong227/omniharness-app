@@ -4,6 +4,7 @@
 // 统一后首次启动全量触发）；② web RPC DTO 形状逐字保持（id/name/prompt/intervalMinutes/
 // enabled/createdAt/lastRunAt）与 CRUD 语义；③ 到期判定 + enabled 跳过 + markRun 持久化；
 // ④ scope 隔离：server 条目不进 daemon 的 runDue，daemon 条目不进 server 的 due。
+// web/test/skillsAutomationsTabs.test.ts
 import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';

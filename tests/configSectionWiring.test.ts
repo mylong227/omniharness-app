@@ -1,4 +1,5 @@
 /**
+// web/test/configWiring.test.ts
  * 配置通道接线判据（alpha.21）：FileConfig 里的上下文三段 / 读缓存 / 能力防火墙，
  * 必须经 `ArgParser.configDefaults` 与 `CliConfigSections.tooling` 一路透传到
  * `ConfigFactory.build` 的 partial。

@@ -1,6 +1,7 @@
 // Skill Lab 编辑服务判据（2026-11-20，docs/design/skill-lab §3）：
 // 列表归并（config 可编辑 + registry 只读 + 覆盖态）/ get（config 优先回落 registry / 未找到）/ 
 // 差异测试三态（通过 / 空字段 / 重名）/ apply 整段替换语义 / delete（config 可删 / registry-only 拒绝）。
+// web/test/skillDiff.test.ts
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import {

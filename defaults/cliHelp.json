@@ -211,7 +211,7 @@
     },
     {
       "spec": "--turn-token-budget N",
-      "description": "单回合 token 预算（超出即触发上下文压缩/收敛；缺省按 contextWindow 推导）"
+      "description": "单回合 token 预算（超出即触发上下文压缩/收敛；缺省按 contextWindow 推导）；会话级（不落盘）"
     },
     {
       "spec": "--stream-text",
@@ -219,7 +219,7 @@
     },
     {
       "spec": "--no-model-retry",
-      "description": "关闭模型重试（默认开：3 次 / 500ms 指数退避 / 尊重 Retry-After）"
+      "description": "关闭模型重试（默认开：3 次 / 500ms 指数退避 / 尊重 Retry-After）；会话级（不落盘）"
     },
     {
       "spec": "--no-model-circuit-breaker",
@@ -259,7 +259,7 @@
     },
     {
       "spec": "--approval-ask {{approvalAsks}}",
-      "description": "rules 模式 ask 时裁决（默认 allow）"
+      "description": "rules 模式 ask 时裁决（默认 allow）；会话级（不落盘）"
     },
     {
       "spec": "--sandbox {{sandboxProfiles}}",
@@ -267,7 +267,7 @@
     },
     {
       "spec": "--network-allow host1,host2",
-      "description": "网络外联白名单（A5；一旦设置即 fail-closed 仅放行所列主机后缀，如 example.com）"
+      "description": "网络外联白名单（A5；一旦设置即 fail-closed 仅放行所列主机后缀，如 example.com）；会话级（不落盘）"
     },
     {
       "spec": "daemon start|stop|status",
@@ -303,11 +303,11 @@
     },
     {
       "spec": "--events {{eventPorts}}",
-      "description": "事件端口（默认 console，进度走 stderr；stdout 仅输出最终答案）"
+      "description": "事件端口（默认 console，进度走 stderr；stdout 仅输出最终答案）；会话级（不落盘）"
     },
     {
       "spec": "--compaction-max N",
-      "description": "上下文压缩 token 预算（默认 8000）"
+      "description": "上下文压缩 token 预算（默认 8000）；会话级（不落盘）"
     },
     {
       "spec": "--config PATH",
@@ -323,19 +323,19 @@
     },
     {
       "spec": "--spill-adapter {{spillAdapters}}",
-      "description": "工具大结果外溢后端（默认 file，落盘 .omniharness/spill）"
+      "description": "工具大结果外溢后端（默认 file，落盘 .omniharness/spill）；会话级（不落盘）"
     },
     {
       "spec": "--spill-bytes N",
-      "description": "输出超过 N 字节触发外溢（默认 16384）"
+      "description": "输出超过 N 字节触发外溢（默认 16384）；会话级（不落盘）"
     },
     {
       "spec": "--spill-preview N",
-      "description": "外溢后保留的预览字节数（默认 2048）"
+      "description": "外溢后保留的预览字节数（默认 2048）；会话级（不落盘）"
     },
     {
       "spec": "--subagent-max-depth N",
-      "description": "子智能体最大派生深度（默认 2，即允许 1 层子智能体）"
+      "description": "子智能体最大派生深度（默认 2，即允许 1 层子智能体）；会话级（不落盘）"
     },
     {
       "spec": "--max-steps N",
@@ -343,11 +343,11 @@
     },
     {
       "spec": "--subagent-concurrency N",
-      "description": "子智能体并发上限（默认 4）"
+      "description": "子智能体并发上限（默认 4）；会话级（不落盘）"
     },
     {
       "spec": "--subagent-max-steps N",
-      "description": "单个子智能体步数上限（默认 0 = 不限）"
+      "description": "单个子智能体步数上限（默认 0 = 不限）；会话级（不落盘）"
     },
     {
       "spec": "--plan",
@@ -371,11 +371,11 @@
     },
     {
       "spec": "--guard-prompt-injection",
-      "description": "开启提示注入护栏（工具结果进上下文前扫描并隔离命中项）；等价于 --guard-prompt-injection-mode enforce"
+      "description": "开启提示注入护栏（工具结果进上下文前扫描并隔离命中项）；等价于 --guard-prompt-injection-mode enforce；会话级（不落盘）"
     },
     {
       "spec": "--guard-prompt-injection-mode {{enforcementModes}}",
-      "description": "护栏生效模式（**未显式传任何护栏旗标时默认 shadow 观测档常开**；off=完全关、shadow=跑但不改行为只记录「本该拦截」、enforce=真拦）。--guard-prompt-injection-mode off 可显式关回"
+      "description": "护栏生效模式（**未显式传任何护栏旗标时默认 shadow 观测档常开**；off=完全关、shadow=跑但不改行为只记录「本该拦截」、enforce=真拦）。--guard-prompt-injection-mode off 可显式关回；会话级（不落盘）"
     },
     {
       "spec": "--defer-tools LIST",
@@ -403,7 +403,7 @@
     },
     {
       "spec": "--output-format {{outputFormats}}",
-      "description": "headless 输出格式：json 输出 {ok,sessionId,steps,finalText} 供 CI 解析（默认 text）"
+      "description": "headless 输出格式：json 输出 {ok,sessionId,steps,finalText} 供 CI 解析（默认 text）；会话级（不落盘）"
     },
     {
       "spec": "--resume ID",
@@ -439,7 +439,7 @@
     },
     {
       "spec": "--context-window N",
-      "description": "上下文窗口 token 数（据此在 75% 处自动压缩，长会话防溢出）"
+      "description": "上下文窗口 token 数（据此在 75% 处自动压缩，长会话防溢出）；会话级（不落盘）"
     },
     {
       "spec": "--auth-required",

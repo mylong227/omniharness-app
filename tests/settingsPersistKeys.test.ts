@@ -3,6 +3,7 @@
 //  ② 每个白名单键都在内核字段规格（configFieldSpecs）的类型白名单里——写进配置文件
 //     不会被 normalizeConfig 以"未知 key"拒绝；
 //  ③ 内核校验是最终裁决：越界值（costBudgetSoftRatio > 1）走 mergeConfigs 真实拒绝。
+// web/test/settingsPane.test.ts
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import { createRequire } from 'node:module';
