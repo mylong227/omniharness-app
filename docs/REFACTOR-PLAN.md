@@ -361,7 +361,7 @@ useSessionResource 12 面板既有接线、theme.css token 纪律。
 - [x] W7 清理包全落（Icon 迁移/PascalCase/legacy 隔离/i18n 分片改名/knip）
 - [x] L9 零消费导出：knip 60→0 + devDep 闸入 verify（ignoreIssues 4 文件有据）
 - [ ] 遗留台账 L1-L9 全终态（L1/L3/L5/L6/L8/L9 已终态；L4 去留待拍板、L7 维持缓偿）
-- [ ] `npm run verify` 全链绿 + CI 绿
+- [x] `npm run verify` 全链绿（2026-11-22 实跑：231 文件 1057 用例 + desktop 44；CI 待推送后复核）
 
 ## 工作量粗估
 

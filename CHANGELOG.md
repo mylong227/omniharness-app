@@ -28,9 +28,8 @@
     纳入 verify 链（kernel:check → typecheck → check:exports → …）。`ignoreIssues` 仅 4 类
     文件且有据：kernel 生成物（`config/contracts`）、extensions 端口聚合桶、
     enterprise `LegacyOidcFlow`（OIDC 差分判据未随迁本仓的回退资产，去留待 L4 同批拍板）。
-  · 验收：kernel:check / typecheck 五闸 / check:exports / fast 194 文件 972 用例
-    （2 分片）/ chrome 37 文件 85 用例（2 分片）/ build + build:web + smoke +
-    desktop:build + desktop:test(44) 全绿。
+  · 验收：**`npm run verify` 全链绿**（kernel:check 九条 / typecheck 五闸 / check:exports /
+    231 文件 **1057** 用例 / build + build:web + smoke / desktop:build + desktop:test 44）。
 - **批次十一（2026-11-21 晚，K2 内核归属收编 + W4 ApiClient 域拆分）**：
   · **K2 接收内核 alpha.37（R26）**：vendored kernel 升 `0.1.0-alpha.37`（内核仓 d8d9ce7/R26）。
     内核补齐三处归属缺口——context 域承诺 `compactionStateCodec` 深路径、maintenance 域
