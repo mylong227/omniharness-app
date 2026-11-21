@@ -6,6 +6,7 @@
 
 import * as React from 'react';
 import { useApp } from '../../context.ts';
+import { useSessionResource } from '../../hooks/useSessionResource.ts';
 import { permChip, emptyState } from '../../format.ts';
 import { icon } from '../../models/Icon.ts';
 import type { PluginManifest, PluginSearchEntry } from '../../../types/models.ts';
@@ -165,31 +166,40 @@ function usePluginsTab(api: ReturnType<typeof useApp>['api'], toast: ReturnType<
   readonly doAction: (kind: 'install' | 'remove', name: string) => Promise<void>;
   readonly onQueryInput: (e: React.SyntheticEvent) => void;
 } {
-  const [installed, setInstalled] = React.useState<PluginManifest[]>([]);
-  const [available, setAvailable] = React.useState<PluginSearchEntry[]>([]);
   const [query, setQuery] = React.useState<string>('');
+  /** 防抖后的搜索关键词（load 的真源；输入态 query 立即回显，200ms 后驱动重取）。 */
+  const [debouncedQuery, setDebouncedQuery] = React.useState<string>('');
   /** 正在执行操作的插件名；'__reload__' 表示整体重载中。 */
   const [busy, setBusy] = React.useState<string | null>(null);
   /** 防抖定时器句柄（未触发前必须可被后续输入取消）。 */
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  /**
-   * 拉取已安装 + 可获取列表；已安装的从「可获取」中剔除。
-   * @param q 搜索关键词（显式传参，避免依赖渲染快照）
-   */
-  const load = async (q: string): Promise<void> => {
-    try {
-      const [inst, all] = await Promise.all([api.listPlugins(), api.searchPlugins(q)]);
+  // 列表装载（2026-11-21 批次六 A1 收编 useSessionResource）：load 身份随 debouncedQuery
+  // 变化即自动重取（seq 守卫防乱序）；错误经钩子 error state 落到列表区（补齐裸奔窟窿）。
+  const load = React.useCallback(
+    async (): Promise<{ installed: PluginManifest[]; available: PluginSearchEntry[] }> => {
+      try {
+        return await (async () => {
+          const [inst, all] = await Promise.all([api.listPlugins(), api.searchPlugins(debouncedQuery)]);
       // 形状归一（同 MemoryTab）：非数组响应按空列表处理，避免 .map 崩溃。
       const list = Array.isArray(inst) ? inst : [];
       const instSet = new Set(list.map((m) => m.name));
-      setInstalled(list);
-      setAvailable((Array.isArray(all) ? all : []).filter((d) => !instSet.has(d.manifest.name)));
-    } catch (e) {
-      // 2026-11-21 批次六 A1：初始挂载/防抖路径此前裸奔（失败无任何提示），补 toast。
-      toast(t('加载失败：{msg}', { msg: (e as Error).message }), 'err');
-    }
-  };
+          return {
+            installed: list,
+            available: (Array.isArray(all) ? all : []).filter((d) => !instSet.has(d.manifest.name)),
+          };
+        })();
+      } catch (e) {
+        // 初始挂载/防抖路径此前裸奔（失败无任何提示）——补 toast 后 rethrow 进钩子 error。
+        toast(t('加载失败：{msg}', { msg: (e as Error).message }), 'err');
+        throw e;
+      }
+    },
+    [api, debouncedQuery],
+  );
+  const { data, refresh } = useSessionResource({ enabled: true, load, followTick: false });
+  const installed = data?.installed ?? [];
+  const available = data?.available ?? [];
 
   /**
    * 排定一次延迟加载：取消上一轮未完成的任务，避免快速输入产生请求风暴。
@@ -199,13 +209,12 @@ function usePluginsTab(api: ReturnType<typeof useApp>['api'], toast: ReturnType<
     if (timerRef.current !== null) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       timerRef.current = null;
-      void load(q);
+      setDebouncedQuery(q);
     }, DEBOUNCE_MS);
   };
 
-  // 挂载排定首次加载；卸载清理未触发的防抖任务（[] 有意：只挂一次）。
+  // 卸载清理未触发的防抖任务。
   React.useEffect(() => {
-    scheduleLoad('');
     return () => {
       if (timerRef.current !== null) clearTimeout(timerRef.current);
     };
@@ -219,9 +228,13 @@ function usePluginsTab(api: ReturnType<typeof useApp>['api'], toast: ReturnType<
     available,
     query,
     busy,
-    load,
-    reload: () => reload(api, setBusy, async () => { await load(query); }, toast),
-    doAction: (kind, name) => doAction(api, kind, name, setBusy, async () => { await load(query); }, toast),
+    load: (q: string) => {
+      setQuery(q);
+      scheduleLoad(q);
+      return refresh();
+    },
+    reload: () => reload(api, setBusy, async () => { await refresh(); }, toast),
+    doAction: (kind, name) => doAction(api, kind, name, setBusy, async () => { await refresh(); }, toast),
     onQueryInput: (e) => onQueryInput(e, setQuery, scheduleLoad),
   };
 }
