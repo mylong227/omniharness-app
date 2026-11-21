@@ -1,4 +1,5 @@
 import type { StoragePort } from '../../../../host/kernel/contracts.ts';
+import { invalidateEventsCache } from './sessionEventsCache.ts';
 import { CheckpointManager } from '../../../../host/kernel/core.ts';
 import { GitWorkspaceSnapshot } from '../../../../host/kernel/adapters-misc.ts';
 
@@ -69,6 +70,8 @@ export class SessionCheckpoints {
     }
     const label = typeof params['label'] === 'string' ? params['label'] : undefined;
     const checkpoint = await this.manager().rollback(sessionId, label);
+    // B1：检查点回滚会还原（可能被截断过的）事件流——读档缓存失效。
+    invalidateEventsCache(sessionId);
     return { ok: true, checkpoint };
   }
 

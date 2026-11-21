@@ -4,6 +4,7 @@ import { log } from '../../../host/kernel/util.ts';
 import { InterjectionClassifier } from '../../../host/kernel/core.ts';
 import type { SessionRewindOutcome } from '../services/session/sessionRewindService.ts';
 import { ThreadPage } from '../services/session/threadPage.ts';
+import { cachedEventsOf, invalidateEventsCache } from '../services/session/sessionEventsCache.ts';
 import type { ServerServices } from './serverServices.ts';
 
 /**
@@ -84,7 +85,7 @@ export class TurnOrchestration {
     // 2026-10-21 修：`replay` 会把整段历史**逐条广播给所有客户端**（同文件 `trace.read`
     // 早已改为纯读）。打开一个会话却让别的窗口收到它的历史，是跨会话串流 + O(N) 广播。
     // 这里只读（在跑会话读内存、否则读存档），响应里已带 items，无需广播。
-    const events = await this.s.runtime.agent().eventsOf(threadId);
+    const events = await cachedEventsOf(threadId, () => this.s.runtime.agent().eventsOf(threadId));
     const rawLimit = params['limit'];
     const numericLimit =
       typeof rawLimit === 'number'
@@ -160,6 +161,8 @@ export class TurnOrchestration {
       return this.threadResult(result);
     } finally {
       this.s.activeTurns.delete(threadId);
+      // B1：回合结束事件流落盘——读档缓存失效（下次翻页读新流）。
+      invalidateEventsCache(threadId);
     }
   }
 
