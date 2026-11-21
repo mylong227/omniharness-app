@@ -54,6 +54,9 @@
   `runGates.mjs` / `tools/probes/` 未随迁，fail-closed 零产出。
 - **最终验收**：`npm run verify` 全链绿（kernel:check 九条 / typecheck 五闸 / check:exports /
   232 文件 1064 用例 / build + build:web + smoke / desktop:build + desktop:test 44）。
+- **外部机会项（不是本仓剩余项，无待办动作）**：R25d CliWorker 族（483 行）上内核——需内核
+  worker 域排期后按 K2 例行接收；W1 zod 化——高漂移域已有 8 条编译期探针，zod 为中期末来项；
+  L7 反向 locale 事件——桌面壳新增运行期语言入口时才触发。
 
 ---
 
