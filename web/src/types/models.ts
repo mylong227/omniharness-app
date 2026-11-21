@@ -360,8 +360,12 @@ export interface MemorySearchResult {
 export interface Profile {
   id: string;
   name: string;
-  description?: string;
+  /** 服务端摘要把缺省描述发成显式 undefined（exactOptionalPropertyTypes 下必须显式收）。 */
+  description?: string | undefined;
+  /** 插件名清单（`profile.list` 不返回：列表只给摘要，应用前才取完整 profile）。 */
   plugins?: string[];
+  /** 插件数量（`profile.list` 的摘要字段，与服务端 `PluginProfileSummary.pluginCount` 同形）。 */
+  pluginCount?: number;
 }
 
 export interface ActivePlugins {
@@ -592,7 +596,8 @@ export interface ContextUsageReport {
   usedTokens: number;
   /** 已用占窗口百分比。 */
   percent: number;
-  rows: ContextUsageRow[];
+  /** 六类明细（后端口径是只读数组；只许加宽，故前端也用 readonly）。 */
+  rows: readonly ContextUsageRow[];
   mcpToolCount: number;
   systemToolCount: number;
   /** `measured`=取最近一次真实请求的实测快照；`estimated`=按事件日志重投影；`empty`=无数据。 */
@@ -768,7 +773,9 @@ export interface TraceReadResultLike {
  * `vault.list` 的返回体（2026-10-11 Web 交付）。**只含名字，绝不含值**——
  * 凭据不回读给浏览器（服务端故意没有 `vault.get`）。
  */
-export type VaultListResult = { ok: true; names: string[] } | { ok: false; reason: string };
+export type VaultListResult =
+  | { ok: true; names: readonly string[] }
+  | { ok: false; reason: string };
 
 /** `vault.set` / `vault.delete` 的返回体。 */
 export type VaultWriteResult =
@@ -846,8 +853,8 @@ export interface KernelContextViewLike {
     mode: 'off' | 'bm25';
     rewriter: 'off' | 'model';
     rerank: 'off' | 'model';
-    maxSnippets?: number;
-    maxTokens?: number;
+    maxSnippets?: number | undefined;
+    maxTokens?: number | undefined;
   };
   semanticRecall: {
     requested: boolean;
@@ -858,7 +865,7 @@ export interface KernelContextViewLike {
   contextPolicy: {
     shapersAggressive: boolean;
     compactionForce: boolean;
-    cacheGuardFloor?: number;
+    cacheGuardFloor?: number | undefined;
   };
 }
 

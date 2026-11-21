@@ -1,5 +1,15 @@
 import type { ServerModule } from '../core/serverModule.ts';
 
+/** `vault.list` 的返回体（只含名字，绝不含值）。 */
+export type VaultListResponse =
+  | { ok: true; names: readonly string[] }
+  | { ok: false; reason: string };
+
+/** `vault.set` / `vault.delete` 的返回体（`removed` 仅 delete 有）。 */
+export type VaultWriteResponse =
+  | { ok: true; name: string; removed?: boolean }
+  | { ok: false; reason: string };
+
 /**
  * 凭据保险库模块（Web 交付项，2026-10-11）：`vault.list` / `vault.set` / `vault.delete`。
  *
@@ -14,14 +24,14 @@ export function vaultModule(): ServerModule {
   return {
     name: 'vault',
     register(ctx) {
-      ctx.rpc('vault.list', async () => {
+      ctx.rpc('vault.list', async (): Promise<VaultListResponse> => {
         const vault = ctx.services.options.vault;
         if (vault === undefined) {
           return { ok: false, reason: 'vault 未接线（serve 组合根未注入 vault）' };
         }
         return { ok: true, names: await vault.listSecrets() };
       });
-      ctx.rpc('vault.set', async (params) => {
+      ctx.rpc('vault.set', async (params): Promise<VaultWriteResponse> => {
         const vault = ctx.services.options.vault;
         if (vault === undefined) {
           return { ok: false, reason: 'vault 未接线（serve 组合根未注入 vault）' };
@@ -38,7 +48,7 @@ export function vaultModule(): ServerModule {
         await vault.setSecret(name, secret);
         return { ok: true, name };
       });
-      ctx.rpc('vault.delete', async (params) => {
+      ctx.rpc('vault.delete', async (params): Promise<VaultWriteResponse> => {
         const vault = ctx.services.options.vault;
         if (vault === undefined) {
           return { ok: false, reason: 'vault 未接线（serve 组合根未注入 vault）' };

@@ -101,15 +101,19 @@ function profileColumns(actions: RowActions): ColumnsType<Profile> {
     {
       title: t('插件'),
       key: 'plugins',
-      render: (_, p) => (
-        <>
-          {(p.plugins || []).map((n: string) => (
-            <span className="badge" key={n}>
-              {n}
-            </span>
-          ))}
-        </>
-      ),
+      // `profile.list` 只回摘要（pluginCount），不含插件名；plugins 仅在完整 profile 上才有。
+      render: (_, p) =>
+        p.plugins === undefined ? (
+          <span className="badge">{String(p.pluginCount ?? 0)}</span>
+        ) : (
+          <>
+            {p.plugins.map((n: string) => (
+              <span className="badge" key={n}>
+                {n}
+              </span>
+            ))}
+          </>
+        ),
     },
     {
       title: t('操作'),
