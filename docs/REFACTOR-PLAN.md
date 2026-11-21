@@ -278,7 +278,7 @@ serveInstance 6 处；maintenanceRunner 2 处；graphStore 2 处）→ 删 exten
 `extensions/README.md` 登记表清条（compactionMarkerReader 2026-11-11 条目终态）→
 `kernel:check` 九条 + verify 全链。
 
-**批次 K 终态**：extensions 48 → 44 件（**-938 行**：compactionMarkerReader 192 + serveInstance 229 +
+**批次 K 终态**（实际 2026-11-22）：extensions 46 → 32 件（R26 -5 件 947 行：compactionMarkerReader 192 + serveInstance 229 +
 maintenanceRunner 372 + graphStore 145；R25d worker 族再 -461 行）；登记表归零；
 serveInstance 内外双副本全清；内核 maintenance/autonomy/context 域补齐缺口。
 
