@@ -6,7 +6,7 @@
 // @vitest-environment jsdom
 
 import assert from 'node:assert/strict';
-import { beforeAll, test } from 'vitest';
+import { test } from 'vitest';
 import type * as ReactNS from 'react';
 import { renderElement } from './rtlHarness.ts';
 import {
