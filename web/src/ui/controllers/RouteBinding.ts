@@ -1,7 +1,7 @@
 // 前端路由绑定（F8）：持有当前路由状态、把局部补丁写入 hash、订阅浏览器前进 / 后退并收口到 App 状态。
 // 从 AppController 抽离，避免根控制器越过 25 方法的上帝类红线；AppController 仅持有本类并委托。
 
-import { parseHash, navigate, onRouteChange, type AppRoute } from '../../core/Router.ts';
+import { parseHash, navigate, onRouteChange, type AppRoute } from '../models/Router.ts';
 import type { AppHost, AppState } from './AppController.ts';
 import { MethodBinder } from './methodBinder.ts';
 

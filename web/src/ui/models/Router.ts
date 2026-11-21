@@ -1,6 +1,11 @@
 // 前端哈希路由（F8）：把「当前右栏面板 + 当前会话」编码进 location.hash，
 // 支持深链（刷新 / 分享链接直达）与浏览器前进 / 后退。纯函数 + 轻量订阅，不依赖 React。
 // 浏览器不可用（单测）时回落到注入的全局 location / window，避免硬崩溃。
+//
+// 位置（2026-11-21 W3）：core/ → ui/models/——路由白名单消费 PanelRegistry（同层纯数据），
+// 留在 core 会构成 core→ui 反向依赖（批次二清零的违规面）；哈希路由本质是 UI 关注点。
+
+import { PANELS } from './PanelRegistry.ts';
 
 /** 一条路由：右侧激活面板标识 + 当前打开的会话 id（null 表示无）。 */
 export interface AppRoute {
@@ -15,34 +20,16 @@ export interface AppRoute {
   view?: string;
 }
 
-/** 合法面板标识（与 PanelRegistry / RightPanel 的单一来源保持一致）。 */
-const VALID_PANES: ReadonlySet<string> = new Set([
-  'activity',
-  'skills',
-  'automations',
-  'tools',
-  'metrics',
-  'changes',
-  // 'settings' 已移除（2026-10-17）：设置不再是右栏面板，而是左栏页脚按钮 + 居中模态。
-  // 保留它在合法集合里会让 `#pane=settings` 被解析成"合法但不存在的面板"⇒ 右栏渲染空白，
-  // 而用户以为自己打开的是设置。旧书签现在会安全落回默认面板（tools）。
-  'plugins',
-  'graph',
-  'memory',
-  'profiles',
-  'file',
-  'detail',
-  'rollback',
-  'governance',
-  'diagnostics',
-  'audit',
-  'decision',
-  'trace',
-  'permission',
-  'vault',
-  // 控制室（2026-11-10）：编队/上下文/凭证三模式的唯一入口面板。
-  'control',
-]);
+/**
+ * 合法面板标识（W3 单源化，2026-11-21）：**派生自 `PanelRegistry.PANELS`**——
+ * 此前是 21 个手抄字面量（注释自称"与 PanelRegistry 保持一致"，实为第三份真相）；
+ * 现在新增面板只改注册表，路由白名单自动跟随。
+ *
+ * 'settings' 已移除（2026-10-17）：设置不再是右栏面板，而是左栏页脚按钮 + 居中模态。
+ * 保留它在合法集合里会让 `#pane=settings` 被解析成"合法但不存在的面板"⇒ 右栏渲染空白；
+ * 旧书签现在安全落回默认面板（tools）——PANELS 里没有它，派生集合天然不含。
+ */
+const VALID_PANES: ReadonlySet<string> = new Set(PANELS.map((panel) => panel.key));
 
 /** 控制室三模式的合法 view 值（深链白名单；未知值落回 fleet，见 parseHash）。 */
 const CONTROL_VIEWS: ReadonlySet<string> = new Set(['fleet', 'context', 'proof']);

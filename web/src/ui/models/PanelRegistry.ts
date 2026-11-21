@@ -41,8 +41,12 @@ export interface PanelEntry {
  * 2026-10-26 起设置与面板在**界面入口**上合并为工作台控制台
  * （`components/console/ConsoleModal.tsx`，导航见 `ConsoleRegistry.ts`），但本注册表只描述面板；
  * 设置分栏仍在 `SettingsModel.SETTINGS_TABS`。要加回面板列表前先读控制台组件的头注释。
+ *
+ * `satisfies` 保住 key 的字面量类型 ⇒ `PaneKey` 是 21 个字面量的联合；
+ * 渲染器表（`components/paneRenderers.tsx` 的 `Record<PaneKey, …>`）与路由白名单都从本表派生——
+ * 新增面板只改这里 + 渲染器表两处，漏一处是编译错误（W3 单源化）。
  */
-export const PANELS: readonly PanelEntry[] = [
+export const PANELS = [
   // 控制室（2026-11-10）：一个入口三模式（编队/上下文/凭证），内部 tab 切换——
   // 设计上刻意只占 1 个导航位（设计 §2.3），不与编排/记忆/审计重复。
   { key: 'control', label: '控制室', icon: 'gauge', description: '编队 / 上下文 / 凭证：一屏掌控当前运行' },
@@ -68,7 +72,10 @@ export const PANELS: readonly PanelEntry[] = [
   { key: 'trace', label: 'Trace', icon: 'search', description: '本会话的只读 trace 自省' },
   { key: 'permission', label: '权限', icon: 'shield', description: '参数级权限规则编辑器' },
   { key: 'vault', label: '凭据', icon: 'archive', description: '凭据保险库（只列名字，写后不回读）' },
-];
+] satisfies readonly PanelEntry[];
+
+/** 面板 key 字面量联合（W3 单源：路由白名单与渲染器表都从 PANELS 派生）。 */
+export type PaneKey = (typeof PANELS)[number]['key'];
 
 /**
  * 取面板条目（未知 key 返回 undefined；调用方自行决定回退）。

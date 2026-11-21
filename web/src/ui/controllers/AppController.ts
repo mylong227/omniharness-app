@@ -6,7 +6,7 @@
 // 行为与旧版 useAppController 内联实现逐字节等价。
 
 import { ApiClient } from '../../core/ApiClient.ts';
-import type { AppRoute } from '../../core/Router.ts';
+import type { AppRoute } from '../models/Router.ts';
 import { EventStream } from '../../core/EventStream.ts';
 import { dismissAuthBanner } from '../authRequiredBanner.ts';
 import { RouteBinding } from './RouteBinding.ts';

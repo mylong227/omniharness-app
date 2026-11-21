@@ -33,10 +33,12 @@ describe('设置目录结构不变量（settings/ 域模块）', () => {
     ).toEqual([]);
   });
 
-  it('SETTINGS_TABS key 唯一且非空（左导航与路由 #settings=<key> 同源）', () => {
+  it('SETTINGS_TABS key 唯一且文案齐全（左导航与路由 #settings=<key> 同源；key 非空由类型层保证）', () => {
     const keys = SETTINGS_TABS.map((tab) => tab.key);
     expect(new Set(keys).size, '分栏 key 重复').toBe(keys.length);
-    for (const key of keys) assert.ok(key !== '', '分栏 key 不得为空');
+    for (const tab of SETTINGS_TABS) {
+      assert.ok(tab.label !== '' && tab.hint !== '', `分栏 ${String(tab.key)} 的 label/hint 不得为空`);
+    }
   });
 
   it('group 仅 runtime 栏使用且非空串（栏内卡片分组键）', () => {

@@ -27,7 +27,7 @@ import { allText as facadeAllText } from './domFacade.ts';
 
 const { DiagnosticsTab } = await import('../src/ui/components/tabs/DiagnosticsTab.tsx');
 const { PANELS } = await import('../src/ui/models/PanelRegistry.ts');
-const { parseHash } = await import('../src/core/Router.ts');
+const { parseHash } = await import('../src/ui/models/Router.ts');
 
 /**
  * 渲染一次组件（函数组件：换组件即清槽位）。

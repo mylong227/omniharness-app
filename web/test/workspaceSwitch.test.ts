@@ -19,7 +19,7 @@ import { test } from 'vitest';
 const { SessionController } = await import('../src/ui/controllers/SessionController.ts');
 const { AppReducers } = await import('../src/ui/controllers/AppReducers.ts');
 import type { AppHost, AppServices } from '../src/ui/controllers/AppController.ts';
-import type { AppRoute } from '../src/core/Router.ts';
+import type { AppRoute } from '../src/ui/models/Router.ts';
 import type { ToastKind } from '../src/core/ToastService.ts';
 
 test('onWorkspaceSwitched：列表换新工作区响应（旧项目消失、归档保留），视图清空', async () => {

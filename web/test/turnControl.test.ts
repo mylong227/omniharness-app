@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import type { AppHost, AppServices } from '../src/ui/controllers/AppController.ts';
 import type { SessionController } from '../src/ui/controllers/SessionController.ts';
-import type { AppRoute } from '../src/core/Router.ts';
+import type { AppRoute } from '../src/ui/models/Router.ts';
 
 const { ApiClient } = await import('../src/core/ApiClient.ts');
 const { ComposerController } = await import('../src/ui/controllers/ComposerController.ts');
