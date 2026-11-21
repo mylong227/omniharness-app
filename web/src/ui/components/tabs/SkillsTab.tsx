@@ -9,6 +9,7 @@
 
 import * as React from 'react';
 import { useApp } from '../../context.ts';
+import { useSessionResource } from '../../hooks/useSessionResource.ts';
 import { t } from '../../i18n/i18n.ts';
 import { diffLines, diffStats } from '../../models/SkillDiff.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
@@ -144,32 +145,22 @@ function DiffPreview(props: { original: string; patched: string }): React.ReactE
 /** 技能实验室面板。 */
 export function SkillsTab(): React.ReactElement {
   const { api, toast, dialog } = useApp();
-  const [skills, setSkills] = React.useState<SkillListRow[] | null>(null);
-  const [error, setError] = React.useState('');
   const [query, setQuery] = React.useState('');
   const [editor, setEditor] = React.useState<EditorState | null>(null);
-  /** 目录刷新信号（应用/删除成功后自增触发重拉）。 */
-  const [reloadTick, setReloadTick] = React.useState(0);
 
-  /** 拉取目录（编辑器关闭/应用成功后同走这里）。 */
-  const reload = React.useCallback((): void => {
-    setReloadTick((tick) => tick + 1);
-  }, []);
-
-  React.useEffect(() => {
-    let alive = true;
-    api
-      .listSkills()
-      .then((r) => {
-        if (alive) setSkills(r.skills ?? []);
-      })
-      .catch((cause: unknown) => {
-        if (alive) setError(cause instanceof Error ? cause.message : String(cause));
-      });
-    return () => {
-      alive = false;
-    };
-  }, [api, reloadTick]);
+  // 目录装载（2026-11-21 批次六 A1 收编 useSessionResource）：data=null=装载中、
+  // error=整页错误态、refresh=应用/删除后的重拉（返回在飞 Promise）。
+  const load = React.useCallback(async (): Promise<SkillListRow[]> => {
+    const r = await api.listSkills();
+    return r.skills ?? [];
+  }, [api]);
+  const { data: fetchedSkills, error: loadError, refresh: reload } = useSessionResource({
+    enabled: true,
+    load,
+    followTick: false,
+  });
+  const skills = fetchedSkills;
+  const error = loadError ?? '';
 
   /** 进入编辑态：拉单条完整视图回填表单。 */
   const startEdit = (row: SkillListRow): void => {

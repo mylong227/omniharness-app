@@ -6,6 +6,7 @@
 
 import * as React from 'react';
 import { useApp } from '../../context.ts';
+import { useSessionResource } from '../../hooks/useSessionResource.ts';
 import { ImportanceStars } from '../../models/ImportanceStars.ts';
 import { icon } from '../../models/Icon.ts';
 import { emptyState } from '../../format.ts';
@@ -123,76 +124,71 @@ interface MemoryStore {
 }
 
 /**
- * 长期记忆数据源：全量列出 / 自然语言检索 / 计数；挂载与 reloadKey、sessionTick 变化时重载。
- * @param reloadKey 外部重载信号（SSE memory.changed 时自增）。
- * @returns facts 记忆列表；count 服务端计数；query/setQuery 检索词；load 全量列出；search 检索
+ * 长期记忆数据源（2026-11-21 批次六 A1 收编 useSessionResource）：挂载与 reloadKey 变化时
+ * 重载；检索词经 queryRef 在 load 闭包内消费（检索按钮 = refresh，空词回落全量）。
+ * profile 数据不随回合推进变化——followTick:false（批次四已收窄，本迁移沿用）。
+ * @param reloadKey 外部重载信号（SSE memory.changed 去抖后自增）
+ * @returns facts 记忆列表；count 服务端计数；query/setQuery 检索词；load/refresh 重载
  */
 function useMemoryStore(reloadKey: number): MemoryStore {
   const { api, toast } = useApp();
-  const [facts, setFacts] = React.useState<MemoryFact[]>([]);
-  const [count, setCount] = React.useState<number>(0);
   const [query, setQuery] = React.useState<string>('');
+  const queryRef = React.useRef('');
+  queryRef.current = query;
 
-  /** 列出全部记忆。 */
-  const load = async (): Promise<void> => {
+  const load = React.useCallback(async (): Promise<{ count: number; facts: MemoryFact[] }> => {
+    const q = queryRef.current.trim();
     try {
-      const r = await api.listMemory();
-      // 服务端响应做形状归一：facts 缺失/非数组时按空列表处理。
-      // 2026-10-19：桩数据/异常响应曾让 facts.map is not a function 触发错误边界、卸载整棵树。
-      setCount(typeof r.count === 'number' ? r.count : 0);
-      setFacts(Array.isArray(r.facts) ? r.facts : []);
+      if (q === '') {
+        const r = await api.listMemory();
+        // 服务端响应做形状归一（2026-10-19：桩/异常响应曾让 facts.map 抛错误边界）。
+        return {
+          count: typeof r.count === 'number' ? r.count : 0,
+          facts: Array.isArray(r.facts) ? r.facts : [],
+        };
+      }
+      const r = await api.searchMemory(q, 20);
+      return {
+        count: typeof r.count === 'number' ? r.count : 0,
+        facts: Array.isArray(r.results) ? r.results : [],
+      };
     } catch (e) {
       toast(t('加载失败：{msg}', { msg: (e as Error).message }), 'err');
+      throw e;
     }
-  };
+  }, [api, toast]);
+  const { data, refresh } = useSessionResource({
+    enabled: true,
+    load,
+    followTick: false,
+    reloadTick: reloadKey,
+  });
 
-  // 挂载装载 + reloadKey 变化重载（deps 只有 reloadKey；sessionTick 已移除——记忆不随回合推进变化，4.2 批次收窄）。
-  React.useEffect(() => {
-    void load();
-  }, [reloadKey]);
-
-  /** 检索：空查询回落为全量列出。 */
-  const search = async (): Promise<void> => {
-    const q = query.trim();
-    if (!q) {
-      await load();
-      return;
-    }
-    try {
-      const r = await api.searchMemory(q, 20);
-      setCount(typeof r.count === 'number' ? r.count : 0);
-      setFacts(Array.isArray(r.results) ? r.results : []);
-    } catch (e) {
-      toast(t('检索失败：{msg}', { msg: (e as Error).message }), 'err');
-    }
-  };
-
-  return { facts, count, query, setQuery, load, search };
+  return { facts: data?.facts ?? [], count: data?.count ?? 0, query, setQuery, load: refresh, search: refresh };
 }
 
 /**
- * 记忆时间图数据源（memory.facts，只读快照）：挂载与 reloadKey/sessionTick 变化时重拉。
- * @param reloadKey 外部重载信号（SSE memory.changed 时自增）
+ * 记忆时间图数据源（memory.facts，只读快照）：挂载与 reloadKey 变化时重拉。
+ * 拉取失败如实降级为「无图」（时间图隐藏，不阻塞记忆面板其余功能）。
+ * @param reloadKey 外部重载信号
  * @returns 快照；装载中为 null（不渲染）
  */
 function useMemoryFacts(reloadKey: number): MemoryFactsResult | null {
   const { api } = useApp();
-  const [snap, setSnap] = React.useState<MemoryFactsResult | null>(null);
-  React.useEffect(() => {
-    let alive = true;
-    api
-      .memoryFacts()
-      .then((r) => {
-        if (alive) setSnap(r);
-      })
-      .catch(() => {
-        // 拉取失败如实降级为「无图」：时间图隐藏，不阻塞记忆面板其余功能。
-        if (alive) setSnap({ supported: false, cards: [], total: 0, active: 0 });
-      });
-    return () => {
-      alive = false;
-    };
-  }, [reloadKey, api]);
+  const load = React.useCallback(async (): Promise<MemoryFactsResult> => {
+    try {
+      return await api.memoryFacts();
+    } catch {
+      // 拉取失败如实降级为「无图」：时间图隐藏，不阻塞记忆面板其余功能。
+      return { supported: false, cards: [], total: 0, active: 0 };
+    }
+  }, [api]);
+  const { data: snap } = useSessionResource({
+    enabled: true,
+    load,
+    followTick: false,
+    reloadTick: reloadKey,
+  });
   return snap;
 }
 

@@ -10,6 +10,7 @@
 
 import * as React from 'react';
 import { useApp } from '../../context.ts';
+import { useSessionResource } from '../../hooks/useSessionResource.ts';
 // 领域模型下沉到 models/（零 React 依赖，可单测）；此处 re-export 保持调用方 import 路径不变。
 import { CheckpointNamer } from '../../models/checkpoint.ts';
 import { CheckpointTimeline } from '../../models/CheckpointTimeline.ts';
@@ -199,32 +200,31 @@ function useRollback(
   create: () => Promise<void>;
   rollback: (target?: string) => Promise<void>;
 } {
-  const { api, toast, dialog, sessionTick } = useApp();
-  const [list, setList] = React.useState<CheckpointMeta[]>([]);
-  const [loading, setLoading] = React.useState<boolean>(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { api, toast, dialog } = useApp();
   const [label, setLabel] = React.useState<string>('');
   const [busy, setBusy] = React.useState<boolean>(false);
-  const refresh = async (sid: string | null): Promise<void> => {
-    if (!sid) {
-      setList([]);
-      setError(null);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const r = await api.listCheckpoints(sid);
-      setList(r.checkpoints ?? []);
-      setLoading(false);
-    } catch (e) {
-      setError((e as Error).message);
-      setLoading(false);
-    }
-  };
-  React.useEffect(() => {
-    void refresh(sessionId);
-  }, [sessionId, sessionTick]);
+  // 列表装载（2026-11-21 批次六 A1 收编 useSessionResource）：enabled=有会话、
+  // followTick=true、失败保留旧数据 + loading 只在首帧（旧实现每次刷新闪回「读取中…」）。
+  const load = React.useCallback(
+    async (): Promise<CheckpointMeta[]> => {
+      if (sessionId === null) return [];
+      const r = await api.listCheckpoints(sessionId);
+      return r.checkpoints ?? [];
+    },
+    [api, sessionId],
+  );
+  const { data, loading, error, refresh: refreshResource } = useSessionResource({
+    enabled: sessionId !== null,
+    load,
+    followTick: true,
+  });
+  const refresh = React.useCallback(
+    async (sid: string | null): Promise<void> => {
+      if (sid === null) return;
+      await refreshResource();
+    },
+    [refreshResource],
+  );
   const create = async (): Promise<void> => {
     if (!sessionId) return;
     const name = CheckpointNamer.resolve(label);
@@ -263,7 +263,7 @@ function useRollback(
       setBusy(false);
     }
   };
-  return { list, loading, error, label, setLabel, busy, refresh, create, rollback };
+  return { list: data ?? [], loading, error, label, setLabel, busy, refresh, create, rollback };
 }
 
 /**

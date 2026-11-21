@@ -178,12 +178,17 @@ function usePluginsTab(api: ReturnType<typeof useApp>['api'], toast: ReturnType<
    * @param q 搜索关键词（显式传参，避免依赖渲染快照）
    */
   const load = async (q: string): Promise<void> => {
-    const [inst, all] = await Promise.all([api.listPlugins(), api.searchPlugins(q)]);
-    // 形状归一（同 MemoryTab）：非数组响应按空列表处理，避免 .map 崩溃。
-    const list = Array.isArray(inst) ? inst : [];
-    const instSet = new Set(list.map((m) => m.name));
-    setInstalled(list);
-    setAvailable((Array.isArray(all) ? all : []).filter((d) => !instSet.has(d.manifest.name)));
+    try {
+      const [inst, all] = await Promise.all([api.listPlugins(), api.searchPlugins(q)]);
+      // 形状归一（同 MemoryTab）：非数组响应按空列表处理，避免 .map 崩溃。
+      const list = Array.isArray(inst) ? inst : [];
+      const instSet = new Set(list.map((m) => m.name));
+      setInstalled(list);
+      setAvailable((Array.isArray(all) ? all : []).filter((d) => !instSet.has(d.manifest.name)));
+    } catch (e) {
+      // 2026-11-21 批次六 A1：初始挂载/防抖路径此前裸奔（失败无任何提示），补 toast。
+      toast(t('加载失败：{msg}', { msg: (e as Error).message }), 'err');
+    }
   };
 
   /**

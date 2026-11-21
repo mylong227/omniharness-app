@@ -7,6 +7,7 @@
 
 import * as React from 'react';
 import { useApp } from '../../context.ts';
+import { useSessionResource } from '../../hooks/useSessionResource.ts';
 import { GraphDefBuilder, type StepDraft } from '../../models/GraphDefBuilder.ts';
 import { emptyState } from '../../format.ts';
 import { icon } from '../../models/Icon.ts';
@@ -263,31 +264,19 @@ function useGraphDraft(): GraphDraft {
 }
 
 /**
- * 已存图列表数据源：进入该页时拉取一次（sessionTick 变化重拉）。
- * @param sessionTick 会话轮换信号
- * @returns graphs 已存图列表；load 重载
+ * 已存图列表数据源（2026-11-21 批次六 A1 收编 useSessionResource）：
+ * 进入该页时拉取一次（followTick:false——graphs 只在保存/删除后变，动作集显式 refresh）。
+ * @returns graphs 已存图列表；load 重载（返回在飞 Promise）
  */
-function useGraphList(sessionTick: number): { graphs: GraphSummary[]; load: () => Promise<void> } {
-  const { api, toast } = useApp();
-  const [graphs, setGraphs] = React.useState<GraphSummary[]>([]);
-
-  /** 拉取已存图列表。 */
-  const load = async (): Promise<void> => {
-    try {
-      const listed = await api.listGraphs();
-      // 同理：非数组（桩/异常响应）按空列表处理，别让 .map 抛错。
-      setGraphs(Array.isArray(listed) ? listed : []);
-    } catch (e) {
-      toast(t('图列表不可用：{msg}', { msg: (e as Error).message }), 'err');
-    }
-  };
-
-  // 挂载拉取图列表（[] 有意：只在进入该页时拉一次）。
-  React.useEffect(() => {
-    void load();
-  }, [sessionTick]);
-
-  return { graphs, load };
+function useGraphList(): { graphs: GraphSummary[]; load: () => Promise<void> } {
+  const { api } = useApp();
+  const load = React.useCallback(async (): Promise<GraphSummary[]> => {
+    const listed = await api.listGraphs();
+    // 同理：非数组（桩/异常响应）按空列表处理，别让 .map 抛错。
+    return Array.isArray(listed) ? listed : [];
+  }, [api]);
+  const { data, refresh } = useSessionResource({ enabled: true, load, followTick: false });
+  return { graphs: data ?? [], load: refresh };
 }
 
 /**
@@ -485,9 +474,8 @@ function StepEditor(props: { draft: GraphDraft }): ReactElement {
  */
 export function GraphTab(props: GraphTabProps): ReactElement {
   const { graphRuns, onRunStart, onResume } = props;
-  const { sessionTick } = useApp();
   const draft = useGraphDraft();
-  const { graphs, load } = useGraphList(sessionTick);
+  const { graphs, load } = useGraphList();
   const run = useGraphRun(draft.collectDef, load, onRunStart);
 
   return (

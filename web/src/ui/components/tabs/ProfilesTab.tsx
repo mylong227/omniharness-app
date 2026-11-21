@@ -5,6 +5,7 @@
 
 import * as React from 'react';
 import { useApp } from '../../context.ts';
+import { useSessionResource } from '../../hooks/useSessionResource.ts';
 import { emptyState } from '../../format.ts';
 import { icon } from '../../models/Icon.ts';
 import type { Profile, ActivePlugins } from '../../../types/models.ts';
@@ -136,33 +137,37 @@ interface ProfilesStore {
 }
 
 /**
- * 配置集数据源：列表 + 当前激活插件集，挂载与 reloadKey、sessionTick 变化时重载。
+ * 配置集数据源（2026-11-21 批次六 A1 收编 useSessionResource）：挂载与 reloadKey 变化时重载。
+ * profile 数据不随回合推进变化——followTick:false（顺带修正旧实现 deps 里多带的 sessionTick）。
  * @param reloadKey 外部重载信号（SSE profile 事件时自增）
  * @returns profiles 配置集列表；active 当前激活插件集；load 重载
  */
 function useProfilesStore(reloadKey: number): ProfilesStore {
-  const { api, toast, sessionTick } = useApp();
-  const [profiles, setProfiles] = React.useState<Profile[]>([]);
-  const [active, setActive] = React.useState<ActivePlugins>({ plugins: [] });
-
-  /** 拉取配置集列表与当前激活插件集。 */
-  const load = async (): Promise<void> => {
+  const { api, toast } = useApp();
+  const load = React.useCallback(async (): Promise<{ profiles: Profile[]; active: ActivePlugins }> => {
     try {
       const [list, act] = await Promise.all([api.listProfiles(), api.getActiveProfile()]);
       // 形状归一（同 MemoryTab）：异常/桩响应可能不是数组，别让 .map 触发错误边界。
-      setProfiles(Array.isArray(list) ? list : []);
-      setActive(act !== null && typeof act === 'object' && Array.isArray(act.plugins) ? act : { plugins: [] });
+      return {
+        profiles: Array.isArray(list) ? list : [],
+        active:
+          act !== null && typeof act === 'object' && Array.isArray(act.plugins)
+            ? act
+            : { plugins: [] },
+      };
     } catch (e) {
       toast(t('加载失败：{msg}', { msg: (e as Error).message }), 'err');
+      throw e;
     }
-  };
+  }, [api, toast]);
+  const { data, refresh } = useSessionResource({
+    enabled: true,
+    load,
+    followTick: false,
+    reloadTick: reloadKey,
+  });
 
-  // 挂载装载 + reloadKey 变化重载（deps 只有 reloadKey；load 只读写闭包外的服务与 setter）。
-  React.useEffect(() => {
-    void load();
-  }, [reloadKey, sessionTick]);
-
-  return { profiles, active, load };
+  return { profiles: data?.profiles ?? [], active: data?.active ?? { plugins: [] }, load: refresh };
 }
 
 /** useProfileActions 的返回面（配置集三动作）。 */

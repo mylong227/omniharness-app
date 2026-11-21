@@ -27,6 +27,11 @@ export interface SessionResourceOptions<T> {
   readonly load: () => Promise<T>;
   /** 是否跟随 sessionTick 重取（会话级数据 true；全局状态类 false——tick 是回合推进信号，全局状态不必陪跑）。 */
   readonly followTick?: boolean;
+  /**
+   * 外部刷新信号（2026-11-21 批次六 A1 收编全局面板）：SSE 去抖后的 reloadKey /
+   * 面板本地自增 tick——值变化即重取。与 followTick 正交（可同时用）。
+   */
+  readonly reloadTick?: number;
 }
 
 /** useSessionResource 的返回值。 */
@@ -37,8 +42,8 @@ export interface SessionResourceResult<T> {
   readonly error: string | null;
   /** 首次取数中（已有数据后的后台刷新不计）。 */
   readonly loading: boolean;
-  /** 手动重取（错误页「重试」按钮用）。 */
-  readonly refresh: () => void;
+  /** 手动重取（错误页「重试」按钮用；返回在飞 Promise，动作后可 await 保证列表已刷新）。 */
+  readonly refresh: () => Promise<void>;
 }
 
 /**
@@ -47,18 +52,18 @@ export interface SessionResourceResult<T> {
  * @returns 数据、错误、加载态与重取
  */
 export function useSessionResource<T>(options: SessionResourceOptions<T>): SessionResourceResult<T> {
-  const { enabled, load, followTick = true } = options;
+  const { enabled, load, followTick = true, reloadTick } = options;
   const { sessionTick } = useApp();
   const [data, setData] = React.useState<T | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const seqRef = React.useRef(0);
 
-  const refresh = React.useCallback((): void => {
-    if (!enabled) return;
+  const refresh = React.useCallback((): Promise<void> => {
+    if (!enabled) return Promise.resolve();
     const seq = ++seqRef.current;
     setError(null);
-    load().then(
+    return load().then(
       (result) => {
         if (seq !== seqRef.current) return;
         setData(result);
@@ -82,10 +87,10 @@ export function useSessionResource<T>(options: SessionResourceOptions<T>): Sessi
     }
     if (data === null) setLoading(true);
     refresh();
-    // data 不进依赖：effect 只在「可取性 / 参数 / tick」变化时重跑；data 只作“是否首次”的
-    // 快照判定，成功回调里的 setData 不应触发重取。
+    // data 不进依赖：effect 只在「可取性 / 参数 / tick / 外部信号」变化时重跑；data 只作
+    // “是否首次”的快照判定，成功回调里的 setData 不应触发重取。
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, refresh, ...(followTick ? [sessionTick] : [])]);
+  }, [enabled, refresh, ...(followTick ? [sessionTick] : []), ...(reloadTick !== undefined ? [reloadTick] : [])]);
 
   return { data, error, loading, refresh };
 }
