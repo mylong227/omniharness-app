@@ -11,7 +11,7 @@ import type { ComposerCompletions } from './useComposerCompletions.ts';
 import type { MentionState, SkillOption, SlashState } from './composerCompletions.ts';
 
 /** `/` 技能补全弹层的入参。 */
-export interface SlashSuggestionPopProps {
+interface SlashSuggestionPopProps {
   /** 补全态；null 时不渲染。 */
   readonly slash: SlashState | null;
   /** 选中回调（插入 `/name `）。 */
@@ -49,7 +49,7 @@ function SlashSuggestionPop(props: SlashSuggestionPopProps): ReactElement | null
 }
 
 /** `@` 文件引用补全弹层的入参。 */
-export interface MentionSuggestionPopProps {
+interface MentionSuggestionPopProps {
   /** 补全态；null 时不渲染。 */
   readonly mention: MentionState | null;
   /** 选中回调（插入 `@path `）。 */

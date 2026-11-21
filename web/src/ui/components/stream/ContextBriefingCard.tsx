@@ -24,7 +24,7 @@ export interface SystemNoteNodeProps {
 }
 
 /** ContextBriefingCard 组件的入参。 */
-export interface ContextBriefingCardProps {
+interface ContextBriefingCardProps {
   /** SystemNote.classify 的产物（短旁白不会走到这里）。 */
   readonly view: SystemNoteView;
 }

@@ -29,7 +29,7 @@ import Switch from 'antd/es/switch';
 import Typography from 'antd/es/typography';
 
 /** 下拉选项。 */
-export interface ConsoleOption {
+interface ConsoleOption {
   /** 实际值。 */
   readonly value: string;
   /** 展示文案。 */
@@ -307,7 +307,7 @@ export function ConsoleSwitch(props: ConsoleSwitchProps): ReactElement {
 }
 
 /** 分段控件选项。 */
-export interface ConsoleSegmentOption<V extends string> {
+interface ConsoleSegmentOption<V extends string> {
   /** 实际值。 */
   readonly value: V;
   /** 展示文案。 */

@@ -55,7 +55,7 @@ const REEXPORT_RE = /export\s+(?:type\s+)?\{([^}]+)\}\s+from\s+['"]([^'"]+)['"]/
 const STAR_REEXPORT_RE = /export\s+\*\s+from\s+['"]([^'"]+)['"]/g;
 
 /** 一个影子冲突：app 侧声明点与内核承诺模块。 */
-export interface ShadowConflict {
+interface ShadowConflict {
   /** 重合的符号名。 */
   name: string;
   /** app 侧声明点（`相对路径#声明种类`）。 */

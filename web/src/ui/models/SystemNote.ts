@@ -25,7 +25,7 @@ import { NumberFormatter } from './NumberFormatter.ts';
 import { t } from '../i18n/i18n.ts';
 
 /** 注记种类（决定图标、标题与展开后的正文形态）。 */
-export type SystemNoteKind = 'compaction' | 'memory' | 'plain';
+type SystemNoteKind = 'compaction' | 'memory' | 'plain';
 
 /** 展开态正文：分节后的 Markdown / 有序步骤 / 保留换行的原文。 */
 export type SystemNoteBody =
@@ -34,7 +34,7 @@ export type SystemNoteBody =
   | { readonly type: 'text'; readonly text: string };
 
 /** chip 的信号色温：前置圆点用什么语义色（文字本身保持中性，信号不铺满）。 */
-export type SystemNoteChipTone = 'ok' | 'warn' | 'err' | 'info';
+type SystemNoteChipTone = 'ok' | 'warn' | 'err' | 'info';
 
 /** 展开态头条 chip：文案 + 信号色温。 */
 export interface SystemNoteChip {

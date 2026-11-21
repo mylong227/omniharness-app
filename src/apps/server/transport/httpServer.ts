@@ -8,7 +8,6 @@ import { brotliCompressSync, constants as zlibConstants, gzipSync } from 'node:z
 import { extname, isAbsolute, join, normalize, relative, resolve } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import type { AppServer } from '../core/appServer.ts';
-import { type RpcRequest } from '../../../host/kernel/runtime.ts';
 import { WsServer } from '../../../host/kernel/runtime.ts';
 import { ServerAuthGuard } from './serverAuthGuard.ts';
 import type { Metrics } from '../services/metrics.ts';
@@ -61,7 +60,7 @@ export interface HttpServerOptions {
 }
 
 /** 健康检查结果（供容器编排探针消费）。 */
-export interface HealthStatus {
+interface HealthStatus {
   /** `ok` 可接流；`degraded` 核心组件缺失，不应接流。 */
   readonly status: 'ok' | 'degraded';
   /** 进程已运行秒数。 */
@@ -760,6 +759,4 @@ export class HttpServer {
   }
 }
 
-/** 供引用：RpcRequest 类型导出（避免未使用告警）。 */
-export type { RpcRequest };
 export { HttpBridgeTransport };

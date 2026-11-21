@@ -9,7 +9,7 @@
  */
 
 /** 一次任务执行的结果子集（`AgentResult` 的结构投影，只取桥所需字段）。 */
-export interface TuiTaskResult {
+interface TuiTaskResult {
   /** 会话 ID（多轮续跑的衔接键）。 */
   readonly sessionId: string;
   /** 最终答复文本（可缺省：中断/异常路径可能没有）。 */

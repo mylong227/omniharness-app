@@ -41,7 +41,7 @@ export const CONSOLE_GROUPS: readonly ConsoleGroupDef[] = [
 ];
 
 /** 条目类型：设置页（可改配置） / 功能面板（看状态或做管理）。 */
-export type ConsoleEntryKind = 'setting' | 'panel';
+type ConsoleEntryKind = 'setting' | 'panel';
 
 /** 控制台里的一个导航条目。 */
 export interface ConsoleEntry {

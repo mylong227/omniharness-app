@@ -19,7 +19,7 @@ import type { ResolvedConfig } from '../../../../host/kernel/contracts.ts';
 import type { RuntimeHealthProbe } from '../kernelHealthBridge.ts';
 
 /** 检索供给视图（`retrievalContext` 段的有效值）。 */
-export interface KernelRetrievalView {
+interface KernelRetrievalView {
   /** off = 关闭；bm25 = 每步按预算注入会话历史片段。 */
   readonly mode: 'off' | 'bm25';
   /** 查询改写器：model = 经模型改写；off = 关闭。 */
@@ -33,7 +33,7 @@ export interface KernelRetrievalView {
 }
 
 /** 语义召回视图。 */
-export interface KernelSemanticRecallView {
+interface KernelSemanticRecallView {
   /** 配置/环境是否请求语义召回。 */
   readonly requested: boolean;
   /** 嵌入端口是否实际在位。 */
@@ -43,7 +43,7 @@ export interface KernelSemanticRecallView {
 }
 
 /** 上下文工程策略视图（降档阶梯 + 缓存守卫）。 */
-export interface KernelContextPolicyView {
+interface KernelContextPolicyView {
   /** 降档第 2 级：旧轮激进裁剪。 */
   readonly shapersAggressive: boolean;
   /** 降档第 3 级：强制压缩。 */

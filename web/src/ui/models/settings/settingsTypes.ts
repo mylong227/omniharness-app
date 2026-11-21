@@ -35,7 +35,7 @@ export interface SettingsTabDef {
  * 基础设置组；配置集（profiles）移出设置，回到它自己的完整管理面板（避免"设置里只能
  * 应用、面板里才能增删"的两套入口）。
 /** 字段类型。 */
-export type SettingsFieldKind = 'select' | 'text' | 'switch' | 'number';
+type SettingsFieldKind = 'select' | 'text' | 'switch' | 'number';
 
 /** 一个设置字段（行）。 */
 export interface SettingsField {

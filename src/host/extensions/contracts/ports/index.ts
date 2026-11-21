@@ -40,7 +40,6 @@ export type {
 export type { SpillHandle, SpillPort } from '../../../kernel/contracts.ts';
 export type { VortexRing, VortexRingPort } from './intelligence/vortexRing.ts';
 export type { ResonantHit, ResonantMemoryPort } from './memory/resonantMemory.ts';
-export type { ResonantFieldPort, ResonantFieldOptions } from './memory/resonantField.ts';
 export type { LongTermMemoryPort, MemoryFact } from '../../../kernel/contracts.ts';
 export type { SkillPort, MoireOptions } from '../../../kernel/contracts.ts';
 export type {

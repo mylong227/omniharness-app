@@ -31,7 +31,7 @@ import { SessionSummarySidecar } from '../../../../host/kernel/util.ts';
 export type { SessionSummary } from '../../../../host/kernel/util.ts';
 
 /** 单个模型的 token 统计。 */
-export interface ModelUsage {
+interface ModelUsage {
   /** 调用次数。 */
   readonly calls: number;
   /** prompt token 数。 */

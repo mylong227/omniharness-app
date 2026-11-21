@@ -4,7 +4,7 @@ import type { QuotaStore } from './quotaStore.ts';
 import type { SessionArchive } from './session/sessionArchive.ts';
 
 /** 单个模型的当日配额行。 */
-export interface QuotaModelRow {
+interface QuotaModelRow {
   /** 模型名（用量归组键，未知模型为 `unknown`）。 */
   readonly name: string;
   /** 当日已用 token 数。 */

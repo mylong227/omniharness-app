@@ -1,7 +1,7 @@
 import { jsonRpc, type RpcMessage } from '../../../host/kernel/runtime.ts';
 import type { AppServerOptions } from './appServerState.ts';
 import { rpcErrorCodeFor } from './rpcErrorCodes.ts';
-import { registerModules, type RpcHandler, type ServerModule } from './serverModule.ts';
+import { registerModules, type RpcHandler } from './serverModule.ts';
 import { ServerServices } from './serverServices.ts';
 import { coreModules } from '../modules/index.ts';
 import type { ServerAutomations } from '../services/serverAutomations.ts';
@@ -188,4 +188,3 @@ export class AppServer {
 }
 
 // 类型面提示：模块经 AppServerOptions.modules 注入（见 appServerState.ts）。
-export type { ServerModule };

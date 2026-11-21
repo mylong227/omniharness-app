@@ -5,9 +5,6 @@ import { parseHash, navigate, onRouteChange, type AppRoute } from '../models/Rou
 import type { AppHost, AppState } from './AppController.ts';
 import { MethodBinder } from './methodBinder.ts';
 
-/** 路由收口回调（把解析后的路由落到应用状态）。 */
-export type RouteApply = (route: AppRoute) => void;
-
 /**
  * 哈希路由绑定：单一职责——哈希 ↔ 应用状态 的双向同步。
  * 深链（刷新 / 分享）由初始 hash 恢复；浏览器前进 / 后退由 hashchange 驱动。

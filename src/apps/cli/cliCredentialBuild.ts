@@ -17,7 +17,7 @@ import { VaultKeyDefaults } from './vaultKeyDefaults.ts';
 import type { VaultPort } from '../../host/kernel/contracts.ts';
 
 /** 凭据水合所需的最小参数集（原属 cliBuildConfig，随方法一并外移）。 */
-export interface CredentialHydrationArgs {
+interface CredentialHydrationArgs {
   /** 是否开启凭据水合（`--vault-hydrate`）。 */
   readonly vaultHydrate?: boolean | undefined;
   /** 要水合的凭据名（缺省用内建默认集）。 */

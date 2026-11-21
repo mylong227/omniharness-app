@@ -36,8 +36,6 @@ export {
   SAVED_HINT_MS,
   fieldId,
   type SettingsField,
-  type SettingsFieldKind,
-  type SettingsTabDef,
   type SettingsTabKey,
 } from './settings/settingsTypes.ts';
 export { SETTINGS_TABS } from './settings/settingsTabs.ts';

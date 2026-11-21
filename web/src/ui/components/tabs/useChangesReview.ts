@@ -23,7 +23,7 @@ import type { ApiClient } from '../../../core/ApiClient.ts';
 import type { DialogService } from '../../../core/DialogService.ts';
 
 /** 变更清单响应。 */
-export interface ChangesData {
+interface ChangesData {
   source: string;
   branch?: string;
   files?: ChangeFile[];

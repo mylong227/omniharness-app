@@ -11,7 +11,7 @@
  */
 
 /** 面板数据范围。 */
-export type PanelScope = 'session' | 'workspace' | 'global' | 'server';
+type PanelScope = 'session' | 'workspace' | 'global' | 'server';
 
 /** 单个面板的范围元数据。 */
 export interface PanelScopeMeta {

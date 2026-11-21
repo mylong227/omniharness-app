@@ -6,7 +6,7 @@ import { kernelContextOff, type KernelContextView } from './kernelContextView.ts
 import type { CompactionMark, ContextStudioSnapshot, HandoffNote } from './contextStudioSnapshot.ts';
 
 /** 便签端口的最小结构（避免把内核端口类型扩散到应用层）。 */
-export interface ScratchpadLike {
+interface ScratchpadLike {
   append(text: string, tags?: readonly string[]): { id: string; at: string; text: string; tags?: readonly string[] } | undefined;
   recent(k?: number): readonly { id: string; at: string; text: string; tags?: readonly string[] }[];
   clear(): void;

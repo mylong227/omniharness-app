@@ -17,4 +17,3 @@ export { ContextApi } from './contextApi.ts';
 export { FleetApi } from './fleetApi.ts';
 export { ProofApi } from './proofApi.ts';
 export { DecisionApi } from './decisionApi.ts';
-export type { ApiTransport } from './rpcTransport.ts';

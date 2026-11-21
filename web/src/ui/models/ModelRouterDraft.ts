@@ -58,7 +58,7 @@ export const MODEL_ROLES: readonly ModelRoleOption[] = [
 export const ROUTER_ADAPTERS: readonly string[] = ['mock', 'openai', 'anthropic', 'responses', 'llamacpp', 'gemini'];
 
 /** 条目草稿：只保留 UI 可编辑面（模型名 + 适配器；pricing/maxContextTokens 经配置文件设置）。 */
-export interface RouterEntryDraft {
+interface RouterEntryDraft {
   model: string;
   adapter: string;
 }
@@ -71,7 +71,7 @@ export interface RouterDraft {
 }
 
 /** 预挡校验错误码（组件侧映射成 t() 文案；内核 normalizeConfig 是最终裁决）。 */
-export type RouterDraftError =
+type RouterDraftError =
   | 'entries-empty'
   | 'entry-model-empty'
   | 'entry-model-duplicate'

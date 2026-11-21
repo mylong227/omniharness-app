@@ -28,7 +28,7 @@ export interface SearchAllResult {
 export type ScheduleFn = (fn: () => void, ms: number) => unknown;
 
 /** 定时器取消签名。 */
-export type CancelFn = (handle: unknown) => void;
+type CancelFn = (handle: unknown) => void;
 
 /** SessionSearch 的依赖。 */
 export interface SessionSearchDeps {

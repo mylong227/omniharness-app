@@ -70,10 +70,10 @@ export type DecisionDisposition =
 export type DecisionBasis = 'conformal' | 'human' | 'rule' | 'default' | 'unavailable' | 'unknown';
 
 /** 效果类（无 CTA 记录时省略，不猜）。 */
-export type DecisionEffectClass = 'READ_ONLY' | 'STATE_MUTATING' | 'PRIVILEGED_ACTUATE';
+type DecisionEffectClass = 'READ_ONLY' | 'STATE_MUTATING' | 'PRIVILEGED_ACTUATE';
 
 /** 执行前决策结果（内核 `AuditDecisionResult` 子集）。 */
-export type DecisionAuditResult = 'allow' | 'deny' | 'require_approval' | 'no_rule' | 'unavailable';
+type DecisionAuditResult = 'allow' | 'deny' | 'require_approval' | 'no_rule' | 'unavailable';
 
 /** 列表行（紧凑；详情另取）。 */
 export interface DecisionRow {
@@ -155,7 +155,7 @@ export interface DecisionConformalView {
 }
 
 /** 诚实边界（固定文本，前端直接渲染）。 */
-export interface DecisionBoundaryView {
+interface DecisionBoundaryView {
   readonly signed: false;
   readonly trustLevel: 'L0';
   readonly argsIncluded: false;
@@ -275,7 +275,7 @@ export interface DecisionExportResult {
 }
 
 /** 失败码。 */
-export type DecisionFailureCode =
+type DecisionFailureCode =
   | 'no_session'
   | 'aat_unavailable'
   | 'audit_chain_broken'

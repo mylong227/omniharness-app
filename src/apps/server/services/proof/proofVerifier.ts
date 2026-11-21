@@ -12,7 +12,7 @@ export interface ProofVerifySession {
 }
 
 /** 复核结果（`proof.verify` 成功返回体；`verdict.ok` 才是结构结论）。 */
-export interface ProofVerifyView {
+interface ProofVerifyView {
   readonly ok: true;
   readonly verdict: {
     readonly ok: boolean;

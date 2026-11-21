@@ -38,18 +38,6 @@ export interface SkillGetView {
   editable: boolean;
 }
 
-/** 编辑报告（CrisprEditReport 的本地同构：applied/reason 语义对齐内核契约）。 */
-export interface SkillEditReport {
-  applied: boolean;
-  skillName: string;
-  /** `no-op` 无变化 / `differential-test-failed` 结构测试拒绝 / `not-editable` registry-only。 */
-  reason?: string;
-  /** dry-run（skills.diff）或失败时的明细。 */
-  issues?: readonly string[];
-  /** apply 后 config.skills 条数（前端刷新参照）。 */
-  count?: number;
-}
-
 /** 技能名规则：非空、无空白与路径分隔符、≤64（配置内联数组键即名字，fail-closed 防写坏）。 */
 const NAME_RE = /^[^\s/\\]{1,64}$/u;
 

@@ -8,7 +8,7 @@ import * as React from 'react';
 import type { ApiClient } from '../../../core/ApiClient.ts';
 
 /** 概览里的一行变更。 */
-export interface WorkspaceChangeRow {
+interface WorkspaceChangeRow {
   /** 工作区相对路径。 */
   readonly path: string;
   /** git 状态字母（M/A/D/??…）。 */

@@ -23,7 +23,7 @@ export interface PreviewContext {
 }
 
 /** 解析成功的结果。 */
-export interface PreviewTarget {
+interface PreviewTarget {
   /** iframe 的 src。 */
   readonly url: string;
   /** 右栏标签标题（主机名或文件名）。 */

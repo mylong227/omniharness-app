@@ -47,7 +47,7 @@
     "typecheck:tests": "tsc -p tsconfig.tests.json --noEmit",
     "kernel:check": "node scripts/checkKernelBoundary.ts",
     "kernel:surface": "node scripts/kernelSurface.ts",
-    "check:exports": "knip --include exports",
+    "check:exports": "knip",
     "kernel:vendor": "node scripts/vendorKernel.ts",
     "desktop:build": "npm --prefix desktop run build",
     "desktop:start": "npm --prefix desktop start",
@@ -60,7 +60,6 @@
     "verify": "npm run kernel:check && npm run typecheck && npm run check:exports && npm run web:test && npm run build && npm run build:web && npm run smoke && npm run desktop:build && npm run desktop:test"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.32.0",
     "@omniharness/kernel": "file:vendor/omniharness-kernel-0.1.0-alpha.37.tgz",
     "antd": "^6.7.1",
     "croner": "^11.0.1",
@@ -71,8 +70,7 @@
     "openid-client": "^6.9.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "sirv": "^3.0.2",
-    "zod": "^4.6.4"
+    "sirv": "^3.0.2"
   },
   "optionalDependencies": {
     "@huggingface/transformers": "^4.2.0",

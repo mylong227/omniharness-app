@@ -82,9 +82,7 @@ import { UnconfiguredModel } from './unconfiguredModel.ts';
  * 只声明水合真正读的字段，不依赖整个 {@link CliArgs}：既让 `CliArgs` 可直接传入（结构兼容），
  * 也让调用点与单测无需伪造二十余个必填字段。
  */
-// 2026-10-11：CredentialHydrationArgs 随凭据构造方法一并外移到 CliCredentialBuild 层，
 // 此处再导出以维持既有调用点（含判据里的 ProbeBuildConfig）零改动。
-export type { CredentialHydrationArgs } from './cliCredentialBuild.ts';
 
 /**
  * 出站守卫选项：白名单 + 配置化 SSRF 策略表（缺省回落内置默认档；非法条目在配置加载期已被拒）。

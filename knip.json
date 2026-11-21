@@ -1,11 +1,18 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["web/src/main.ts"],
+  "entry": [
+    "web/src/main.ts",
+    "scripts/copyAssets.ts",
+    "scripts/eval/hostRpcHammer.ts",
+    "scripts/eval/webStressProbe.ts",
+    "src/apps/cli/auditBin.ts"
+  ],
   "project": ["src/**/*.ts", "web/src/**/*.{ts,tsx}", "scripts/**/*.ts"],
-  "ignore": ["web/test/**", "tests/**", "**/*.test.ts", "**/*.test.tsx"],
+  "ignoreDependencies": ["axe-core"],
+  "ignoreBinaries": ["net", "where.exe"],
   "ignoreIssues": {
-    "src/host/kernel/contracts.ts": ["exports"],
-    "src/host/extensions/contracts/ports/index.ts": ["exports"],
+    "src/host/kernel/contracts.ts": ["exports", "types"],
+    "src/host/extensions/contracts/ports/index.ts": ["exports", "types"],
     "src/apps/enterprise/index.ts": ["exports"],
     "src/apps/enterprise/legacyOidcFlow.ts": ["exports"]
   }

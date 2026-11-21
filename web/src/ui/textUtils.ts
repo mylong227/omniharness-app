@@ -355,7 +355,7 @@ export function hostOf(u: string): string {
 const PROCESS_TYPES = new Set(['reasoning', 'tool_call', 'tool_result']);
 
 /** 单个事件块（结果类直接展示）。 */
-export interface SingleBlock {
+interface SingleBlock {
   readonly kind: 'single';
   readonly event: ThreadEvent;
 }
@@ -367,7 +367,7 @@ export interface SingleBlock {
  * 「执行过程」，既不聚气也读不出先后。现在每轮恒定只有一条轨迹，位置固定在本轮
  * 末尾（结果卡上方），运行中它就是实时思考面板，收尾后自动折叠成一行。
  */
-export interface ProcessBlock {
+interface ProcessBlock {
   readonly kind: 'process';
   readonly events: readonly ThreadEvent[];
   /** 块首 key，React 列表 diff 用。 */
@@ -393,7 +393,7 @@ export interface ProcessBlock {
  * 没有 turn_diff 的回合（旧存档 / 中途收尾）在**非运行中**也会补一张结果卡：
  * 只要写类工具真的产出了文件，产物就必须集中在卡里，而不是散在过程行里。
  */
-export interface TurnSummaryBlock {
+interface TurnSummaryBlock {
   readonly kind: 'turn_summary';
   readonly key: string;
   readonly events: readonly ThreadEvent[];
@@ -404,7 +404,7 @@ export interface TurnSummaryBlock {
  * 每轮把本轮所有 `audit` 事件收成**一条**默认折叠的摘要行；展开才显示逐条 JSON。
  * 审计的完整事实仍在「审计 / 决策账本」面板，聊天流不承担逐条展示。
  */
-export interface AuditBlock {
+interface AuditBlock {
   readonly kind: 'audit_group';
   readonly key: string;
   readonly events: readonly ThreadEvent[];

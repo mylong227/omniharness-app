@@ -4,7 +4,7 @@ import { AatExporter, AuditRecorder, ConformalAatVerifier } from '../../../../ho
 import type { AatRecord, AuditEventPayload, AuditRecord } from '../../../../host/kernel/util.ts';
 
 /** 原始 audit 链问题（不抛异常，供 UI 逐条展示）。 */
-export interface DecisionAuditChainProblem {
+interface DecisionAuditChainProblem {
   readonly code: 'AUDIT_CHAIN_SHAPE' | 'AUDIT_PREV_MISMATCH' | 'AUDIT_HASH_MISMATCH';
   readonly detail: string;
 }

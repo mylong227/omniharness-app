@@ -2,11 +2,11 @@
 // 只声明用到的字段（避免 any）；不支持的环境由工厂返回 null，调用方 fail-closed 隐藏入口。
 
 /** 识别候选。 */
-export interface SpeechAlternativeLike {
+interface SpeechAlternativeLike {
   transcript: string;
 }
 /** 单条识别结果。 */
-export interface SpeechResultLike {
+interface SpeechResultLike {
   readonly isFinal: boolean;
   readonly length: number;
   [index: number]: SpeechAlternativeLike | undefined;

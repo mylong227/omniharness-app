@@ -9,4 +9,3 @@ export type {
   JwtParts,
   AuthState,
 } from './oidcClient.ts';
-export type { OidcFlowPort } from './../../host/contracts/ports/enterprise/oidcFlow.ts';

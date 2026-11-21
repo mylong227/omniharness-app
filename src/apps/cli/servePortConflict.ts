@@ -25,7 +25,7 @@
 import { ServeInstance, type ServeInstanceRecord } from '../../host/kernel/maintenance.ts';
 
 /** 端口占用者分类。 */
-export type PortHolderKind = 'free' | 'omni' | 'foreign';
+type PortHolderKind = 'free' | 'omni' | 'foreign';
 
 /** 端口占用者信息。 */
 export interface PortHolder {

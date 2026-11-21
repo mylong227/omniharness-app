@@ -8,7 +8,7 @@ const PATCH_MAX_BYTES = 512 * 1024;
 const PATCH_DIR = '.omniharness/subagent-patches';
 
 /** patch 读取成功视图。 */
-export interface FleetPatchView {
+interface FleetPatchView {
   readonly ok: true;
   /** 工作区相对路径（已规范化）。 */
   readonly path: string;

@@ -4,7 +4,7 @@ import { Id } from '../../../../host/kernel/util.ts';
 import { CompactionStateCodec } from '../../../../host/kernel/context.ts';
 
 /** 单次手动压缩的结果。 */
-export interface ContextCompactionResult {
+interface ContextCompactionResult {
   readonly ok: true;
   /** 被折叠的消息数（内核游标）。 */
   readonly compactedUpTo: number;

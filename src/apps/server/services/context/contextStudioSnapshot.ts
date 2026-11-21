@@ -2,7 +2,7 @@ import type { ContextUsageReport } from '../contextUsageService.ts';
 import type { KernelContextView } from './kernelContextView.ts';
 
 /** 压缩状态审计证据的应用侧形状（镜像内核 `CompactionAuditEvidence`——UI 契约面）。 */
-export interface CompactionAuditLike {
+interface CompactionAuditLike {
   /** 四类关键状态是否全部在场。 */
   readonly ok: boolean;
   /** 缺失项（可读描述）。 */
@@ -16,7 +16,7 @@ export interface CompactionAuditLike {
 }
 
 /** 压缩触发信号证据的应用侧形状（镜像内核 `CompactionSignalEvidence`——UI 契约面）。 */
-export interface CompactionSignalsLike {
+interface CompactionSignalsLike {
   /** 估算 token / 生效预算。 */
   readonly budgetRatio: number;
   /** user 消息条数（轮数下界）。 */

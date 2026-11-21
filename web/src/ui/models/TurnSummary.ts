@@ -18,7 +18,7 @@ import { parseTurnDiffFiles } from './TurnDiffFiles.ts';
 import type { ThreadEvent } from '../../types/models.ts';
 
 /** 结果行分组：本回合生成的新文件 / 本回合修改的已有文件。 */
-export type TurnSummaryGroup = 'created' | 'modified';
+type TurnSummaryGroup = 'created' | 'modified';
 
 /** 结果卡里的一行文件。 */
 export interface TurnSummaryFile {

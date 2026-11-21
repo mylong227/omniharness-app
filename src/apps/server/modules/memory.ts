@@ -7,7 +7,7 @@ import type { ServerModule } from '../core/serverModule.ts';
  * `validTo === undefined` = 仍有效；同 subject+predicate 的新事实会把旧卡 validTo 置为新
  * 事实的 validFrom（取代语义），`validTo <= now` 的卡不再参与召回。
  */
-export interface FactCardView {
+interface FactCardView {
   factId: string;
   subject: string;
   predicate: string;

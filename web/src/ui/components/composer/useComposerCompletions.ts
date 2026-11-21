@@ -31,7 +31,7 @@ export interface CompletionsOptions {
 }
 
 /** `@mention` 补全接口。 */
-export interface MentionCompletions {
+interface MentionCompletions {
   readonly mention: MentionState | null;
   readonly setMention: (next: MentionState | null) => void;
   /** 从光标位置重算候选。 */
@@ -41,7 +41,7 @@ export interface MentionCompletions {
 }
 
 /** `/` 技能补全接口。 */
-export interface SlashCompletions {
+interface SlashCompletions {
   readonly slash: SlashState | null;
   readonly setSlash: (next: SlashState | null) => void;
   /** 从光标位置重算候选；是否由 `/` 接管本次补全。 */

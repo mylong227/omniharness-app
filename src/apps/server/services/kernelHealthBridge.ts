@@ -24,10 +24,10 @@ import type { ResolvedConfig } from '../../../host/kernel/contracts.ts';
 import { semanticRecallRequested } from './context/kernelContextView.ts';
 
 /** 单分区健康状态（与内核哨兵同词表）。 */
-export type KernelHealthStatus = 'ok' | 'degraded' | 'absent';
+type KernelHealthStatus = 'ok' | 'degraded' | 'absent';
 
 /** 单条问题（机读码 + 已脱敏细节）。 */
-export interface KernelHealthProblem {
+interface KernelHealthProblem {
   /** 机读问题码（如 `BUDGET_EXCEEDED` / `SEMANTIC_RECALL_DEGRADED`）。 */
   readonly code: string;
   /** 人读细节（不含密钥/正文）。 */

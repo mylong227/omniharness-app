@@ -29,7 +29,7 @@ interface IdTagged {
 }
 
 /** 时间分组键（业界常见式左栏：今天 / 昨天 / 更早；归档会话单独一组）。 */
-export type TimeBucketKey = 'today' | 'yesterday' | 'earlier' | 'archived';
+type TimeBucketKey = 'today' | 'yesterday' | 'earlier' | 'archived';
 
 /** 一个时间分组。 */
 export interface TimeGroup<T> {

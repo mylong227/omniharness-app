@@ -5,7 +5,7 @@
  * 事件类型（2026-11-21 W1 round-trip 对齐内核 `SessionEvent` 全集：补 'rollback' 与
  * 'calibration_units'——此前镜像缺这两类，属协议漂移，内核事件流里真实存在）。
  */
-export type EventType =
+type EventType =
   | 'user'
   | 'assistant'
   | 'reasoning'
@@ -140,7 +140,7 @@ export interface MemoryFactsResult {
 }
 
 /** 模型路由条目（内核 #B4）：条目适配器缺省 mock；真实适配器凭据取自各自环境变量。 */
-export interface ModelRouterEntryConfig {
+interface ModelRouterEntryConfig {
   model: string;
   adapter?: string;
   pricing?: { inputPer1M: number; outputPer1M: number; cachedInputPer1M?: number };
@@ -156,7 +156,7 @@ export interface ModelRouterConfig {
 }
 
 /** 服务端单价（内核 RoutePrice，USD / 1M token）。 */
-export interface ServerRoutePrice {
+interface ServerRoutePrice {
   inputPer1M: number;
   outputPer1M: number;
   cachedInputPer1M?: number;
@@ -235,7 +235,7 @@ export interface Config {
  * 形态与 `ContextPolicyConfig` 一样是**结构化段**：设置页按字段拆行编辑，但每次提交
  * 整段（服务端按段替换，见 `SECTION_REPLACE_KEYS`）。
  */
-export interface RetrievalContextConfig {
+interface RetrievalContextConfig {
   /** off = 关闭（缺省）；bm25 = 每步按预算注入会话历史检索片段。 */
   mode?: 'off' | 'bm25';
   /** 单步最多注入条数（正整数；内核出厂 4）。 */
@@ -249,13 +249,13 @@ export interface RetrievalContextConfig {
 }
 
 /** 语义召回配置（内核 `FileConfig.semanticRecall`）。 */
-export interface SemanticRecallConfig {
+interface SemanticRecallConfig {
   /** off = 纯 BM25（缺省）；on = 装配本地嵌入并走混合检索。 */
   mode?: 'off' | 'on';
 }
 
 /** 上下文工程策略（内核 `FileConfig.contextPolicy`，M63 降档阶梯 + M65 缓存守卫）。 */
-export interface ContextPolicyConfig {
+interface ContextPolicyConfig {
   /** 软预算越档时各轴逐级收紧（缺省两级全 false = 当前行为）。 */
   degradeLadder?: {
     /** 第 2 级：旧轮激进裁剪随降档启用。 */
@@ -388,7 +388,7 @@ export interface BundleUnpackResult {
   patchFile?: string;
 }
 
-export interface GraphStep {
+interface GraphStep {
   id: string;
   prompt: string;
   dependsOn?: string[];
@@ -414,9 +414,9 @@ export interface GraphRunResult {
   runId: string;
 }
 
-export type GraphNodeStatus = 'pending' | 'running' | 'done' | 'failed' | 'skipped';
+type GraphNodeStatus = 'pending' | 'running' | 'done' | 'failed' | 'skipped';
 
-export interface GraphNode {
+interface GraphNode {
   id: string;
   status: GraphNodeStatus;
   error?: string;
@@ -490,7 +490,7 @@ export interface ApprovalRequest {
 }
 
 /** 提问的一个选项（后端 `AskOption` 的线上形态）。 */
-export interface AskQuestionOption {
+interface AskQuestionOption {
   label: string;
   description?: string;
 }
@@ -538,7 +538,7 @@ export interface SseEnvelope {
 // 与后端 src/apps/server/modules/surface.ts 的 RPC 返回体逐字段对齐。
 
 /** 上下文占用分类键（后端 CONTEXT_CATEGORIES 的键，UI 不自造）。 */
-export type ContextCategoryKey =
+type ContextCategoryKey =
   | 'messages'
   | 'mcpTools'
   | 'systemTools'
@@ -607,7 +607,7 @@ export interface ContextUsageReport {
 }
 
 /** 配额档位。 */
-export interface QuotaPlanView {
+interface QuotaPlanView {
   id: string;
   label: string;
   multiplier: number;
@@ -623,7 +623,7 @@ export interface QuotaPlanView {
 }
 
 /** 单模型配额行。 */
-export interface QuotaModelRow {
+interface QuotaModelRow {
   name: string;
   used: number;
   limit: number;
@@ -720,7 +720,7 @@ export interface DoctorReportLike {
  * 返回体是**判别联合**：`{ok:true, events}` 或 `{ok:false, reason}`（未接线）。
  * 面板必须区分二者——空数组只能读成"审计无记录"。
  */
-export interface AuditEventLike {
+interface AuditEventLike {
   ts?: string;
   type: string;
   sessionId?: string;
@@ -735,7 +735,7 @@ export type AuditQueryResult =
   | { ok: false; reason: string };
 
 /** 内核健康桥状态（与服务端 `KernelHealthBridge` 同词表：absent ≠ degraded）。 */
-export type KernelHealthStatus = 'ok' | 'degraded' | 'absent';
+type KernelHealthStatus = 'ok' | 'degraded' | 'absent';
 
 /** 内核健康桥单分区（服务端 `KernelHealthSection` 同形）。 */
 export interface KernelHealthSectionLike {
@@ -754,7 +754,7 @@ export interface KernelHealthSnapshotLike {
 }
 
 /** 一条只读 trace 条目（服务端 `TraceEntry` 同形）。 */
-export interface TraceEntryLike {
+interface TraceEntryLike {
   seq: number;
   at: string;
   kind: string;
@@ -884,7 +884,7 @@ export interface ContextStudioSnapshotLike {
 }
 
 /** `context.compact` 成功返回体。 */
-export interface ContextCompactionViewLike {
+interface ContextCompactionViewLike {
   ok: true;
   compactedUpTo: number;
   summary: string;
@@ -892,7 +892,7 @@ export interface ContextCompactionViewLike {
 }
 
 /** `context.compact` 判别失败。 */
-export interface ContextCompactionFailureLike {
+interface ContextCompactionFailureLike {
   ok: false;
   code:
     | 'no_session'
@@ -925,7 +925,7 @@ export interface ProofCheckLike {
 }
 
 /** 执行证书（服务端 ExecutionCertificate 同形子集）。 */
-export interface ExecutionCertificateLike {
+interface ExecutionCertificateLike {
   version: 1;
   sessionId: string;
   eventCount: number;
@@ -950,7 +950,7 @@ export interface ProofBundleViewLike {
 }
 
 /** `fleet.patch` 成功返回体。 */
-export interface FleetPatchViewLike {
+interface FleetPatchViewLike {
   ok: true;
   path: string;
   content: string;
@@ -959,7 +959,7 @@ export interface FleetPatchViewLike {
 }
 
 /** `fleet.patch` 判别失败。 */
-export interface FleetPatchFailureLike {
+interface FleetPatchFailureLike {
   ok: false;
   code: 'patch_forbidden' | 'patch_unavailable' | 'patch_not_text';
   message: string;
@@ -990,14 +990,14 @@ export type FleetPatchApplyResultLike =
     };
 
 /** 一条导入证据包的会话摘要。 */
-export interface ProofVerifySessionLike {
+interface ProofVerifySessionLike {
   sessionId: string;
   eventCount: number;
   eventRoot: string;
 }
 
 /** `proof.verify` 成功返回体。 */
-export interface ProofVerifyViewLike {
+interface ProofVerifyViewLike {
   ok: true;
   verdict: {
     ok: boolean;
@@ -1013,7 +1013,7 @@ export interface ProofVerifyViewLike {
 }
 
 /** `proof.verify` 判别失败。 */
-export interface ProofVerifyFailureLike {
+interface ProofVerifyFailureLike {
   ok: false;
   code: 'bundle_invalid' | 'bundle_too_large';
   message: string;
@@ -1062,7 +1062,7 @@ export interface DecisionSettingsLike {
 }
 
 /** 审计状态。 */
-export interface DecisionAuditViewLike {
+interface DecisionAuditViewLike {
   enabled: boolean;
   configuredPrincipal?: string | undefined;
   startedAt?: string | undefined;
@@ -1070,7 +1070,7 @@ export interface DecisionAuditViewLike {
 }
 
 /** 覆盖范围。 */
-export interface DecisionCoverageLike {
+interface DecisionCoverageLike {
   turnsTotal: number;
   turnsRecorded: number;
   firstRecordedTurn?: number | undefined;
@@ -1078,7 +1078,7 @@ export interface DecisionCoverageLike {
 }
 
 /** 摘要计数。 */
-export interface DecisionCountsLike {
+interface DecisionCountsLike {
   records: number;
   decisions: number;
   allow: number;
@@ -1105,7 +1105,7 @@ export type DecisionBasisLike = 'conformal' | 'human' | 'rule' | 'default' | 'un
 export type DecisionEffectClassLike = 'READ_ONLY' | 'STATE_MUTATING' | 'PRIVILEGED_ACTUATE';
 
 /** 决策结果。 */
-export type DecisionAuditResultLike = 'allow' | 'deny' | 'require_approval' | 'no_rule' | 'unavailable';
+type DecisionAuditResultLike = 'allow' | 'deny' | 'require_approval' | 'no_rule' | 'unavailable';
 
 /** 列表行。 */
 export interface DecisionRowLike {
@@ -1141,7 +1141,7 @@ export interface DecisionCheckLike {
 }
 
 /** 结构复核。 */
-export interface DecisionStructuralViewLike {
+interface DecisionStructuralViewLike {
   status: 'pass' | 'fail' | 'disabled' | 'empty' | 'not_run';
   checks: readonly DecisionCheckLike[];
   auditCount: number;
@@ -1150,7 +1150,7 @@ export interface DecisionStructuralViewLike {
 }
 
 /** 共形复核。 */
-export interface DecisionConformalViewLike {
+interface DecisionConformalViewLike {
   status: 'pass' | 'fail' | 'not_applicable' | 'not_run';
   checkedDecisions: number;
   snapshots: number;
@@ -1159,7 +1159,7 @@ export interface DecisionConformalViewLike {
 }
 
 /** 诚实边界。 */
-export interface DecisionBoundaryViewLike {
+interface DecisionBoundaryViewLike {
   signed: false;
   trustLevel: 'L0';
   argsIncluded: false;
@@ -1182,7 +1182,7 @@ export interface DecisionSessionViewLike {
 }
 
 /** 审批轨迹。 */
-export interface DecisionApprovalViewLike {
+interface DecisionApprovalViewLike {
   at: string;
   phase: 'request' | 'answer' | 'override';
   result: 'pending' | 'approved' | 'rejected' | 'expired' | 'override';
@@ -1191,13 +1191,13 @@ export interface DecisionApprovalViewLike {
 }
 
 /** 策略快照。 */
-export interface DecisionPolicyViewLike {
+interface DecisionPolicyViewLike {
   snapshotHash: string;
   rules: readonly { ruleId: string; ruleVersion: string; digest: string }[];
 }
 
 /** 共形证据。 */
-export interface DecisionConformalEvidenceLike {
+interface DecisionConformalEvidenceLike {
   alpha: number;
   threshold: number;
   riskScore: number;
@@ -1295,4 +1295,3 @@ export interface DecisionFailureLike {
 
 /** `decision.*` 返回体联合。 */
 export type DecisionResultLike<T> = T | DecisionFailureLike;
-
