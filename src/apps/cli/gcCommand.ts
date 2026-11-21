@@ -16,7 +16,7 @@ import {
   type MaintenanceOptions,
   type MaintenanceReport,
 } from '../../host/extensions/kernel/util/maintenanceRunner.ts';
-import { ServeInstance } from './serveInstance.ts';
+import { ServeInstance } from '../../host/extensions/kernel/util/serveInstance.ts';
 
 /** gc 子命令：手动维护巡检。 */
 export class GcCommand {

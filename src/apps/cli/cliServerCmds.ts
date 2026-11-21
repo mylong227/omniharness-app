@@ -25,7 +25,7 @@ import type { AppServer } from '../server/core/appServer.ts';
 import type { ServerEventBridge } from '../server/core/serverEventBridge.ts';
 import type { AppServerOptions } from '../server/core/appServerState.ts';
 import { DoctorRunner } from './doctorRunner.ts';
-import { ServeInstance } from './serveInstance.ts';
+import { ServeInstance } from '../../host/extensions/kernel/util/serveInstance.ts';
 import { ServeShutdown } from './serveShutdown.ts';
 import { ServeAnnounce } from './serveAnnounce.ts';
 import { ServeReadyFile } from './serveReadyFile.ts';
