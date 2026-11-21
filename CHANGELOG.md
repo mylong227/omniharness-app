@@ -6,6 +6,21 @@
 ## [Unreleased]
 
 ### Changed（变更）
+- **批次十四（2026-11-22，L9 全类别清偿——knip 从「导出」扩到「导出+类型+文件+依赖」全绿）**：
+  · **未消费导出类型 143→0**：90 个「仅本文件内部使用」的类型降级为模块私有；删除零引用
+    `MetricLine` / `RouteApply` / `SkillEditReport`；清理未消费的类型再导出（`CredentialHydrationArgs` /
+    `OidcFlowPort` / `ServerModule` / `RpcRequest` / `ApiTransport` / `SettingsFieldKind` /
+    `SettingsTabDef`，以及 `shared.ts` 里与 `ToastService` 重复的 `ToastKind` 和
+    `GraphRunState`/`ThreadEvent` 再导出）。
+  · **未消费文件 5→0**：`copyAssets` 与两个 eval 探针、`auditBin` 标记为 knip entry
+    （按路径 spawn 的脚本入口）；删除全仓零引用的 `src/omniError.ts`。
+  · **未消费依赖 2→0**：删除 `zod` 与 `@modelcontextprotocol/sdk`（全仓零 import；内核自带
+    MCP client）；`axe-core` 是真 Chrome a11y 判据专用，以 `ignoreDependencies` 收口。
+  · **删除自引用无消费的 memory 端口族**：`cosmicWeb` / `resonantField` 6 文件（无实现、无消费、
+    不外露于 `src/index.ts`）；`resonantMemory` / `vortexRing` 属公共 API，保留。
+  · `check:exports` 从 `knip --include exports` 升级为**全量 `knip`**（files / dependencies /
+    exports / types / binaries），当前 **0 issue**；`ignoreIssues` 仅保留 kernel 生成物 /
+    extensions 端口聚合桶 / enterprise `LegacyOidcFlow` 回退资产三类有据豁免。
 - **批次十三（2026-11-22，W5 资源钩子收编 + L4 boost 定裁 + W7 尾巴 + W1 扩面 + L7 终态）**：
   · **W5 五资源钩子收编**：`useSessionResource` 升级为唯一取数核，新增 `pollMs`（活跃轮询、
     文档隐藏暂停）/ `cacheTtlMs`（触发式缓存窗口）/ `resetKey`（切会话复位）/

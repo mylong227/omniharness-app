@@ -46,6 +46,9 @@
   FLAG_ENUM_VALUES / ConsoleKeycap / subscribeLocale / decisionModel.checkStatusLabel）；
   knip 入 devDep + `knip.json` + `check:exports` 纳入 verify 链。ignoreIssues 仅 4 文件
   （kernel 生成物 / extensions 端口聚合桶 / enterprise LegacyOidcFlow 回退资产）。
+- **L9 全类别 ✅**（2026-11-22 批次十四）：类型 143→0（90 降级私有 + 3 删除 + 再导出清理）、
+  文件 5→0（脚本入口标记 entry，删 `src/omniError.ts`）、依赖 2→0（删 `zod` 与 MCP SDK）、
+  删除自引用无消费的 cosmicWeb/resonantField 端口族；`knip` 全量闸 0 issue。
 - **W5 五资源钩子收编 ✅**（2026-11-22）：`useSessionResource` 升级为唯一取数核
   （pollMs / cacheTtlMs / resetKey / keepDataWhenDisabled + refreshing/settled/updatedAt），
   票号守卫抽成 `LatestRequest`；上下文工作室 / 编队 / 决策账本（两流）/ 变更审查 /
@@ -373,7 +376,7 @@ useSessionResource 12 面板既有接线、theme.css token 纪律。
 - [x] 5 资源钩子收编（W5：useSessionResource 增强核 + LatestRequest）
 - [x] FilePicker/FolderPicker 公共核（W6；机制层单源 + 4 条行为判据）
 - [x] W7 清理包全落（Icon 迁移/PascalCase/legacy 隔离/i18n 分片改名/knip）
-- [x] L9 零消费导出：knip 60→0 + devDep 闸入 verify（ignoreIssues 4 文件有据）
+- [x] L9 全类别零消费：knip（files/deps/exports/types）全 0 + devDep 闸入 verify（ignoreIssues 有据）
 - [x] 遗留台账 L1-L9 全终态（L4 裁定 B 已删 boost；L7 终态关闭）
 - [x] `npm run verify` 全链绿（2026-11-22 实跑：232 文件 1064 用例 + desktop 44；CI 待推送后复核）
 
