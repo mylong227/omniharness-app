@@ -162,9 +162,7 @@ function run(): void {
       // 超时也要给出「卡在哪」：CI 上看不到窗口，没有这行就只能猜（2026-11-10 实测）。
       const win = context?.window ?? null;
       const url =
-        win === null || win.isDestroyed()
-          ? '(无窗口)'
-          : win.webContents.getURL().replace(/([?&])token=[^&]*/g, '$1token=***');
+        win === null || win.isDestroyed() ? '(无窗口)' : DesktopLogger.redact(win.webContents.getURL());
       const sidecar = context?.supervisor?.getState() ?? '(未创建)';
       process.stdout.write(
         `[omni-smoke] TIMEOUT: ${Math.round(smokeTimeoutMs / 1000)}s 内未得出结论` +
@@ -764,8 +762,9 @@ async function runSmoke(hiddenLaunch: boolean): Promise<void> {
     harnessState: ctx?.supervisor?.getState() ?? null,
     harnessEndpoint: handle !== null ? `${handle.host}:${String(handle.port)}` : null,
     // 令牌打码（2026-11-06 审计 P1）：loadedUrl 是带 `?token=` 的地址，报告 JSON 号称
-    // 「可贴回 issue」——不脱敏等于鼓励把访问令牌贴进公共 issue。服务端日志都打码，桌面不能更松。
-    loadedUrl: alive ? window.webContents.getURL().replace(/([?&])token=[^&]*/g, '$1token=***') : null,
+    // 「可贴回 issue」——不脱敏等于鼓励把访问令牌贴进公共 issue。2026-11-20 统一走
+    // DesktopLogger.redact 单一真源（此前本文件自持一份弱变体正则，口径可漂移）。
+    loadedUrl: alive ? DesktopLogger.redact(window.webContents.getURL()) : null,
     dom,
     trayCreated: ctx?.tray !== null,
     notificationsSupported: Notification.isSupported(),
