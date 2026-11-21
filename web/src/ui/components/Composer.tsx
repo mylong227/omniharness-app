@@ -48,7 +48,7 @@ import { useComposerVoice, type ComposerVoiceApi } from './composer/useComposerV
 /** Composer 组件的入参。 */
 export interface ComposerProps {
   model: string;
-  /** 当前厂商可用模型清单（服务端 model.catalog 下发；缺省用内置兜底）。 */
+  /** 当前厂商可用模型清单（服务端 model.catalog 下发；缺省时只保留当前值，无离线兜底）。 */
   modelOptions?: string[];
   /** 当前厂商展示名（下拉标题显示「模型 · DeepSeek」）。 */
   providerLabel?: string;

@@ -23,24 +23,7 @@ export interface OptionItem {
   unsupported?: boolean;
 }
 
-/** 兜底模型候选：服务端 model.catalog 下发当前厂商清单时不再使用；仅作离线回退。 */
-const KNOWN_MODELS: readonly string[] = [
-  'gpt-4o',
-  'gpt-4o-mini',
-  'o1',
-  'o1-mini',
-  'o3-mini',
-  'o4-mini',
-  'gpt-4.1',
-  'claude-3.5-sonnet',
-  'claude-3.7-sonnet',
-  'deepseek-chat',
-  'deepseek-reasoner',
-  'gemini-2.0-flash',
-  'gemini-2.5-pro',
-];
-
-/** 推理强度兜底档位：model.catalog 未下发 reasoningEffort 时使用。 */
+// 推理强度兜底档位：model.catalog 未下发 reasoningEffort 时使用。
 const REASONING_LEVELS: readonly string[] = ['minimal', 'low', 'medium', 'high', 'xhigh'];
 
 /**
@@ -89,11 +72,18 @@ const REASONING_ORDER: readonly string[] = [
 /** 输入区选项构建器。 */
 export class ComposerOptions {
   /**
-   * 模型候选：只列当前厂商可用清单（服务端下发优先，否则兜底内置清单），
-   * 并保证当前值一定在列表里（否则下拉显示空白）。去重且去空。
+   * 模型候选：只列当前厂商可用清单（服务端 `model.catalog` 是真值），并保证当前值一定在
+   * 列表里（否则下拉显示空白）。去重且去空。
+   *
+   * 不设离线兜底清单（2026-11-22 W7 终态）：兜底表是厂商目录的第二份手维真源，catalog
+   * 下发后永不再用，且会随厂商演进静默过期（旧表里还是 claude-3.5 / gemini-2.0）。catalog
+   * 缺失是**服务端异常**，此时只保留当前值（fail-closed），不拿过期清单冒充可用模型。
+   * @param current 当前模型 id
+   * @param providerModels 服务端下发的当前厂商模型清单（undefined = catalog 不可用）
+   * @returns 去重后的模型 id 列表
    */
   public static models(current: string, providerModels?: readonly string[]): string[] {
-    const pool = providerModels && providerModels.length > 0 ? providerModels : KNOWN_MODELS;
+    const pool = providerModels ?? [];
     return Array.from(new Set([current, ...pool].filter((m) => typeof m === 'string' && m !== '')));
   }
 

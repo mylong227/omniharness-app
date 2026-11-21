@@ -121,7 +121,7 @@ export interface StreamViewProps {
   onRewindUser?: (ev: ThreadEvent) => void;
   /** 当前模型（驱动 Composer 的切换器）。 */
   model: string;
-  /** 当前厂商可用模型清单（缺省时 Composer 用内置兜底）。 */
+  /** 当前厂商可用模型清单（缺省时 Composer 只保留当前值，无离线兜底）。 */
   modelOptions?: string[];
   /** 当前厂商展示名（模型下拉标题用）。 */
   providerLabel?: string;
