@@ -30,7 +30,9 @@
   ServeInstance/MaintenanceRunner + autonomy 域 GraphStore/GraphSummary 契约；app 侧
   K2 接收删除 extensions 四件 938 行（compactionMarkerReader 192 / serveInstance 229 /
   maintenanceRunner 372 / graphStore 145），登记表归零；`kernel:check` 九条绿。
-  **R25d（CliWorker 族 483 行，二档）未随本轮**，仍待内核 worker 域排期。
+  **R25d ✅ 2026-11-22 随 R27/alpha.38 补齐**：内核 worker 域收编 CliWorker /
+  ExternalCliWorker / WindowsShim，应用侧删 3 文件 461 行并改指 `src/host/kernel/worker.ts`；
+  内核 17 门复绿（含 cross:check 跨仓契约一致）。
   联动核对结论：内核 R25 的「Node 24 切换」仅门禁工具链口径（内核 package engines 仍
   `>=22.14.0`、CI 仍 node 22），**app engines/CI 无需升版**。
 - **W4 ApiClient 域拆分 ✅**（620e146）：1058 行单类 → 传输本体 318 行 + `core/api/` 19 域类；
@@ -57,8 +59,8 @@
   `runGates.mjs` / `tools/probes/` 未随迁，fail-closed 零产出。
 - **最终验收**：`npm run verify` 全链绿（kernel:check 九条 / typecheck 五闸 / check:exports /
   232 文件 1064 用例 / build + build:web + smoke / desktop:build + desktop:test 44）。
-- **外部机会项（不是本仓剩余项，无待办动作）**：R25d CliWorker 族（483 行）上内核——需内核
-  worker 域排期后按 K2 例行接收；W1 zod 化——高漂移域已有 8 条编译期探针，zod 为中期末来项；
+- **外部机会项（不是本仓剩余项，无待办动作）**：W1 zod 化——当前 8 条编译期探针已覆盖高漂移域，
+  且 `zod` 零 import 已在批次十四作为未消费依赖删除，重启 zod 化需重新引入依赖并评估收益；
   L7 反向 locale 事件——桌面壳新增运行期语言入口时才触发。
 
 ---
@@ -265,19 +267,19 @@ servePortConflict/gcCommand/serveShutdown）改指 `src/host/extensions/kernel/u
 2. **R25b**：ServeInstance + MaintenanceRunner 上 maintenance 域——env 旋钮解释层留 app，
    内核收纯 options（`MaintenanceOptions` 注入面已有）；
 3. **R25c**：GraphStore 上 autonomy 域（workspaceRoot 注入参数化）；
-4. **R25d（二档，视轮容量）**：CliWorker 族上 worker 域；
+4. **R25d ✅（2026-11-22 / R27 / alpha.38）**：CliWorker 族上 worker 域（本仓已接收并删 3 件 461 行）；
 5. 缓：InjectionSelfCheck（快照资产随内核 defaults）、cronerSchedule（需内核加依赖）。
 每项过内核 AGENTS.md 宪法 + 17 门 verify，随 R25 发 tag。
 
 ### K2：app 侧接收（例行四步 + 清偿）
-`OMNI_KERNEL_TAG=v0.1.0-alpha.37 npm run kernel:vendor` → `npm ci` → `npm run kernel:surface` →
+`OMNI_KERNEL_TAG=v0.1.0-alpha.38 npm run kernel:vendor` → `npm ci` → `npm run kernel:surface` →
 消费点改对接面（compactionMarkerReader 3 处：contextCompactionService/StudioService/StudioSnapshot；
 serveInstance 6 处；maintenanceRunner 2 处；graphStore 2 处）→ 删 extensions 对应件 →
 `extensions/README.md` 登记表清条（compactionMarkerReader 2026-11-11 条目终态）→
 `kernel:check` 九条 + verify 全链。
 
 **批次 K 终态**：extensions 48 → 44 件（**-938 行**：compactionMarkerReader 192 + serveInstance 229 +
-maintenanceRunner 372 + graphStore 145；若含 R25d 再 -483 行）；登记表归零；
+maintenanceRunner 372 + graphStore 145；R25d worker 族再 -461 行）；登记表归零；
 serveInstance 内外双副本全清；内核 maintenance/autonomy/context 域补齐缺口。
 
 ---
@@ -368,7 +370,7 @@ useSessionResource 12 面板既有接线、theme.css token 纪律。
 - [x] scripts/ + desktop/scripts + 根配置文件纳入 typecheck；2 个 `.d.mts` 退役（`testGlobals.d.mts` 是 fakeElectron 全局替身的必要声明，非手维壳）
 - [x] engines/CI = node >=22.18 对齐；webStressProbe strip-types 依赖转正
 - [x] childRunFailure 孤儿删除；35 处 plugin.js 后缀核销；悬空脚本引用有结论（L4）
-- [x] extensions 登记 0 条；上内核件删除（-938 行；二档 CliWorker -483 未随本轮）；README 归属契约同步
+- [x] extensions 登记 0 条；上内核件删除（R26 -938 行 + R27 worker -461 行）；README 归属契约同步
 - [x] serveInstance 内外双副本清零（K3 + K2 后 extensions 副本一并删除）
 - [x] 126 条手维类型：8 条 round-trip 探针覆盖高漂移域（ThreadEvent/Fleet/Decision×2/ContextStudio/Profile/Vault×2）
 - [x] PanelRegistry 单源：新增面板 1 处完成；App.ts 装配减重

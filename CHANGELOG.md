@@ -6,6 +6,16 @@
 ## [Unreleased]
 
 ### Changed（变更）
+- **批次十五（2026-11-22，K2 接收 alpha.38 / R27——worker 域补齐，R25d 收口）**：
+  · vendored kernel 升 `0.1.0-alpha.38`（内核仓 R27：`51f6282` / `adfa1a7` / `27abbb6`，
+  tag `v0.1.0-alpha.38`）：内核新承诺三条 worker 深路径 `kernel/worker/cliWorker.js`、
+  `externalCliWorker.js`、`windowsShim.js`，并携带 23 条内核判据。
+  · 应用侧按归属契约删除 extensions 三件 **461 行**（CliWorker 202 / ExternalCliWorker 129 /
+  WindowsShim 130），3 处消费点（cliArgs / cliBuildConfig / cliFlagTable）改指新生成的
+  `src/host/kernel/worker.ts` 对接面（20 个域）。
+  · 内核 17 门复绿（含此前预期红的 `cross:check`——应用侧影子已清，跨仓契约一致）；
+    app `kernel:check` 九条绿（278 源文件 / 294 包导入 / 影子 0）。
+  · `src/host/extensions/README.md` 登记 R27 终态；R25d 二档项正式收口。
 - **批次十四（2026-11-22，L9 全类别清偿——knip 从「导出」扩到「导出+类型+文件+依赖」全绿）**：
   · **未消费导出类型 143→0**：90 个「仅本文件内部使用」的类型降级为模块私有；删除零引用
     `MetricLine` / `RouteApply` / `SkillEditReport`；清理未消费的类型再导出（`CredentialHydrationArgs` /
