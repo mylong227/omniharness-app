@@ -65,7 +65,7 @@ test('UI 源码里不得用 emoji 当图标（只允许列出的语义符号）'
         if (ALLOWED.has(ch)) continue;
         violations.push(
           `${file.slice(UI_DIR.length + 1)}:${String(i + 1)} 出现 ${JSON.stringify(ch)} —— ` +
-            '交互控件上的图形请用 models/Icon.ts 的 icon()；正文语义符号请加进 ALLOWED 并说明理由',
+            '交互控件上的图形请用 kit/Icon.tsx 的 icon()；正文语义符号请加进 ALLOWED 并说明理由',
         );
       }
     });
@@ -77,7 +77,7 @@ test('图标集是唯一出处：icon() 只接受 IconName，且 IconName 与 SH
   // 契约"拼错图标名 = 编译期错误"的前提是：类型联合与运行时形状表**同源**。
   // 若有人加了一个 IconName 却忘了加几何（或反之），类型层不会报错，运行时 icon() 会拿到 undefined
   // ⇒ 渲染出一个空 svg（正是本轮修过的"图标看起来像空方块"的同类故障）。这条把它挡在提交前。
-  const src = readFileSync(join(UI_DIR, 'models', 'Icon.ts'), 'utf8');
+  const src = readFileSync(join(UI_DIR, 'kit', 'Icon.tsx'), 'utf8');
   const union = /export type IconName =([\s\S]*?);/.exec(src);
   assert.ok(union !== null, '未找到 IconName 联合类型');
   const names = [...union[1].matchAll(/'([a-z-]+)'/g)].map((m) => m[1]).sort();
