@@ -45,7 +45,7 @@ import {
   resolveServePort,
   waitForReady,
 } from './lib/launchReadiness.mjs';
-import { resolveDevAddress } from './devConfig.mjs';
+import { resolveDevAddress } from './devConfig.ts';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SERVE_ENTRY = join(REPO, 'dist', 'src', 'apps', 'cli', 'exec.js');

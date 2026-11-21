@@ -7,14 +7,14 @@
 // 代理到后端。生产态（`npm run web:build`）：Vite 默认单 bundle（带 hash）→ `web/dist/assets/`。
 // 两条路径共用同一份 `web/index.html` 作为入口。
 //
-// 开发回路地址（端口/主机/origin）唯一事实源是 `scripts/devConfig.mjs`：
+// 开发回路地址（端口/主机/origin）唯一事实源是 `scripts/devConfig.ts`：
 // `OMNI_BACKEND_PORT` / `OMNI_UI_PORT`|`OMNI_FRONTEND_PORT` / `OMNI_DEV_HOST` 可覆盖。
 // 后端不在本机/默认端口时，用 `OMNI_BACKEND_ORIGIN` 直接给整条 origin（优先级最高）。
 
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
-import { resolveDevAddress } from './scripts/devConfig.mjs';
+import { resolveDevAddress } from './scripts/devConfig.ts';
 
 const dev = resolveDevAddress();
 

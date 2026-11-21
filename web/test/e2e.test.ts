@@ -53,7 +53,7 @@ import {
   CdpSession,
 } from './browserHarness.ts';
 // 回环主机走开发回路唯一事实源（同 browserHarness 的夹具监听）。
-import { resolveDevAddress } from '../../scripts/devConfig.mjs';
+import { resolveDevAddress } from '../../scripts/devConfig.ts';
 
 /** 回环主机（dumpDom 访问夹具静态服务用）。 */
 const DEV_HOST = resolveDevAddress().host;

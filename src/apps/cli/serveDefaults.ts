@@ -5,7 +5,7 @@
  * scripts/lib/launchReadiness.mjs（后者还是自声明"不得自成一源"的镜像）——改一次默认端口要
  * 人肉找齐三处。现在：
  *   · 后端默认端口/覆盖环境变量在这里（`serve --port` 旗标仍最高优先）；
- *   · 前端 dev 工具读 `scripts/devConfig.mjs`（其默认值镜像本文件，一致性由
+ *   · 前端 dev 工具读 `scripts/devConfig.ts`（其默认值镜像本文件，一致性由
  *     `上游判据 devAddressContract.test.ts（本仓未随迁）` 钉死）；
  *   · 绑定主机不在这里：`ServerAuthGuard.DEFAULT_HOST` + `OMNI_SERVE_HOST` 已是单一事实源。
  */

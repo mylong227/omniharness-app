@@ -14,7 +14,7 @@ import { dirname, extname, join, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer as createNetServer } from 'node:net';
 // 回环主机走开发回路唯一事实源（vite 代理 / 就绪探针同源）。
-import { resolveDevAddress } from '../../scripts/devConfig.mjs';
+import { resolveDevAddress } from '../../scripts/devConfig.ts';
 
 /** 测试夹具监听/连接的回环主机。 */
 const DEV_HOST = resolveDevAddress().host;

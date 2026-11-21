@@ -18,28 +18,51 @@
  * ## 与后端默认值的关系
  *
  * 本文件的 backendPort 默认值**镜像** `src/apps/cli/serveDefaults.ts` 的 `DEFAULT_SERVE_PORT`
- * （node 脚本无法 import 后端 TS）。镜像一致性由结构判据钉死：
- * `tests/unit/devAddressContract.test.ts`。改默认端口要两处同改（判据会红着提醒）。
+ * （dev 工具与后端源码树解耦：脚本区保持零 app 依赖，不随 src 构建联动）。镜像一致性由结构判据钉死：
+ * `tests/devAddressContract.test.ts`。改默认端口要两处同改（判据会红着提醒）。
+ *
+ * 2026-11-21 起 .ts 化：类型直接住在本文件（原 `devConfig.d.mts` 声明壳退役）。
  */
 
 /** 开发回路的默认地址（唯一的字面量出处；后端侧镜像见 serveDefaults.ts）。 */
-export const DEV_DEFAULTS = Object.freeze({
+export interface DevDefaults {
+  /** 后端 serve 默认端口（镜像 `src/apps/cli/serveDefaults.ts` 的 DEFAULT_SERVE_PORT）。 */
+  backendPort: number;
+  /** Vite dev server 默认端口。 */
+  uiPort: number;
+  /** 回环主机：代理目标 / 就绪探针 / 测试夹具监听共用（serve 只绑回环，且 localhost 在
+   * Windows 上可能先解析到 ::1 连不上——见 launchReadiness 的同款注释）。 */
+  host: string;
+}
+
+/** resolveDevAddress 的返回：端口 / 主机 / 拼好的 origin。 */
+export interface DevAddress extends DevDefaults {
+  /** 后端 origin：vite proxy 的 target、startAll/devAll 的就绪探针都拼这里。 */
+  backendOrigin: string;
+  /** Vite dev server origin（提示文案用）。 */
+  uiOrigin: string;
+}
+
+/** 开发回路的默认地址（唯一的字面量出处；后端侧镜像见 serveDefaults.ts）。 */
+export const DEV_DEFAULTS: DevDefaults = Object.freeze({
   /** 后端 serve 默认端口（镜像 `src/apps/cli/serveDefaults.ts` 的 DEFAULT_SERVE_PORT）。 */
   backendPort: 8787,
   /** Vite dev server 默认端口。 */
   uiPort: 5173,
   /** 回环主机：代理目标 / 就绪探针 / 测试夹具监听共用（serve 只绑回环，且 localhost 在
-   * Windows 上可能先解析到 ::1 连不上——见 launchReadiness.mjs 的同款注释）。 */
+   * Windows 上可能先解析到 ::1 连不上——见 launchReadiness 的同款注释）。 */
   host: '127.0.0.1',
-});
+} satisfies DevDefaults);
 
 /**
  * 把环境变量叠到默认值上，解析出本次开发回路的完整地址。
  * @param env 环境变量（默认 process.env；测试可注入假环境）。
  * @returns 端口 / 主机 / 拼好的 origin（backendOrigin 给代理目标与探针，uiOrigin 给提示文案）。
  */
-export function resolveDevAddress(env = process.env) {
-  const readPort = (raw, fallback) => {
+export function resolveDevAddress(
+  env: Record<string, string | undefined> = process.env,
+): DevAddress {
+  const readPort = (raw: unknown, fallback: number): number => {
     const parsed = Number.parseInt(String(raw ?? '').trim(), 10);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
   };

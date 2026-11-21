@@ -9,14 +9,14 @@
  *  2. 端口上其实是**别的进程**（两天前还在跑的旧 serve / 别人的 HTTP 服务）⇒ 打开的是**别人的页面**；
  *  3. 超时后静默不打开 ⇒ 双击了却"什么都没发生"，比不提供这个功能更糟。
  *
- * 故把纯逻辑抽到这里：**无网络 I/O、无副作用**（唯一的外部输入是 `scripts/devConfig.mjs`
+ * 故把纯逻辑抽到这里：**无网络 I/O、无副作用**（唯一的外部输入是 `scripts/devConfig.ts`
  * ——地址唯一事实源），由 `tests/unit/launchReadiness.test.ts` 逐条钉住；
  * 入口脚本只留 I/O（真实 `fetch`、真实 `spawn`）与打印。
  */
-import { DEV_DEFAULTS, resolveDevAddress } from '../devConfig.mjs';
+import { DEV_DEFAULTS, resolveDevAddress } from '../devConfig.ts';
 
 /**
- * `serve` 的缺省端口（**镜像** `scripts/devConfig.mjs` 的 `DEV_DEFAULTS.backendPort`）。
+ * `serve` 的缺省端口（**镜像** `scripts/devConfig.ts` 的 `DEV_DEFAULTS.backendPort`）。
  *
  * **不得自成一源**：devConfig 那一侧又镜像 `src/apps/cli/serveDefaults.ts` 的
  * `ServeDefaults.DEFAULT_SERVE_PORT`，一致性由 `tests/unit/devAddressContract.test.ts` 钉死。

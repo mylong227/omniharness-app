@@ -25,7 +25,7 @@
  * 后端改动（`src/**`）**不在**本回路的监听范围内：改完后端要重新 `npm run build` 并重启
  * （serve 是常驻进程，不会自己换掉已加载的 JS）。这是刻意取舍——前端改得频繁，后端改得少。
  *
- * 端口约定（2026-10-30 收口，看板 §182）：**全部走 `scripts/devConfig.mjs` 唯一事实源**——
+ * 端口约定（2026-10-30 收口，看板 §182）：**全部走 `scripts/devConfig.ts` 唯一事实源**——
  *   · 默认值：后端 8787 / Vite 5173（devConfig 的 DEV_DEFAULTS，与后端 serveDefaults 互为镜像）；
  *   · 环境变量：`OMNI_BACKEND_PORT`（后端端口，serve 与 vite 代理同读）、
  *     `OMNI_UI_PORT`（Vite dev server 端口；旧名 `OMNI_FRONTEND_PORT` 仍认）；
@@ -35,7 +35,7 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { resolveDevAddress } from './devConfig.mjs';
+import { resolveDevAddress } from './devConfig.ts';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const isWin = process.platform === 'win32';
@@ -67,7 +67,7 @@ const finalServeArgs =
 process.env.OMNI_BACKEND_PORT = String(dev.backendPort);
 process.env.OMNI_UI_PORT = String(dev.uiPort);
 process.stdout.write(
-  `\n▶ 后端 http://${dev.host}:${String(dev.backendPort)} · Vite http://${dev.host}:${String(dev.uiPort)}（地址来源 scripts/devConfig.mjs）\n`,
+  `\n▶ 后端 http://${dev.host}:${String(dev.backendPort)} · Vite http://${dev.host}:${String(dev.uiPort)}（地址来源 scripts/devConfig.ts）\n`,
 );
 process.stdout.write('\n▶ 后端 serve + Vite dev server（Ctrl+C 停止两者）\n\n');
 const children = [

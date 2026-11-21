@@ -11,7 +11,7 @@ import assert from 'node:assert/strict';
 import { test } from 'vitest';
 
 const launch = await import('../scripts/lib/launchReadiness.mjs');
-const { DEV_DEFAULTS } = await import('../scripts/devConfig.mjs');
+const { DEV_DEFAULTS } = await import('../scripts/devConfig.ts');
 
 test('resolveServePort：--port 旗标最高优先（空格与 = 两种写法）', () => {
   assert.equal(launch.resolveServePort(['--port', '9000'], {}), 9000);
