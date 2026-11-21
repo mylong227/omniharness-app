@@ -6,6 +6,23 @@
 ## [Unreleased]
 
 ### Changed（变更）
+- **批次九（2026-11-21，全仓 .ts 化最后一公里）**：27 个脚本类 .mjs/.cjs（约 4.8k 行）→
+  25 件 .ts/.mts + 2 件刻意保留（`examples/embed-demo.mjs` 随 npm 发行给用户、
+  `desktop/scripts/fakeElectron.cjs` 是 esbuild alias 目标）——源码区 .mjs/.cjs 清零。
+  · 运行时：engines/CI `>=22.14` → **`>=22.18`**（Node strip-types 无旗标默认开启线；
+  脚本由 Node 原生类型剥离直跑源文件，零编译产物）；
+  · 类型门：新增 `scripts/tsconfig.json`（与根同严格度）+ `typecheck:scripts` 入 verify 链，
+  desktop tsconfig include 扩 `scripts/**/*.mts`——**scripts/ 与根 vite/vitest.config
+  此前是 typecheck 全盲区，现已收口**；2 个手维 `.d.mts` 声明壳（70 行）退役，
+  vite.config / web/test / tests 对脚本的消费全部升级为编译期真类型；
+  · 牵连同改：17 条 npm scripts、5 处测试子进程 spawn/import 路径、
+  `tests/devAddressContract` 的 vite.config 源码正则钉、CI 字面路径、10+ 处文档与源码注释；
+  · **顺带清偿（盘点外发现）**：① vitest.config 残留 Vitest 4 的 `poolOptions` 键被
+  Vitest 5 静默忽略——`maxWorkers:6` 限幅自升级起未生效，现以继任键恢复（当年
+  无界并发炸 7 worker 的稳定阀）；② `childRunFailure.mjs` 全仓零引用孤儿删除；
+  ③ 35 处 `host/kernel/plugin.js` 后缀残留核销；④ vendorKernel git 子命令显式 cwd；
+  ⑤ boost 命令族上游继承依赖悬空状态登记（fail-closed 降级不变，去留另行裁决）。
+  转换纪律：逻辑零改动、diff 最小、逐批 commit（T0+T1/T2a/T2b/T2c/T3/T4a）。
 - **批次八（2026-11-21，A/B/C/D 清单全量执行）**：A1 旗标-only 旋钮 cliHelp 会话级标注
   16 条；A2 成对判据互链补齐（6 对）；A3 main.ts 剩余三函数判定不抽取（耦合主进程模块态，
   抽取只得行数不得单一真源——HarnessAttach/AppActions 两个真重复面已收口）；B1 空闲会话

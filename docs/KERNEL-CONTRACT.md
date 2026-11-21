@@ -171,7 +171,7 @@ M22–M31 的每一轮内核升级都走的这条回路，常态业务代码零�
   条目——深路径是「应用消费闭包」的生成产物，不该被单个消费者倒逼膨胀。
 - **vendored tarball 是二进制发行物**：不是 `npm publish` 的产物。用 `kernel:vendor`
   重建，`kernel:check` 钉 integrity；不要手工改 tarball。
-- **桌面打包**：`stageHarness.mjs` 会把 `vendor/` 一起带进 `.desktop-stage`，否则 stage 内
+- **桌面打包**：`stageHarness.mts` 会把 `vendor/` 一起带进 `.desktop-stage`，否则 stage 内
   `npm ci` 无法解析 `file:` 依赖。
 - **原生内核**：随 tarball 分发；内核升级必须用 `kernel:vendor` 重新注入与应用 ABI 匹配的
   `native/omni_napi.node`，否则门禁第 6 条会红。
