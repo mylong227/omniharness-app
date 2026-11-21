@@ -1,6 +1,10 @@
 // 领域模型：对齐当前工作台 RPC 形体（历史 vanilla 版已删除）
 // 组件层与服务层共享这些类型，确保重构后的 UI 与后端协议逐字段一致。
 
+/**
+ * 事件类型（2026-11-21 W1 round-trip 对齐内核 `SessionEvent` 全集：补 'rollback' 与
+ * 'calibration_units'——此前镜像缺这两类，属协议漂移，内核事件流里真实存在）。
+ */
 export type EventType =
   | 'user'
   | 'assistant'
@@ -15,12 +19,21 @@ export type EventType =
   | 'model'
   | 'session_meta'
   /** 审计记录（心跳/审批/决策；聊天流默认收进折叠块，审计面板仍逐条可查）。 */
-  | 'audit';
+  | 'audit'
+  /** 检查点回滚墓碑（2026-11-03 内核加）：回滚允许截断事件流，但「发生过回滚」以本事件追加。 */
+  | 'rollback'
+  /** 校准单元 sidecar（M47）：payload 为 full/delta 证据摘要，链只留摘要不放大数组。 */
+  | 'calibration_units';
 
 export interface ThreadEvent {
   id: string;
   type: EventType;
-  timestamp?: number;
+  /**
+   * 毫秒时间戳或 ISO 串（内核 SessionEvent 发 ISO 串；历史存档/本地构造用毫秒数字——
+   * 读侧统一经 `ui/models/EventFields.timestamp` 归一，两种形态都收）。
+   */
+  timestamp?: number | string;
+  /** UI 域收窄：内核线格式 payload 是 unknown，UI 侧按 Record 消费、EventFields 逐字段 fail-soft 守卫。 */
   payload?: Record<string, unknown>;
 }
 

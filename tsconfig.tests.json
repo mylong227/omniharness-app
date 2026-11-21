@@ -1,0 +1,25 @@
+{
+  "//": "判据目录（tests/**）的 typecheck 闸（2026-11-21 W1 接入）。与根 tsconfig 同一严格度；noEmit——判据由 vitest 转译运行，无编译产物。此前 tests/ 游离于全部 tsconfig 之外（typecheck 盲区），W1 的编译期 round-trip 类型判据（tests/typeParity.test.ts）依赖本闸才有强制力。",
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "rewriteRelativeImportExtensions": true,
+    "lib": ["ES2024"],
+    "strict": true,
+    "verbatimModuleSyntax": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["tests/**/*.ts"]
+}

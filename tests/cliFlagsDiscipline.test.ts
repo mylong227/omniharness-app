@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { FLAG_TABLE, VALUE_FLAGS, KNOWN_EXTRA_FLAGS } from '../src/apps/cli/cliFlagTable.ts';
-import cliHelp from '../defaults/cliHelp.json';
+import cliHelp from '../defaults/cliHelp.json' with { type: 'json' };
 
 /**
  * CLI 旗标**注册纪律**机检（移植上游 knownFlags.test 的双向核对精髓；2026-11-06 审计 #9/#15）。

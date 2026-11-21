@@ -135,7 +135,8 @@ test('ContextStudioService：事件流不可读返回快照级错误，不伪装
 });
 
 test('ContextStudioService：便签接入后读取最近便签，并能追加交接物', async () => {
-  const notes = [
+  // tags 用 readonly（scratchpad.append 的契约形态），避免 append 写入时 readonly→mutable 报错。
+  const notes: { id: string; at: string; text: string; tags?: readonly string[] }[] = [
     { id: 'n1', at: new Date(1).toISOString(), text: '已完成 A', tags: ['handoff'] },
   ];
   const scratchpad = {

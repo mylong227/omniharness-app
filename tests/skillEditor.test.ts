@@ -10,13 +10,15 @@ import {
   getSkillView,
   listSkillsView,
   validateDraft,
+  type ConfigSkillLike,
+  type RegistrySkillLike,
 } from '../src/apps/server/services/skillEditor.ts';
 
-const registry = [
-  { name: 'bundled-one', description: '随包技能', trust: 'bundled' },
-  { name: 'ws-one', description: '工作区技能', tags: ['ws'], trust: 'workspace' },
+const registry: RegistrySkillLike[] = [
+  { name: 'bundled-one', description: '随包技能', instructions: '随包正文', trust: 'bundled' },
+  { name: 'ws-one', description: '工作区技能', instructions: '工作区正文', tags: ['ws'], trust: 'workspace' },
 ];
-const config = [
+const config: ConfigSkillLike[] = [
   { name: 'my-skill', description: '我的技能', instructions: '第一步…', tags: ['mine'] },
 ];
 
@@ -66,12 +68,12 @@ test('差异测试三态：通过为空 / 空字段拒绝 / config 内重名拒�
 test('applyDraft：edit 按名替换、create 追加、深拷贝不共享引用', () => {
   const next = applyDraft(config, { name: 'my-skill', description: '改写版', instructions: '新正文', tags: ['mine'] });
   assert.equal(next.length, 1);
-  assert.equal(next[0].description, '改写版');
+  assert.equal(next[0]!.description, '改写版');
   const appended = applyDraft(next, { name: 'second', description: '第二条', instructions: '正文' });
   assert.equal(appended.length, 2);
-  // 深拷贝：改动返回值不影响原数组。
-  (appended[0] as { tags?: string[] }).tags?.push('hacked');
-  assert.deepEqual(config[0].tags, ['mine']);
+  // 深拷贝：改动返回值不影响原数组（测试夹具按可变视图探查，双重断言收窄）。
+  (appended[0]! as unknown as { tags?: string[] }).tags?.push('hacked');
+  assert.deepEqual(config[0]!.tags, ['mine']);
   // tags 空数组不落键（内核 SkillEntry tags 可选）。
   const noTags = applyDraft(config, { name: 'third', description: 'd', instructions: 'i', tags: [] });
   assert.equal(noTags.find((s) => s.name === 'third')?.tags, undefined);

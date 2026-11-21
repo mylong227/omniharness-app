@@ -12,7 +12,10 @@ import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 
-import { Jcs, JcsError } from '../src/host/kernel/util.ts';
+import { Jcs } from '../src/host/kernel/util.ts';
+// JcsError 未进对接面承诺（业务侧无 instanceof 消费点，生成器按使用裁剪）——判据按错误名钉，
+// 与类身份判定同强（该类由 Jcs 同一模块导出，name 不会被运行时改写）。
+const JcsErrorName = 'JcsError';
 import { AuditChain } from '../src/apps/audit/auditChain.ts';
 import { AUDIT_VERIFIER_SCRIPT } from '../src/apps/audit/auditVerifierScript.ts';
 import type { AuditRecord } from '../src/apps/audit/auditTypes.ts';
@@ -37,10 +40,10 @@ test('审计 canonical（历史矩阵）：Jcs 与历史 AuditCanonical 语义�
 });
 
 test('审计 canonical（fail-closed 加固）：历史宽松改写路径显式抛错', () => {
-  assert.throws(() => Jcs.serialize({ score: Number.NaN }), JcsError); // 历史：null
-  assert.throws(() => Jcs.serialize({ at: new Date(0) }), JcsError); // 历史：{}
-  assert.throws(() => Jcs.serialize([undefined]), JcsError); // 历史：[null]
-  assert.throws(() => Jcs.serialize(makeDeep(65)), JcsError); // 历史：MAX_DEPTH=64 抛错（口径一致）
+  assert.throws(() => Jcs.serialize({ score: Number.NaN }), (err: unknown) => (err as Error).name === JcsErrorName); // 历史：null
+  assert.throws(() => Jcs.serialize({ at: new Date(0) }), (err: unknown) => (err as Error).name === JcsErrorName); // 历史：{}
+  assert.throws(() => Jcs.serialize([undefined]), (err: unknown) => (err as Error).name === JcsErrorName); // 历史：[null]
+  assert.throws(() => Jcs.serialize(makeDeep(65)), (err: unknown) => (err as Error).name === JcsErrorName); // 历史：MAX_DEPTH=64 抛错（口径一致）
   assert.doesNotThrow(() => Jcs.serialize(makeDeep(64)));
 });
 
@@ -71,7 +74,9 @@ test('审计链端到端：link/verify 在 Jcs 口径下自洽，golden 链头�
   const verdict = chain.verify(linked);
   assert.equal(verdict.ok, true);
   const tampered = structuredClone(linked);
-  (tampered[1]!.record as { target: string }).target = 'hacked.ts';
+  // 夹具第 2 条 record 是带 target 的 decision/approval 形（record 字段按 kind 是联合；
+  // 测试只篡改本夹具实际构造的那一形 → 双重断言收窄到可变视图）。
+  (tampered[1]!.record as unknown as { target: string }).target = 'hacked.ts';
   const verdictTampered = chain.verify(tampered);
   assert.equal(verdictTampered.ok, false);
 });

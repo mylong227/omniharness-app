@@ -61,13 +61,15 @@ export function badge(type: string): ReactElement {
 
 /**
  * 时间戳转本地时间字符串；缺失或非法时间戳一律返回空串（不抛错）。
- * @param ts 毫秒时间戳，可空。
+ * @param ts 毫秒时间戳或 ISO 串（内核 SessionEvent 发 ISO 串；本地构造/历史存档用毫秒），可空。
  * @returns `toLocaleTimeString()` 结果，或空串。
  */
-export function timeOf(ts?: number): string {
+export function timeOf(ts?: number | string): string {
   if (!ts) return '';
+  const ms = typeof ts === 'number' ? ts : Date.parse(ts);
+  if (!Number.isFinite(ms)) return '';
   try {
-    return new Date(ts).toLocaleTimeString();
+    return new Date(ms).toLocaleTimeString();
   } catch {
     return '';
   }
