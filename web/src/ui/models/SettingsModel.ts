@@ -15,7 +15,7 @@
 //   ③ 分栏（TAB）：字段归到哪一屏，负责"去哪找"
 //   一个键只出现在一个字段里；一个字段只属于一个分栏。断言钉在 web/test/settingsPane.test.ts。
 
-// 目录（类型/分栏/字段/标签表）已拆到 ./settingsCatalog.ts（2026-11-20 目录化）——
+// 目录（类型/分栏/字段/标签表）已拆到 ./settings/ 域模块（2026-11-20 目录化，2026-11-21 W2 按栏拆分）——
 // 本文件只保留**读写通道**（SettingsModel 类）。全部目录符号经下方重导出保持既有导入面。
 
 import type { Config } from '../../types/models.ts';
@@ -27,27 +27,27 @@ import {
   SAVED_HINT_MS,
   fieldId,
   type SettingsField,
-} from './settingsCatalog.ts';
+} from './settings/settingsTypes.ts';
 
-// 目录符号重导出（既有消费面 settingsFields/ConsoleRegistry/判据等零改动）。
+// 目录符号重导出（既有消费面 settingsFields/ConsoleRegistry/判据等零改动；按域取自拆分模块）。
 export {
   CATALOG_KEYS,
-  DEFAULT_LABELS,
   NUMBER_RANGES,
-  OPTION_LABELS,
   SAVED_HINT_MS,
-  SETTINGS_FIELDS,
-  SETTINGS_TABS,
-  defaultLabelOf,
   fieldId,
+  type SettingsField,
+  type SettingsFieldKind,
+  type SettingsTabDef,
+  type SettingsTabKey,
+} from './settings/settingsTypes.ts';
+export { SETTINGS_TABS } from './settings/settingsTabs.ts';
+export {
+  DEFAULT_LABELS,
+  OPTION_LABELS,
+  defaultLabelOf,
   optionLabelOf,
-} from './settingsCatalog.ts';
-export type {
-  SettingsField,
-  SettingsFieldKind,
-  SettingsTabDef,
-  SettingsTabKey,
-} from './settingsCatalog.ts';
+} from './settings/settingsLabels.ts';
+export { SETTINGS_FIELDS } from './settings/settingsFields.ts';
 
 /** 普通对象判定（结构化段取值/合并用；数组与 null 不算）。 */
 function isPlainObject(value: unknown): value is Record<string, unknown> {
