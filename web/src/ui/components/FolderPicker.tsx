@@ -19,6 +19,8 @@ import { PathJoiner } from '../models/PathJoiner.ts';
 import { PickerKeys } from '../models/PickerKeys.ts';
 import { icon } from '../kit/Icon.tsx';
 import { FS_ROOT, fsKeyOf, fsPathOf, isFsKey } from '../models/FsPickerLazy.ts';
+import { attachLazy, lazyChildrenOf, useFsLazyTree } from '../models/FsLazyTree.tsx';
+import type { LazyLoadResult, LazyNodeState } from '../models/FsLazyTree.tsx';
 import { PickerModal } from './PickerModal.tsx';
 import type { ApiClient } from '../../core/ApiClient.ts';
 import { useWorkspaceTree } from '../hooks/useWorkspaceTree.ts';
@@ -38,14 +40,6 @@ export interface FolderPickerProps {
   onCancel: () => void;
   /** 确认选择：传入选中目录的绝对路径。 */
   onPick: (path: string) => void;
-}
-
-/** 懒加载节点的状态（键 = 树 key）。 */
-interface LazyState {
-  /** null = 尚未加载。 */
-  children: TreeDataNode[] | null;
-  loading: boolean;
-  error: string | null;
 }
 
 /** 新建文件夹态。 */
@@ -92,103 +86,48 @@ function wsNode(node: FsNode): TreeDataNode {
 }
 
 /**
- * 懒加载子树：展开 `fs:` 根 → 列盘符；展开盘符/目录 → 列子目录。
- * 每个节点的状态独立（节点级错误 + 重试），不存在跨节点串台。
- *
+ * 拉取一个懒加载节点的下一层：`fs:` 根 → 列盘符；盘符/目录 → 列子目录。
+ * 机制（节点状态表 / 占位行 / 递归回填）在公共核 FsLazyTree；本函数只做「回包 → 子节点」映射。
  * @param api RPC 客户端
- * @returns 节点状态表与 loadNode
- */
-function useLazyFs(api: ApiClient): {
-  nodes: Record<string, LazyState>;
-  load: (key: string) => Promise<void>;
-} {
-  const [nodes, setNodes] = React.useState<Record<string, LazyState>>({});
-  const load = async (key: string): Promise<void> => {
-    setNodes((prev) => ({
-      ...prev,
-      [key]: { children: prev[key]?.children ?? null, loading: true, error: null },
-    }));
-    const path = fsPathOf(key) ?? undefined;
-    try {
-      const r: BrowseResult = await api.workspace.browseFs(path);
-      let children: TreeDataNode[];
-      if (r.level === 'drives') {
-        const roots = Array.isArray(r.roots) ? r.roots : [];
-        const home = typeof r.home === 'string' ? r.home : '';
-        children = [
-          ...(home === ''
-            ? []
-            : [{ key: fsKeyOf(home), title: titleOf({ name: `${home}${t('（用户目录）')}`, path: home, type: 'dir' }), isLeaf: false }]),
-          ...roots.map((root) => ({
-            key: fsKeyOf(root),
-            title: titleOf({ name: root, path: root, type: 'dir' }),
-            isLeaf: false,
-          })),
-        ];
-      } else if (r.level === 'dir' && Array.isArray(r.dirs)) {
-        const base = r.path ?? path ?? '';
-        children = r.dirs.map((dir) => ({
-          key: fsKeyOf(PathJoiner.join(base, dir)),
-          title: titleOf({ name: dir, path: PathJoiner.join(base, dir), type: 'dir' }),
-          isLeaf: false,
-        }));
-      } else {
-        throw new Error(t('目录列表返回格式异常（fs.browse）'));
-      }
-      setNodes((prev) => ({ ...prev, [key]: { children, loading: false, error: null } }));
-    } catch (e) {
-      setNodes((prev) => ({
-        ...prev,
-        [key]: { children: prev[key]?.children ?? null, loading: false, error: (e as Error).message },
-      }));
-    }
-  };
-  return { nodes, load };
-}
-
-/**
- * 把一个懒加载节点的状态合成为 treeData：加载中 / 错误 + 重试 / 空目录。
  * @param key 节点 key
- * @param lazy 该节点状态
- * @param onRetry 重试回调
- * @returns 子节点数组
+ * @returns 子节点（目录选择器不收集文件 key）
  */
-function lazyChildrenOf(
-  key: string,
-  lazy: LazyState | undefined,
-  onRetry: (key: string) => void,
-): TreeDataNode[] {
-  if (lazy === undefined) return [];
-  if (lazy.error !== null) {
-    return [
-      {
-        key: `${key}#err`,
-        selectable: false,
-        title: (
-          <span className="fp-tree-error">
-            {lazy.error}
-            <button
-              type="button"
-              className="fp-retry"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRetry(key);
-              }}
-            >
-              {t('重试')}
-            </button>
-          </span>
-        ),
-      },
-    ];
+async function browseChildren(api: ApiClient, key: string): Promise<LazyLoadResult> {
+  const path = fsPathOf(key) ?? undefined;
+  const r: BrowseResult = await api.workspace.browseFs(path);
+  if (r.level === 'drives') {
+    const roots = Array.isArray(r.roots) ? r.roots : [];
+    const home = typeof r.home === 'string' ? r.home : '';
+    return {
+      children: [
+        ...(home === ''
+          ? []
+          : [
+              {
+                key: fsKeyOf(home),
+                title: titleOf({ name: `${home}${t('（用户目录）')}`, path: home, type: 'dir' }),
+                isLeaf: false,
+              },
+            ]),
+        ...roots.map((root) => ({
+          key: fsKeyOf(root),
+          title: titleOf({ name: root, path: root, type: 'dir' }),
+          isLeaf: false,
+        })),
+      ],
+    };
   }
-  if (lazy.loading) {
-    return [{ key: `${key}#loading`, selectable: false, title: <span className="fp-tree-loading">{t('读取中…')}</span> }];
+  if (r.level === 'dir' && Array.isArray(r.dirs)) {
+    const base = r.path ?? path ?? '';
+    return {
+      children: r.dirs.map((dir) => ({
+        key: fsKeyOf(PathJoiner.join(base, dir)),
+        title: titleOf({ name: dir, path: PathJoiner.join(base, dir), type: 'dir' }),
+        isLeaf: false,
+      })),
+    };
   }
-  if (lazy.children !== null && lazy.children.length === 0) {
-    return [{ key: `${key}#empty`, selectable: false, title: <span className="fp-tree-empty">{t('（空目录）')}</span> }];
-  }
-  return lazy.children ?? [];
+  throw new Error(t('目录列表返回格式异常（fs.browse）'));
 }
 
 /**
@@ -211,7 +150,7 @@ function buildTreeData(
  * @returns treeData 节点
  */
 function fsRootNode(
-  lazy: LazyState | undefined,
+  lazy: LazyNodeState | undefined,
   onRetry: (key: string) => void,
 ): TreeDataNode {
   return {
@@ -273,30 +212,6 @@ function CreateBar(props: {
       {state.creatingErr === null ? null : <div className="fp-err">{state.creatingErr}</div>}
     </div>
   );
-}
-
-/**
- * 把已加载的懒节点子级**递归**挂回树上。
- *
- * 为什么需要：`load` 只把结果写进 `nodes[key]`，而父节点是每帧现拼的 treeData——
- * 不递归回填的话，展开盘符后它自己的子目录永远挂不上（首版漏了这步，P2 判据当场红）。
- *
- * @param nodes 待挂的节点
- * @param nodesState 节点状态表
- * @param onRetry 重试回调
- * @returns 挂好子级的新数组
- */
-function attachLazy(
-  nodes: TreeDataNode[],
-  nodesState: Record<string, LazyState>,
-  onRetry: (key: string) => void,
-): TreeDataNode[] {
-  return nodes.map((node) => {
-    const key = String(node.key);
-    const state = nodesState[key];
-    if (!isFsKey(key) || state === undefined) return node;
-    return { ...node, children: attachLazy(lazyChildrenOf(key, state, onRetry), nodesState, onRetry) };
-  });
 }
 
 /**
@@ -381,7 +296,7 @@ function FolderPickerBody(props: {
 /** 展开/选中/新建三态（FolderPicker 的逻辑段抽出）：懒加载展开、就近取消、建目录即返回。 */
 function useFolderPickerSelection(
   api: FolderPickerProps['api'],
-  lazy: ReturnType<typeof useLazyFs>,
+  lazy: ReturnType<typeof useFsLazyTree>,
   onCancel: () => void,
   onPick: (path: string) => void,
 ): {
@@ -478,7 +393,12 @@ function useFolderPickerSelection(
 export function FolderPicker(props: FolderPickerProps): ReactElement {
   const { api, onCancel, onPick } = props;
   const ws = useWorkspaceTree(api);
-  const lazy = useLazyFs(api);
+  // 「文件系统…」懒加载子树：机制走公共核，映射留本组件（目录层只关心 dirs）。
+  const loadFsChildren = React.useCallback(
+    (key: string): Promise<LazyLoadResult> => browseChildren(api, key),
+    [api],
+  );
+  const lazy = useFsLazyTree(loadFsChildren);
   // 展开/选中/新建三态（逻辑段抽到 useFolderPickerSelection）。
   const { expanded, selected, create, setCreate, onExpand, onSelect, selectedPath, createFolder } =
     useFolderPickerSelection(api, lazy, onCancel, onPick);
