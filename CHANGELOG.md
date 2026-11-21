@@ -6,6 +6,30 @@
 ## [Unreleased]
 
 ### Changed（变更）
+- **批次十一（2026-11-21 晚，K2 内核归属收编 + W4 ApiClient 域拆分）**：
+  · **K2 接收内核 alpha.37（R26）**：vendored kernel 升 `0.1.0-alpha.37`（内核仓 d8d9ce7/R26）。
+    内核补齐三处归属缺口——context 域承诺 `compactionStateCodec` 深路径、maintenance 域
+    承诺 `ServeInstance` + `MaintenanceRunner`、autonomy 域承诺 `GraphStore` + `GraphSummary`
+    契约。app 侧按归属契约第 3 条删除 extensions 四件 **947 行**（compactionMarkerReader 192 /
+    serveInstance 229 / maintenanceRunner 372 / graphStore 145 + graphSummary 契约 9），
+    消费点 13 处改指 `src/host/kernel/{context,maintenance,autonomy}.ts` 对接面；
+    `extensions/README.md` 登记表**归零**（2026-11-11 的 compactionMarkerReader 条目终态）。
+    R25d（CliWorker 族 483 行，二档）未随本轮，待内核 worker 域排期。
+    联动核对：内核 R25 的「Node 24 切换」仅门禁工具链口径（内核 package engines 仍
+    `>=22.14.0`、CI 仍 node 22），**app engines/CI 无需升版**；`kernel:check` 九条绿。
+  · **W4 ApiClient 域拆分**：1058 行上帝类（112 个 RPC 方法 / 114 处 `this.rpc`）按服务端域
+    拆为 `core/api/` **19 个域对象**（threads/control/config/observability/workspace/sessions/
+    review/profile/memory/plugins/skills/automations/vault/governance/graph/context/fleet/proof/
+    decision），ApiClient 收敛为 **318 行传输本体 + 域组合根**（统一 `rpc()` / RpcError 分类 /
+    鉴权头 / nextId，外挂 `/healthz` 预览探针与 `/metrics` 解析）；调用形态
+    `api.listSessions()` → `api.sessions.listSessions()`，81 处消费点一次改写。
+    · **判据先行（前置）**：`apiClientParity` 提取源从单文件扩到 `core/api/` 目录 + 注释剥离
+      ——否则拆域后扫描到 0 条字面量会**静默假绿**；diagnosticsTab 的 RPC 名锚点同改。
+    · **测试桩升级**：`rtlHarness.makeFakeApi` 改递归 Proxy + 新增 `flatApiStub`（扁平方法表
+      零迁移命中域调用）；7 处手写扁平桩/渲染后改 api 的用例改域形态（flatApiStub 的 flat 表
+      是闭包，事后赋值不生效——这本身是 W4 引入的陷阱，已在 helper 注释钉住）。
+    · 验收：typecheck 五闸 / fast 项目 193 文件 968 用例（4 分片）/ chrome 项目 37 文件 85 用例
+      （2 分片）/ build + build:web + smoke + desktop:build + desktop:test(44) 全绿。
 - **批次十（2026-11-21，前端重构 W1/W2/W3/W7 + 遗留终态判定）**：
   · **W1 类型护栏**：`tsconfig.tests.json` 把 tests/ 纳入 typecheck 链（第 5 个 tsc 闸）+
     `tests/typeParity.test.ts` 编译期 round-trip 判据（后端服务返回形状 → web models.ts

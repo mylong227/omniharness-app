@@ -21,10 +21,18 @@
 - **W7 清理包 ✅**（a6868eb Icon→kit / 56f8bd3 命名+i18n 分片 / 4ee13a0 legacy 引用面锁死）。
 - **遗留**：L1 ✅（并行轮 f5d16c0 完成）/ L2 ✅ / L4 ✅（登记）/ L5 ✅ 关闭 / L6 ✅ 关闭 /
   L8 ✅ / L9 knip 53 条硬证据在案转逐项清偿 / L7 维持缓偿。
-- **K1/K2 ⏸**：内核源仓有并行会话大 WIP（90 文件，R25 轮候选）——待其收口后按 §四
-  执行（R25a codec 承诺零代码 / R25b maintenance 上搬 / R25c graphStore）。
-- **W4 / W5 / W6 未启**：见 §五（W4 需 apiClientParity 判据先行适配；W5 行为判据先行；
-  W6 先 diff 双选择器）。
+- **K1/K2 ✅**（2026-11-21 晚，K1 由内核仓并行轮完成 R26 并随 alpha.37 发版）：
+  内核 `v0.1.0-alpha.37`（d8d9ce7）承诺 `compactionStateCodec` 深路径 + maintenance 域
+  ServeInstance/MaintenanceRunner + autonomy 域 GraphStore/GraphSummary 契约；app 侧
+  K2 接收删除 extensions 四件 938 行（compactionMarkerReader 192 / serveInstance 229 /
+  maintenanceRunner 372 / graphStore 145），登记表归零；`kernel:check` 九条绿。
+  **R25d（CliWorker 族 483 行，二档）未随本轮**，仍待内核 worker 域排期。
+  联动核对结论：内核 R25 的「Node 24 切换」仅门禁工具链口径（内核 package engines 仍
+  `>=22.14.0`、CI 仍 node 22），**app engines/CI 无需升版**。
+- **W4 ApiClient 域拆分 ✅**（620e146）：1058 行单类 → 传输本体 318 行 + `core/api/` 19 域类；
+  `apiClientParity` 提取源先行扩到目录（含注释剥离），fast 193 文件 / 968 用例 + chrome
+  37 文件 / 85 用例全绿；typecheck/build/build:web/smoke/desktop 全链绿。
+- **W5 / W6 / L9 未启**：见 §五（W5 行为判据先行；W6 先 diff 双选择器；L9 逐项清偿）。
 
 ---
 
@@ -333,11 +341,11 @@ useSessionResource 12 面板既有接线、theme.css token 纪律。
 - [ ] scripts/ + desktop/scripts + 根配置文件纳入 typecheck；2 个 `.d.mts` 退役
 - [ ] engines/CI = node >=22.18 对齐；webStressProbe strip-types 依赖转正
 - [ ] childRunFailure 孤儿删除；35 处 plugin.js 后缀核销；悬空脚本引用有结论
-- [ ] extensions 登记 0 条；上内核件删除（-938 行，二档再 -483）；README 归属契约同步
+- [x] extensions 登记 0 条；上内核件删除（-938 行；二档 CliWorker -483 未随本轮）；README 归属契约同步
 - [ ] serveInstance 内外双副本清零（单一真源）
 - [ ] 126 条手维类型：高漂移域有 round-trip 判据（zod 化中期项）
 - [ ] PanelRegistry 单源：新增面板 1 处完成；App.ts 装配减重
-- [ ] ApiClient 分域 + apiClientParity 适配绿
+- [x] ApiClient 分域 + apiClientParity 适配绿
 - [ ] 5 资源钩子收编完成（行为判据先行）
 - [ ] FilePicker/FolderPicker 公共核（先补判据）
 - [ ] W7 清理包全落（Icon 迁移/PascalCase/legacy 隔离/i18n 分片改名/knip）
