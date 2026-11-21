@@ -6,17 +6,17 @@
 //
 // 函数组件范式：列表 / 加载态 / 错误 / 名称草稿 / 忙态各一个 useState；
 // 原 componentDidMount + componentDidUpdate 的「会话切换即重拉」合为一个依赖 sessionId 的 effect。
-// 命名与时间戳格式化继续复用 models/checkpoint 的零 React 类；分组/相对时间见 models/CheckpointTimeline。
+// 命名与时间戳格式化继续复用 models/Checkpoint 的零 React 类；分组/相对时间见 models/CheckpointTimeline。
 
 import * as React from 'react';
 import { useApp } from '../../context.ts';
 import { useSessionResource } from '../../hooks/useSessionResource.ts';
 // 领域模型下沉到 models/（零 React 依赖，可单测）；此处 re-export 保持调用方 import 路径不变。
-import { CheckpointNamer } from '../../models/checkpoint.ts';
+import { CheckpointNamer } from '../../models/Checkpoint.ts';
 import { CheckpointTimeline } from '../../models/CheckpointTimeline.ts';
 import { icon } from '../../kit/Icon.tsx';
 import { emptyNote, emptyState } from '../../format.ts';
-import type { CheckpointMeta } from '../../models/checkpoint.ts';
+import type { CheckpointMeta } from '../../models/Checkpoint.ts';
 import type { TimelineDay, TimelineEntry } from '../../models/CheckpointTimeline.ts';
 import { t } from '../../i18n/i18n.ts';
 import Input from 'antd/es/input';

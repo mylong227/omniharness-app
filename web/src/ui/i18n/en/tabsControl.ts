@@ -1,5 +1,5 @@
 // en 词条分片：控制室（ControlTab：编队 / 上下文 / 凭证，2026-11-10）。键 = 中文原文（与 t() 的键逐字一致，含 {name} 占位符）。
-export const EN_TABS_C: Record<string, string> = {
+export const EN_TABS_CONTROL: Record<string, string> = {
   // 控制室容器
   '控制室模式': 'Control room modes',
   '编队': 'Fleet',

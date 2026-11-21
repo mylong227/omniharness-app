@@ -227,7 +227,7 @@ function useGraphDraft(): GraphDraft {
       SAMPLE.steps.map((s) => ({
         id: s.id,
         dep: GraphDefBuilder.depText(s.dependsOn),
-        // 示例提示词是用户可见的种子内容，消费点走 i18n（键 = 中文原文，en 词条在 tabs_b）。
+        // 示例提示词是用户可见的种子内容，消费点走 i18n（键 = 中文原文，en 词条在 tabsToolsVault）。
         prompt: t(s.prompt),
       })),
     );

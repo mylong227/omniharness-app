@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import { CommandPaletteModel } from '../src/ui/models/CommandPaletteModel.ts';
-import { CheckpointNamer, TimestampFormatter } from '../src/ui/models/checkpoint.ts';
+import { CheckpointNamer, TimestampFormatter } from '../src/ui/models/Checkpoint.ts';
 
 const CMDS = [
   { id: '1', label: '打开面板：工具', hint: 'Ctrl+1', group: '面板', run: () => {} },

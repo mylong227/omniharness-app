@@ -15,7 +15,7 @@ import { MethodBinder } from './methodBinder.ts';
 import { SessionTicker } from './sessionTicker.ts';
 import { EventFields } from '../models/EventFields.ts';
 import { RewindImpact } from '../models/RewindImpact.ts';
-import { CheckpointNamer } from '../models/checkpoint.ts';
+import { CheckpointNamer } from '../models/Checkpoint.ts';
 import { t } from '../i18n/i18n.ts';
 
 /** 历史分页页大小（首屏只取尾部；更早内容按需补拉）。 */

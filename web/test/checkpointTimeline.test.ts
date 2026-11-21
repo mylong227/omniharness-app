@@ -14,10 +14,10 @@ import { test, vi } from 'vitest';
 import { fireEvent, renderFacadeAsync, waitFor } from './rtlHarness.ts';
 import { allText, byClass, facadeOf, walk } from './domFacade.ts';
 import type { Facade, FacadeNode } from './domFacade.ts';
-import type { CheckpointMeta } from '../src/ui/models/checkpoint.ts';
+import type { CheckpointMeta } from '../src/ui/models/Checkpoint.ts';
 
 const { CheckpointTimeline } = await import('../src/ui/models/CheckpointTimeline.ts');
-const { TimestampFormatter } = await import('../src/ui/models/checkpoint.ts');
+const { TimestampFormatter } = await import('../src/ui/models/Checkpoint.ts');
 const { RollbackTab } = await import('../src/ui/components/tabs/RollbackTab.tsx');
 
 /** 本地时间构造（dayKey 用本地日期，用 UTC 串会把测试绑死在某个时区）。 */

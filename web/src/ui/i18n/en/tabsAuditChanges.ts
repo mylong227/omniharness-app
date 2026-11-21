@@ -1,5 +1,5 @@
-// en 词条分片：标签页 A（Audit/Changes/Detail/Diagnostics/Governance/File）。键 = 中文原文（与 t() 的键逐字一致，含 {name} 占位符）。
-export const EN_TABS_A: Record<string, string> = {
+// en 词条分片（W7 域语义命名）：审计与数据类（Audit/Changes/Detail/Diagnostics/Governance/File）。键 = 中文原文（与 t() 的键逐字一致，含 {name} 占位符）。
+export const EN_TABS_AUDIT_CHANGES: Record<string, string> = {
   // AuditTab
   '载入审计事件…': 'Loading audit events…',
   '读取审计数据失败：{msg}': 'Failed to read audit data: {msg}',

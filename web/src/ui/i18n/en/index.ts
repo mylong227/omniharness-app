@@ -9,9 +9,9 @@ import { EN_SESSIONS } from './sessions.ts';
 import { EN_SETTINGS } from './settings.ts';
 import { EN_SHELL } from './shell.ts';
 import { EN_STREAM } from './stream.ts';
-import { EN_TABS_A } from './tabs_a.ts';
-import { EN_TABS_B } from './tabs_b.ts';
-import { EN_TABS_C } from './tabs_c.ts';
+import { EN_TABS_AUDIT_CHANGES } from './tabsAuditChanges.ts';
+import { EN_TABS_TOOLS_VAULT } from './tabsToolsVault.ts';
+import { EN_TABS_CONTROL } from './tabsControl.ts';
 
 /** en 词条总表。键 = 中文原文；缺词条时 t() 回落中文原文（完整性由 i18nCoverage 测试兜底）。 */
 export const EN: Record<string, string> = {
@@ -25,7 +25,7 @@ export const EN: Record<string, string> = {
   ...EN_SETTINGS,
   ...EN_SHELL,
   ...EN_STREAM,
-  ...EN_TABS_A,
-  ...EN_TABS_B,
-  ...EN_TABS_C,
+  ...EN_TABS_AUDIT_CHANGES,
+  ...EN_TABS_TOOLS_VAULT,
+  ...EN_TABS_CONTROL,
 };

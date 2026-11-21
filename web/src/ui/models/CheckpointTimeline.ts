@@ -4,8 +4,8 @@
 // 为什么不用 Date.now() 而注入 now：相对时间（「3 分钟前」）是**输入的函数**，
 // 混入真实时钟会让测试在跨分钟/跨天时随机红——这类测试一旦随机红，团队就会去关掉它。
 
-import { TimestampFormatter } from './checkpoint.ts';
-import type { CheckpointMeta } from './checkpoint.ts';
+import { TimestampFormatter } from './Checkpoint.ts';
+import type { CheckpointMeta } from './Checkpoint.ts';
 import { t } from '../i18n/i18n.ts';
 
 /** 天毫秒数（分组与「N 天前」共用同一常量，避免两处各写一遍）。 */

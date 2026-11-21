@@ -1,5 +1,5 @@
-// en 词条分片：标签页 B（Graph/Memory/Metrics/Permission/Plugins/Profiles/Rollback/Settings/Tools/Trace/Vault）。键 = 中文原文（与 t() 的键逐字一致，含 {name} 占位符）。
-export const EN_TABS_B: Record<string, string> = {
+// en 词条分片：工具与洞察类（Graph/Memory/Metrics/Permission/Plugins/Profiles/Rollback/Settings/Tools/Trace/Vault）。键 = 中文原文（与 t() 的键逐字一致，含 {name} 占位符）。
+export const EN_TABS_TOOLS_VAULT: Record<string, string> = {
   // GraphTab
   ' 全部完成': ' All steps completed',
   ' 存在失败步骤': ' Some steps failed',
