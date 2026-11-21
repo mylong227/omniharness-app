@@ -16,7 +16,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PackagedPayloadCheck } from './lib/payloadCheck.mjs';
+import { PackagedPayloadCheck } from './lib/payloadCheck.mts';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const prepackaged = join(root, 'release', 'win-unpacked');

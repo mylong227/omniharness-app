@@ -19,8 +19,8 @@
  *   · `web/dist/index.html`：应用根的前端产物；
  *   · `dist/main.cjs` + `dist/icon.*`：`app.asar` 内的桌面壳产物。
  *
- * `stageHarness.mjs` 把清单哈希写进 `BUILD_INFO.json`；`verifyPackage.mjs` 与
- * `buildInstaller.mjs` 用同一份清单复核。纯静态类，无实例状态。
+ * `stageHarness.mts` 把清单哈希写进 `BUILD_INFO.json`；`verifyPackage.mts` 与
+ * `buildInstaller.mts` 用同一份清单复核。纯静态类，无实例状态。
  */
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
@@ -30,63 +30,86 @@ import { join } from 'node:path';
 const require = createRequire(import.meta.url);
 
 /** 载荷内需要与工作树逐字节一致的文件（源路径 → 载荷内路径）。 */
-const PAYLOAD_FILES = Object.freeze([
-  Object.freeze({ source: 'backend', sourcePath: 'package.json', payloadPath: 'package.json' }),
-  Object.freeze({
-    source: 'backend',
-    sourcePath: 'dist/src/apps/cli/exec.js',
-    payloadPath: 'dist/src/apps/cli/exec.js',
-  }),
-  // stage 把应用根的 `web/dist` 拷成载荷里的 `web/`（同级布局是 NativeKernel 等路径解析的前提），
-  // 所以源路径与载荷路径不同名——校验必须按这两条路径分别取。
-  Object.freeze({
-    source: 'web',
-    sourcePath: 'web/dist/index.html',
-    payloadPath: 'web/index.html',
-  }),
-]);
+const PAYLOAD_FILES: readonly { source: 'backend' | 'web'; sourcePath: string; payloadPath: string }[] =
+  Object.freeze([
+    Object.freeze({ source: 'backend', sourcePath: 'package.json', payloadPath: 'package.json' }),
+    Object.freeze({
+      source: 'backend',
+      sourcePath: 'dist/src/apps/cli/exec.js',
+      payloadPath: 'dist/src/apps/cli/exec.js',
+    }),
+    // stage 把应用根的 `web/dist` 拷成载荷里的 `web/`（同级布局是 NativeKernel 等路径解析的前提），
+    // 所以源路径与载荷路径不同名——校验必须按这两条路径分别取。
+    Object.freeze({
+      source: 'web',
+      sourcePath: 'web/dist/index.html',
+      payloadPath: 'web/index.html',
+    }),
+  ]);
 
 /** 桌面壳 `app.asar` 里必须存在、且与 `desktop/dist` 一致的文件（相对 desktop/dist）。 */
-const DESKTOP_FILES = Object.freeze(['main.cjs']);
+const DESKTOP_FILES: readonly string[] = Object.freeze(['main.cjs']);
 
 /** 桌面壳 `app.asar` 里必须存在的图标资源（任务栏/窗口/托盘）。 */
-const DESKTOP_ASSETS = Object.freeze(['dist/icon.ico', 'dist/icon.png', 'dist/icon-busy.png']);
+const DESKTOP_ASSETS: readonly string[] = Object.freeze([
+  'dist/icon.ico',
+  'dist/icon.png',
+  'dist/icon-busy.png',
+]);
 
-/**
- * 载荷来源（校验时由调用方给出绝对路径）。
- * @typedef {{ readonly backendRoot: string, readonly webRoot: string }} PayloadSources
- */
+/** 载荷来源（校验时由调用方给出绝对路径）。 */
+export interface PayloadSources {
+  /** 后端工作树根。 */
+  readonly backendRoot: string;
+  /** 前端产物根。 */
+  readonly webRoot: string;
+}
 
 /**
  * 构建信息（写进 `BUILD_INFO.json`，随安装包一起发布，排障时能直接看出载荷版本）。
- * @typedef {{
- *   product: string,
- *   version: string,
- *   kernel: string | null,
- *   builtAt: string,
- *   git: { commit: string | null, ref: string | null },
- *   files: Record<string, string>,
- * }} BuildInfo
  */
+export interface BuildInfo {
+  /** 产品名。 */
+  product: string;
+  /** 版本号。 */
+  version: string;
+  /** 内核依赖钉定形态（读不到为 null）。 */
+  kernel: string | null;
+  /** 构建时刻（ISO）。 */
+  builtAt: string;
+  /** git HEAD。 */
+  git: { commit: string | null; ref: string | null };
+  /** 载荷文件哈希表（载荷内路径 → sha256）。 */
+  files: Record<string, string>;
+}
 
-/**
- * 校验结果：问题列表 + 读到的构建信息（缺文件时为 null）。
- * @typedef {{ problems: string[], info: BuildInfo | null }} PayloadReport
- */
+/** 校验结果：问题列表 + 读到的构建信息（缺文件时为 null）。 */
+export interface PayloadReport {
+  /** 问题列表（空即通过）。 */
+  problems: string[];
+  /** 读到的构建信息（缺文件/不可解析时为 null）。 */
+  info: BuildInfo | null;
+}
+
+/** `@electron/asar` 的软依赖契约（lazy require，缺失时 fail-closed 上报）。 */
+interface AsarLib {
+  extractFile: (archive: string, name: string) => Buffer;
+  listPackage: (archive: string) => string[];
+}
 
 /** 打包载荷一致性校验器。 */
 export class PackagedPayloadCheck {
   /** 静态工具类：禁止实例化。 */
-  constructor() {
+  private constructor() {
     throw new Error('PackagedPayloadCheck 只提供静态方法');
   }
 
   /**
    * 计算文件的 SHA-256。
-   * @param {string} file 绝对路径。
-   * @returns {string | null} 十六进制摘要；文件不存在/不可读时为 null。
+   * @param file 绝对路径。
+   * @returns 十六进制摘要；文件不存在/不可读时为 null。
    */
-  static hashFile(file) {
+  public static hashFile(file: string): string | null {
     if (!existsSync(file)) return null;
     try {
       return createHash('sha256').update(readFileSync(file)).digest('hex');
@@ -97,10 +120,10 @@ export class PackagedPayloadCheck {
 
   /**
    * 读取 git HEAD（不 spawn git：受限环境/无 git 也能跑）。
-   * @param {string} repoRoot 仓库根。
-   * @returns {{ commit: string | null, ref: string | null }} 提交与引用；读不到均为 null。
+   * @param repoRoot 仓库根。
+   * @returns 提交与引用；读不到均为 null。
    */
-  static readGitHead(repoRoot) {
+  public static readGitHead(repoRoot: string): { commit: string | null; ref: string | null } {
     const dotGit = join(repoRoot, '.git');
     try {
       const head = readFileSync(join(dotGit, 'HEAD'), 'utf8').trim();
@@ -116,14 +139,13 @@ export class PackagedPayloadCheck {
 
   /**
    * 生成当前工作树的构建信息（供 stage 写入 `BUILD_INFO.json`）。
-   * @param {PayloadSources} sources 载荷来源根。
-   * @param {Date} now 构建时间（测试可注入固定时钟）。
-   * @returns {BuildInfo} 构建信息。
+   * @param sources 载荷来源根。
+   * @param now 构建时间（测试可注入固定时钟）。
+   * @returns 构建信息。
    */
-  static buildInfo(sources, now = new Date()) {
+  public static buildInfo(sources: PayloadSources, now: Date = new Date()): BuildInfo {
     const pkg = PackagedPayloadCheck.readJson(join(sources.backendRoot, 'package.json'));
-    /** @type {Record<string, string>} */
-    const files = {};
+    const files: Record<string, string> = {};
     for (const entry of PAYLOAD_FILES) {
       const hash = PackagedPayloadCheck.hashFile(
         join(PackagedPayloadCheck.sourceRoot(sources, entry.source), entry.sourcePath),
@@ -153,16 +175,14 @@ export class PackagedPayloadCheck {
 
   /**
    * 校验已打包（或已 stage）的 harness 是否仍是当前工作树的产物。
-   * @param {string} payloadDir 载荷内的 harness 目录。
-   * @param {PayloadSources} sources 当前工作树的载荷来源根。
-   * @returns {PayloadReport} 校验结果。
+   * @param payloadDir 载荷内的 harness 目录。
+   * @param sources 当前工作树的载荷来源根。
+   * @returns 校验结果。
    */
-  static inspectHarness(payloadDir, sources) {
-    /** @type {string[]} */
-    const problems = [];
+  public static inspectHarness(payloadDir: string, sources: PayloadSources): PayloadReport {
+    const problems: string[] = [];
     const infoFile = join(payloadDir, 'BUILD_INFO.json');
-    /** @type {BuildInfo | null} */
-    let info = null;
+    let info: BuildInfo | null = null;
     if (!existsSync(infoFile)) {
       problems.push(
         'harness 缺少 BUILD_INFO.json（不是当前 stage 生成的载荷）——先运行 npm run stage 并重新打包',
@@ -202,20 +222,18 @@ export class PackagedPayloadCheck {
 
   /**
    * 校验 `app.asar` 里的桌面壳产物是否与 `desktop/dist` 一致，并确认图标资源已入包。
-   * @param {string} asarFile `resources/app.asar` 绝对路径。
-   * @param {string} desktopDist `desktop/dist` 目录。
-   * @returns {PayloadReport} 校验结果（桌面壳无 BUILD_INFO，info 恒为 null）。
+   * @param asarFile `resources/app.asar` 绝对路径。
+   * @param desktopDist `desktop/dist` 目录。
+   * @returns 校验结果（桌面壳无 BUILD_INFO，info 恒为 null）。
    */
-  static inspectDesktop(asarFile, desktopDist) {
-    /** @type {string[]} */
-    const problems = [];
+  public static inspectDesktop(asarFile: string, desktopDist: string): PayloadReport {
+    const problems: string[] = [];
     if (!existsSync(asarFile)) {
       return { problems: ['缺少 resources/app.asar'], info: null };
     }
-    /** @type {{ extractFile: (archive: string, name: string) => Buffer, listPackage: (archive: string) => string[] }} */
-    let asar;
+    let asar: AsarLib;
     try {
-      asar = require('@electron/asar');
+      asar = require('@electron/asar') as AsarLib;
     } catch (error) {
       return { problems: [`缺少 @electron/asar（先 npm install）：${String(error)}`], info: null };
     }
@@ -235,8 +253,7 @@ export class PackagedPayloadCheck {
         problems.push(`app.asar 内缺少 dist/${relative}`);
       }
     }
-    /** @type {string[]} */
-    let listed = [];
+    let listed: string[] = [];
     try {
       listed = asar.listPackage(asarFile);
     } catch (error) {
@@ -255,49 +272,49 @@ export class PackagedPayloadCheck {
 
   /**
    * 解析载荷来源对应的根目录。
-   * @param {PayloadSources} sources 来源根。
-   * @param {'backend' | 'web'} source 来源标识。
-   * @returns {string} 绝对路径。
+   * @param sources 来源根。
+   * @param source 来源标识。
+   * @returns 绝对路径。
    */
-  static sourceRoot(sources, source) {
+  public static sourceRoot(sources: PayloadSources, source: 'backend' | 'web'): string {
     return source === 'web' ? sources.webRoot : sources.backendRoot;
   }
 
   /**
    * 读一份 JSON；坏文件抛错由调用方转成问题项。
-   * @param {string} file 绝对路径。
-   * @returns {Record<string, unknown>} 解析结果。
+   * @param file 绝对路径。
+   * @returns 解析结果。
    */
-  static readJson(file) {
-    return JSON.parse(readFileSync(file, 'utf8'));
+  public static readJson(file: string): Record<string, unknown> {
+    return JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>;
   }
 
   /**
    * 从 package.json 取依赖表（dependencies 优先，退 optionalDependencies）。
-   * @param {Record<string, unknown>} pkg package.json 内容。
-   * @returns {Record<string, unknown>} 依赖表。
+   * @param pkg package.json 内容。
+   * @returns 依赖表。
    */
-  static dependenciesOf(pkg) {
+  public static dependenciesOf(pkg: Record<string, unknown>): Record<string, unknown> {
     const dependencies = pkg['dependencies'];
     if (dependencies !== null && typeof dependencies === 'object') {
-      return /** @type {Record<string, unknown>} */ (dependencies);
+      return dependencies as Record<string, unknown>;
     }
     const optional = pkg['optionalDependencies'];
     if (optional !== null && typeof optional === 'object') {
-      return /** @type {Record<string, unknown>} */ (optional);
+      return optional as Record<string, unknown>;
     }
     return {};
   }
 
   /**
    * 把未知 JSON 收窄成 BuildInfo（字段缺失按 null/空表处理，避免读坏文件时崩）。
-   * @param {Record<string, unknown>} raw 原始 JSON。
-   * @returns {BuildInfo} 构建信息。
+   * @param raw 原始 JSON。
+   * @returns 构建信息。
    */
-  static normalizeBuildInfo(raw) {
+  public static normalizeBuildInfo(raw: Record<string, unknown>): BuildInfo {
     const git = raw['git'];
     const files = raw['files'];
-    const gitRecord = git !== null && typeof git === 'object' ? git : {};
+    const gitRecord = (git !== null && typeof git === 'object' ? git : {}) as Record<string, unknown>;
     return {
       product: typeof raw['product'] === 'string' ? raw['product'] : 'OmniHarness',
       version: typeof raw['version'] === 'string' ? raw['version'] : 'unknown',
@@ -309,7 +326,7 @@ export class PackagedPayloadCheck {
       },
       files:
         files !== null && typeof files === 'object'
-          ? /** @type {Record<string, string>} */ ({ ...files })
+          ? ({ ...files } as Record<string, string>)
           : {},
     };
   }

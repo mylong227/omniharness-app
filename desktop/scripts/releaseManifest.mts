@@ -5,7 +5,7 @@
  */
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -15,7 +15,7 @@ const release = join(root, 'release');
  * 配置化集中：manifest 的 product 与安装包文件名不再各自硬编码）。
  * @returns 产品名（解析失败回落 OmniHarness）
  */
-function productNameOf() {
+function productNameOf(): string {
   try {
     const m = /^productName:\s*['"]?([^'"\r\n]+?)['"]?\s*$/m.exec(
       readFileSync(join(root, 'electron-builder.yml'), 'utf8'),
@@ -27,7 +27,7 @@ function productNameOf() {
 }
 // 安装包文件名随版本走（electron-builder NSIS 缺省产物名 `${productName} Setup ${version}.exe`，
 // 2026-11-19 盘点轮修：此前写死 0.2.0，版本推进后 manifest 对不上实际产物名）。
-const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as { version: string };
 const productName = productNameOf();
 const installerName = `${productName} Setup ${pkg.version}.exe`;
 const setup = join(release, installerName);
@@ -38,7 +38,7 @@ const unpacked = join(release, 'win-unpacked');
  * @param dir 目录。
  * @returns 统计。
  */
-function walk(dir) {
+function walk(dir: string): { files: number; bytes: number } {
   const out = { files: 0, bytes: 0 };
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
@@ -58,7 +58,7 @@ function walk(dir) {
  * 读取 git HEAD（不 spawn git；受限环境可用）。
  * @returns commit/ref；读取失败为 null。
  */
-function gitHead() {
+function gitHead(): { commit: string | null; ref: string | null } | null {
   try {
     const dotGit = join(root, '..', '.git');
     const head = readFileSync(join(dotGit, 'HEAD'), 'utf8').trim();
@@ -79,7 +79,7 @@ if (!existsSync(setup) || !existsSync(unpacked)) {
 const unpackedStats = walk(unpacked);
 const hash = createHash('sha256').update(readFileSync(setup)).digest('hex');
 const shaFile = `${setup}.sha256`;
-const declared = existsSync(shaFile) ? readFileSync(shaFile, 'utf8').trim().split(/\s+/u)[0] : null;
+const declared = existsSync(shaFile) ? (readFileSync(shaFile, 'utf8').trim().split(/\s+/u)[0] ?? null) : null;
 const manifest = {
   product: productName,
   version: pkg.version,

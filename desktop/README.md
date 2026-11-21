@@ -19,9 +19,9 @@ desktop/
   static/icon.png     # 512×512 窗口/托盘图标
   static/icon.ico     # 多尺寸 Windows 应用/安装包/任务栏图标（16–256，每档单独渲染）
   installer/          # 安装向导品牌素材（侧栏/页眉 BMP + installer.nsh 页面钩子）
-  scripts/build.mjs   # esbuild → dist/main.cjs + dist/preload.cjs
-  scripts/stageHarness.mjs # 打包用 Harness + node.exe + 生产依赖
-  scripts/test.mjs    # 纯逻辑测试（node:test）
+  scripts/build.mts   # esbuild → dist/main.cjs + dist/preload.cjs
+  scripts/stageHarness.mts # 打包用 Harness + node.exe + 生产依赖
+  scripts/test.mts    # 纯逻辑测试（node:test）
   electron-builder.yml
 ```
 
@@ -184,7 +184,7 @@ CSP/权限、路径目录名）都集中在配置里，**不再散落在主进�
 4. `OMNI_DESKTOP_CONFIG=<path>` 指定的最后一份覆盖文件。
 
 非法值（类型错/越界/非回环主机/非法 CSP token）会**回落默认并写告警到主进程日志**，
-不会静默采纳。发布包内置配置与代码默认值逐字段相等，`desktop/scripts/test.mjs` 会核对防漂移。
+不会静默采纳。发布包内置配置与代码默认值逐字段相等，`desktop/scripts/test.mts` 会核对防漂移。
 
 **三个配置面的写入者清单**（2026-11-21 补，谁写什么不再靠猜）：
 

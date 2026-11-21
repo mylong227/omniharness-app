@@ -20,7 +20,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 /** 解析 `--key=value`。 */
-const argOf = (name) => {
+const argOf = (name: string): string | undefined => {
   const token = process.argv.find((item) => item.startsWith(`--${name}=`));
   return token === undefined ? undefined : token.slice(name.length + 3);
 };
@@ -31,7 +31,7 @@ const logDir =
     ? join(process.env['APPDATA'], 'OmniHarness', 'logs')
     : join(homedir(), '.config', 'OmniHarness', 'logs'));
 
-let names;
+let names: string[];
 try {
   names = readdirSync(logDir).filter((name) => /^main-.*\.log$/u.test(name));
 } catch {
@@ -42,16 +42,16 @@ if (names.length === 0) {
   process.exit(2);
 }
 names.sort();
-const file = join(logDir, names[names.length - 1]);
+const file = join(logDir, names[names.length - 1]!);
 const text = readFileSync(file, 'utf8');
 const PHASE = /startup\.phase phase=([a-z.]+) elapsedMs=(\d+)/gu;
-const phases = [];
-for (const match of text.matchAll(PHASE)) phases.push({ phase: match[1], ms: Number(match[2]) });
+const phases: { phase: string; ms: number }[] = [];
+for (const match of text.matchAll(PHASE)) phases.push({ phase: match[1]!, ms: Number(match[2]) });
 if (phases.length === 0) {
   process.stderr.write(`✗ ${file} 里没有 startup.phase 标记（旧版本？）\n`);
   process.exit(2);
 }
-const boot = phases[0].ms;
+const boot = phases[0]!.ms;
 process.stdout.write(`log: ${file}\n`);
 let previous = 0;
 for (const { phase, ms } of phases) {

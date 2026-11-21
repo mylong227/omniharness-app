@@ -6,7 +6,7 @@
  * 发布承诺。防止「包能打出来，但 locales/依赖/配置悄悄退化」。
  *
  * 用法：
- *   node scripts/verifyPackage.mjs [--dir release/win-unpacked]
+ *   node scripts/verifyPackage.mts [--dir release/win-unpacked]
  *
  * 判据：
  * - 入口 exe、app.asar、内置 desktop.config.json、sidecar harness 入口存在；
@@ -17,7 +17,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PackagedPayloadCheck } from './lib/payloadCheck.mjs';
+import { PackagedPayloadCheck } from './lib/payloadCheck.mts';
 
 const args = process.argv.slice(2);
 const dirFlag = args.indexOf('--dir');
@@ -33,7 +33,7 @@ const root = resolve(
 );
 
 /** 递归统计文件数与字节数。 */
-function walk(dir, out) {
+function walk(dir: string, out: { files: number; bytes: number; paths: string[] }): void {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
     if (entry.isDirectory()) {
@@ -46,15 +46,15 @@ function walk(dir, out) {
   }
 }
 
-const stats = { files: 0, bytes: 0, paths: [] };
+const stats = { files: 0, bytes: 0, paths: [] as string[] };
 if (!existsSync(root)) {
   process.stderr.write(`✗ 产物目录不存在：${root}（先 npm run pack）\n`);
   process.exit(2);
 }
 walk(root, stats);
 
-const failures = [];
-const requirePath = (relative, label) => {
+const failures: string[] = [];
+const requirePath = (relative: string, label: string): void => {
   if (!existsSync(join(root, relative))) failures.push(`缺少 ${label}：${relative}`);
 };
 requirePath('OmniHarness.exe', '主程序');
@@ -93,7 +93,7 @@ for (const path of stats.paths) {
   }
 }
 
-let config = {};
+let config: { update?: { channel?: unknown }; app?: { language?: unknown } } = {};
 try {
   config = JSON.parse(readFileSync(join(root, 'resources', 'desktop.config.json'), 'utf8'));
 } catch (error) {
@@ -109,7 +109,7 @@ if (failures.length > 0) {
   process.exit(1);
 }
 /** 在 release/ 里找当前版本的安装包（文件名带版本，不能写死）。 */
-const findInstaller = () => {
+const findInstaller = (): string | undefined => {
   const releaseDir = join(root, '..');
   if (!existsSync(releaseDir)) return undefined;
   return readdirSync(releaseDir)

@@ -1,7 +1,7 @@
 /**
  * 启动阶段标记（D1 度量，2026-10-25）。
  *
- * 固定格式 `startup.phase phase=<name> elapsedMs=<n>` 让 `scripts/startupReport.mjs`
+ * 固定格式 `startup.phase phase=<name> elapsedMs=<n>` 让 `scripts/startupReport.mts`
  * 无需启动 Electron 就能读日志、算阶段差。
  */
 import type { DesktopLogger } from '../logger.ts';

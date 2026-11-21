@@ -1,6 +1,6 @@
 // 配置校验辅助 + Validator 接口（2026-11-21 P4 从 DesktopConfigLoader.ts 按职责拆出）：
 // 逐字段「类型错回落 / 越界夹取」的单一实现集；告警经 Validator 收集（不抛错），
-// 告警码即 messages.ts 的 `config.<code>` 键尾段（test.mjs parity 判据钉齐全）。
+// 告警码即 messages.ts 的 `config.<code>` 键尾段（test.mts parity 判据钉齐全）。
 
 import type { ConfigWarningCode } from './types.ts';
 

@@ -1,6 +1,6 @@
 /**
  * IPC 安全守卫的**纯逻辑**部分（2026-11-08 从 ipc.ts 抽出）：不 import electron 运行时
- * （仅 type-only），因此 `desktop/scripts/test.mjs` 可以用 esbuild 打包后在 Node 里直接判据
+ * （仅 type-only），因此 `desktop/scripts/test.mts` 可以用 esbuild 打包后在 Node 里直接判据
  * ——审计指出 `assertTrusted` / `assertNotifyInput` 是桌面最关键的两个安全函数却零判据覆盖。
  * ipc.ts 保留薄包装（抛错语义与 IPC 接线），本模块只做可判据的判定。
  */

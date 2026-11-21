@@ -17,7 +17,8 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "."
   },
-  "include": ["src/**/*.ts"]
+  "//": "rootDir 从 src 放宽到仓根（2026-11-21 脚本 .mts 化后 scripts 并入类型门；noEmit 下无产物布局影响）。",
+  "include": ["src/**/*.ts", "scripts/**/*.mts"]
 }

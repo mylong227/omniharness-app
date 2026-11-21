@@ -21,7 +21,7 @@ import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } fro
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { PackagedPayloadCheck } from './lib/payloadCheck.mjs';
+import { PackagedPayloadCheck } from './lib/payloadCheck.mts';
 
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const appRoot = resolve(desktopRoot, '..');
@@ -33,7 +33,7 @@ const stage = join(appRoot, '.desktop-stage', 'harness');
 const skipDeps = process.env.SKIP_DEPS === '1';
 
 /** 断言输入存在。 */
-function need(path, label) {
+function need(path: string, label: string): void {
   if (!existsSync(path))
     throw new Error(`缺少 ${label}：${path}（先运行根目录 npm run web:build / 后端 npm run build）`);
 }
@@ -114,7 +114,7 @@ if (existsSync(nativeDir)) {
 }
 
 // 构建信息（2026-11-14 用户报障后加）：把这份 stage 对应的版本/内核/产物哈希写进载荷。
-// `verifyPackage.mjs` 与 `buildInstaller.mjs` 用它证明「安装包里的侧车确实是当前工作树」，
+// `verifyPackage.mts` 与 `buildInstaller.mts` 用它证明「安装包里的侧车确实是当前工作树」，
 // 避免再次出现「NSIS 外观是新的、侧车还是 6 天前旧 dist」的静默组合。
 const buildInfo = PackagedPayloadCheck.buildInfo({ backendRoot, webRoot: appRoot });
 writeFileSync(join(stage, 'BUILD_INFO.json'), `${JSON.stringify(buildInfo, null, 2)}\n`, 'utf8');

@@ -27,11 +27,13 @@ const esbuildCandidates = [
     `@esbuild/${process.platform}-${process.arch}`,
     process.platform === 'win32' ? 'esbuild.exe' : 'bin/esbuild',
   ),
-].filter((item) => typeof item === 'string' && item !== '');
+].filter((item): item is string => typeof item === 'string' && item !== '');
 const esbuildBin = esbuildCandidates.find((item) => existsSync(item));
 if (esbuildBin === undefined) {
   throw new Error(`esbuild 二进制不存在（已查找：${esbuildCandidates.join(' / ')}）`);
 }
+// 收窄快照：CFA 不把外层收窄带进闭包（bundle 内引用的是这里的 string 常量）。
+const esbuildBinPath: string = esbuildBin;
 
 /**
  * 构建一个入口（CJS；Electron 主进程/沙箱 preload 均用 CJS 最稳）。
@@ -39,9 +41,9 @@ if (esbuildBin === undefined) {
  * @param outfile 输出相对路径。
  * @returns 无返回值。
  */
-function bundle(entry, outfile) {
+function bundle(entry: string, outfile: string): void {
   const result = spawnSync(
-    esbuildBin,
+    esbuildBinPath,
     [
       entry,
       '--bundle',

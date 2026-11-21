@@ -243,7 +243,7 @@ async function bootstrap(): Promise<void> {
   });
   const i18n = new DesktopI18n(DesktopI18n.resolve(config.app.language, app.getLocale()));
   // 结构化告警经 i18n 渲染（2026-11-20 遗留 #4 收口）：码与 messages.ts 的 config.* 键
-  // 一一对应（判据钉齐全，见 test.mjs「配置告警 code 与文案键一一对应」）；码拼接在此是
+  // 一一对应（判据钉齐全，见 test.mts「配置告警 code 与文案键一一对应」）；码拼接在此是
   // 安全的——ConfigWarningCode 联合就是该键表的后缀面。
   for (const issue of loadedConfig.issues) {
     const key = `config.${issue.code}` as DesktopMessageKey;

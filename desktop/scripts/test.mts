@@ -7,6 +7,7 @@ import { pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import type { WorkspaceGuardError as WorkspaceGuardErrorShape } from '../src/main/ipcGuards.ts';
 
 const out = join(process.cwd(), '..', '.tmp', 'desktop-tests');
 mkdirSync(out, { recursive: true });
@@ -32,14 +33,16 @@ const esbuildCandidates = [
     `@esbuild/${process.platform}-${process.arch}`,
     process.platform === 'win32' ? 'esbuild.exe' : 'bin/esbuild',
   ),
-].filter((item) => typeof item === 'string' && item !== '');
+].filter((item): item is string => typeof item === 'string' && item !== '');
 const esbuildBin = esbuildCandidates.find((item) => existsSync(item));
 if (esbuildBin === undefined) {
   throw new Error(`esbuild 二进制不存在（已查找：${esbuildCandidates.join(' / ')}）`);
 }
+// 收窄快照：CFA 不把外层收窄带进闭包（bundle 内引用的是这里的 string 常量）。
+const esbuildBinPath: string = esbuildBin;
 
 /** 打包一个纯模块到 CJS 供 Node 测试（alias 用来把 Electron 替换成测试替身）。 */
-function bundle(entry, name, external = [], alias = {}) {
+function bundle(entry: string, name: string, external: readonly string[] = [], alias: Record<string, string> = {}): void {
   const args = [
     entry,
     '--bundle',
@@ -51,7 +54,7 @@ function bundle(entry, name, external = [], alias = {}) {
     ...Object.entries(alias).map(([from, to]) => `--alias:${from}=${to}`),
     '--log-level=error',
   ];
-  const result = spawnSync(esbuildBin, args, { cwd: process.cwd(), stdio: 'inherit' });
+  const result = spawnSync(esbuildBinPath, args, { cwd: process.cwd(), stdio: 'inherit' });
   if (result.error !== undefined || result.status !== 0) {
     throw new Error(`esbuild 失败（${name}）：${String(result.error?.message ?? result.status)}`);
   }
@@ -72,7 +75,7 @@ bundle('src/main/app/SmokeHarness.ts', 'smokeHarness');
 bundle('src/main/app/AppIcon.ts', 'appIcon');
 bundle('src/main/app/HarnessStartFailure.ts', 'harnessFailure');
 // 打包载荷门禁：纯 JS 模块，直接 import（不经过 esbuild）。
-const { PackagedPayloadCheck } = await import('./lib/payloadCheck.mjs');
+const { PackagedPayloadCheck } = await import('./lib/payloadCheck.mts');
 // 托盘：用假 electron 打包，busy 态切换/去重/回退/复位都在 node 里可测（不启动 GUI）。
 bundle('src/main/tray.ts', 'tray', [], { electron: './scripts/fakeElectron.cjs' });
 // IPC 安全守卫纯逻辑（2026-11-08 审计）：electron 仅 type-only 导入，无需假替身即可打包。
@@ -144,15 +147,15 @@ test('DesktopI18n：中英语言包键集合完全一致', () => {
 test('ipcGuards：assertDirectory 抛 WorkspaceGuardError（稳定码 + 路径，供对话框本地化）', () => {
   // 不存在 → not-exists
   const missing = join(out, 'no-such-workspace-dir');
-  let err = null;
+  let err: unknown = null;
   try {
     assertDirectory(missing);
   } catch (e) {
     err = e;
   }
   assert.ok(err instanceof WorkspaceGuardError, '必须是 WorkspaceGuardError');
-  assert.equal(err.code, 'not-exists');
-  assert.equal(err.path, missing);
+  assert.equal((err as WorkspaceGuardErrorShape).code, 'not-exists');
+  assert.equal((err as WorkspaceGuardErrorShape).path, missing);
   // 存在但不是目录 → not-directory
   const file = join(out, 'guard-not-dir.tmp');
   writeFileSync(file, 'x');
@@ -163,15 +166,15 @@ test('ipcGuards：assertDirectory 抛 WorkspaceGuardError（稳定码 + 路径�
     err = e;
   }
   assert.ok(err instanceof WorkspaceGuardError, '必须是 WorkspaceGuardError');
-  assert.equal(err.code, 'not-directory');
-  assert.equal(err.path, file);
+  assert.equal((err as WorkspaceGuardErrorShape).code, 'not-directory');
+  assert.equal((err as WorkspaceGuardErrorShape).path, file);
   // 合法目录 → 原样返回
   assert.equal(assertDirectory(out), out);
 });
 
 test('StartupMarker：固定阶段格式（供 startupReport 解析）', () => {
-  const lines = [];
-  const marker = new StartupMarker({ write: (_kind, text) => lines.push(text) });
+  const lines: string[] = [];
+  const marker = new StartupMarker({ write: (_kind: unknown, text: string) => lines.push(text) });
   marker.mark('config.loaded');
   marker.mark('window.created');
   assert.equal(lines.length, 2);
@@ -193,7 +196,7 @@ test('DeepLinkRouter：协议/workspace 解析 + 就绪前排队', async () => {
     uiReadyTimeoutMs: 10,
     getWindow: () => null,
     isReady: () => false,
-    switchWorkspace: async (path) => {
+    switchWorkspace: async (path: string) => {
       switched = path;
     },
   });
@@ -216,16 +219,16 @@ test('HarnessRestartPolicy：窗口内限次，超窗恢复', () => {
 
 test('WindowLifecycle：重建窗口/加载 UI/关闭到托盘', () => {
   const calls = { created: 0, loaded: 0, shown: 0, hidden: 0, tray: 0, menu: 0 };
-  let window = null;
-  let closeHandler = null;
+  let window: Record<string, unknown> | null = null;
+  let closeHandler: ((event: unknown) => void) | null = null;
   const state = {
     closeToTray: true,
     openAtLogin: false,
     get: () => ({ closeToTray: state.closeToTray, openAtLogin: state.openAtLogin }),
-    setCloseToTray: (value) => {
+    setCloseToTray: (value: boolean) => {
       state.closeToTray = value;
     },
-    setOpenAtLogin: (value) => {
+    setOpenAtLogin: (value: boolean) => {
       state.openAtLogin = value;
     },
   };
@@ -240,7 +243,7 @@ test('WindowLifecycle：重建窗口/加载 UI/关闭到托盘', () => {
         show: () => (calls.shown += 1),
         focus: () => undefined,
         hide: () => (calls.hidden += 1),
-        on: (event, handler) => {
+        on: (event: string, handler: (event: unknown) => void) => {
           if (event === 'close') closeHandler = handler;
         },
         webContents: { on: () => undefined },
@@ -258,7 +261,7 @@ test('WindowLifecycle：重建窗口/加载 UI/关闭到托盘', () => {
   assert.equal(calls.created, 1);
   assert.equal(calls.loaded, 1);
   assert.equal(calls.shown, 1);
-  closeHandler({ preventDefault: () => undefined });
+  closeHandler!({ preventDefault: () => undefined });
   assert.equal(calls.hidden, 1, '关闭到托盘应隐藏窗口');
   lifecycle.setCloseToTray(false);
   assert.equal(state.closeToTray, false);
@@ -268,12 +271,12 @@ test('WindowLifecycle：重建窗口/加载 UI/关闭到托盘', () => {
   assert.equal(state.openAtLogin, true);
 });
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 test('WindowLifecycle：渲染层自愈——加载失败/渲染崩溃自动重载，耗尽后交人机出口', async () => {
   const calls = { loaded: 0, uiGone: 0 };
-  const handlers = {};
-  let window = null;
+  const handlers: Record<string, (...args: unknown[]) => unknown> = {};
+  let window: Record<string, unknown> | null = null;
   const state = {
     closeToTray: true,
     openAtLogin: false,
@@ -293,7 +296,7 @@ test('WindowLifecycle：渲染层自愈——加载失败/渲染崩溃自动重�
         isDestroyed: () => false,
         on: () => undefined,
         webContents: {
-          on: (event, handler) => {
+          on: (event: string, handler: (...args: unknown[]) => unknown) => {
             handlers[event] = handler;
           },
         },
@@ -318,41 +321,41 @@ test('WindowLifecycle：渲染层自愈——加载失败/渲染崩溃自动重�
   assert.ok(handlers['render-process-gone'], '必须绑定 render-process-gone');
 
   // ① 前两次主帧加载失败：各自延迟后用当前句柄重载。
-  await handlers['did-fail-load'](null, -2, 'ERR_CONNECTION_REFUSED', 'http://127.0.0.1:1/', true);
+  await handlers['did-fail-load']!(null, -2, 'ERR_CONNECTION_REFUSED', 'http://127.0.0.1:1/', true);
   await sleep(40);
   assert.equal(calls.loaded, 2, '第一次失败后应自动重载');
-  await handlers['did-fail-load'](null, -2, 'ERR_CONNECTION_REFUSED', 'http://127.0.0.1:1/', true);
+  await handlers['did-fail-load']!(null, -2, 'ERR_CONNECTION_REFUSED', 'http://127.0.0.1:1/', true);
   await sleep(40);
   assert.equal(calls.loaded, 3, '第二次失败后仍自动重载');
 
   // ② 第三次：窗口内达到上限 → 人机出口；选重试 ⇒ 清零计数再载一次。
-  await handlers['did-fail-load'](null, -2, 'ERR_CONNECTION_REFUSED', 'http://127.0.0.1:1/', true);
+  await handlers['did-fail-load']!(null, -2, 'ERR_CONNECTION_REFUSED', 'http://127.0.0.1:1/', true);
   await sleep(60);
   assert.equal(calls.uiGone, 1, '恢复耗尽必须交人机出口');
   assert.equal(calls.loaded, 4, '用户选重试后应再载一次');
 
   // ③ 过滤面：-3（新加载取代旧加载）与子帧失败都不恢复。
-  await handlers['did-fail-load'](null, -3, 'ERR_ABORTED', 'http://127.0.0.1:1/', true);
-  await handlers['did-fail-load'](null, -2, 'ERR_CONNECTION_REFUSED', 'http://127.0.0.1:1/', false);
+  await handlers['did-fail-load']!(null, -3, 'ERR_ABORTED', 'http://127.0.0.1:1/', true);
+  await handlers['did-fail-load']!(null, -2, 'ERR_CONNECTION_REFUSED', 'http://127.0.0.1:1/', false);
   await sleep(30);
   assert.equal(calls.loaded, 4, '正常取消/子帧失败不得触发恢复');
 
   // ④ 渲染进程崩溃（abnormal-exit / oom）恢复；killed（外部干预）不恢复。
-  await handlers['render-process-gone'](null, { reason: 'abnormal-exit', exitCode: 1 });
+  await handlers['render-process-gone']!(null, { reason: 'abnormal-exit', exitCode: 1 });
   await sleep(40);
   assert.equal(calls.loaded, 5, '渲染崩溃后应自动重载');
-  await handlers['render-process-gone'](null, { reason: 'oom', exitCode: 0 });
+  await handlers['render-process-gone']!(null, { reason: 'oom', exitCode: 0 });
   await sleep(40);
   assert.equal(calls.loaded, 6, 'oom 也应自动重载');
-  await handlers['render-process-gone'](null, { reason: 'killed', exitCode: 1 });
+  await handlers['render-process-gone']!(null, { reason: 'killed', exitCode: 1 });
   await sleep(30);
   assert.equal(calls.loaded, 6, 'killed 不触发恢复');
 });
 
 test('WindowLifecycle：recovery 未配置时保持旧行为（只记日志不恢复）', async () => {
   const calls = { loaded: 0 };
-  const handlers = {};
-  let window = null;
+  const handlers: Record<string, (...args: unknown[]) => unknown> = {};
+  let window: Record<string, unknown> | null = null;
   const state = {
     closeToTray: true,
     openAtLogin: false,
@@ -370,7 +373,10 @@ test('WindowLifecycle：recovery 未配置时保持旧行为（只记日志不�
         focus: () => undefined,
         hide: () => undefined,
         on: () => undefined,
-        webContents: { on: (event, handler) => (handlers[event] = handler) },
+        webContents: {
+          on: (event: string, handler: (...args: unknown[]) => unknown) =>
+            (handlers[event] = handler),
+        },
       };
       return window;
     },
@@ -382,13 +388,13 @@ test('WindowLifecycle：recovery 未配置时保持旧行为（只记日志不�
     logger: () => ({ write: () => undefined }),
   });
   lifecycle.show();
-  await handlers['did-fail-load'](null, -2, 'ERR_CONNECTION_REFUSED', 'http://127.0.0.1:1/', true);
+  await handlers['did-fail-load']!(null, -2, 'ERR_CONNECTION_REFUSED', 'http://127.0.0.1:1/', true);
   await sleep(30);
   assert.equal(calls.loaded, 1, '未配置 recovery 时不得自动重载（行为不变）');
 });
 
 /** 冒烟判定入参基线：全绿事实（各用例按需覆盖）。 */
-function smokeFacts(overrides = {}) {
+function smokeFacts(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     windowAlive: true,
     windowVisible: true,
@@ -416,13 +422,13 @@ test('SmokeHarness：全绿事实 ⇒ pass，含 5 致命 + 3 观测', () => {
     'ui.mounted',
   ]) {
     assert.ok(
-      report.checks.some((c) => c.name === name && c.ok),
+      report.checks.some((c: { name: string; ok: boolean }) => c.name === name && c.ok),
       `致命项 ${name} 应通过`,
     );
   }
   for (const name of ['tray', 'notifications', 'protocol']) {
     assert.ok(
-      report.checks.some((c) => c.name === name),
+      report.checks.some((c: { name: string }) => c.name === name),
       `观测项 ${name} 应在报告里`,
     );
   }
@@ -439,7 +445,7 @@ test('SmokeHarness：五类致命断言各自能判死', () => {
   for (const [name, facts] of cases) {
     const report = SmokeHarness.judge(facts);
     assert.equal(report.pass, false, `${name} 失败必须判死`);
-    const check = report.checks.find((c) => c.name === name);
+    const check = report.checks.find((c: { name: string; ok: boolean; detail?: string }) => c.name === name);
     assert.equal(check?.ok, false, `${name} 应带失败明细：${check?.detail}`);
   }
 });
@@ -641,7 +647,7 @@ test('启动失败详情接线：main.ts 用 HarnessStartFailure.describe 注入
 });
 
 test('安装向导品牌素材：BMP 尺寸与位深符合 NSIS 要求，页面钩子齐全', () => {
-  const bmpHeader = (name) => {
+  const bmpHeader = (name: string): { width: number; height: number; bitsPerPixel: number } => {
     const data = readFileSync(join(process.cwd(), 'installer', name));
     assert.equal(data.subarray(0, 2).toString('ascii'), 'BM', `${name} 必须是 BMP`);
     return {
@@ -679,7 +685,7 @@ test('托盘 busy 图标：256×256 PNG（与常规图标同目录，构建会�
   assert.equal(busy.readUInt32BE(20), 256);
   const normal = readFileSync(join(process.cwd(), 'static', 'icon.png'));
   assert.notDeepEqual(busy, normal, 'busy 变体必须是另一张图（带状态点），不能是常规图标副本');
-  const build = readFileSync(join(process.cwd(), 'scripts', 'build.mjs'), 'utf8');
+  const build = readFileSync(join(process.cwd(), 'scripts', 'build.mts'), 'utf8');
   assert.match(build, /cpSync\(join\(root, 'static'\), join\(root, 'dist'\)/u, '构建必须把 static 图标拷进 dist');
 });
 
@@ -719,19 +725,19 @@ test('TrayService busy 态：切图 / 去重 / 回落 / destroy 复位', () => {
     iconPath,
     trayActions(),
     { iconSize: 16, tooltip: 'OmniHarness' },
-    { t: (key) => key },
+    { t: (key: string) => key },
   );
   assert.equal(tray.create(), true);
   assert.equal(state.created, 1);
-  assert.match(state.lastTray.image.path, /icon\.png$/u);
-  assert.deepEqual(state.lastTray.image.resized, { width: 16, height: 16 });
+  assert.match(state.lastTray!.image.path, /icon\.png$/u);
+  assert.deepEqual(state.lastTray!.image.resized, { width: 16, height: 16 });
   assert.deepEqual(state.tooltips, ['OmniHarness'], '常态悬停提示 = 配置文案');
 
   tray.setBusy(true);
   assert.equal(state.images.length, 1, 'busy=true 必须换图');
-  assert.match(state.images[0].path, /icon-busy\.png$/u);
-  assert.deepEqual(state.images[0].resized, { width: 16, height: 16 });
-  assert.equal(state.tooltips[1], 'OmniHarness · tray.busy', 'busy 悬停提示补一句「回合进行中」');
+  assert.match(state.images[0]!.path, /icon-busy\.png$/u);
+  assert.deepEqual(state.images[0]!.resized, { width: 16, height: 16 });
+  assert.equal(state.tooltips[1]!, 'OmniHarness · tray.busy', 'busy 悬停提示补一句「回合进行中」');
 
   tray.setBusy(true);
   assert.equal(state.images.length, 1, '重复设置同一状态不得反复重绘');
@@ -739,8 +745,8 @@ test('TrayService busy 态：切图 / 去重 / 回落 / destroy 复位', () => {
 
   tray.setBusy(false);
   assert.equal(state.images.length, 2);
-  assert.match(state.images[1].path, /icon\.png$/u);
-  assert.equal(state.tooltips[2], 'OmniHarness', '收尾恢复常态提示');
+  assert.match(state.images[1]!.path, /icon\.png$/u);
+  assert.equal(state.tooltips[2]!, 'OmniHarness', '收尾恢复常态提示');
 
   tray.destroy();
   assert.equal(state.destroyed, 1);
@@ -755,11 +761,11 @@ test('TrayService busy 态：创建时已在跑 ⇒ 直接以 busy 变体起盘'
     join(process.cwd(), 'static', 'icon.png'),
     trayActions(),
     { iconSize: 16, tooltip: 'OmniHarness' },
-    { t: (key) => key },
+    { t: (key: string) => key },
   );
   tray.setBusy(true); // 托盘尚未创建：只记状态
   assert.equal(tray.create(), true);
-  assert.match(state.lastTray.image.path, /icon-busy\.png$/u, '慢启动时创建必须直接显示 busy 态');
+  assert.match(state.lastTray!.image.path, /icon-busy\.png$/u, '慢启动时创建必须直接显示 busy 态');
   assert.deepEqual(state.tooltips, ['OmniHarness · tray.busy'], '创建即 busy 时提示也要带状态');
 });
 
@@ -773,13 +779,13 @@ test('TrayService busy 态：变体缺失 ⇒ 回退常规图标，不抛错', (
       iconPath,
       trayActions(),
       { iconSize: 16, tooltip: 'OmniHarness' },
-      { t: (key) => key },
+      { t: (key: string) => key },
     );
     assert.equal(tray.create(), true);
     tray.setBusy(true);
     assert.equal(state.images.length, 1);
-    assert.match(state.images[0].path, /icon\.png$/u, 'busy 变体缺失必须回退常规图标');
-    assert.equal(state.tooltips[1], 'OmniHarness · tray.busy', '图标回退不影响提示里的状态');
+    assert.match(state.images[0]!.path, /icon\.png$/u, 'busy 变体缺失必须回退常规图标');
+    assert.equal(state.tooltips[1]!, 'OmniHarness · tray.busy', '图标回退不影响提示里的状态');
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -871,7 +877,7 @@ test('loadDesktopConfig: 逐字段覆盖 + 非法值夹取/回落 + 未知权限
   assert.equal(loaded.config.update.autoDownload, false);
   assert.equal(loaded.config.app.language, 'en-US');
   assert.ok(loaded.issues.length >= 4, `应收集多条告警，实际 ${loaded.issues.length}`);
-  assert.ok(loaded.issues.some((issue) => issue.path.includes('harness.host')));
+  assert.ok(loaded.issues.some((issue: { path: string }) => issue.path.includes('harness.host')));
 });
 
 test('loadDesktopConfig: 非法 app.language 回落 system 并告警', () => {
@@ -885,7 +891,7 @@ test('loadDesktopConfig: 非法 app.language 回落 system 并告警', () => {
     userFile,
   });
   assert.equal(loaded.config.app.language, 'system');
-  assert.ok(loaded.issues.some((issue) => issue.path.includes('app.language')));
+  assert.ok(loaded.issues.some((issue: { path: string }) => issue.path.includes('app.language')));
 });
 
 test('配置告警 code 与 messages config.* 键一一对应（i18n 渲染面完整，中英齐全）', () => {
@@ -968,7 +974,7 @@ test('启动阶段标记：main.ts 覆盖 config → workspace → window → ha
 test('打包裁剪：locales 只留中英 + stage 删除死重量（onnxruntime-web/@types/old.node）', () => {
   const builder = readFileSync(join(process.cwd(), 'electron-builder.yml'), 'utf8');
   assert.match(builder, /electronLanguages:\s*\n\s*- en-US\s*\n\s*- zh-CN/u);
-  const stage = readFileSync(join(process.cwd(), 'scripts', 'stageHarness.mjs'), 'utf8');
+  const stage = readFileSync(join(process.cwd(), 'scripts', 'stageHarness.mts'), 'utf8');
   for (const name of ['onnxruntime-web', '@types']) {
     assert.ok(stage.includes(`'${name}'`), `stage 必须删除 ${name}`);
   }
@@ -1001,10 +1007,10 @@ test('ipcGuards.trustRejection：sender / 主 frame / origin 三重校验（2026
   const origin = 'http://127.0.0.1:8787';
   const frame = { url: `${origin}/?token=secret`, parent: null };
   const deps = { mainContents: () => main };
-  const eventFrom = (sender, senderFrame = frame) => ({ sender, senderFrame });
+  const eventFrom = (sender: unknown, senderFrame: unknown = frame) => ({ sender, senderFrame });
   assert.equal(trustRejection(eventFrom(main), deps, origin), null, '主窗口主 frame 同 origin = 可信');
   assert.equal(
-    trustRejection(eventFrom(other), { mainContents: () => main, isTrustedContents: (c) => c === other }, origin),
+    trustRejection(eventFrom(other), { mainContents: () => main, isTrustedContents: (c: unknown) => c === other }, origin),
     null,
     '多窗口白名单放行',
   );
@@ -1051,15 +1057,15 @@ test('ipcGuards.assertRevealPathInside：revealPath 白名单（仅工作区子�
 
 test('CSP 门禁：script-src 哈希白名单必须覆盖主题内联脚本；unsafe-inline 摘除（2026-11-08 审计）', () => {
   /** 提取 HTML 里真实内联脚本（先剥注释，避免把注释里的 <script> 字样当脚本）的 CSP 哈希。 */
-  const inlineScriptHashes = (file) =>
+  const inlineScriptHashes = (file: string) =>
     [...readFileSync(file, 'utf8')
       .replace(/<!--[\s\S]*?-->/g, '')
       .matchAll(/<script>([\s\S]*?)<\/script>/g)]
-      .map((m) => `'sha256-${createHash('sha256').update(m[1]).digest('base64')}'`);
+      .map((m) => `'sha256-${createHash('sha256').update(m[1]!).digest('base64')}'`);
 
   const sourceHashes = inlineScriptHashes(join(process.cwd(), '..', 'web', 'index.html'));
   assert.equal(sourceHashes.length, 1, 'web/index.html 应恰好有一个内联脚本（主题防闪烁）');
-  const themeHash = sourceHashes[0];
+  const themeHash = sourceHashes[0]!;
   const { scriptSrc, styleSrc } = DEFAULT_DESKTOP_CONFIG.security.csp;
   assert.ok(scriptSrc.includes(themeHash), `desktop CSP 必须白名单主题脚本哈希 ${themeHash}`);
   assert.ok(!scriptSrc.includes("'unsafe-inline'"), 'script-src 不得放行 unsafe-inline');
@@ -1078,12 +1084,12 @@ test('桌面壳零裸 CJK 字面量：ipc.ts / window.ts 的用户可见文案�
   // 一律进 i18n/messages.ts（双语表由 TS Record 类型强制补全）。
   // 范围只钉「已收口的壳面」：SmokeHarness / 配置加载器等的中文是诊断输出（产品语言），
   // harnessSupervisor/ready 的错误进日志与诊断面板，不在本判据范围（账本已登记）。
-  const stripComments = (src) => {
+  const stripComments = (src: string): string => {
     let out = '';
     let i = 0;
     let mode = 'code';
     while (i < src.length) {
-      const c = src[i];
+      const c = src[i]!;
       const d = src[i + 1] ?? '';
       if (mode === 'code') {
         if (c === '/' && d === '/') { mode = 'line'; out += ' '; i += 2; continue; }
@@ -1099,7 +1105,7 @@ test('桌面壳零裸 CJK 字面量：ipc.ts / window.ts 的用户可见文案�
     }
     return out;
   };
-  const violations = [];
+  const violations: string[] = [];
   for (const rel of ['src/main/ipc.ts', 'src/main/window.ts']) {
     const text = stripComments(readFileSync(join(process.cwd(), rel), 'utf8'));
     text.split('\n').forEach((line, idx) => {

@@ -2,7 +2,7 @@
  * 运行路径解析。
  *
  * 开发态 = 本仓库根（后端源码与产物都在本仓库）；打包态 = `resources/harness`
- * （由 `scripts/stageHarness.mjs` 铺好）。
+ * （由 `scripts/stageHarness.mts` 铺好）。
  *
  * ## 为什么后端根目录仍可外部覆盖（2026-11-04 应用整合）
  *

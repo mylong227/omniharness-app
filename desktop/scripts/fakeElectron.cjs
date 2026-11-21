@@ -2,7 +2,7 @@
 //
 // 为什么要有它：`tray.ts` 是纯逻辑（去重、回退、复位），但顶层 import 了 electron ⇒ 在 node 里
 // 直接 require 会拉起真 Electron。测试用 esbuild `--alias:electron=./scripts/fakeElectron.cjs`
-// 注入本文件（见 scripts/test.mjs），于是不必为了可测性把依赖注入进生产 API。
+// 注入本文件（见 scripts/test.mts），于是不必为了可测性把依赖注入进生产 API。
 //
 // 状态挂在 globalThis：测试侧的模块副本与 tray 包内的副本必须看到**同一份**记录。
 
