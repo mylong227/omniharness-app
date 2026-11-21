@@ -6,10 +6,12 @@ import {
   DEFAULT_FALLBACK_PRICE,
   DEFAULT_ROUTE_PRICING,
   UNPRICED_DEFAULT_FAMILIES,
+  modelAdapterRegistry,
 } from '../../../host/kernel/adapters-model.ts';
+import { endpointDefaults } from '../../../host/kernel/util.ts';
 
 /**
- * 配置与模型模块：`config.get/update`、`model.catalog/probe/pricing`、`usage.stats`。
+ * 配置与模型模块：`config.get/update`、`model.catalog/probe/pricing/adapters`、`usage.stats`。
  * （skills.* 已迁独立域模块 `skills.ts`，2026-11-20 Skill Lab v1。）
  */
 export function configModule(): ServerModule {
@@ -30,6 +32,27 @@ export function configModule(): ServerModule {
         }),
       );
       ctx.rpc('model.probe', (params) => s.modelCatalog.probe(params));
+      // 适配器凭据面（2026-11-21 P2，Router 卡保存时 env 预检）：registry.ids() 逐个走
+      // endpointDefaults.resolveAdapter（env=进程环境），credentialReady=false = 该适配器
+      // requiresApiKey 且 env 缺钥——路由条目落到它时 serve 下次装配 fail-closed。
+      // 只回布尔与 env 名，不回凭据值。
+      ctx.rpc('model.adapters', () =>
+        Promise.resolve({
+          adapters: modelAdapterRegistry.ids().map((id) => {
+            const resolved = endpointDefaults.resolveAdapter(id);
+            return {
+              id,
+              ...(resolved === undefined
+                ? { requiresApiKey: false, credentialReady: true }
+                : {
+                    requiresApiKey: resolved.requiresApiKey,
+                    credentialReady: !(resolved.requiresApiKey && resolved.apiKey === undefined),
+                    ...(resolved.apiKeyEnv === undefined ? {} : { apiKeyEnv: resolved.apiKeyEnv }),
+                  }),
+            };
+          }),
+        }),
+      );
       ctx.rpc('usage.stats', () => s.sessionArchive.usage());
     },
   };

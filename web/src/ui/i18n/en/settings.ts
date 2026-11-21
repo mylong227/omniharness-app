@@ -450,4 +450,8 @@ export const EN_SETTINGS: Record<string, string> = {
   '默认 30': 'default 30',
   '含 %CODE_FILE% 占位符；留空 = 奖励恒 0（安全旁路）': 'contains %CODE_FILE%; empty = reward always 0 (safe bypass)',
   '留空 = 未指定': 'empty = unspecified',
+
+  // —— 路由卡凭据预检（2026-11-21 P2，model.adapters env 实测）——
+  '条目 {n}（{adapter}）：环境变量 {env} 未检测到——serve 启动将拒绝（fail-closed）':
+    'Entry {n} ({adapter}): env {env} not detected — serve will refuse at startup (fail-closed)',
 };

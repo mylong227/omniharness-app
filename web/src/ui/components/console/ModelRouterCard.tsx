@@ -10,8 +10,9 @@
 // 主配置的 API Key 不用于路由条目——卡片脚注如实说明，pricing/maxContextTokens 走配置文件。
 
 import * as React from 'react';
+import { useApp } from '../../context.ts';
 import { t } from '../../i18n/i18n.ts';
-import type { Config } from '../../../types/models.ts';
+import type { AdapterCredentialInfo, Config } from '../../../types/models.ts';
 import type { SettingsModel } from '../../models/SettingsModel.ts';
 import {
   MODEL_ROLES,
@@ -138,8 +139,26 @@ function trim(value: number): string {
  * @returns 卡片节点
  */
 export function ModelRouterCard(props: ModelRouterCardProps): ReactElement {
+  const { api } = useApp();
   const { settings } = props;
   const snapshot = settings.getSnapshot();
+  // 适配器凭据面（2026-11-21 P2）：服务端 env 实测一次；credentialReady=false 的适配器
+  // 被草稿条目引用时显示非阻断警示（内核启动 fail-closed 是最终裁决，这里只做提前告知）。
+  const [adapters, setAdapters] = React.useState<readonly AdapterCredentialInfo[] | null>(null);
+  React.useEffect(() => {
+    let alive = true;
+    api
+      .modelAdapters()
+      .then((r) => {
+        if (alive) setAdapters(r.adapters);
+      })
+      .catch(() => {
+        if (alive) setAdapters([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [api]);
   // committed 以引用参与同步：cfg 重拉（装载/保存后）才换新对象，编辑中的草稿不被清。
   const committed = React.useMemo(() => draftFromSection(props.cfg?.modelRouter), [props.cfg]);
   const [draft, setDraft] = React.useState<RouterDraft | null>(committed);
@@ -236,6 +255,28 @@ export function ModelRouterCard(props: ModelRouterCardProps): ReactElement {
                 ))}
               </Flex>
             </>
+          ) : null}
+          {draft.entries.some((entry) => {
+            const spec = adapters?.find((a) => a.id === entry.adapter);
+            return spec !== undefined && spec.requiresApiKey && !spec.credentialReady;
+          }) ? (
+            <Alert
+              type="warning"
+              showIcon
+              message={draft.entries.map((entry, i) => {
+                const spec = adapters?.find((a) => a.id === entry.adapter);
+                if (spec === undefined || !spec.requiresApiKey || spec.credentialReady) return null;
+                return (
+                  <div key={i}>
+                    {t('条目 {n}（{adapter}）：环境变量 {env} 未检测到——serve 启动将拒绝（fail-closed）', {
+                      n: String(i + 1),
+                      adapter: entry.adapter,
+                      env: spec.apiKeyEnv ?? '-',
+                    })}
+                  </div>
+                );
+              })}
+            />
           ) : null}
           {issues.length > 0 ? (
             <Alert

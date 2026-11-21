@@ -6,6 +6,7 @@ import { KNOWN_EXTRA_FLAGS } from './knownFlags.ts';
 import { VALUE_FLAGS } from './cliValueFlags.ts';
 import {
   MODEL_ADAPTERS,
+  REASONINGS,
   STORAGE_ADAPTERS,
   APPROVALS,
   APPROVAL_ASKS,
@@ -30,6 +31,7 @@ import {
  */
 export const FLAG_ENUM_VALUES: Readonly<Record<string, readonly string[]>> = {
   '--model-adapter': MODEL_ADAPTERS,
+  '--reasoning': REASONINGS,
   '--storage-adapter': STORAGE_ADAPTERS,
   '--approval': APPROVALS,
   '--approval-ask': APPROVAL_ASKS,
@@ -191,6 +193,8 @@ const FLAG_TABLE: Record<string, FlagApply> = {
   },
   '--model': (a, argv, i) => {
     a.model = CliFlagTable.valueOf(argv, i, '--model');
+    // 推理强度（#B6 三通道补齐，2026-11-21 P7）：文件 / env / 旗标同源，argv 后出现者生效。
+    a.reasoning = CliFlagTable.enumOf(argv, i, '--reasoning', REASONINGS);
     return 1;
   },
   '--storage-adapter': (a, argv, i) => {

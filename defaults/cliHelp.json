@@ -162,6 +162,10 @@
       "description": "模型端口（默认 mock；responses = OpenAI Responses API 原生通道；llamacpp = 本地 Ollama/llama.cpp 原生 /api/chat）"
     },
     {
+      "spec": "--reasoning {{reasonings}}",
+      "description": "推理强度（#B6）：与 omniharness.json reasoning / OMNIHARNESS_REASONING 同源，argv 后出现者生效"
+    },
+    {
       "spec": "--mock",
       "description": "等价于 --model-adapter mock（脚本化响应，离线可跑演示）；与 --model-adapter 同时给出时以 argv 中后出现者为准"
     },

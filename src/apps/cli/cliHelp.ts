@@ -14,6 +14,7 @@ import {
   KV_ADAPTERS,
   MODEL_ADAPTERS,
   OUTPUT_FORMATS,
+  REASONINGS,
   SANDBOX_PROFILES,
   SPILL_ADAPTERS,
   STORAGE_ADAPTERS,
@@ -27,6 +28,7 @@ import {
  */
 export const HELP_ENUM_SOURCES: Readonly<Record<string, readonly string[]>> = {
   modelAdapters: MODEL_ADAPTERS,
+  reasonings: REASONINGS,
   storageAdapters: STORAGE_ADAPTERS,
   approvals: APPROVALS,
   approvalAsks: APPROVAL_ASKS,

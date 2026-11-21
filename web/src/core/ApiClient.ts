@@ -337,6 +337,10 @@ export class ApiClient {
   public modelPricing(): Promise<import('../types/models.ts').ModelPricingTable> {
     return this.rpc('model.pricing', {});
   }
+  /** 适配器凭据面（P2 预检）：服务端 env 实测的 credentialReady；只回布尔与 env 名，不回凭据值。 */
+  public modelAdapters(): Promise<{ adapters: import('../types/models.ts').AdapterCredentialInfo[] }> {
+    return this.rpc('model.adapters', {});
+  }
   /** Token 消耗统计：按模型 / 按会话聚合调用次数与 token 用量。 */
   public usageStats(): Promise<{
     source: 'disk' | 'live';

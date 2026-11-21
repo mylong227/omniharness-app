@@ -157,6 +157,14 @@ export interface ModelPricingTable {
   fallback?: ServerRoutePrice;
 }
 
+/** 适配器凭据面（`model.adapters` 下发）：credentialReady=false = requiresApiKey 且 env 缺钥。 */
+export interface AdapterCredentialInfo {
+  id: string;
+  requiresApiKey: boolean;
+  credentialReady: boolean;
+  apiKeyEnv?: string;
+}
+
 export interface Config {
   modelAdapter?: string;
   model?: string;
