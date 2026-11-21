@@ -6,6 +6,31 @@
 ## [Unreleased]
 
 ### Changed（变更）
+- **批次十二（2026-11-22 凌晨，W6 双选择器收编 + L9 零消费导出首轮清偿）**：
+  · **W6**：FilePicker(699) / FolderPicker(515) 的懒加载机制逐行同构——节点级状态表、
+    展开时 `fs.browse`、加载中/错误+重试/空目录占位行、已加载子级**递归**回填——抽出
+    `ui/models/FsLazyTree.tsx` 单一核（`useFsLazyTree` + `lazyChildrenOf` + `attachLazy`），
+    两个选择器只保留「回包 → 子节点」映射（文件/目录、体积、置灰等业务差异）。新增
+    `web/test/fsLazyTree.test.ts` 4 条机制判据（占位 key 后缀不得混用 / 重试回传自身 key +
+    stopPropagation / 递归回填深层节点 / 非 fs 节点原样保留）——此前这些行为只能靠两个
+    选择器的端到端判据间接覆盖。净行数 **-13**：与计划 300-500 行估计偏差的原因是
+    P2 重设计时已抽出 FsPickerLazy/PickerKeys/PathJoiner，剩余重复只在机制层。
+  · **L9**：knip 6.47 扫描 60 条 → **0 条**。① 34 个「仅本文件内部使用」的导出降级为
+    模块私有（不改逻辑；`noUnusedLocals` 全链保绿）；② 清真死码 9 处——
+    `workspaceLease.withWorkspaceLease` + 选项（~35 行，全仓零引用）、`safeFs.pathJoin`、
+    `PROOF_BUNDLE_MAX_BYTES`、`FLEET_PATCH_MAX_BYTES`/`FLEET_PATCH_DIR`（「供测试用」别名，
+    判据已改用内部常量）、`cliFlagTable.FLAG_ENUM_VALUES`（重复数据视图，帮助已走
+    HELP_ENUM_SOURCES）、`ConsoleUI.ConsoleKeycap`、`i18n.subscribeLocale`、
+    `decisionModel.checkStatusLabel`（与 ProofMode/DecisionDialogs 两份本地实现重复）；
+    ③ `providerPresets` 去掉未消费的 `PROVIDER_PRESETS` 转发，`kernel:surface` 随之重生成
+    `src/host/kernel/config.ts`；④ **knip 6.47.0 入 devDependency** + `knip.json`
+    （entry=`web/src/main.ts`，project 覆盖 src/web/scripts，tests 排除）+ `check:exports`
+    纳入 verify 链（kernel:check → typecheck → check:exports → …）。`ignoreIssues` 仅 4 类
+    文件且有据：kernel 生成物（`config/contracts`）、extensions 端口聚合桶、
+    enterprise `LegacyOidcFlow`（OIDC 差分判据未随迁本仓的回退资产，去留待 L4 同批拍板）。
+  · 验收：kernel:check / typecheck 五闸 / check:exports / fast 194 文件 972 用例
+    （2 分片）/ chrome 37 文件 85 用例（2 分片）/ build + build:web + smoke +
+    desktop:build + desktop:test(44) 全绿。
 - **批次十一（2026-11-21 晚，K2 内核归属收编 + W4 ApiClient 域拆分）**：
   · **K2 接收内核 alpha.37（R26）**：vendored kernel 升 `0.1.0-alpha.37`（内核仓 d8d9ce7/R26）。
     内核补齐三处归属缺口——context 域承诺 `compactionStateCodec` 深路径、maintenance 域
@@ -123,12 +148,9 @@
       收敛主体，仅剩桌面壳与 web 的 locale 事件互通这一独立面）。
     ▸ decisionLedgerService/DesktopConfigLoader 切分——**已完成**（并行轮 f5d16c0：
       decisionLedger 四文件 / DesktopConfigLoader 三文件）。
-    ▸ 零消费导出批量收敛——**获得硬证据，转逐项清偿**：knip 扫描（entry=main/index/exec，
-      production 口径）报 **53 条未消费导出**（boost 族 5 / cli 面 9 / server services 13 /
-      extensions+kernel 面 4 / web 22——含 paneRenderers 表、SessionViews 内部函数等
-      「为判据/防御而导出」的误报候选）。**不批量删**：逐条判定
-      「判据专用 / API 面 / 真死码」后清偿，随后把 knip 纳为 devDep 闸（触发条件：
-      首轮清偿完成后）。
+    ▸ 零消费导出批量收敛——**已清偿（批次十二）**：knip 扫描 60 条（含 web 面）→ 0；
+      34 条降级模块私有、9 处真死码删除，knip 入 devDep + `check:exports` 入 verify 闸；
+      `ignoreIssues` 仅保留 kernel 生成物 / extensions 端口桶 / LegacyOidcFlow 回退资产。
 - **桌面「快速提问」快捷键配置化（2026-11-20）**：全局快捷键从 main.ts 模块常量 +
   menu.ts 内联 accelerator 两处硬编码，收进 `desktop.config.json` 的
   `app.quickCaptureShortcut`（缺省 `CommandOrControl+Shift+Space` 不变；accelerator

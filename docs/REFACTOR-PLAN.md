@@ -32,7 +32,17 @@
 - **W4 ApiClient 域拆分 ✅**（620e146）：1058 行单类 → 传输本体 318 行 + `core/api/` 19 域类；
   `apiClientParity` 提取源先行扩到目录（含注释剥离），fast 193 文件 / 968 用例 + chrome
   37 文件 / 85 用例全绿；typecheck/build/build:web/smoke/desktop 全链绿。
-- **W5 / W6 / L9 未启**：见 §五（W5 行为判据先行；W6 先 diff 双选择器；L9 逐项清偿）。
+- **W6 双选择器收编 ✅**（cba215e）：懒加载机制（节点状态机/占位行/递归回填）抽到
+  `ui/models/FsLazyTree.tsx` 单一核，两选择器只留「回包 → 子节点」映射；新增 4 条机制行为
+  判据（此前只能端到端间接覆盖）。**净行数 -13**（核 190 行含文档 + 判据 110 行）——
+  与计划 300-500 行估计有偏差：P2 重设计已抽出 FsPickerLazy/PickerKeys/PathJoiner，
+  剩余重复只在机制层，故以「单源 + 判据」为收口标准。
+- **L9 零消费导出首轮 ✅**（a3ac491）：knip 6.47 扫描 60 → 0。34 个内部专用导出降级为
+  模块私有；清真死码 9 处（withWorkspaceLease 族 / pathJoin / PROOF·FLEET 测试别名 /
+  FLAG_ENUM_VALUES / ConsoleKeycap / subscribeLocale / decisionModel.checkStatusLabel）；
+  knip 入 devDep + `knip.json` + `check:exports` 纳入 verify 链。ignoreIssues 仅 4 文件
+  （kernel 生成物 / extensions 端口聚合桶 / enterprise LegacyOidcFlow 回退资产）。
+- **W5 未启**：见 §五（五资源钩子二次收编，行为判据先行；最大剩余项）。
 
 ---
 
@@ -346,10 +356,11 @@ useSessionResource 12 面板既有接线、theme.css token 纪律。
 - [ ] 126 条手维类型：高漂移域有 round-trip 判据（zod 化中期项）
 - [ ] PanelRegistry 单源：新增面板 1 处完成；App.ts 装配减重
 - [x] ApiClient 分域 + apiClientParity 适配绿
-- [ ] 5 资源钩子收编完成（行为判据先行）
-- [ ] FilePicker/FolderPicker 公共核（先补判据）
-- [ ] W7 清理包全落（Icon 迁移/PascalCase/legacy 隔离/i18n 分片改名/knip）
-- [ ] 遗留台账 L1-L9 全终态（CHANGELOG 缓偿段清零或理由更新）
+- [ ] 5 资源钩子编（W5 未启：useProviderCatalog → useFleet → useContextStudio → useDecisionLedger → useChangesReview）
+- [x] FilePicker/FolderPicker 公共核（W6；机制层单源 + 4 条行为判据）
+- [x] W7 清理包全落（Icon 迁移/PascalCase/legacy 隔离/i18n 分片改名/knip）
+- [x] L9 零消费导出：knip 60→0 + devDep 闸入 verify（ignoreIssues 4 文件有据）
+- [ ] 遗留台账 L1-L9 全终态（L1/L3/L5/L6/L8/L9 已终态；L4 去留待拍板、L7 维持缓偿）
 - [ ] `npm run verify` 全链绿 + CI 绿
 
 ## 工作量粗估
