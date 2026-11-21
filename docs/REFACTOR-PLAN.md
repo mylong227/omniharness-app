@@ -178,8 +178,8 @@ B3(语言五层) 批次八已清。**仍在册/新发现**：
 | L2 | `web/test/format.test.ts` 未提交改动（1 行 unused `beforeAll` import 清理，上轮 B2/B1 判据适配残留） | 工作树现存 |
 | L3 | **serveInstance 双副本**（本次盘点新发现）：`src/apps/cli/serveInstance.ts` ≡ `src/host/extensions/kernel/util/serveInstance.ts` 229 行逐字节同体（diff 仅 import 一行），消费分裂 6 处（cli 5 文件 + maintenanceRunner）——gate 9 盲区内的 app 内单点真源违例 | ✅ 已清偿（K3 + K2 副本清零） |
 | L4 | src/apps/cli 悬空脚本引用（runGates/auditStandards/check/buildAuditBin） | ✅ 裁定 B（2026-11-22）：boost 命令族删除，-1609 行 |
-| L5 | eventsOf 内核侧缓存（缓偿登记「等 R22」——R22 已发未兑现；app 侧双缓存已兜） | 待判定：关闭登记或升内核提案 |
-| L6 | markdown legacy/full 混渲统一重渲设计（缓偿登记） | 待判定 |
+| L5 | eventsOf 内核侧缓存（缓偿登记「等 R22」——R22 已发未兑现；app 侧双缓存已兜） | ✅ 登记关闭（app 侧双缓存已兑现收益） |
+| L6 | markdown legacy/full 混渲统一重渲设计（缓偿登记） | ✅ 登记关闭（B2 + W7c 引用面锁死） |
 | L7 | 语言双真源互通（桌面 IPC+壳层重建设计，缓偿登记；B3 已五层收敛主体） | ✅ 终态关闭：web→桌面已通，桌面无运行期语言入口 ⇒ 反向事件触发条件不成立 |
 | L8 | childRunFailure.mjs 孤儿（并入批次 T 处置） | ✅ 已删除（批次 T） |
 | L9 | 零消费导出批量收敛（B5 判定「纯噪音」不做） | 维持不做，除非 knip 扫描出新证据 |
@@ -337,8 +337,8 @@ useSessionResource 12 面板既有接线、theme.css token 纪律。
 | L2 | format.test.ts 未提交 1 行 | 随 T 批次首个 commit 顺带入库 | 第一波 |
 | L3 | serveInstance 双副本 | 见 K3 | 第二波 |
 | L4 | src/apps/cli 悬空脚本引用 | ✅ 裁定 B：删除 boost 命令族（2026-11-22） | 已完成 |
-| L5 | eventsOf 内核侧缓存缓偿登记 | 与内核仓对账后二选一：登记关闭（app 侧双缓存已兜，触发条件不再成立）或升 K1 提案 | 第二波 |
-| L6 | markdown 混渲统一设计 | 随 W7 legacy 隔离一并判定终态 | 第三波 |
+| L5 | eventsOf 内核侧缓存缓偿登记 | ✅ 登记关闭（app 侧双缓存已兜） | 已完成 |
+| L6 | markdown 混渲统一设计 | ✅ 终态关闭（W7c 引用面锁死） | 已完成 |
 | L7 | 语言双真源互通（桌面 IPC） | ✅ 终态关闭（触发条件不成立；见批次十三） | 已完成 |
 | L8 | childRunFailure.mjs 孤儿 | 随 T2 删除 | 第一波 |
 | L9 | 零消费导出收敛 | knip 扫描出硬证据才重启（W7） | 第三波 |
