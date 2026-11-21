@@ -24,7 +24,7 @@
  *
  * 用法：
  * ```bash
- * node scripts/workspaceLease.mjs --name=workspace --ttl=120000 -- <command...>
+ * node scripts/workspaceLease.ts --name=workspace --ttl=120000 -- <command...>
  * ```
  */
 
@@ -42,23 +42,74 @@ export const DEFAULT_POLL_MS = 50;
 /** 默认心跳（毫秒）。 */
 export const DEFAULT_HEARTBEAT_MS = 15_000;
 
-/**
- * 持锁者信息。
- * @typedef {object} LeaseOwner
- * @property {number} token fencing token
- * @property {number} pid 持有者 pid
- * @property {string} host 持有者主机名
- * @property {number} at 最近心跳时刻（毫秒）
- * @property {string} label 人类可读标签
- */
+/** 持锁者信息。 */
+export interface LeaseOwner {
+  /** fencing token。 */
+  token: number;
+  /** 持有者 pid。 */
+  pid: number;
+  /** 持有者主机名。 */
+  host: string;
+  /** 最近心跳时刻（毫秒）。 */
+  at: number;
+  /** 人类可读标签。 */
+  label: string;
+}
+
+/** WorkspaceLease 的构造选项。 */
+export interface WorkspaceLeaseOptions {
+  /** 租约名（缺省 workspace）。 */
+  name?: string;
+  /** 租约 TTL（毫秒）。 */
+  ttlMs?: number;
+  /** 抢锁轮询间隔（毫秒）。 */
+  pollMs?: number;
+  /** 心跳间隔（毫秒）。 */
+  heartbeatMs?: number;
+}
+
+/** acquire 的选项。 */
+export interface AcquireOptions {
+  /** 最长等待（毫秒）。 */
+  timeoutMs?: number;
+  /** 人类可读标签。 */
+  label?: string;
+}
+
+/** acquire 的结果。 */
+export interface AcquireResult {
+  /** fencing token。 */
+  token: number;
+  /** 等待耗时（毫秒）。 */
+  waitedMs: number;
+}
 
 /** 共享文件系统租约。 */
 export class WorkspaceLease {
+  /** 工作区根。 */
+  public readonly root: string;
+  /** 租约名。 */
+  public readonly name: string;
+  /** 锁目录。 */
+  public readonly lockDir: string;
+  /** token 水位文件。 */
+  public readonly watermark: string;
+  /** 租约 TTL（毫秒）。 */
+  public readonly ttlMs: number;
+  /** 抢锁轮询间隔（毫秒）。 */
+  public readonly pollMs: number;
+  /** 心跳间隔（毫秒）。 */
+  public readonly heartbeatMs: number;
+  /** 当前持有的 fencing token（0=未持有）。 */
+  public token: number = 0;
+  /** 心跳定时器句柄。 */
+  private heartbeat: ReturnType<typeof setInterval> | undefined;
+
   /**
-   * @param {string} root 工作区根
-   * @param {{name?: string, ttlMs?: number, pollMs?: number, heartbeatMs?: number}} [options]
+   * @param root 工作区根
+   * @param options 租约参数
    */
-  constructor(root, options = {}) {
+  public constructor(root: string, options: WorkspaceLeaseOptions = {}) {
     this.root = root;
     this.name = options.name ?? 'workspace';
     this.lockDir = join(root, '.omniharness', 'leases', this.name);
@@ -66,18 +117,14 @@ export class WorkspaceLease {
     this.ttlMs = Math.max(1_000, options.ttlMs ?? DEFAULT_TTL_MS);
     this.pollMs = Math.max(5, options.pollMs ?? DEFAULT_POLL_MS);
     this.heartbeatMs = Math.max(50, options.heartbeatMs ?? DEFAULT_HEARTBEAT_MS);
-    /** @type {number} */
-    this.token = 0;
-    /** @type {ReturnType<typeof setInterval> | undefined} */
-    this.heartbeat = undefined;
   }
 
   /**
    * 有界等待获取租约。
-   * @param {{timeoutMs?: number, label?: string}} [options]
-   * @returns {Promise<{token: number, waitedMs: number}>}
+   * @param options 等待与标签。
+   * @returns token 与等待耗时。
    */
-  async acquire(options = {}) {
+  public async acquire(options: AcquireOptions = {}): Promise<AcquireResult> {
     const timeoutMs = Math.max(0, options.timeoutMs ?? DEFAULT_WAIT_MS);
     const label = options.label ?? '';
     const started = Date.now();
@@ -102,17 +149,17 @@ export class WorkspaceLease {
 
   /**
    * 尝试获取一次（不等待）。
-   * @param {string} [label]
-   * @returns {boolean}
+   * @param label 人类可读标签。
+   * @returns 是否抢到。
    */
-  tryAcquire(label = '') {
+  public tryAcquire(label: string = ''): boolean {
     mkdirSync(dirname(this.lockDir), { recursive: true });
     let created = false;
     try {
       mkdirSync(this.lockDir);
       created = true;
     } catch (error) {
-      if (error?.code !== 'EEXIST') throw error;
+      if ((error as NodeJS.ErrnoException)?.code !== 'EEXIST') throw error;
     }
     if (!created) {
       if (!this.isExpired()) return false;
@@ -128,9 +175,9 @@ export class WorkspaceLease {
 
   /**
    * 续租（心跳）。
-   * @returns {boolean}
+   * @returns 续租是否成功。
    */
-  renew() {
+  public renew(): boolean {
     if (this.token === 0) return false;
     const owner = this.holder();
     if (owner === undefined || owner.token !== this.token) {
@@ -144,9 +191,9 @@ export class WorkspaceLease {
 
   /**
    * 释放（只删 token 匹配的锁；幂等）。
-   * @returns {void}
+   * @returns void
    */
-  release() {
+  public release(): void {
     this.stopHeartbeat();
     if (this.token === 0) return;
     const owner = this.holder();
@@ -158,27 +205,29 @@ export class WorkspaceLease {
 
   /**
    * 当前持有者。
-   * @returns {LeaseOwner | undefined}
+   * @returns 持锁者信息，读不到则 undefined。
    */
-  holder() {
+  public holder(): LeaseOwner | undefined {
     return WorkspaceLease.readOwnerAt(this.lockDir);
   }
 
   /**
    * 启动心跳。
-   * @returns {void}
+   * @returns void
    */
-  startHeartbeat() {
+  private startHeartbeat(): void {
     this.stopHeartbeat();
-    this.heartbeat = setInterval(() => this.renew(), this.heartbeatMs);
+    this.heartbeat = setInterval(() => {
+      this.renew();
+    }, this.heartbeatMs);
     this.heartbeat.unref?.();
   }
 
   /**
    * 停止心跳。
-   * @returns {void}
+   * @returns void
    */
-  stopHeartbeat() {
+  private stopHeartbeat(): void {
     if (this.heartbeat !== undefined) {
       clearInterval(this.heartbeat);
       this.heartbeat = undefined;
@@ -187,9 +236,9 @@ export class WorkspaceLease {
 
   /**
    * 租约是否过期（读不到 owner 时按目录 mtime 兜底）。
-   * @returns {boolean}
+   * @returns 是否过期。
    */
-  isExpired() {
+  private isExpired(): boolean {
     const owner = this.holder();
     const at =
       owner?.at ??
@@ -205,9 +254,9 @@ export class WorkspaceLease {
 
   /**
    * 接管过期锁：rename 到 graveyard（原子，唯一赢家）后重建。
-   * @returns {boolean}
+   * @returns 是否接管成功。
    */
-  takeOver() {
+  private takeOver(): boolean {
     const graveyard = `${this.lockDir}.stale.${String(process.pid)}.${String(Date.now())}`;
     try {
       renameSync(this.lockDir, graveyard);
@@ -233,11 +282,11 @@ export class WorkspaceLease {
 
   /**
    * 写 owner.json。
-   * @param {string} label
-   * @returns {void}
+   * @param label 人类可读标签。
+   * @returns void
    */
-  writeOwner(label) {
-    const owner = {
+  private writeOwner(label: string): void {
+    const owner: LeaseOwner = {
       token: this.token,
       pid: process.pid,
       host: hostname(),
@@ -249,10 +298,10 @@ export class WorkspaceLease {
 
   /**
    * 读 token 水位。
-   * @param {string} file
-   * @returns {number}
+   * @param file 水位文件路径。
+   * @returns token（读不到/非法按 0）。
    */
-  static readToken(file) {
+  private static readToken(file: string): number {
     try {
       const value = Number.parseInt(readFileSync(file, 'utf8').trim(), 10);
       return Number.isFinite(value) && value >= 0 ? value : 0;
@@ -263,13 +312,22 @@ export class WorkspaceLease {
 
   /**
    * 读某锁目录的 owner。
-   * @param {string} dir
-   * @returns {LeaseOwner | undefined}
+   * @param dir 锁目录。
+   * @returns 持锁者信息，读不到/形状不符则 undefined。
    */
-  static readOwnerAt(dir) {
+  private static readOwnerAt(dir: string): LeaseOwner | undefined {
     try {
-      const parsed = JSON.parse(readFileSync(join(dir, 'owner.json'), 'utf8'));
-      if (typeof parsed?.token !== 'number' || typeof parsed?.at !== 'number') return undefined;
+      const parsed: unknown = JSON.parse(readFileSync(join(dir, 'owner.json'), 'utf8'));
+      if (
+        parsed === null ||
+        typeof parsed !== 'object' ||
+        !('token' in parsed) ||
+        !('at' in parsed) ||
+        typeof parsed.token !== 'number' ||
+        typeof parsed.at !== 'number'
+      ) {
+        return undefined;
+      }
       return {
         token: parsed.token,
         pid: typeof parsed.pid === 'number' ? parsed.pid : 0,
@@ -284,11 +342,11 @@ export class WorkspaceLease {
 
   /**
    * 尽力写文本。
-   * @param {string} file
-   * @param {string} text
-   * @returns {void}
+   * @param file 目标文件。
+   * @param text 文本。
+   * @returns void
    */
-  static writeText(file, text) {
+  private static writeText(file: string, text: string): void {
     try {
       writeFileSync(file, text, 'utf8');
     } catch {
@@ -298,23 +356,38 @@ export class WorkspaceLease {
 
   /**
    * 异步 sleep。
-   * @param {number} ms
-   * @returns {Promise<void>}
+   * @param ms 毫秒。
+   * @returns 定时 Promise。
    */
-  static sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, Math.max(0, ms)));
+  public static sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+      setTimeout(resolve, Math.max(0, ms));
+    });
   }
+}
+
+/** withWorkspaceLease 的选项。 */
+export interface WithWorkspaceLeaseOptions {
+  /** 租约名。 */
+  name?: string;
+  /** 最长等待（毫秒）。 */
+  timeoutMs?: number;
+  /** 人类可读标签。 */
+  label?: string;
 }
 
 /**
  * 在租约内跑一个异步任务。
- * @template T
- * @param {string} root
- * @param {() => Promise<T>} task
- * @param {{name?: string, timeoutMs?: number, label?: string}} [options]
- * @returns {Promise<T>}
+ * @param root 工作区根。
+ * @param task 持锁期间执行的异步任务。
+ * @param options 租约参数。
+ * @returns 任务结果。
  */
-export async function withWorkspaceLease(root, task, options = {}) {
+export async function withWorkspaceLease<T>(
+  root: string,
+  task: () => Promise<T>,
+  options: WithWorkspaceLeaseOptions = {},
+): Promise<T> {
   const lease = new WorkspaceLease(root, {
     ...(options.name !== undefined ? { name: options.name } : {}),
   });
@@ -329,12 +402,12 @@ export async function withWorkspaceLease(root, task, options = {}) {
   }
 }
 
-// CLI：`node scripts/workspaceLease.mjs --name=workspace -- <command...>`
+// CLI：`node scripts/workspaceLease.ts --name=workspace -- <command...>`
 if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const args = process.argv.slice(2);
+  const args: readonly string[] = process.argv.slice(2);
   const nameArg = args.find((arg) => arg.startsWith('--name='));
   const separator = args.indexOf('--');
-  const command = separator >= 0 ? args.slice(separator + 1) : [];
+  const command: readonly string[] = separator >= 0 ? args.slice(separator + 1) : [];
   const root = process.cwd();
   const lease = new WorkspaceLease(root, {
     ...(nameArg !== undefined ? { name: nameArg.slice('--name='.length) } : {}),
@@ -345,7 +418,7 @@ if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.a
     console.log(`[lease] 已获取 ${lease.lockDir}（token=${String(lease.token)}）；按 Ctrl-C 释放`);
   } else {
     const { spawn } = await import('node:child_process');
-    const child = spawn(command[0], command.slice(1), {
+    const child = spawn(command[0], [...command.slice(1)], {
       stdio: 'inherit',
       cwd: root,
       shell: process.platform === 'win32',

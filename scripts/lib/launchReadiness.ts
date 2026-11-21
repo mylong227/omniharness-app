@@ -3,23 +3,71 @@
  *
  * ## 为什么要独立成模块
  *
- * `startAll.mjs` 是**入口脚本**（import 即执行「构建 → 起服务」），单测无法 import 它；
+ * `startAll` 是**入口脚本**（import 即执行「构建 → 起服务」），单测无法 import 它；
  * 而「等服务真的就绪再打开浏览器」这件事必须**可判**——否则"一键启动"会以三种形态骗人：
  *  1. 构建还没完就打开浏览器 ⇒ **白屏**，用户以为前端坏了（本仓的经典误判）；
  *  2. 端口上其实是**别的进程**（两天前还在跑的旧 serve / 别人的 HTTP 服务）⇒ 打开的是**别人的页面**；
  *  3. 超时后静默不打开 ⇒ 双击了却"什么都没发生"，比不提供这个功能更糟。
  *
  * 故把纯逻辑抽到这里：**无网络 I/O、无副作用**（唯一的外部输入是 `scripts/devConfig.ts`
- * ——地址唯一事实源），由 `tests/unit/launchReadiness.test.ts` 逐条钉住；
+ * ——地址唯一事实源），由 `tests/launchReadiness.test.ts` 逐条钉住；
  * 入口脚本只留 I/O（真实 `fetch`、真实 `spawn`）与打印。
  */
 import { DEV_DEFAULTS, resolveDevAddress } from '../devConfig.ts';
+
+/** 一次就绪探针的分类标签（见 {@link classifyReadyProbe}）。 */
+export type ReadyKind = 'down' | 'degraded' | 'ready' | 'guarded' | 'foreign';
+
+/** 轮询终局的标签（在 {@link ReadyKind} 基础上多一个超时终态）。 */
+export type ReadyTerminalKind = ReadyKind | 'timeout';
+
+/** 一次就绪探测的观测结果（字段都可能是任意形状，由 classify 内部守卫）。 */
+export interface ReadyProbeInput {
+  /** HTTP 状态码（或 undefined=观测不可信）。 */
+  statusCode?: unknown;
+  /** 响应体文本。 */
+  bodyText?: unknown;
+  /** 探测异常（连接失败等）。 */
+  error?: unknown;
+}
+
+/** {@link waitForReady} 的注入配置（全部依赖可注入 ⇒ 判据无需真网络）。 */
+export interface WaitForReadyOptions {
+  /** 一次探测（返回 classify 的标签或其 Promise）。 */
+  probe?: () => ReadyKind | Promise<ReadyKind>;
+  /** 等待实现（缺省 setTimeout）。 */
+  sleep?: (ms: number) => Promise<void>;
+  /** 时钟（缺省 Date.now）。 */
+  now?: () => number;
+  /** 轮询节奏（毫秒）。 */
+  pollMs?: number;
+  /** 超时上限（毫秒）。 */
+  timeoutMs?: number;
+}
+
+/** {@link waitForReady} 的终局结果。 */
+export interface WaitForReadyResult {
+  /** 终局标签。 */
+  outcome: ReadyTerminalKind;
+  /** 尝试次数。 */
+  attempts: number;
+  /** 最后一次观测的标签。 */
+  lastKind: ReadyKind;
+}
+
+/** {@link browserOpenCommand} 的返回。 */
+export interface BrowserOpenCommand {
+  /** 外壳命令。 */
+  command: string;
+  /** 命令参数。 */
+  args: string[];
+}
 
 /**
  * `serve` 的缺省端口（**镜像** `scripts/devConfig.ts` 的 `DEV_DEFAULTS.backendPort`）。
  *
  * **不得自成一源**：devConfig 那一侧又镜像 `src/apps/cli/serveDefaults.ts` 的
- * `ServeDefaults.DEFAULT_SERVE_PORT`，一致性由 `tests/unit/devAddressContract.test.ts` 钉死。
+ * `ServeDefaults.DEFAULT_SERVE_PORT`，一致性由 `tests/devAddressContract.test.ts` 钉死。
  *
  * 这里导出的是**默认值**（与 `OMNI_BACKEND_PORT` 无关，供判据核对"启动器与 serve 的缺省是否漂移"）；
  * 启动器真正回落的值见 {@link resolveServePort}——它经 `resolveDevAddress(env)` 读
@@ -43,12 +91,15 @@ export const DEFAULT_TIMEOUT_MS = 180_000;
  * `ServeDefaults.resolveDefaultPort` 同口径），而不是裸常量 {@link DEFAULT_SERVE_PORT}：
  * 否则设了环境变量时启动器会去探一个 serve 根本没监听的端口。
  * 宁可探错端口后给出可读超时提示，也不要在启动器里复刻一套旗标校验（那是第二份真相）。
- * @param args 透传给 `serve` 的参数数组。
+ * @param args 透传给 `serve` 的参数数组（容忍任意形状，运行时守卫）。
  * @param env 环境变量（默认 `process.env`；判据可注入，避免受跑测试的机器影响）。
  * @returns 端口号。
  */
-export function resolveServePort(args, env = process.env) {
-  const list = Array.isArray(args) ? args : [];
+export function resolveServePort(
+  args: unknown,
+  env: Record<string, string | undefined> = process.env,
+): number {
+  const list: readonly unknown[] = Array.isArray(args) ? args : [];
   for (let i = 0; i < list.length; i += 1) {
     const item = list[i];
     if (item === '--port') {
@@ -67,7 +118,10 @@ export function resolveServePort(args, env = process.env) {
  * @param env 环境变量（决定"缺省端口"是哪个）。
  * @returns 合法端口，或缺省端口。
  */
-function normalizePort(raw, env = process.env) {
+function normalizePort(
+  raw: unknown,
+  env: Record<string, string | undefined> = process.env,
+): number {
   const value = Number.parseInt(String(raw ?? ''), 10);
   if (!Number.isInteger(value) || value <= 0 || value > 65535) {
     return resolveDevAddress(env).backendPort;
@@ -84,7 +138,7 @@ function normalizePort(raw, env = process.env) {
  * @returns 探针 URL（**写 `127.0.0.1` 而不是 `localhost`**：本机 serve 只绑回环，
  *   而 Windows 上 `localhost` 可能先解析到 `::1` 而连不上）。
  */
-export function readinessUrl(port) {
+export function readinessUrl(port: number): string {
   return `http://${resolveDevAddress().host}:${String(port)}/readyz`;
 }
 
@@ -101,7 +155,7 @@ export function readinessUrl(port) {
  * @param input 一次探测的观测结果。
  * @returns 上述五个标签之一。
  */
-export function classifyReadyProbe(input) {
+export function classifyReadyProbe(input?: ReadyProbeInput): ReadyKind {
   const { statusCode, bodyText, error } = input ?? {};
   if (error !== undefined && error !== null) {
     return 'down';
@@ -128,19 +182,24 @@ export function classifyReadyProbe(input) {
   return 'foreign';
 }
 
+/** 解析成功的 JSON 记录（status 字段任意）。 */
+interface JsonRecord {
+  status?: unknown;
+}
+
 /**
  * 安全解析 JSON 对象（非对象 / 非 JSON 一律 undefined，不抛）。
  * @param text 响应体文本。
  * @returns 解析出的普通对象，或 undefined。
  */
-function parseJsonRecord(text) {
+function parseJsonRecord(text: unknown): JsonRecord | undefined {
   if (typeof text !== 'string' || text.length === 0) {
     return undefined;
   }
   try {
-    const parsed = JSON.parse(text);
+    const parsed: unknown = JSON.parse(text);
     if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      return parsed;
+      return parsed as JsonRecord;
     }
     return undefined;
   } catch {
@@ -156,7 +215,7 @@ function parseJsonRecord(text) {
  * @param options 轮询配置。
  * @returns 终局结果：`outcome` 为 `ready`/`guarded`/`foreign`/`timeout`，附尝试次数与最后一次观测。
  */
-export async function waitForReady(options) {
+export async function waitForReady(options?: WaitForReadyOptions): Promise<WaitForReadyResult> {
   const {
     probe,
     sleep,
@@ -189,7 +248,7 @@ export async function waitForReady(options) {
  * @param ms 毫秒。
  * @returns 定时 Promise。
  */
-function defaultSleep(ms) {
+function defaultSleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
@@ -201,7 +260,7 @@ function defaultSleep(ms) {
  * @param port 端口号（用于提示里给准确地址）。
  * @returns 一行文案。
  */
-export function describeReadyOutcome(outcome, port) {
+export function describeReadyOutcome(outcome: ReadyTerminalKind, port: number): string {
   const addr = `http://${resolveDevAddress().host}:${String(port)}`;
   switch (outcome) {
     case 'ready':
@@ -229,7 +288,7 @@ export function describeReadyOutcome(outcome, port) {
  * @param code 子进程退出码（null 表示被信号终止）。
  * @returns 一行文案。
  */
-export function describeServeExit(code) {
+export function describeServeExit(code: number | null | undefined): string {
   if (code === null || code === undefined) {
     return 'serve 已结束（未拿到退出码，多半是被信号终止）。';
   }
@@ -255,7 +314,7 @@ export function describeServeExit(code) {
  * @param url 目标地址。
  * @returns `{ command, args }`；平台不支持时返回 null（调用方据此跳过并如实说明）。
  */
-export function browserOpenCommand(platform, url) {
+export function browserOpenCommand(platform: string, url: string): BrowserOpenCommand | null {
   const target = String(url);
   if (platform === 'win32') {
     return { command: 'cmd', args: ['/c', 'start', '', target] };

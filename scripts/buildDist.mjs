@@ -41,7 +41,7 @@ import {
 import { spawnSync } from 'node:child_process';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { WorkspaceLease } from './workspaceLease.mjs';
+import { WorkspaceLease } from './workspaceLease.ts';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const TARGET = join(ROOT, 'dist');

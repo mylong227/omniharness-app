@@ -1,4 +1,4 @@
-// launchReadiness 契约判据（2026-11-08 补齐）：scripts/lib/launchReadiness.mjs 的头注声称由
+// launchReadiness 契约判据（2026-11-08 补齐）：scripts/lib/launchReadiness.ts 的头注声称由
 // tests/unit/launchReadiness.test.ts 钉死、但该判据从未随迁。本文件兑现：
 //
 //   · resolveServePort：旗标 > 环境变量 > devConfig 缺省（三层优先级不得倒置）；
@@ -10,7 +10,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 
-const launch = await import('../scripts/lib/launchReadiness.mjs');
+const launch = await import('../scripts/lib/launchReadiness.ts');
 const { DEV_DEFAULTS } = await import('../scripts/devConfig.ts');
 
 test('resolveServePort：--port 旗标最高优先（空格与 = 两种写法）', () => {

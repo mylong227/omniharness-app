@@ -1,5 +1,5 @@
 // 开发回路地址镜像契约（2026-11-08 补齐）：三处注释长期声称由 tests/unit/devAddressContract.test.ts
-// 钉死（scripts/devConfig.ts / scripts/lib/launchReadiness.mjs / scripts/startAll.mjs），
+// 钉死（scripts/devConfig.ts / scripts/lib/launchReadiness.ts / scripts/startAll.mjs），
 // 但该判据从未随迁——镜像一致性当前裸奔。本文件兑现该承诺：
 //
 //   · devConfig.DEV_DEFAULTS.backendPort  ←镜像→  serveDefaults.DEFAULT_SERVE_PORT（后端 TS 源）
@@ -14,7 +14,7 @@ import assert from 'node:assert/strict';
 import { test } from 'vitest';
 
 const { DEV_DEFAULTS } = await import('../scripts/devConfig.ts');
-const launch = await import('../scripts/lib/launchReadiness.mjs');
+const launch = await import('../scripts/lib/launchReadiness.ts');
 const { ServeDefaults } = await import('../src/apps/cli/serveDefaults.ts');
 
 test('devConfig.backendPort 必须镜像 serveDefaults.DEFAULT_SERVE_PORT', () => {

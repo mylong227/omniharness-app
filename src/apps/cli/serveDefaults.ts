@@ -2,7 +2,7 @@
  * serve 的**默认地址常量**——后端侧字面量的唯一出处（2026-10-30 收口，看板 §182）。
  *
  * 为什么要一个文件：`8787` 之前散在 cliServerCmds / cliIdentityDaemonCmds / 前端
- * scripts/lib/launchReadiness.mjs（后者还是自声明"不得自成一源"的镜像）——改一次默认端口要
+ * scripts/lib/launchReadiness.ts（后者还是自声明"不得自成一源"的镜像）——改一次默认端口要
  * 人肉找齐三处。现在：
  *   · 后端默认端口/覆盖环境变量在这里（`serve --port` 旗标仍最高优先）；
  *   · 前端 dev 工具读 `scripts/devConfig.ts`（其默认值镜像本文件，一致性由

@@ -29,7 +29,7 @@
  * - **零第三方依赖**：只用 `node:child_process`，与本仓"依赖按准入"的口径一致。
  * - **`--open` 是"就绪后"打开而不是"起了就"打开**：判据走 `/readyz`（不是恒 200 的 `/healthz`），
  *   且**端口上是别人**时坚决不开浏览器（否则会把别人的页面当成本项目的工作台）；
- *   纯逻辑在 `scripts/lib/launchReadiness.mjs`，由 `tests/unit/launchReadiness.test.ts` 钉住。
+ *   纯逻辑在 `scripts/lib/launchReadiness.ts`，由 `tests/unit/launchReadiness.test.ts` 钉住。
  * - **退出码要说人话**：区分"按了 Ctrl+C"与"失败退出"（Windows 双击场景里这是唯一线索）。
  */
 import { spawnSync, spawn } from 'node:child_process';
@@ -44,7 +44,7 @@ import {
   readinessUrl,
   resolveServePort,
   waitForReady,
-} from './lib/launchReadiness.mjs';
+} from './lib/launchReadiness.ts';
 import { resolveDevAddress } from './devConfig.ts';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..');
