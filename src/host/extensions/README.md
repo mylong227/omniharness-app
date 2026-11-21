@@ -8,7 +8,7 @@ M27 兼容层清零后更名 `extensions/`：内核形状的部分已全部回�
 本目录只剩**真应用形状**的实现（Laya 决策引擎、CLI worker、doctor 诊断面、web 广播、
 daemon/routine 契约、图存储等产品件）——它们不是「兼容」，是产品。
 
-## 归属契约（三条，机检于 `scripts/checkKernelBoundary.mjs`）
+## 归属契约（三条，机检于 `scripts/checkKernelBoundary.ts`）
 
 1. **归属**：本目录的所有权在 app 仓。内核不承诺这里的任何模块存在或兼容；
    内核升级**不**需要同步本目录（除非 app 主动想让某个模块回归内核）。

@@ -17,7 +17,7 @@ import { test } from 'vitest';
 test('extensions 里不得出现内核已承诺能力的同名实现', () => {
   let stdout = '';
   try {
-    stdout = execFileSync(process.execPath, [join('scripts', 'kernelShadowScan.mjs')], {
+    stdout = execFileSync(process.execPath, [join('scripts', 'kernelShadowScan.ts')], {
       cwd: process.cwd(),
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],

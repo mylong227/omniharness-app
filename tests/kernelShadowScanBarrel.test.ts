@@ -46,7 +46,7 @@ const fixture = (withShadow: boolean): string => {
 const runScan = (root: string): { status: number; stdout: string; stderr: string } => {
   const result = spawnSync(
     process.execPath,
-    [join('scripts', 'kernelShadowScan.mjs'), '--root', root],
+    [join('scripts', 'kernelShadowScan.ts'), '--root', root],
     { cwd: process.cwd(), encoding: 'utf8' },
   );
   return { status: result.status ?? 1, stdout: result.stdout, stderr: result.stderr };

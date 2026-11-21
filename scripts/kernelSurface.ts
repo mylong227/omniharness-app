@@ -25,8 +25,8 @@
  *
  * ## 命令行
  *
- *   node scripts/kernelSurface.mjs           # 生成（写盘）
- *   node scripts/kernelSurface.mjs --check   # 只校验是否与源码一致（kernel:check 用）
+ *   node scripts/kernelSurface.ts           # 生成（写盘）
+ *   node scripts/kernelSurface.ts --check   # 只校验是否与源码一致（kernel:check 用）
  */
 import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
@@ -39,15 +39,50 @@ const KERNEL_PKG = join(ROOT, 'node_modules', '@omniharness', 'kernel', 'package
 const PKG_PREFIX = '@omniharness/kernel/';
 const ROOT_SPEC = '@omniharness/kernel';
 
+/** 一个内核符号的落点：包 spec + 是否纯类型。 */
+export interface SurfaceEntry {
+  /** 内核包 spec（`@omniharness/kernel/...`）。 */
+  spec: string;
+  /** 是否纯类型导出（`export type {...}`）。 */
+  typeOnly: boolean;
+}
+
+/** {@link readCurrentSurface} 的返回。 */
+interface CurrentSurface {
+  /** 域 → 符号 → 落点。 */
+  maps: Map<string, Map<string, SurfaceEntry>>;
+  /** 域 → 模块出现顺序（新符号沿用/追加）。 */
+  orders: Map<string, string[]>;
+}
+
+/** {@link buildSurface} 的返回。 */
+export interface SurfaceBuild {
+  /** 域文件名 → 生成内容。 */
+  files: Map<string, string>;
+  /** 无法解析的符号错误。 */
+  errors: string[];
+  /** 未承诺内核路径命中（黄标）。 */
+  unpromised: Set<string>;
+  /** 内核承诺清单条数。 */
+  promisedCount: number;
+}
+
+/** {@link runSurface} 的选项。 */
+export interface RunSurfaceOptions {
+  /** true 时只比较不写盘（kernel:check 用）。 */
+  check: boolean;
+}
+
 /**
  * 读内核包的**承诺清单**（M21 Phase 2：exports 通配已删，显式条目即承诺面）。
- * @returns {Set<string>} spec 集合：深路径（不带包前缀，如 `kernel/util/foo.js`）与
+ * @returns spec 集合：深路径（不带包前缀，如 `kernel/util/foo.js`）与
  *   根入口（`@omniharness/kernel`，exports 键 `.`）。
  */
-function readPromisedSpecs() {
-  const promised = new Set();
+function readPromisedSpecs(): Set<string> {
+  const promised = new Set<string>();
   if (!existsSync(KERNEL_PKG)) return promised;
-  const exportsMap = JSON.parse(readFileSync(KERNEL_PKG, 'utf8')).exports ?? {};
+  const pkg = JSON.parse(readFileSync(KERNEL_PKG, 'utf8')) as { exports?: Record<string, unknown> };
+  const exportsMap = pkg.exports ?? {};
   for (const key of Object.keys(exportsMap)) {
     if (key === '.') promised.add(ROOT_SPEC);
     else if (key.startsWith('./')) promised.add(key.slice(2));
@@ -57,7 +92,7 @@ function readPromisedSpecs() {
 
 /** spec 是否在承诺清单内（根导入短路；深路径剥包前缀后查集合——域文件与 dist 索引
  *  存的都是全 spec，清单存的是去前缀形态，两侧口径在此对齐）。 */
-function isPromised(spec, promised) {
+function isPromised(spec: string, promised: Set<string>): boolean {
   if (spec === ROOT_SPEC) return true;
   return promised.has(spec.startsWith(PKG_PREFIX) ? spec.slice(PKG_PREFIX.length) : spec);
 }
@@ -65,7 +100,7 @@ function isPromised(spec, promised) {
 /** 对接面文件名（`<area>.ts`；下划线/连字符与数字，避免误伤子目录里的实现文件）。 */
 const AREA_FILE = /^[a-z0-9_-]+\.ts$/;
 
-/** 声明式导出的匹配（与 `kernelShadowScan.mjs` 同口径：只认直接声明，不认再导出行）。 */
+/** 声明式导出的匹配（与 `kernelShadowScan` 同口径：只认直接声明，不认再导出行）。 */
 const DECLARATION_RE =
   /export\s+(?:declare\s+)?(?:abstract\s+)?(class|function|const|let|var|enum|namespace|interface|type)\s+([A-Za-z_$][\w$]*)/gu;
 
@@ -80,11 +115,11 @@ const CURATED_KEY = /^\.\/[a-z0-9-]+$/u;
 
 /**
  * 把再导出 spec 解析成声明文件候选（`.ts` / `.js` / 省略后缀三种写法都收）。
- * @param {string} fromFile 引用方 `.d.ts`。
- * @param {string} spec 再导出 spec。
- * @returns {string[]} 候选声明文件（绝对路径，按约定优先）。
+ * @param fromFile 引用方 `.d.ts`。
+ * @param spec 再导出 spec。
+ * @returns 候选声明文件（绝对路径，按约定优先）。
  */
-function declarationCandidates(fromFile, spec) {
+function declarationCandidates(fromFile: string, spec: string): string[] {
   const resolved = resolve(dirname(fromFile), spec);
   const base = resolved.replace(/\.d\.ts$/u, '').replace(/\.(?:js|ts)$/u, '');
   return [`${base}.d.ts`, resolved];
@@ -92,29 +127,35 @@ function declarationCandidates(fromFile, spec) {
 
 /**
  * 递归收集一个声明文件的导出名（直接声明 + 再导出名单 + 星号再导出）。
- * @param {string} dtsPath 声明文件绝对路径。
- * @param {string} spec 归属的包 spec（curated 子路径根）。
- * @param {boolean} typeOnly 继承的类型标记（星号再导出时沿用父级）。
- * @param {Map<string, {spec: string, typeOnly: boolean}>} index 导出名 → 落点。
- * @param {Set<string>} visited 已访问文件（防循环）。
- * @returns {void}
+ * @param dtsPath 声明文件绝对路径。
+ * @param spec 归属的包 spec（curated 子路径根）。
+ * @param typeOnly 继承的类型标记（星号再导出时沿用父级）。
+ * @param index 导出名 → 落点。
+ * @param visited 已访问文件（防循环）。
+ * @returns void
  */
-function collectCuratedNames(dtsPath, spec, typeOnly, index, visited) {
+function collectCuratedNames(
+  dtsPath: string,
+  spec: string,
+  typeOnly: boolean,
+  index: Map<string, SurfaceEntry>,
+  visited: Set<string>,
+): void {
   if (visited.has(dtsPath) || !existsSync(dtsPath)) return;
   visited.add(dtsPath);
-  const add = (name, isType) => {
+  const add = (name: string, isType: boolean): void => {
     // 同名以首次出现为准（curated 桶里不会重复；重复即声明点冲突，交给上游修）。
     if (!index.has(name)) index.set(name, { spec, typeOnly: isType });
   };
   const text = readFileSync(dtsPath, 'utf8');
   for (const match of text.matchAll(DECLARATION_RE)) {
-    add(match[2], match[1] === 'interface' || match[1] === 'type');
+    add(match[2]!, match[1] === 'interface' || match[1] === 'type');
   }
   for (const match of text.matchAll(REEXPORT_RE)) {
-    for (const name of namesOf(match[2], 'exported')) add(name, Boolean(match[1]) || typeOnly);
+    for (const name of namesOf(match[2]!, 'exported')) add(name, Boolean(match[1]) || typeOnly);
   }
   for (const match of text.matchAll(STAR_REEXPORT_RE)) {
-    for (const candidate of declarationCandidates(dtsPath, match[1])) {
+    for (const candidate of declarationCandidates(dtsPath, match[1]!)) {
       collectCuratedNames(candidate, spec, typeOnly, index, visited);
     }
   }
@@ -129,30 +170,31 @@ function collectCuratedNames(dtsPath, spec, typeOnly, index, visited) {
  * 已承诺落点，会被回退成未承诺的深路径（黄标 + `kernel:check` 红）。本索引把它们
  * 显式映射到 `@omniharness/kernel/<curated>`：既是内核写明的稳定入口，也避免为
  * 「应用消费」逐个新增深路径承诺（深路径是生成闭包，不该被应用倒逼膨胀）。
- * @returns {Map<string, {spec: string, typeOnly: boolean}>} 导出名 → curated 落点。
+ * @returns 导出名 → curated 落点。
  */
-function readCuratedIndex() {
-  const index = new Map();
+function readCuratedIndex(): Map<string, SurfaceEntry> {
+  const index = new Map<string, SurfaceEntry>();
   if (!existsSync(KERNEL_PKG)) return index;
-  const exportsMap = JSON.parse(readFileSync(KERNEL_PKG, 'utf8')).exports ?? {};
+  const pkg = JSON.parse(readFileSync(KERNEL_PKG, 'utf8')) as { exports?: Record<string, unknown> };
+  const exportsMap = pkg.exports ?? {};
   for (const key of Object.keys(exportsMap)) {
     if (!CURATED_KEY.test(key)) continue;
     const name = key.slice('./'.length);
     const dts = join(KERNEL_DIST, `${name}.d.ts`);
     if (!existsSync(dts)) continue;
-    collectCuratedNames(dts, `@omniharness/kernel/${name}`, false, index, new Set());
+    collectCuratedNames(dts, `@omniharness/kernel/${name}`, false, index, new Set<string>());
   }
   return index;
 }
 
 /**
  * 递归列出某目录下的文件。
- * @param {string} dir 目录
- * @param {RegExp} filter 文件名过滤
- * @returns {string[]} 绝对路径
+ * @param dir 目录
+ * @param filter 文件名过滤
+ * @returns 绝对路径
  */
-function walk(dir, filter) {
-  const out = [];
+function walk(dir: string, filter: RegExp): string[] {
+  const out: string[] = [];
   const entries = readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
     const abs = join(dir, entry.name);
@@ -164,17 +206,19 @@ function walk(dir, filter) {
 
 /**
  * 解析 `{ A, B as C, type D }` 形式的名单。
- * @param {string} raw 花括号内的文本
- * @param {'local'|'exported'} mode 取本地名（import 用）还是导出名（surface 定义用）
- * @returns {string[]} 符号名
+ * @param raw 花括号内的文本
+ * @param mode 取本地名（import 用）还是导出名（surface 定义用）
+ * @returns 符号名
  */
-function namesOf(raw, mode) {
+function namesOf(raw: string, mode: 'local' | 'exported'): string[] {
   return raw
     .split(',')
     .map((part) => part.trim().replace(/^type\s+/u, ''))
     .filter((part) => part !== '')
     .map((part) => {
-      const [original, alias] = part.split(/\s+as\s+/u);
+      const names = part.split(/\s+as\s+/u);
+      const original = names[0] ?? '';
+      const alias = names[1];
       const name = mode === 'exported' ? (alias ?? original) : original;
       return name.trim();
     })
@@ -186,24 +230,24 @@ function namesOf(raw, mode) {
  *
  * 现有对接面是「符号 → 真实模块」的已知正确映射（含 `Runtime` / `TrustTier` 这类同名不同模块的
  * 消歧），生成时优先用它；只有业务代码新引入、现有面没有的符号才回退到内核包索引。
- * @returns {Map<string, Map<string, { spec: string, typeOnly: boolean }>>}
+ * @returns 域映射与模块顺序。
  */
-function readCurrentSurface() {
-  const maps = new Map();
+function readCurrentSurface(): CurrentSurface {
+  const maps = new Map<string, Map<string, SurfaceEntry>>();
   /** 现有文件的模块出现顺序：新符号沿用/追加，避免改变 ESM 求值顺序。 */
-  const orders = new Map();
+  const orders = new Map<string, string[]>();
   for (const name of readdirSync(SURFACE)) {
     if (!AREA_FILE.test(name)) continue;
     const area = name.replace(/\.ts$/u, '');
-    const map = new Map();
-    const order = [];
+    const map = new Map<string, SurfaceEntry>();
+    const order: string[] = [];
     const text = readFileSync(join(SURFACE, name), 'utf8');
     for (const match of text.matchAll(
       /export\s+(type\s+)?\{([^}]+)\}\s+from\s+['"]([^'"]+)['"]/gu,
     )) {
-      if (!order.includes(match[3])) order.push(match[3]);
-      for (const symbol of namesOf(match[2], 'exported')) {
-        map.set(symbol, { spec: match[3], typeOnly: Boolean(match[1]) });
+      if (!order.includes(match[3]!)) order.push(match[3]!);
+      for (const symbol of namesOf(match[2]!, 'exported')) {
+        map.set(symbol, { spec: match[3]!, typeOnly: Boolean(match[1]) });
       }
     }
     maps.set(area, map);
@@ -214,13 +258,17 @@ function readCurrentSurface() {
 
 /**
  * 业务代码实际从对接面导入了哪些符号：area → Set<name>（`*` 表示命名空间导入）。
- * @returns {Map<string, Set<string>>}
+ * @returns 域 → 已用符号集合。
  */
-function collectUsed() {
-  const used = new Map();
-  const add = (area, name) => {
-    if (!used.has(area)) used.set(area, new Set());
-    used.get(area).add(name);
+function collectUsed(): Map<string, Set<string>> {
+  const used = new Map<string, Set<string>>();
+  const add = (area: string, name: string): void => {
+    const names = used.get(area);
+    if (names === undefined) {
+      used.set(area, new Set([name]));
+      return;
+    }
+    names.add(name);
   };
   const surfaceFiles = new Set(
     readdirSync(SURFACE)
@@ -228,7 +276,7 @@ function collectUsed() {
       .map((name) => join(SURFACE, name)),
   );
   /** 把相对 spec 解析成对接面文件；不是对接面（或外部包）返回 undefined。 */
-  const surfaceAreaOf = (fromFile, spec) => {
+  const surfaceAreaOf = (fromFile: string, spec: string): string | undefined => {
     if (!spec.startsWith('.')) return undefined;
     const target = resolve(dirname(fromFile), spec);
     // 源码约定写 `.ts`；同时容忍 `.js`（编译后写法）与省略后缀。
@@ -244,31 +292,31 @@ function collectUsed() {
     // import { A, B as C } / export type { A } from '<任意相对路径>/kernel/<area>.ts'
     // （extensions 里写作 `../../../kernel/contracts.ts`，不能只按字面量 `host/kernel` 匹配）
     for (const match of text.matchAll(/(?:import|export)\s+(type\s+)?\{([^}]+)\}\s+from\s+['"]([^'"]+)['"]/gu)) {
-      const area = surfaceAreaOf(file, match[3]);
+      const area = surfaceAreaOf(file, match[3]!);
       if (area === undefined) continue;
-      for (const name of namesOf(match[2], 'local')) add(area, name);
+      for (const name of namesOf(match[2]!, 'local')) add(area, name);
     }
     // import * as ns from ... / export * from ...（命名空间/全量：该域全部保留）
     for (const match of text.matchAll(
       /(?:import|export)\s+\*\s+(?:as\s+\w+\s+)?from\s+['"]([^'"]+)['"]/gu,
     )) {
-      const area = surfaceAreaOf(file, match[1]);
+      const area = surfaceAreaOf(file, match[1]!);
       if (area !== undefined) add(area, '*');
     }
     // const { A, B } = await import('<...>/kernel/<area>.ts')
     for (const match of text.matchAll(
       /(?:const|let|var)\s*\{([^}]+)\}\s*=\s*await\s+import\(\s*['"]([^'"]+)['"]\s*\)/gu,
     )) {
-      const area = surfaceAreaOf(file, match[2]);
-      if (area !== undefined) for (const name of namesOf(match[1], 'local')) add(area, name);
+      const area = surfaceAreaOf(file, match[2]!);
+      if (area !== undefined) for (const name of namesOf(match[1]!, 'local')) add(area, name);
     }
     // const [{ A }, { B }] = await Promise.all([import('...'), import('...')])
     for (const match of text.matchAll(
       /(?:const|let|var)\s+\[([\s\S]*?)\]\s*=\s*await\s+Promise\.all\(\s*\[([\s\S]*?)\]\s*\)/gu,
     )) {
-      const left = [...match[1].matchAll(/\{([^}]*)\}/gu)].map((item) => item[1]);
-      const right = [...match[2].matchAll(/import\(\s*['"]([^'"]+)['"]\s*\)/gu)].map(
-        (item) => item[1],
+      const left = [...match[1]!.matchAll(/\{([^}]*)\}/gu)].map((item) => item[1]!);
+      const right = [...match[2]!.matchAll(/import\(\s*['"]([^'"]+)['"]\s*\)/gu)].map(
+        (item) => item[1]!,
       );
       if (left.length !== right.length) continue;
       for (const [index, spec] of right.entries()) {
@@ -280,17 +328,17 @@ function collectUsed() {
     for (const match of text.matchAll(
       /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*await\s+import\(\s*['"]([^'"]+)['"]\s*\)/gu,
     )) {
-      const area = surfaceAreaOf(file, match[2]);
+      const area = surfaceAreaOf(file, match[2]!);
       if (area === undefined) continue;
       const propertyRe = new RegExp(`\\b${match[1]}\\.([A-Za-z_$][\\w$]*)`, 'gu');
-      for (const property of text.matchAll(propertyRe)) add(area, property[1]);
+      for (const property of text.matchAll(propertyRe)) add(area, property[1]!);
     }
     // import('<...>/kernel/<area>.ts').Foo（type query 或动态属性访问）
     for (const match of text.matchAll(
       /import\(\s*['"]([^'"]+)['"]\s*\)\.([A-Za-z_$][\w$]*)/gu,
     )) {
-      const area = surfaceAreaOf(file, match[1]);
-      if (area !== undefined) add(area, match[2]);
+      const area = surfaceAreaOf(file, match[1]!);
+      if (area !== undefined) add(area, match[2]!);
     }
   }
   return used;
@@ -304,14 +352,17 @@ function collectUsed() {
  * 再导出的承诺由 {@link readCuratedIndex} 单独承接（桶 = curated 子路径，落点稳定）。
  * alpha.6 期（2026-11 上旬，历史实测、非当前版本）数据：1680 个导出名、仅 3 个同名（WorkflowStep/TrustTier/LspPosition），
  * 且都已在现有对接面里有确定映射。
- * @returns {Map<string, { spec: string, typeOnly: boolean }[]>}
+ * @returns 导出名 → 候选落点列表。
  */
-function readKernelIndex() {
-  const index = new Map();
+function readKernelIndex(): Map<string, SurfaceEntry[]> {
+  const index = new Map<string, SurfaceEntry[]>();
   if (!existsSync(KERNEL_DIST)) return index;
-  const add = (name, spec, typeOnly) => {
-    if (!index.has(name)) index.set(name, []);
+  const add = (name: string, spec: string, typeOnly: boolean): void => {
     const list = index.get(name);
+    if (list === undefined) {
+      index.set(name, [{ spec, typeOnly }]);
+      return;
+    }
     if (!list.some((item) => item.spec === spec)) list.push({ spec, typeOnly });
   };
   for (const file of walk(KERNEL_DIST, /\.d\.ts$/u)) {
@@ -320,7 +371,7 @@ function readKernelIndex() {
       '@omniharness/kernel/' + relative(KERNEL_DIST, file).replaceAll('\\', '/').replace(/\.d\.ts$/u, '.js');
     const text = readFileSync(file, 'utf8');
     for (const match of text.matchAll(DECLARATION_RE)) {
-      add(match[2], spec, match[1] === 'interface' || match[1] === 'type');
+      add(match[2]!, spec, match[1] === 'interface' || match[1] === 'type');
     }
   }
   return index;
@@ -328,17 +379,27 @@ function readKernelIndex() {
 
 /**
  * 解析一个业务导入符号的真实模块（优先现有面对应域，其次同名全局映射，再深路径，最后 curated 桶）。
- * @param {string} area 域
- * @param {string} name 符号名
- * @param {ReturnType<typeof readCurrentSurface>} surface 现有对接面
- * @param {ReturnType<typeof readKernelIndex>} kernelIndex 内核包索引
- * @param {Set<string>} promised 内核承诺清单（exports 显式条目，M21 Phase 3）
- * @param {ReturnType<typeof readCuratedIndex>} curated curated 子路径索引（再导出桶）
- * @param {Set<string>} unpromised 未承诺命中收集器（黄标：内核需先显式导出）
- * @returns {{ spec: string, typeOnly: boolean } | undefined}
+ * @param area 域
+ * @param name 符号名
+ * @param surface 现有对接面
+ * @param kernelIndex 内核包索引
+ * @param promised 内核承诺清单（exports 显式条目，M21 Phase 3）
+ * @param curated curated 子路径索引（再导出桶）
+ * @param unpromised 未承诺命中收集器（黄标：内核需先显式导出）
+ * @returns 落点，解析失败 undefined。
  */
-function resolveSymbol(area, name, surface, kernelIndex, promised, curated, unpromised) {
-  const stale = (spec) => unpromised.add(`${area}::${name} -> ${spec}`);
+function resolveSymbol(
+  area: string,
+  name: string,
+  surface: CurrentSurface['maps'],
+  kernelIndex: Map<string, SurfaceEntry[]>,
+  promised: Set<string>,
+  curated: Map<string, SurfaceEntry>,
+  unpromised: Set<string>,
+): SurfaceEntry | undefined {
+  const stale = (spec: string): void => {
+    unpromised.add(`${area}::${name} -> ${spec}`);
+  };
   // 1) 现有对接面映射：**仍被内核承诺**才算数——通配已删，stale 自续会指向已从承诺面
   //    消失的路径（M20 时代「stale 行自我永续」缺陷的根治点）；未承诺则黄标并落向下重解析。
   const local = surface.get(area)?.get(name);
@@ -351,19 +412,19 @@ function resolveSymbol(area, name, surface, kernelIndex, promised, curated, unpr
   //    同样只认已承诺映射。
   const hits = [...surface.values()].filter((map) => map.has(name));
   if (hits.length === 1) {
-    const candidate = hits[0].get(name);
+    const candidate = hits[0]!.get(name)!;
     if (isPromised(candidate.spec, promised)) return candidate;
     stale(candidate.spec);
   }
   const candidates = kernelIndex.get(name) ?? [];
   // 3) M21 Phase 3：dist 索引候选**先按承诺清单过滤**——解析源 = 内核承诺面。
   const promisedCandidates = candidates.filter((item) => isPromised(item.spec, promised));
-  if (promisedCandidates.length === 1) return promisedCandidates[0];
+  if (promisedCandidates.length === 1) return promisedCandidates[0]!;
   if (promisedCandidates.length > 1) {
     // 同名多模块：优先选该域已经用过的模块，避免把两个不同符号混成一个。
     const specs = new Set([...(surface.get(area)?.values() ?? [])].map((item) => item.spec));
     const preferred = promisedCandidates.filter((item) => specs.has(item.spec));
-    if (preferred.length === 1) return preferred[0];
+    if (preferred.length === 1) return preferred[0]!;
     return curated.get(name);
   }
   // 4) 深路径未承诺（或没有索引项）：curated 子路径是内核写明的稳定入口——桶里承诺的符号
@@ -374,26 +435,26 @@ function resolveSymbol(area, name, surface, kernelIndex, promised, curated, unpr
   // 5) 只有未承诺候选：黄标后按旧消歧规则选一个（生成继续，硬门禁由 kernel:check 的
   //    「导入 ⊆ 承诺清单」红灯承担——先让开发者看见，再让门禁拦住 install）。
   stale(candidates.map((item) => item.spec).join(' | '));
-  if (candidates.length === 1) return candidates[0];
+  if (candidates.length === 1) return candidates[0]!;
   const specs = new Set([...(surface.get(area)?.values() ?? [])].map((item) => item.spec));
   const preferred = candidates.filter((item) => specs.has(item.spec));
-  if (preferred.length === 1) return preferred[0];
+  if (preferred.length === 1) return preferred[0]!;
   return undefined;
 }
 
 /**
  * 计算生成结果。
- * @returns {{ files: Map<string, string>, errors: string[], unpromised: Set<string>, promisedCount: number }}
+ * @returns 生成结果（files/errors/unpromised/承诺条数）。
  */
-export function buildSurface() {
+export function buildSurface(): SurfaceBuild {
   const { maps: surface, orders } = readCurrentSurface();
   const used = collectUsed();
   const kernelIndex = readKernelIndex();
   const curated = readCuratedIndex();
   const promised = readPromisedSpecs();
-  const unpromised = new Set();
-  const errors = [];
-  const files = new Map();
+  const unpromised = new Set<string>();
+  const errors: string[] = [];
+  const files = new Map<string, string>();
   for (const area of [...surface.keys()].sort()) {
     const usedNames = used.get(area);
     if (usedNames === undefined || usedNames.size === 0) continue;
@@ -401,7 +462,7 @@ export function buildSurface() {
     const names = wildcard
       ? [...(surface.get(area)?.keys() ?? [])].sort()
       : [...usedNames].filter((name) => name !== '*').sort();
-    const groups = new Map();
+    const groups = new Map<string, string[]>();
     for (const name of names) {
       const hit = resolveSymbol(area, name, surface, kernelIndex, promised, curated, unpromised);
       if (hit === undefined) {
@@ -409,8 +470,12 @@ export function buildSurface() {
         continue;
       }
       const key = `${hit.typeOnly ? 'type' : 'value'}|${hit.spec}`;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(name);
+      const list = groups.get(key);
+      if (list === undefined) {
+        groups.set(key, [name]);
+      } else {
+        list.push(name);
+      }
     }
     const header = [
       '/**',
@@ -424,11 +489,13 @@ export function buildSurface() {
       ' */',
     ];
     // 模块顺序沿用现有文件（ESM 按声明顺序求值，排序会改变副作用顺序）；新模块追加到末尾。
-    const orderOf = new Map((orders.get(area) ?? []).map((spec, index) => [spec, index]));
+    const orderOf = new Map<string, number>((orders.get(area) ?? []).map((spec, index) => [spec, index]));
     const lines = [...groups.entries()]
       .sort((a, b) => {
-        const [kindA, specA] = a[0].split('|');
-        const [kindB, specB] = b[0].split('|');
+        const kindA = a[0].split('|')[0] ?? '';
+        const specA = a[0].split('|')[1] ?? '';
+        const kindB = b[0].split('|')[0] ?? '';
+        const specB = b[0].split('|')[1] ?? '';
         const indexA = orderOf.get(specA) ?? Number.MAX_SAFE_INTEGER;
         const indexB = orderOf.get(specB) ?? Number.MAX_SAFE_INTEGER;
         if (indexA !== indexB) return indexA - indexB;
@@ -436,7 +503,8 @@ export function buildSurface() {
         return kindA === kindB ? 0 : kindA === 'value' ? -1 : 1;
       })
       .map(([key, list]) => {
-        const [kind, spec] = key.split('|');
+        const kind = key.split('|')[0] ?? '';
+        const spec = key.split('|')[1] ?? '';
         return `export ${kind === 'type' ? 'type ' : ''}{ ${list.join(', ')} } from '${spec}';`;
       });
     files.set(`${area}.ts`, header.join('\n') + '\n\n' + lines.join('\n') + '\n');
@@ -446,10 +514,11 @@ export function buildSurface() {
 
 /**
  * 生成/校验对接面。
- * @param {{ check: boolean }} options `check` 为 true 时只比较不写盘
- * @returns {number} 退出码
+ * @param options `check` 为 true 时只比较不写盘
+ * @returns 退出码
  */
-export function runSurface({ check }) {
+export function runSurface(options: RunSurfaceOptions): number {
+  const { check } = options;
   const { files, errors, unpromised, promisedCount } = buildSurface();
   if (errors.length > 0) {
     process.stderr.write('kernel:surface 失败 —— 无法解析以下符号：\n');
@@ -464,7 +533,7 @@ export function runSurface({ check }) {
     );
     for (const item of [...unpromised].sort()) process.stderr.write(`  ⚠ ${item}\n`);
   }
-  const changed = [];
+  const changed: string[] = [];
   for (const [name, content] of files) {
     const path = join(SURFACE, name);
     // 2026-11-08 CI 实锤：Windows 检出（core.autocrlf）会把生成物换成 CRLF，与 LF 的

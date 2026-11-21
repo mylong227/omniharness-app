@@ -14,7 +14,7 @@
  *    （分域而非单文件桶的原因见该目录文件头注释：整包加载 ~780ms vs 单域 ~60ms）。
  * 8. **对接面不漂移且纯净**：19 个域文件必须与「业务代码实际 import + 内核包 .d.ts」一致，
  *    且 `src/host/kernel/` 内只允许这些生成物（不得再混入实现/子目录）——只改业务导入不跑
- *    `npm run kernel:surface` 会在这里被判红（生成器见 `scripts/kernelSurface.mjs`）。
+ *    `npm run kernel:surface` 会在这里被判红（生成器见 `scripts/kernelSurface.ts`）。
  * 9. **已承诺能力不得在 extensions 另起同名实现**：`src/host/extensions/**` 声明的符号名
  *    不得与内核 `exports` 承诺模块的 `.d.ts` 导出名重合——内核已经承诺的东西必须经对接面消费，
  *    自留一份即「影子副本回归」（2026-11-08：CryptoVault / EnvVault 曾因此滞留，迁走后本判据
@@ -30,20 +30,24 @@
  * 本门禁以文件系统 + 锁文件 + 真实 require 三个角度钉住。
  */
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { runSurface } from './kernelSurface.mjs';
-import { formatShadowReport, scanPromisedShadows } from './kernelShadowScan.mjs';
+import { runSurface } from './kernelSurface.ts';
+import { formatShadowReport, scanPromisedShadows } from './kernelShadowScan.ts';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const failures = [];
+const failures: string[] = [];
 
-const fail = (message) => failures.push(message);
+const fail = (message: string): void => {
+  failures.push(message);
+};
 
 // 1. 依赖钉的是 vendored tarball
-const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
-const dep = pkg.dependencies?.['@omniharness/kernel'];
+const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as {
+  dependencies?: Record<string, unknown>;
+};
+const dep: unknown = pkg.dependencies?.['@omniharness/kernel'];
 if (typeof dep !== 'string' || !/^file:vendor\/.+\.tgz$/.test(dep)) {
   fail(`package.json 的 @omniharness/kernel 必须是 file:vendor/*.tgz（当前 ${String(dep)}）`);
 }
@@ -55,7 +59,7 @@ for (const dir of ['kernel', 'contracts', 'protocols']) {
 
 // 3/4/7. 全源码扫描
 const importRe = /(?:\bfrom\s+|\bimport\s*\(\s*|\bimport\s+)['"]([^'"]+)['"]/g;
-const walk = (dir, out = []) => {
+const walk = (dir: string, out: string[] = []): string[] => {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const abs = join(dir, entry.name);
     if (entry.isDirectory()) walk(abs, out);
@@ -68,14 +72,14 @@ const walk = (dir, out = []) => {
 const srcFiles = walk(join(ROOT, 'src'));
 const surfaceDir = join(ROOT, 'src', 'host', 'kernel');
 let packageImports = 0;
-const leaks = [];
-const offSurfaceImports = [];
-const deepSpecs = new Set();
+const leaks: string[] = [];
+const offSurfaceImports: string[] = [];
+const deepSpecs = new Set<string>();
 for (const file of srcFiles) {
   const text = readFileSync(file, 'utf8');
-  let match;
+  let match: RegExpExecArray | null;
   while ((match = importRe.exec(text)) !== null) {
-    const spec = match[1];
+    const spec = match[1]!;
     if (spec.startsWith('@omniharness/kernel/') || spec === '@omniharness/kernel') {
       packageImports += 1;
       // M21：深路径 spec 收集（供「导入 ⊆ 内核承诺清单」机检）
@@ -111,7 +115,10 @@ if (offSurfaceImports.length > 0) {
 // 内核 alpha.9 起删除 `"./*"` 通配——未列条目在 install/运行期直接 404，这里提前到门禁红。
 const kernelPkgPath = join(ROOT, 'node_modules', '@omniharness', 'kernel', 'package.json');
 if (existsSync(kernelPkgPath)) {
-  const kernelExports = JSON.parse(readFileSync(kernelPkgPath, 'utf8')).exports ?? {};
+  const kernelPkg = JSON.parse(readFileSync(kernelPkgPath, 'utf8')) as {
+    exports?: Record<string, unknown>;
+  };
+  const kernelExports = kernelPkg.exports ?? {};
   const promised = new Set(Object.keys(kernelExports));
   const unlisted = [...deepSpecs].filter((spec) => !promised.has(`./${spec}`)).sort();
   if (unlisted.length > 0) {
@@ -128,7 +135,9 @@ if (typeof dep === 'string' && dep.startsWith('file:')) {
   if (!existsSync(tarball)) {
     fail(`vendored tarball 不存在：${tarball}`);
   } else {
-    const lock = JSON.parse(readFileSync(join(ROOT, 'package-lock.json'), 'utf8'));
+    const lock = JSON.parse(readFileSync(join(ROOT, 'package-lock.json'), 'utf8')) as {
+      packages?: Record<string, { integrity?: unknown }>;
+    };
     const locked = lock.packages?.['node_modules/@omniharness/kernel'];
     const actual = `sha512-${createHash('sha512').update(readFileSync(tarball)).digest('base64')}`;
     if (locked?.integrity !== actual) {
@@ -159,7 +168,7 @@ if (runSurface({ check: true }) !== 0) {
 }
 
 // 9. 已承诺能力不得在 extensions 里另起同名实现（影子副本回归即红）
-// 判据实现收在 scripts/kernelShadowScan.mjs：门禁与 tests/kernelShadowScan.test.ts 共用一份。
+// 判据实现收在 scripts/kernelShadowScan.ts：门禁与 tests/kernelShadowScan.test.ts 共用一份。
 if (existsSync(kernelPkgPath)) {
   const report = formatShadowReport(scanPromisedShadows(ROOT));
   if (!report.ok) fail(report.text);

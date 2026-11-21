@@ -150,7 +150,7 @@ M22–M31 的每一轮内核升级都走的这条回路，常态业务代码零�
 `npm run kernel:surface`（无需手写 re-export）；已无使用的符号会被裁掉。`kernel:check`
 第 8 条是这条工作流的唯一裁决点（`tests/kernelSurface.test.ts` 把「生成物一致 + 目录纯净」
 纳入常规 `web:test`，忘了跑生成命令本地测试也直接红）；第 9 条不依赖生成器，直接比对
-内核承诺面与 extensions 声明名——实现在 `scripts/kernelShadowScan.mjs`，`tests/kernelShadowScan.test.ts`
+内核承诺面与 extensions 声明名——实现在 `scripts/kernelShadowScan.ts`，`tests/kernelShadowScan.test.ts`
 以子进程跑同一份实现（并断言两侧计数，防「扫描器扫空也算绿」），所以 `web:test` 同样会红。
 
 重建发行物：`npm run kernel:vendor`（tag 缺省从 package.json 钉定版本解析——

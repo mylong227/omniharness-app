@@ -25,10 +25,10 @@
  *
  * ## 用法
  *
- * - 门禁：`scripts/checkKernelBoundary.mjs` 第 9 条直接调用 {@link scanPromisedShadows}；
+ * - 门禁：`scripts/checkKernelBoundary.ts` 第 9 条直接调用 {@link scanPromisedShadows}；
  * - 常规判据：`tests/kernelShadowScan.test.ts` 以 `--check` 子进程调用（与 kernelSurface
  *   的 CI 兼容做法一致：原生 Node 解析，不经打包器）；
- * - 手工：`node scripts/kernelShadowScan.mjs` 打印两侧规模与冲突清单。
+ * - 手工：`node scripts/kernelShadowScan.ts` 打印两侧规模与冲突清单。
  */
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -54,15 +54,45 @@ const REEXPORT_RE = /export\s+(?:type\s+)?\{([^}]+)\}\s+from\s+['"]([^'"]+)['"]/
 /** 星号再导出：`export * from './x.ts'`（把目标模块的全部导出名并入）。 */
 const STAR_REEXPORT_RE = /export\s+\*\s+from\s+['"]([^'"]+)['"]/g;
 
+/** 一个影子冲突：app 侧声明点与内核承诺模块。 */
+export interface ShadowConflict {
+  /** 重合的符号名。 */
+  name: string;
+  /** app 侧声明点（`相对路径#声明种类`）。 */
+  sites: string[];
+  /** 内核承诺它的模块（相对内核 dist 的路径）。 */
+  promisedBy: string[];
+}
+
+/** {@link scanPromisedShadows} 的结果。 */
+export interface ShadowScanResult {
+  /** 内核包是否可读。 */
+  kernelPackage: boolean;
+  /** 内核承诺导出名总数。 */
+  promisedCount: number;
+  /** extensions 声明名总数。 */
+  declaredCount: number;
+  /** 影子冲突清单（空即通过）。 */
+  shadows: ShadowConflict[];
+}
+
+/** {@link formatShadowReport} 的结果。 */
+export interface ShadowReport {
+  /** 是否通过。 */
+  ok: boolean;
+  /** 可读文本。 */
+  text: string;
+}
+
 /**
  * 递归列出目录下的源码文件。
- * @param {string} dir 起始目录。
- * @param {RegExp} pattern 文件名过滤。
- * @returns {string[]} 绝对路径。
+ * @param dir 起始目录。
+ * @param pattern 文件名过滤。
+ * @returns 绝对路径。
  */
-function walkSources(dir, pattern) {
+function walkSources(dir: string, pattern: RegExp): string[] {
   if (!existsSync(dir)) return [];
-  const out = [];
+  const out: string[] = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const abs = join(dir, entry.name);
     if (entry.isDirectory()) out.push(...walkSources(abs, pattern));
@@ -73,11 +103,11 @@ function walkSources(dir, pattern) {
 
 /**
  * 把再导出 spec 解析成声明文件候选（`.ts` / `.js` / 省略后缀三种写法都收）。
- * @param {string} fromFile 引用方 `.d.ts`。
- * @param {string} spec 再导出 spec（只处理相对路径）。
- * @returns {string[]} 候选声明文件（绝对路径，按约定优先）。
+ * @param fromFile 引用方 `.d.ts`。
+ * @param spec 再导出 spec（只处理相对路径）。
+ * @returns 候选声明文件（绝对路径，按约定优先）。
  */
-function declarationCandidates(fromFile, spec) {
+function declarationCandidates(fromFile: string, spec: string): string[] {
   const resolved = resolve(dirname(fromFile), spec);
   const base = resolved.replace(/\.d\.ts$/u, '').replace(/\.(?:js|ts)$/u, '');
   return [`${base}.d.ts`, resolved];
@@ -85,10 +115,10 @@ function declarationCandidates(fromFile, spec) {
 
 /**
  * 把一段再导出名单拆成**导出名**（`B as C` 取 C；`type X` 去掉 `type `）。
- * @param {string} raw 花括号内的文本。
- * @returns {string[]} 导出名列表。
+ * @param raw 花括号内的文本。
+ * @returns 导出名列表。
  */
-function reexportedNames(raw) {
+function reexportedNames(raw: string): string[] {
   return raw
     .split(',')
     .map((part) => part.trim().replace(/^type\s+/u, ''))
@@ -103,26 +133,35 @@ function reexportedNames(raw) {
  * 归因统一记在最外层承诺模块上（报错时指向 `dist/sandbox.d.ts` 这类消费者能理解的入口，
  * 而不是内部实现文件）。
  *
- * @param {string} dtsPath 声明文件绝对路径（缺失即跳过）。
- * @param {string} module 承诺模块（相对内核包根，正斜杠）。
- * @param {Map<string, string[]>} names 符号名 → 承诺模块列表（原地追加）。
- * @param {Set<string>} visited 已访问文件（防循环再导出）。
- * @returns {void}
+ * @param dtsPath 声明文件绝对路径（缺失即跳过）。
+ * @param module 承诺模块（相对内核包根，正斜杠）。
+ * @param names 符号名 → 承诺模块列表（原地追加）。
+ * @param visited 已访问文件（防循环再导出）。
+ * @returns void
  */
-function collectDeclaredNames(dtsPath, module, names, visited) {
+function collectDeclaredNames(
+  dtsPath: string,
+  module: string,
+  names: Map<string, string[]>,
+  visited: Set<string>,
+): void {
   if (visited.has(dtsPath) || !existsSync(dtsPath)) return;
   visited.add(dtsPath);
-  const add = (name) => {
-    if (!names.has(name)) names.set(name, []);
-    if (!names.get(name).includes(module)) names.get(name).push(module);
+  const add = (name: string): void => {
+    const list = names.get(name);
+    if (list === undefined) {
+      names.set(name, [module]);
+      return;
+    }
+    if (!list.includes(module)) list.push(module);
   };
   const text = readFileSync(dtsPath, 'utf8');
-  for (const match of text.matchAll(DECLARATION_RE)) add(match[2]);
+  for (const match of text.matchAll(DECLARATION_RE)) add(match[2]!);
   for (const match of text.matchAll(REEXPORT_RE)) {
-    for (const name of reexportedNames(match[1])) add(name);
+    for (const name of reexportedNames(match[1]!)) add(name);
   }
   for (const match of text.matchAll(STAR_REEXPORT_RE)) {
-    for (const candidate of declarationCandidates(dtsPath, match[1])) {
+    for (const candidate of declarationCandidates(dtsPath, match[1]!)) {
       collectDeclaredNames(candidate, module, names, visited);
     }
   }
@@ -135,11 +174,11 @@ function collectDeclaredNames(dtsPath, module, names, visited) {
  * （`./maintenance` → `dist/maintenance.d.ts`）。旧实现只做 `.js → .d.ts` 替换，curated 键
  * 会拼成 `dist/maintenance`（目录名）而永远不存在——桶里的承诺因此整类漏扫。
  *
- * @param {string} kernelRoot 内核包根。
- * @param {string} key exports 键。
- * @returns {string} 声明文件绝对路径（可能不存在，由调用方 `existsSync` 过滤）。
+ * @param kernelRoot 内核包根。
+ * @param key exports 键。
+ * @returns 声明文件绝对路径（可能不存在，由调用方 `existsSync` 过滤）。
  */
-function declarationFileOf(kernelRoot, key) {
+function declarationFileOf(kernelRoot: string, key: string): string {
   const relativeKey = key.replace(/^\.\//u, '');
   const declaration = relativeKey.endsWith('.js')
     ? `${relativeKey.slice(0, -'.js'.length)}.d.ts`
@@ -154,15 +193,16 @@ function declarationFileOf(kernelRoot, key) {
  * （`./sandbox` / `./mcp` / `./maintenance`）——5 件同体副本就是这样在门禁全绿时滞留的。
  *
  * 找不到 `.d.ts` 的条目（原生二进制 / JSON 资产）跳过——它们没有 TS 符号可撞名。
- * @param {string} root 仓库根。
- * @returns {Map<string, string[]>} 符号名 → 承诺它的模块（相对内核 dist 的路径）。
+ * @param root 仓库根。
+ * @returns 符号名 → 承诺它的模块（相对内核 dist 的路径）。
  */
-function readPromisedNames(root) {
-  const names = new Map();
+function readPromisedNames(root: string): Map<string, string[]> {
+  const names = new Map<string, string[]>();
   const kernelRoot = join(root, 'node_modules', '@omniharness', 'kernel');
   const pkgPath = join(kernelRoot, 'package.json');
   if (!existsSync(pkgPath)) return names;
-  const exportsMap = JSON.parse(readFileSync(pkgPath, 'utf8')).exports ?? {};
+  const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as { exports?: Record<string, unknown> };
+  const exportsMap = pkg.exports ?? {};
   for (const key of Object.keys(exportsMap)) {
     // 根入口（`.`）是整包索引桶，只做再导出、不新增模块身份；同名符号在它的深路径条目上
     // 一样会被扫到（重复计入只会制造噪声），故跳过。
@@ -170,22 +210,28 @@ function readPromisedNames(root) {
     const dts = declarationFileOf(kernelRoot, key);
     if (!existsSync(dts)) continue;
     const module = relative(kernelRoot, dts).replaceAll('\\', '/');
-    collectDeclaredNames(dts, module, names, new Set());
+    collectDeclaredNames(dts, module, names, new Set<string>());
   }
   return names;
 }
 
 /**
  * 扫 app 自有扩展层自己声明的导出符号名。
- * @param {string} root 仓库根。
- * @returns {Map<string, string[]>} 符号名 → 声明点（`相对路径#声明种类`）。
+ * @param root 仓库根。
+ * @returns 符号名 → 声明点（`相对路径#声明种类`）。
  */
-function readExtensionNames(root) {
-  const names = new Map();
+function readExtensionNames(root: string): Map<string, string[]> {
+  const names = new Map<string, string[]>();
   for (const file of walkSources(join(root, 'src', 'host', 'extensions'), /\.(ts|tsx|mts|cts)$/u)) {
     for (const match of readFileSync(file, 'utf8').matchAll(DECLARATION_RE)) {
-      if (!names.has(match[2])) names.set(match[2], []);
-      names.get(match[2]).push(`${relative(root, file).replaceAll('\\', '/')}#${match[1]}`);
+      const name = match[2]!;
+      const site = `${relative(root, file).replaceAll('\\', '/')}#${match[1]}`;
+      const list = names.get(name);
+      if (list === undefined) {
+        names.set(name, [site]);
+      } else {
+        list.push(site);
+      }
     }
   }
   return names;
@@ -193,21 +239,20 @@ function readExtensionNames(root) {
 
 /**
  * 执行影子扫描。
- * @param {string} [root] 仓库根（缺省本仓；判据可传临时目录）。
- * @returns {{
- *   kernelPackage: boolean,
- *   promisedCount: number,
- *   declaredCount: number,
- *   shadows: { name: string, sites: string[], promisedBy: string[] }[],
- * }} 扫描结果；`shadows` 为空即通过。
+ * @param root 仓库根（缺省本仓；判据可传临时目录）。
+ * @returns 扫描结果；`shadows` 为空即通过。
  */
-export function scanPromisedShadows(root = DEFAULT_ROOT) {
+export function scanPromisedShadows(root: string = DEFAULT_ROOT): ShadowScanResult {
   const promised = readPromisedNames(root);
   const declared = readExtensionNames(root);
   const shadows = [...declared.keys()]
     .filter((name) => promised.has(name))
     .sort()
-    .map((name) => ({ name, sites: declared.get(name), promisedBy: promised.get(name) }));
+    .map((name) => ({
+      name,
+      sites: declared.get(name)!,
+      promisedBy: promised.get(name)!,
+    }));
   return {
     kernelPackage: existsSync(join(root, 'node_modules', '@omniharness', 'kernel', 'package.json')),
     promisedCount: promised.size,
@@ -218,10 +263,10 @@ export function scanPromisedShadows(root = DEFAULT_ROOT) {
 
 /**
  * 把扫描结果渲染成一行结论 + 冲突明细（门禁与判据共用同一口径）。
- * @param {ReturnType<typeof scanPromisedShadows>} result 扫描结果。
- * @returns {{ ok: boolean, text: string }} 结论与可读文本。
+ * @param result 扫描结果。
+ * @returns 结论与可读文本。
  */
-export function formatShadowReport(result) {
+export function formatShadowReport(result: ShadowScanResult): ShadowReport {
   if (!result.kernelPackage) {
     return { ok: false, text: '未找到 @omniharness/kernel（先 npm ci 再跑影子扫描）' };
   }
