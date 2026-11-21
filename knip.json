@@ -9,7 +9,7 @@
   ],
   "project": ["src/**/*.ts", "web/src/**/*.{ts,tsx}", "scripts/**/*.ts"],
   "ignoreDependencies": ["axe-core"],
-  "ignoreBinaries": ["net", "where.exe"],
+  "ignoreBinaries": ["net"],
   "ignoreIssues": {
     "src/host/kernel/contracts.ts": ["exports", "types"],
     "src/host/extensions/contracts/ports/index.ts": ["exports", "types"],

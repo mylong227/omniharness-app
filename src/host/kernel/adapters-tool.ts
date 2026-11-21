@@ -14,5 +14,4 @@ export { CodeInterpreter } from '@omniharness/kernel/kernel/adapters/tool/code/c
 export type { CodeInterpreterDeps, CodeRunResult } from '@omniharness/kernel/kernel/adapters/tool/code/codeInterpreter.js';
 export { SpillReadTool } from '@omniharness/kernel/kernel/adapters/tool/meta/spillReadTool.js';
 export { RegistryToolPort } from '@omniharness/kernel/kernel/adapters/tool/registryToolPort.js';
-export { ProcessTreeKiller } from '@omniharness/kernel/kernel/adapters/tool/shell/processTreeKiller.js';
 export { DelegateTool } from '@omniharness/kernel/kernel/adapters/tool/workflow/delegateTool.js';

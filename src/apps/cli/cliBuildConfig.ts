@@ -35,7 +35,7 @@ import {
 import { SsrfPolicy } from '../../host/kernel/security.ts';
 import { endpointDefaults, type ResolvedAdapterDefaults } from '../../host/kernel/util.ts';
 import { WorkerRegistry } from '../../host/kernel/platform.ts';
-import { ExternalCliWorker } from '../../host/extensions/kernel/worker/externalCliWorker.ts';
+import { ExternalCliWorker } from '../../host/kernel/worker.ts';
 import { RegistryToolPort } from '../../host/kernel/adapters-tool.ts';
 import { McpGateway } from '../../host/kernel/protocols.ts';
 import { McpServerCommand } from '../../host/extensions/protocols/mcp/mcpServerCommand.ts';

@@ -60,6 +60,12 @@ protocols/   MCP 客户端活代码（mcpRegistryClient / mcpServerCommand，src
 ROADMAP `m4-source-lines` 记账），消费点改指 `src/host/kernel/{maintenance,autonomy}.ts`
 对接面；GraphSummary 契约随迁内核 contracts/ports/autonomy/。
 
+**2026-11-22 R27 worker 域清偿**：`kernel/worker/cliWorker.ts`（CliWorker）、
+`externalCliWorker.ts`（ExternalCliWorker）、`windowsShim.ts`（WindowsShim）三件
+（461 行）随内核 alpha.38 收编进 worker 域，消费点 3 处改指 `src/host/kernel/worker.ts`
+对接面；跨仓交换条件在内核 ROADMAP/planCheck 记账（源行上限提额，条件=应用侧退役 483 行
+口径）。本目录 worker 子目录清空删除。
+
 ## 消费方式
 
 业务代码经相对路径直接引用本目录，或经 `contracts/ports/index.ts`
