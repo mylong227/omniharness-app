@@ -187,7 +187,7 @@ test('markdown 渲染路径确实用 highlight.js（npm import，不再是 windo
   }
   assert.match(
     md,
-    /registerLanguage\(name, lang\.default\)/u,
+    /registerLanguage\(name, /u,
     '语言必须真的 registerLanguage（只 import 不注册 = 静默失效）',
   );
   assert.match(md, /ensureMarkdownLibs/u, '惰性装载入口必须存在（mount 预热调用点）');

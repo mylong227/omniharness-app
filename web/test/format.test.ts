@@ -6,7 +6,7 @@
 // @vitest-environment jsdom
 
 import assert from 'node:assert/strict';
-import { test } from 'vitest';
+import { beforeAll, test } from 'vitest';
 import type * as ReactNS from 'react';
 import { renderElement } from './rtlHarness.ts';
 import {
@@ -16,6 +16,7 @@ import {
   walk as facadeWalk,
 } from './domFacade.ts';
 import type { FacadeNode } from './domFacade.ts';
+import { ensureMarkdownLibs } from '../src/ui/markdown.ts';
 
 // 迁移说明（2026-10-18）：本文件原先用 `fakeReact` + `window` 桩收集纯数据 vnode。
 // 现在走**真实 React + jsdom**：格式函数返回的元素被真的渲染成 DOM，再由 `domFacade`
@@ -287,7 +288,8 @@ test('手写渲染器：标题下移两级（h1→h3）且列表/表格结构完
   assert.deepEqual(walk(table).filter((n) => n.type === 'td').map((n) => allText(n).join('')), ['a', 'b']);
 });
 
-test('renderMarkdown 现在委托给 markdown-it 管线（依赖已随 bundle 就位）', () => {
+test('renderMarkdown 现在委托给 markdown-it 管线（B2 起需先 ensure 惰性库）', async () => {
+  await ensureMarkdownLibs();
   // 迁移前这条分支取决于「window.markdownit 是否存在」；改成 npm import 后恒为真。
   // 断言方式：markdown-it 产出的结构与手写实现不同 —— 它会输出标准 <p>/<code> 结构，
   // 且不再做 h1→h3 的下移（那是手写实现为了版面做的特例）。
@@ -296,7 +298,8 @@ test('renderMarkdown 现在委托给 markdown-it 管线（依赖已随 bundle �
   assert.strictEqual(clsOf(node), 'md-content', '仍应包一层 md-content');
 });
 
-test('renderMarkdown：表格带 .md-table 类（否则暗色主题里是一片无边界文本）', () => {
+test('renderMarkdown：表格带 .md-table 类（否则暗色主题里是一片无边界文本）', async () => {
+  await ensureMarkdownLibs();
   const node = renderMarkdown('| 列1 | 列2 |\n|---|---|\n| a | b |\n');
   const html = (node.props as { dangerouslySetInnerHTML?: { __html: string } }).dangerouslySetInnerHTML?.__html ?? '';
   assert.match(html, /<table class="md-table">/, 'markdown-it 表格必须补上 .md-table');

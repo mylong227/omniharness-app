@@ -2,14 +2,20 @@
 // 大会话全量序列化是 O(N) IO+传输，前端分页本以 300 为页；缺省 500 + hasMore 让
 // 「不传 limit」的调用方也走分页语义。
 import assert from 'node:assert/strict';
-import { test } from 'vitest';
+import { beforeEach, test } from 'vitest';
 import { TurnOrchestration } from '../src/apps/server/core/turnOrchestration.ts';
+import { resetEventsCacheForTests } from '../src/apps/server/services/session/sessionEventsCache.ts';
 import type { ServerServices } from '../src/apps/server/core/serverServices.ts';
 
 /** 造 N 条事件。 */
 function eventsOf(n: number): { id: string }[] {
   return Array.from({ length: n }, (_, i) => ({ id: `e${i}` }));
 }
+
+beforeEach(() => {
+  // 缓存按 threadId 键控，本文件跨用例共用 't'——先清避免上一用例的缓存帧串场。
+  resetEventsCacheForTests();
+});
 
 /** 最小 services 桩（getThread 只消费 runtime.agent().eventsOf）。 */
 function orchOf(events: readonly { id: string }[]): TurnOrchestration {
