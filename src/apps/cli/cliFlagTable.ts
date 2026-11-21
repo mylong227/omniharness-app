@@ -193,7 +193,11 @@ const FLAG_TABLE: Record<string, FlagApply> = {
   },
   '--model': (a, argv, i) => {
     a.model = CliFlagTable.valueOf(argv, i, '--model');
-    // 推理强度（#B6 三通道补齐，2026-11-21 P7）：文件 / env / 旗标同源，argv 后出现者生效。
+    return 1;
+  },
+  // 推理强度（#B6 三通道补齐，2026-11-21 P7）：文件 / env / 旗标同源，argv 后出现者生效。
+  // 独立条目——此前误放进 --model 分支内，单独使用 --reasoning 会被吞（自查修正）。
+  '--reasoning': (a, argv, i) => {
     a.reasoning = CliFlagTable.enumOf(argv, i, '--reasoning', REASONINGS);
     return 1;
   },
