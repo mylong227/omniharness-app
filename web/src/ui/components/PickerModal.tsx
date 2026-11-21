@@ -13,7 +13,7 @@
 import * as React from 'react';
 // 子路径导入（不走 barrel，理由见 vite.config.ts「分块改造」注释）。
 import Modal from 'antd/es/modal';
-import { icon } from '../models/Icon.ts';
+import { icon } from '../kit/Icon.tsx';
 import { t } from '../i18n/i18n.ts';
 
 /** 选择器壳的入参。 */

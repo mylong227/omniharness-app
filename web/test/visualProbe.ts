@@ -149,7 +149,7 @@ function probeResults() {
       branch: 'main',
       files: [
         { path: 'web/styles/polish.css', status: 'A', additions: 1840, deletions: 0 },
-        { path: 'web/src/ui/models/Icon.ts', status: 'A', additions: 186, deletions: 0 },
+        { path: 'web/src/ui/kit/Icon.tsx', status: 'A', additions: 186, deletions: 0 },
         { path: 'web/src/ui/components/NavRail.tsx', status: 'M', additions: 22, deletions: 12 },
         { path: 'web/index.html', status: 'M', additions: 4, deletions: 1 },
         { path: 'web/styles/legacy-theme-backup.css', status: 'D', additions: 0, deletions: 93 },

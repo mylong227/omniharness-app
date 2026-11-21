@@ -24,7 +24,7 @@ import Typography from 'antd/es/typography';
 import { useApp } from '../../../context.ts';
 import { t } from '../../../i18n/i18n.ts';
 import { timeOf } from '../../../format.ts';
-import { icon } from '../../../models/Icon.ts';
+import { icon } from '../../../kit/Icon.tsx';
 import { FilePicker } from '../../FilePicker.tsx';
 import type {
   ProofBundleViewLike,

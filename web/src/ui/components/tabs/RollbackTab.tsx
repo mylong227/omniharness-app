@@ -14,7 +14,7 @@ import { useSessionResource } from '../../hooks/useSessionResource.ts';
 // 领域模型下沉到 models/（零 React 依赖，可单测）；此处 re-export 保持调用方 import 路径不变。
 import { CheckpointNamer } from '../../models/checkpoint.ts';
 import { CheckpointTimeline } from '../../models/CheckpointTimeline.ts';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import { emptyNote, emptyState } from '../../format.ts';
 import type { CheckpointMeta } from '../../models/checkpoint.ts';
 import type { TimelineDay, TimelineEntry } from '../../models/CheckpointTimeline.ts';

@@ -11,7 +11,7 @@
 
 import * as React from 'react';
 import { badge, timeOf, renderMarkdown } from '../../format.ts';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import { extractUrls } from '../../textUtils.ts';
 import { TextRevealer } from '../../models/TextRevealer.ts';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback.ts';

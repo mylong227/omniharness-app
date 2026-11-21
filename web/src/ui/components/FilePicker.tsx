@@ -12,7 +12,7 @@ import * as React from 'react';
 import { Tree } from 'antd';
 import type { TreeDataNode } from 'antd';
 import { PickerModal } from './PickerModal.tsx';
-import { icon } from '../models/Icon.ts';
+import { icon } from '../kit/Icon.tsx';
 import { FileSizeFormatter } from '../models/FileSizeFormatter.ts';
 import { FS_ROOT, fsKeyOf, fsPathOf, isFsKey } from '../models/FsPickerLazy.ts';
 import type { ApiClient } from '../../core/ApiClient.ts';

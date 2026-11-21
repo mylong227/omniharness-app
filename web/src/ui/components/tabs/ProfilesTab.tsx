@@ -7,7 +7,7 @@ import * as React from 'react';
 import { useApp } from '../../context.ts';
 import { useSessionResource } from '../../hooks/useSessionResource.ts';
 import { emptyState } from '../../format.ts';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import type { Profile, ActivePlugins } from '../../../types/models.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
 import Input from 'antd/es/input';

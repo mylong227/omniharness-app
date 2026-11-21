@@ -8,9 +8,9 @@
 // 面板与设置共用同一份左导航（见 `ConsoleRegistry.ts`）。本注册表仍是面板 key / 标签 / 图标的
 // 唯一事实源，`rail` 布尔位随 NavRail 一并移除（死数据不保留）。
 //
-// 零 React 依赖（只导出纯数据），可直接在 node 下单测；图标名来自 `models/Icon.ts` 的 `IconName`。
+// 零 React 依赖（只导出纯数据），可直接在 node 下单测；图标名来自 `kit/Icon.tsx` 的 `IconName`。
 
-import type { IconName } from './Icon.ts';
+import type { IconName } from '../kit/Icon.tsx';
 
 /** 功能面板条目。 */
 export interface PanelEntry {

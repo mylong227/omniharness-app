@@ -8,7 +8,7 @@
 // 纯视图组件：不直接 fetch，RPC 经 onSubmit 回调上抛。
 
 import * as React from 'react';
-import { icon } from '../models/Icon.ts';
+import { icon } from '../kit/Icon.tsx';
 import type {
   AskQuestionItem,
   QuestionAnswerSubmission,

@@ -23,7 +23,7 @@ import Typography from 'antd/es/typography';
 import { t } from '../../../i18n/i18n.ts';
 import { contextRowLabelOf } from '../../../models/KernelTextOverrides.ts';
 import { useApp } from '../../../context.ts';
-import { icon } from '../../../models/Icon.ts';
+import { icon } from '../../../kit/Icon.tsx';
 import { timeOf } from '../../../format.ts';
 import type {
   CompactionMarkLike,

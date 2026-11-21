@@ -11,7 +11,7 @@ import Tag from 'antd/es/tag';
 import Typography from 'antd/es/typography';
 import { useApp } from '../../context.ts';
 import { ClipboardCopier } from '../../models/ClipboardCopier.ts';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import { t } from '../../i18n/i18n.ts';
 import type {
   DecisionRowLike,

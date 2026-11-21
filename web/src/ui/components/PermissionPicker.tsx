@@ -16,7 +16,7 @@ import { MenuFocusModel } from '../models/MenuFocusModel.ts';
 import { ActivationKeys } from '../models/ActivationKeys.ts';
 import { usePopoverMenu } from './usePopoverMenu.ts';
 import { useApprovalTiers } from './useApprovalTiers.ts';
-import { icon } from '../models/Icon.ts';
+import { icon } from '../kit/Icon.tsx';
 import { t } from '../i18n/i18n.ts';
 import type { ApprovalTier } from '../../types/models.ts';
 import type { ApiClient } from '../../core/ApiClient.ts';

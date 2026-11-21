@@ -6,7 +6,7 @@
 // 2026-11-10 第二轮收敛：「+ 添加项目」不再在这里出现——项目切换器下拉里已经有唯一入口，
 // 同一面板两个 `+` 只会让用户猜哪个才是"新建会话"。
 
-import { icon } from '../models/Icon.ts';
+import { icon } from '../kit/Icon.tsx';
 import type { PanelView } from './session/viewCycle.ts';
 import { t } from '../i18n/i18n.ts';
 

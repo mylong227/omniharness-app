@@ -9,7 +9,7 @@
 
 import type { ReactElement } from 'react';
 import { statusBadge } from '../../textUtils.ts';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import { emptyNote, emptyState } from '../../format.ts';
 import {
   renderChangesPatch,

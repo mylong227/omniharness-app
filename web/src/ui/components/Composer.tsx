@@ -26,7 +26,7 @@ import { WorkIndicator } from './WorkIndicator.tsx';
 import { AddMenu } from './AddMenu.tsx';
 import { PermissionPicker } from './PermissionPicker.tsx';
 import type { ChatQueueView } from '../models/ChatMessageQueue.ts';
-import { icon } from '../models/Icon.ts';
+import { icon } from '../kit/Icon.tsx';
 import { SpeechRecognitionFactory } from '../models/SpeechRecognitionFactory.ts';
 import type { FileAttachment } from '../../types/models.ts';
 import type { ComposerSeed } from '../shared.ts';

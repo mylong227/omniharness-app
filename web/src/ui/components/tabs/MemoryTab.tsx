@@ -8,7 +8,7 @@ import * as React from 'react';
 import { useApp } from '../../context.ts';
 import { useSessionResource } from '../../hooks/useSessionResource.ts';
 import { ImportanceStars } from '../../models/ImportanceStars.ts';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import { emptyState } from '../../format.ts';
 import type { MemoryFact, MemoryFactsResult, TemporalFactCard } from '../../../types/models.ts';
 import { t } from '../../i18n/i18n.ts';

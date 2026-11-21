@@ -5,7 +5,7 @@
 // 本文件零逻辑零状态（纯声明 + 查表函数）；读写通道在 SettingsModel.ts。
 
 import type { Config } from '../../../types/models.ts';
-import type { IconName } from '../Icon.ts';
+import type { IconName } from '../../kit/Icon.tsx';
 
 /** 设置分栏 key。 */
 export type SettingsTabKey =

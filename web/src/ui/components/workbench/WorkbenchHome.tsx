@@ -14,7 +14,7 @@ import * as React from 'react';
 import type { ApiClient } from '../../../core/ApiClient.ts';
 import type { SessionEntry } from '../../shared.ts';
 import type { ThreadEvent } from '../../../types/models.ts';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import { t } from '../../i18n/i18n.ts';
 import { PathJoiner } from '../../models/PathJoiner.ts';
 import { SessionBrief, type SessionBriefStats, type SessionContextStat } from '../../models/SessionBrief.ts';

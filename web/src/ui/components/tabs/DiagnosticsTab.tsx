@@ -23,7 +23,7 @@
 import * as React from 'react';
 import { useApp } from '../../context.ts';
 import { useSessionResource } from '../../hooks/useSessionResource.ts';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import type { ReactElement } from 'react';
 import type {
   DoctorReportLike,

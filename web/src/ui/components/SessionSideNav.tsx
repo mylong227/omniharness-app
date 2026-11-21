@@ -3,7 +3,7 @@
 // 纯展示（函数组件范式）：只画按钮，行为全由宿主回调注入；图标条态只留图标。
 // 注释里的口径保持原样——它们是「为什么长这样」的唯一记录，不要删。
 
-import { icon } from '../models/Icon.ts';
+import { icon } from '../kit/Icon.tsx';
 import { t } from '../i18n/i18n.ts';
 
 /**

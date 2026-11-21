@@ -6,7 +6,7 @@ import Skeleton from 'antd/es/skeleton';
 import Tag from 'antd/es/tag';
 import Tooltip from 'antd/es/tooltip';
 import Typography from 'antd/es/typography';
-import { icon } from '../../../models/Icon.ts';
+import { icon } from '../../../kit/Icon.tsx';
 import { t } from '../../../i18n/i18n.ts';
 import type { DecisionDetailViewLike, DecisionDispositionLike } from '../../../../types/models.ts';
 import {

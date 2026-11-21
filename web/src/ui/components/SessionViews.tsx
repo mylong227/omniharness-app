@@ -12,7 +12,7 @@ import { WorkspacePath } from '../models/WorkspacePath.ts';
 import type { FsNode } from '../../types/models.ts';
 import type { SessionEntry } from '../shared.ts';
 import { emptyState } from '../format.ts';
-import { icon } from '../models/Icon.ts';
+import { icon } from '../kit/Icon.tsx';
 import { timeAgo } from '../textUtils.ts';
 import { SessionRowMeta } from '../models/SessionRowMeta.ts';
 import { t } from '../i18n/i18n.ts';

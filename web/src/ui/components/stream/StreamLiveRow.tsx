@@ -7,7 +7,7 @@
 // 和 StreamView 的滚动 / 虚拟化逻辑毫无耦合，抽出去后两边都更好读。
 
 import * as React from 'react';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import { parsePartialJson, toolSubject, toolVerb } from '../../textUtils.ts';
 import { t } from '../../i18n/i18n.ts';
 import type { LiveInput } from '../../shared.ts';

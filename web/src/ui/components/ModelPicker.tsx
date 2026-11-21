@@ -18,7 +18,7 @@
 // 清单长到需要筛选时再加回来——那时它才有存在理由。
 
 import * as React from 'react';
-import { icon } from '../models/Icon.ts';
+import { icon } from '../kit/Icon.tsx';
 import { ComposerOptions } from '../models/ComposerOptions.ts';
 import { MenuFocusModel } from '../models/MenuFocusModel.ts';
 import { ActivationKeys } from '../models/ActivationKeys.ts';

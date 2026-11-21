@@ -18,7 +18,7 @@
 //
 // 零 React 依赖（只导出纯数据），可直接在 node 下单测。
 
-import type { IconName } from './Icon.ts';
+import type { IconName } from '../kit/Icon.tsx';
 import { PANELS, panelOf } from './PanelRegistry.ts';
 import { SETTINGS_TABS, type SettingsTabKey } from './SettingsModel.ts';
 

@@ -9,7 +9,7 @@
 
 import { parseDiffRows, type DiffRow } from '../../textUtils.ts';
 import { DiffHunkSplitter } from '../../models/DiffHunkSplitter.ts';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import { emptyNote } from '../../format.ts';
 import { t } from '../../i18n/i18n.ts';
 import Input from 'antd/es/input';

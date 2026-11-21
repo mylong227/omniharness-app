@@ -2,7 +2,7 @@
 // 纯展示组件（函数组件范式）：无内部状态、无副作用。
 
 import { FileIconResolver } from '../../models/FileIconResolver.ts';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import type { FileAttachment } from '../../../types/models.ts';
 
 /** AttachmentChips 组件的入参。 */

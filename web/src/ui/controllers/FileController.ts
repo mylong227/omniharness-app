@@ -53,7 +53,7 @@ export class FileController {
           ? t('{size} 字节', { size: r.size ?? 0 })
           : t('{tag} · {size} 字节', { tag, size: r.size ?? 0 });
       const view: FileView = {
-        // 标题只放文件名：`📄 ` 前缀已废弃（emoji 当图标，见 models/Icon.ts）；
+        // 标题只放文件名：`📄 ` 前缀已废弃（emoji 当图标，见 kit/Icon.tsx）；
         // 面板自己会用 `icon('file')` 表达"这是一个文件"。
         title: r.path,
         meta: meta.trim(),

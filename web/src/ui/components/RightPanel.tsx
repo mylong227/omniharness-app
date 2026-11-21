@@ -20,7 +20,7 @@ import * as React from 'react';
 import Tabs from 'antd/es/tabs';
 import type { TabsProps } from 'antd';
 import { FileKindClassifier } from '../models/FileKindClassifier.ts';
-import { icon } from '../models/Icon.ts';
+import { icon } from '../kit/Icon.tsx';
 import type { BrowserView, FileView } from '../shared.ts';
 import { t } from '../i18n/i18n.ts';
 

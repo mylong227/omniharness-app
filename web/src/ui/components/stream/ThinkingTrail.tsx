@@ -15,7 +15,7 @@
 
 import * as React from 'react';
 import { BrandMark } from '../BrandMark.tsx';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import { formatDuration } from '../../models/DurationFormat.ts';
 import { describeToolCall, processSummary } from '../../textUtils.ts';
 import { t } from '../../i18n/i18n.ts';

@@ -7,8 +7,8 @@
 // 纯展示组件：值由调用方注入，不直接读 localStorage / 全局状态。
 
 import * as React from 'react';
-import { icon } from '../../models/Icon.ts';
-import type { IconName } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
+import type { IconName } from '../../kit/Icon.tsx';
 import { t } from '../../i18n/i18n.ts';
 import { PathBrowseControl } from './PathBrowseControl.tsx';
 import {

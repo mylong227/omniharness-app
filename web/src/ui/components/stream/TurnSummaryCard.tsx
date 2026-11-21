@@ -11,8 +11,8 @@
 // 组件只负责排版与开合状态。
 
 import * as React from 'react';
-import { icon } from '../../models/Icon.ts';
-import type { IconName } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
+import type { IconName } from '../../kit/Icon.tsx';
 import { diffView } from '../../format.ts';
 import { buildTurnSummary, type TurnSummaryFile } from '../../models/TurnSummary.ts';
 import { formatDurationMs } from '../../models/DurationFormat.ts';

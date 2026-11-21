@@ -7,7 +7,7 @@
 
 import * as React from 'react';
 import { badge, jsonView, questionView, timeOf, todoView } from '../../format.ts';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import { SystemNoteNode } from './ContextBriefingCard.tsx';
 import { t } from '../../i18n/i18n.ts';
 import type { ThreadEvent } from '../../../types/models.ts';

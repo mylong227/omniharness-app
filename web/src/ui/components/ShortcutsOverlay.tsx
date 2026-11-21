@@ -9,7 +9,7 @@
 
 import * as React from 'react';
 import { t } from '../i18n/i18n.ts';
-import { icon } from '../models/Icon.ts';
+import { icon } from '../kit/Icon.tsx';
 import { KeyboardShortcuts } from '../models/KeyboardShortcuts.ts';
 import { GLOBAL_SHORTCUTS, INPUT_KEYS } from './console/SettingsShortcutsPane.tsx';
 

@@ -17,7 +17,7 @@ import { Tree } from 'antd';
 import type { TreeDataNode } from 'antd';
 import { PathJoiner } from '../models/PathJoiner.ts';
 import { PickerKeys } from '../models/PickerKeys.ts';
-import { icon } from '../models/Icon.ts';
+import { icon } from '../kit/Icon.tsx';
 import { FS_ROOT, fsKeyOf, fsPathOf, isFsKey } from '../models/FsPickerLazy.ts';
 import { PickerModal } from './PickerModal.tsx';
 import type { ApiClient } from '../../core/ApiClient.ts';

@@ -27,7 +27,7 @@
 // 可断言信号：根节点 data-virtual / data-rendered-count / data-total-count / data-event-count。
 
 import * as React from 'react';
-import { icon } from '../models/Icon.ts';
+import { icon } from '../kit/Icon.tsx';
 import { t } from '../i18n/i18n.ts';
 import { ChatHeader } from './ChatHeader.tsx';
 import type { ChatViewKind } from './ChatHeader.tsx';

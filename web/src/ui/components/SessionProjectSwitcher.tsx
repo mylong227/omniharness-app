@@ -4,7 +4,7 @@
 // （收成图标条时点它不展开，见下方 `!rail`）。项目条本身仍由 SessionViews.renderProjectsView
 // 渲染，与其它入口共用同一套行卡片。
 
-import { icon } from '../models/Icon.ts';
+import { icon } from '../kit/Icon.tsx';
 import type { SessionEntry } from '../shared.ts';
 import { renderProjectsView } from './SessionViews.tsx';
 import { t } from '../i18n/i18n.ts';

@@ -12,8 +12,8 @@
 
 import * as React from 'react';
 import { renderMarkdown } from '../../format.ts';
-import { icon } from '../../models/Icon.ts';
-import type { IconName } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
+import type { IconName } from '../../kit/Icon.tsx';
 import { SystemNote, type SystemNoteBody, type SystemNoteView } from '../../models/SystemNote.ts';
 import { t } from '../../i18n/i18n.ts';
 

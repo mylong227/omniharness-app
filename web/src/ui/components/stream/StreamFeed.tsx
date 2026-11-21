@@ -14,7 +14,7 @@
 
 import * as React from 'react';
 import { t } from '../../i18n/i18n.ts';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import { StreamEmpty } from './StreamEmpty.tsx';
 import { StreamingAssistantCard } from './StreamingAssistantCard.tsx';
 import { StreamLiveRow } from './StreamLiveRow.tsx';

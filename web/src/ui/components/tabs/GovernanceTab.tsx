@@ -24,7 +24,7 @@
 import * as React from 'react';
 import { useApp } from '../../context.ts';
 import { useSessionResource } from '../../hooks/useSessionResource.ts';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import type { ReactElement } from 'react';
 import { currentLocale, t } from '../../i18n/i18n.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。

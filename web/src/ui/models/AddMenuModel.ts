@@ -2,14 +2,14 @@
 // 零 React 依赖，node 环境可直接单测。
 
 import type { AgentCatalogEntry, PluginManifest, SearchHit } from '../../types/models.ts';
-// 图标名的**唯一事实源**在 models/Icon.ts（`IconName`）；这里只 import 类型（`import type` 编译期即擦除，
+// 图标名的**唯一事实源**在 kit/Icon.tsx（`IconName`）；这里只 import 类型（`import type` 编译期即擦除，
 // 不会把 Icon.ts 的运行时依赖（它现在 import react）拖进模型层，单测仍可在纯 node 下直接跑）。
-import type { IconName } from './Icon.ts';
+import type { IconName } from '../kit/Icon.tsx';
 import { t } from '../i18n/i18n.ts';
 import { personaDescriptionOf, personaNameOf } from './KernelTextOverrides.ts';
 
 /**
- * 菜单图标名（= 图标集里的合法名字，见 models/Icon.ts）。
+ * 菜单图标名（= 图标集里的合法名字，见 kit/Icon.tsx）。
  *
  * 为什么字段存字符串而不是 ReactElement：本文件是「零 React 依赖、node 环境可直接单测」的展示模型；
  * 存元素就等于把模型层绑死在组件运行时上。字符串在组件层（AddMenu.tsx）映射到 `icon()`，

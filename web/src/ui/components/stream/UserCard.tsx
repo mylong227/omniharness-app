@@ -5,7 +5,7 @@
 
 import * as React from 'react';
 import { badge, timeOf } from '../../format.ts';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import { formatDurationMs } from '../../models/DurationFormat.ts';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback.ts';
 import type { ThreadEvent } from '../../../types/models.ts';

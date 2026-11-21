@@ -32,7 +32,7 @@ import * as React from 'react';
 import Button from 'antd/es/button';
 import Menu from 'antd/es/menu';
 import type { MenuProps } from 'antd';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import { useApp } from '../../context.ts';
 import { t } from '../../i18n/i18n.ts';
 import {

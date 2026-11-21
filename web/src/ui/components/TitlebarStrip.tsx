@@ -10,7 +10,7 @@
 
 import type { ReactElement } from 'react';
 import { desktopBridge } from '../../core/desktop/DesktopBridge.ts';
-import { icon } from '../models/Icon.ts';
+import { icon } from '../kit/Icon.tsx';
 import { t } from '../i18n/i18n.ts';
 
 /** TitlebarStrip 组件的入参。 */

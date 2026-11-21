@@ -9,7 +9,7 @@ import Badge from 'antd/es/badge';
 import Button from 'antd/es/button';
 import type { BadgeProps } from 'antd/es/badge';
 import { emptyState } from '../../format.ts';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import { toolVerb } from '../../textUtils.ts';
 import type { ToolItem } from '../../shared.ts';
 import { t } from '../../i18n/i18n.ts';

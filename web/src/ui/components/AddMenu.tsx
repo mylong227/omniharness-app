@@ -9,7 +9,7 @@
 // 随 effect 清理（H3 对称）。
 
 import * as React from 'react';
-import { icon } from '../models/Icon.ts';
+import { icon } from '../kit/Icon.tsx';
 import { useApp } from '../context.ts';
 import { AddMenuModel, type AddMenuSection } from '../models/AddMenuModel.ts';
 import { PendingModes } from '../models/PendingModes.ts';

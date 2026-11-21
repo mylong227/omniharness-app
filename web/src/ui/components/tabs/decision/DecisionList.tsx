@@ -1,7 +1,7 @@
 import * as React from 'react';
 import Empty from 'antd/es/empty';
 import Tag from 'antd/es/tag';
-import { icon } from '../../../models/Icon.ts';
+import { icon } from '../../../kit/Icon.tsx';
 import { t } from '../../../i18n/i18n.ts';
 import type { DecisionRowLike, DecisionTurnSummaryLike } from '../../../../types/models.ts';
 import {

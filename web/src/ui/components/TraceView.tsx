@@ -8,8 +8,8 @@
 // 函数组件范式：行渲染下沉为模块级纯函数；仅筛选/搜索两个局部状态。
 
 import * as React from 'react';
-import { icon } from '../models/Icon.ts';
-import type { IconName } from '../models/Icon.ts';
+import { icon } from '../kit/Icon.tsx';
+import type { IconName } from '../kit/Icon.tsx';
 import { describeToolCall, parsePartialJson } from '../textUtils.ts';
 import { timeOf } from '../format.ts';
 import { EventFields } from '../models/EventFields.ts';
