@@ -5,6 +5,27 @@
 > 三路只读深盘（脚本 ts 化牵连面 / web 前端架构 / extensions 归属判定）的完整事实已内化于下文，
 > 每条结论带文件证据。
 
+## 执行进度（2026-11-21 当日回填）
+
+- **T 全仓 .ts 化 ✅**（T0+T1 / T2a / T2b / T2c / T3 / T4a 六 commit + CHANGELOG 批次九；
+  verify 全链绿）——附带清偿：vitest.config 残留 Vitest 4 poolOptions（maxWorkers 限幅
+  升级后一直未生效，已恢复）、childRunFailure 孤儿删除（L8）、35 处 plugin.js 后缀（T4a）、
+  vendorKernel 显式 cwd、boost 命令族悬空依赖登记（L4，去留另行裁决）。
+- **K3 serveInstance 双副本收敛 ✅**（677862d；cli 副本删除、5 消费点改指 extensions）。
+- **W1 类型护栏 ✅**（b2c00a1；tsconfig.tests.json 第 5 闸 + round-trip 探针——**上线即抓到
+  两处真漂移**：EventType 缺 rollback/calibration_units、timestamp number↔ISO；另清偿
+  tests 盲区 20 处旧账）。
+- **W2 settingsCatalog ✅**（57dfdf2；settings/ 六域文件 + 12 条结构判据，816 行零判据清零）。
+- **W3 面板单源 ✅**（4013a1e；PaneKey 联合 + Router 迁 ui/models + VALID_PANES 派生 +
+  paneRenderers 渲染器表编译期完整；App.ts -170 行）。
+- **W7 清理包 ✅**（a6868eb Icon→kit / 56f8bd3 命名+i18n 分片 / 4ee13a0 legacy 引用面锁死）。
+- **遗留**：L1 ✅（并行轮 f5d16c0 完成）/ L2 ✅ / L4 ✅（登记）/ L5 ✅ 关闭 / L6 ✅ 关闭 /
+  L8 ✅ / L9 knip 53 条硬证据在案转逐项清偿 / L7 维持缓偿。
+- **K1/K2 ⏸**：内核源仓有并行会话大 WIP（90 文件，R25 轮候选）——待其收口后按 §四
+  执行（R25a codec 承诺零代码 / R25b maintenance 上搬 / R25c graphStore）。
+- **W4 / W5 / W6 未启**：见 §五（W4 需 apiClientParity 判据先行适配；W5 行为判据先行；
+  W6 先 diff 双选择器）。
+
 ---
 
 ## 一、盘点结论（事实底座）

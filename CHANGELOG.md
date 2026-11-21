@@ -6,6 +6,35 @@
 ## [Unreleased]
 
 ### Changed（变更）
+- **批次十（2026-11-21，前端重构 W1/W2/W3/W7 + 遗留终态判定）**：
+  · **W1 类型护栏**：`tsconfig.tests.json` 把 tests/ 纳入 typecheck 链（第 5 个 tsc 闸）+
+    `tests/typeParity.test.ts` 编译期 round-trip 判据（后端服务返回形状 → web models.ts
+    镜像的恒等函数探针：fleet 快照 / decision 会话+详情 / ThreadEvent）。**上线即抓到两处
+    真漂移并清偿**：① 前端 `EventType` 缺内核 `'rollback'`/`'calibration_units'` 两类；
+    ② `ThreadEvent.timestamp` number↔ISO 串（内核线格式是 ISO；`format.ts timeOf` 同口径
+    放宽 + 4 组件解锁）。payload 为 UI 域刻意收窄（unknown→Record，EventFields fail-soft
+    守卫），探针显式投影注明。顺带清偿 tests/ 盲区历史欠账 20 处（skillEditor 夹具 /
+    sessionEventsCache SessionEvent 全形 / cliHelp JSON import attribute 等）。
+  · **W2 settingsCatalog 拆域**：816 行纯数据 + 全仓零判据 → `ui/models/settings/` 六域
+    文件（types/tabs/fieldsPrimary/fieldsRuntime/fields 合并/labels，tab 三段保序切分）+
+    `web/test/settingsCatalog.test.ts` **12 条结构不变量机检**（fieldId 唯一 / tab 合法 /
+    NUMBER_RANGES 与 number 字段双向对账 / 标签表孤儿键 / select 必有 options / 规模快照）。
+    消费面零涟漪（仅 SettingsModel 一个消费者）。
+  · **W3 面板 key 单源化**：三处手维（Router VALID_PANES / PanelRegistry / App paneOf）
+    收口到 PanelRegistry 唯一真源——`satisfies` 保字面量键 + 导出 `PaneKey` 联合；
+    Router 迁 `ui/models/`（消费 PanelRegistry 不再构成 core→ui 反向依赖）+ VALID_PANES
+    改派生；新增 `paneRenderers.ts` 渲染器表（`Record<PaneKey, Renderer>` **编译期完整**
+    ：新增面板漏渲染器即 tsc 红，旧 switch 会静默落 default）+ lazy 声明与空闲预取随迁；
+    App.ts -170 行。
+  · **W7 清理包**：Icon 迁出 models 层到 `ui/kit/Icon.tsx`（models 唯一 JSX 越界，67 处
+    导入面同改 + iconPolicy 判据路径钉同步）；`checkpoint.ts` → `Checkpoint.ts`（PascalCase
+    补齐）；i18n 分片 `tabs_a/b/c` → `tabsAuditChanges/tabsToolsVault/tabsControl`（域语义
+    名，词条键零牵连）；`legacyMarkdown.test.ts` 引用面锁死判据（生产不可达兜底资产：
+    format 定义 / markdown 回退 / format.test 直测之外即红）。
+  · **遗留终态判定**：L1 decisionLedger/DesktopConfigLoader 切分由并行轮完成（f5d16c0）；
+    L5 eventsOf 内核侧缓存登记关闭（app 侧双缓存已兑现收益，触发条件不再成立）；
+    L6 混渲统一登记关闭（B2 + W7c 引用面锁死）；L9 零消费导出获 knip 硬证据（53 条）
+    转逐项清偿，详见下方缓偿登记段；L7 维持缓偿（触发条件未到）。
 - **批次九（2026-11-21，全仓 .ts 化最后一公里）**：27 个脚本类 .mjs/.cjs（约 4.8k 行）→
   25 件 .ts/.mts + 2 件刻意保留（`examples/embed-demo.mjs` 随 npm 发行给用户、
   `desktop/scripts/fakeElectron.cjs` 是 esbuild alias 目标）——源码区 .mjs/.cjs 清零。
@@ -58,10 +87,24 @@
     双钩子/Plugins 裸奔补 toast）——三处注释与代码不符顺带修正；model.adapters RPC
     （116→117）+ Router 卡凭据实时预检；--reasoning 旗标三通道补齐（自查抓到 handler
     误放 --model 分支内单独使用被吞 → 拆独立条目 + 行为判据三例）；三配置面写入者清单。
-  · **缓偿登记**（理由在案）：eventsOf 读档缓存（内核 jsonlStorage，等 R22 内核侧）；
-    markdown 惰性（legacy/full 混渲需统一重渲设计）；语言双真源互通（IPC+壳层重建
-    设计）；decisionLedgerService/DesktopConfigLoader 切分（内聚单类，判据已钉行为）；
-    零消费导出批量收敛（纯噪音）。
+  · **缓偿登记（2026-11-21 批次十复核后终态）**：
+    ▸ eventsOf 读档缓存（等 R22 内核侧）——**登记关闭**：R22-R24（alpha.36）未做内核侧
+      缓存，但 app 侧 B1（sessionEventsCache LRU+TTL）+ sessionScanCache 双缓存已把收益
+      兑现完毕，触发条件不再成立；内核若未来自带缓存属其内部优化，无需 app 动作。
+    ▸ markdown 惰性 / legacy-full 混渲统一——**登记关闭**：B2 惰性装载已落地；
+      W7c 以引用面锁死判据（legacyMarkdown.test）把 legacyRenderMarkdown 钉成
+      「format 定义 / markdown 回退 / format.test 直测」三点之外的零引用资产，混渲统一
+      设计不再有触发场景。
+    ▸ 语言双真源互通（桌面 IPC+壳层重建）——**维持缓偿**：触发条件未到（B3 已五层
+      收敛主体，仅剩桌面壳与 web 的 locale 事件互通这一独立面）。
+    ▸ decisionLedgerService/DesktopConfigLoader 切分——**已完成**（并行轮 f5d16c0：
+      decisionLedger 四文件 / DesktopConfigLoader 三文件）。
+    ▸ 零消费导出批量收敛——**获得硬证据，转逐项清偿**：knip 扫描（entry=main/index/exec，
+      production 口径）报 **53 条未消费导出**（boost 族 5 / cli 面 9 / server services 13 /
+      extensions+kernel 面 4 / web 22——含 paneRenderers 表、SessionViews 内部函数等
+      「为判据/防御而导出」的误报候选）。**不批量删**：逐条判定
+      「判据专用 / API 面 / 真死码」后清偿，随后把 knip 纳为 devDep 闸（触发条件：
+      首轮清偿完成后）。
 - **桌面「快速提问」快捷键配置化（2026-11-20）**：全局快捷键从 main.ts 模块常量 +
   menu.ts 内联 accelerator 两处硬编码，收进 `desktop.config.json` 的
   `app.quickCaptureShortcut`（缺省 `CommandOrControl+Shift+Space` 不变；accelerator
