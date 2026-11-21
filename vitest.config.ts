@@ -80,6 +80,9 @@ export default defineConfig({
           ],
           environment: 'node',
           fileParallelism: true,
+          // fork 并发上限：无界并发会把机器打满、worker 启动超时（实测 7 个文件
+          // 「Failed to start forks worker」）——限到 CPU 的一半量级，稳定优先。
+          poolOptions: { forks: { maxForks: 6, minForks: 1 } },
         },
       },
     ],
