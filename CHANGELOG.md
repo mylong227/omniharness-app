@@ -6,6 +6,38 @@
 ## [Unreleased]
 
 ### Changed（变更）
+- **批次十三（2026-11-22，W5 资源钩子收编 + L4 boost 定裁 + W7 尾巴 + W1 扩面 + L7 终态）**：
+  · **W5 五资源钩子收编**：`useSessionResource` 升级为唯一取数核，新增 `pollMs`（活跃轮询、
+    文档隐藏暂停）/ `cacheTtlMs`（触发式缓存窗口）/ `resetKey`（切会话复位）/
+    `keepDataWhenDisabled`（暂不活跃保留旧快照），返回值补 `refreshing`（已有数据的后台刷新）、
+    `settled`（首取落地，成败均算）、`updatedAt`（最近成功时刻）；「后发必胜」票号判定抽成
+    `LatestRequest`（`begin/isCurrent/invalidate`），六处手写 `seqRef` 收敛为一个类。
+    五个变体 hook 全部改吃同一核：上下文工作室（删自有 seq + 切会话复位）、编队
+    （2s 轮询 + 30s TTL + 不活跃保留，由核直接表达）、决策账本（视图/详情两流各自一核，
+    静默刷新由 `refreshing` 提供）、变更审查（清单入核，patch 用 `LatestRequest`）、
+    厂商目录（目录入核，打码 Key 仍为静默旁路）。新增 `web/test/sessionResourceCore.test.ts`
+    **7 条核心行为判据**（首取/失败保留旧数据/禁用弃在飞/resetKey/TTL/轮询停表/暂不活跃保留）。
+  · **L4 裁定 B：删除 boost 命令族**（-1609 行）：`boost probe/gate/audit-surface` 全部依赖
+    本仓不存在的 `scripts/runGates.mjs` 与 `tools/probes/`，fail-closed 降级正确但**零产出**；
+    删除 4 文件 + 14 个专用旗标 + 3 条帮助条目 + 分发/解析代码。cliFlagsDiscipline 三项
+    （读取必登记 / 白名单不腐化 / 帮助不许诺幽灵命令）与 cliReasoningFlag 全绿。若上游基建
+    确定随迁，按 git 历史恢复命令面即可。
+  · **W7 尾巴**：删除 `ComposerOptions.KNOWN_MODELS` 离线兜底模型清单——它是厂商目录的第二份
+    手维真源，catalog 下发后永不再用且会随厂商演进静默过期；catalog 不可用时模型下拉只保留
+    当前值（fail-closed），不拿过期清单冒充可用模型。
+  · **W1 类型护栏扩面**：round-trip 探针 4→**8**（新增 ContextStudio 快照 / Profile 列表摘要 /
+    Vault 列名 / Vault 写回包）。扩面即抓 **四处真漂移**并清偿：`ContextUsageReport.rows`
+    后端 readonly 前端可变；`KernelContextViewLike` 三个可选字段未显式含 undefined
+    （exactOptionalPropertyTypes）；`Profile` 缺 `pluginCount`、`description` 未含 undefined；
+    Vault `names` 同样 readonly。顺带修真缺陷：ProfilesTab 插件列只读 `plugins`，而
+    `profile.list` 只回摘要（`pluginCount`），该列一直渲染为空。
+  · **L7 终态关闭**：`web→桌面` 方向已在 B3 落地（SettingsModel 保存 locale 即调
+    `omni:setLocale`，壳层重建菜单/托盘并持久化）；`桌面→web` 运行期事件的**触发条件不成立**
+    ——桌面壳没有运行期语言入口（menu 无语言项、config 仅在启动读、无配置热重载），
+    无需为不存在的生产者造订阅。触发条件：桌面壳新增运行期语言切换/语言热重载时再实现
+    事件互通（B3 五层已为其留好 IPC 与持久化基座）。
+  · 验收：**`npm run verify` 全链绿**（kernel:check 九条 / typecheck 五闸 / check:exports /
+    232 文件 1064 用例 / build + build:web + smoke / desktop:build + desktop:test 44）。
 - **批次十二（2026-11-22 凌晨，W6 双选择器收编 + L9 零消费导出首轮清偿）**：
   · **W6**：FilePicker(699) / FolderPicker(515) 的懒加载机制逐行同构——节点级状态表、
     展开时 `fs.browse`、加载中/错误+重试/空目录占位行、已加载子级**递归**回填——抽出

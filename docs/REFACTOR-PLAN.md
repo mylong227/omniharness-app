@@ -5,22 +5,26 @@
 > 三路只读深盘（脚本 ts 化牵连面 / web 前端架构 / extensions 归属判定）的完整事实已内化于下文，
 > 每条结论带文件证据。
 
-## 执行进度（2026-11-21 当日回填）
+## 执行进度（2026-11-22 全部终态回填）
 
 - **T 全仓 .ts 化 ✅**（T0+T1 / T2a / T2b / T2c / T3 / T4a 六 commit + CHANGELOG 批次九；
   verify 全链绿）——附带清偿：vitest.config 残留 Vitest 4 poolOptions（maxWorkers 限幅
   升级后一直未生效，已恢复）、childRunFailure 孤儿删除（L8）、35 处 plugin.js 后缀（T4a）、
-  vendorKernel 显式 cwd、boost 命令族悬空依赖登记（L4，去留另行裁决）。
-- **K3 serveInstance 双副本收敛 ✅**（677862d；cli 副本删除、5 消费点改指 extensions）。
-- **W1 类型护栏 ✅**（b2c00a1；tsconfig.tests.json 第 5 闸 + round-trip 探针——**上线即抓到
-  两处真漂移**：EventType 缺 rollback/calibration_units、timestamp number↔ISO；另清偿
-  tests 盲区 20 处旧账）。
+  vendorKernel 显式 cwd。终态复核：源码区 `.mjs/.cjs` 仅 `examples/embed-demo.mjs` +
+  `desktop/scripts/fakeElectron.cjs`；engines/CI = 22.18；`desktop/scripts/testGlobals.d.mts`
+  是 fakeElectron 全局替身的类型声明（非手维 .mjs 声明壳）。
+- **K3 serveInstance 双副本收敛 ✅**（677862d；cli 副本删除、5 消费点改指 extensions；
+  K2 后连 extensions 副本一并清零）。
+- **W1 类型护栏 ✅ → 已扩面**（b2c00a1 首版；2026-11-22 扩到 8 条探针：ThreadEvent / Fleet /
+  Decision×2 / ContextStudio / Profile / Vault×2，**扩面即抓四处真漂移**并清偿）。
 - **W2 settingsCatalog ✅**（57dfdf2；settings/ 六域文件 + 12 条结构判据，816 行零判据清零）。
 - **W3 面板单源 ✅**（4013a1e；PaneKey 联合 + Router 迁 ui/models + VALID_PANES 派生 +
   paneRenderers 渲染器表编译期完整；App.ts -170 行）。
-- **W7 清理包 ✅**（a6868eb Icon→kit / 56f8bd3 命名+i18n 分片 / 4ee13a0 legacy 引用面锁死）。
-- **遗留**：L1 ✅（并行轮 f5d16c0 完成）/ L2 ✅ / L4 ✅（登记）/ L5 ✅ 关闭 / L6 ✅ 关闭 /
-  L8 ✅ / L9 knip 53 条硬证据在案转逐项清偿 / L7 维持缓偿。
+- **W7 清理包 ✅**（a6868eb Icon→kit / 56f8bd3 命名+i18n 分片 / 4ee13a0 legacy 引用面锁死 /
+  2026-11-22 尾巴：删除 ComposerOptions 离线兜底模型清单）。
+- **遗留**：L1 ✅（并行轮 f5d16c0）/ L2 ✅ / **L4 ✅（裁定 B：删除 boost 命令族）** /
+  L5 ✅ 关闭 / L6 ✅ 关闭 / L8 ✅ / L9 ✅（knip 60→0 并闸入 verify）/
+  **L7 ✅ 终态关闭（触发条件不成立）**。
 - **K1/K2 ✅**（2026-11-21 晚，K1 由内核仓并行轮完成 R26 并随 alpha.37 发版）：
   内核 `v0.1.0-alpha.37`（d8d9ce7）承诺 `compactionStateCodec` 深路径 + maintenance 域
   ServeInstance/MaintenanceRunner + autonomy 域 GraphStore/GraphSummary 契约；app 侧
@@ -42,7 +46,14 @@
   FLAG_ENUM_VALUES / ConsoleKeycap / subscribeLocale / decisionModel.checkStatusLabel）；
   knip 入 devDep + `knip.json` + `check:exports` 纳入 verify 链。ignoreIssues 仅 4 文件
   （kernel 生成物 / extensions 端口聚合桶 / enterprise LegacyOidcFlow 回退资产）。
-- **W5 未启**：见 §五（五资源钩子二次收编，行为判据先行；最大剩余项）。
+- **W5 五资源钩子收编 ✅**（2026-11-22）：`useSessionResource` 升级为唯一取数核
+  （pollMs / cacheTtlMs / resetKey / keepDataWhenDisabled + refreshing/settled/updatedAt），
+  票号守卫抽成 `LatestRequest`；上下文工作室 / 编队 / 决策账本（两流）/ 变更审查 /
+  厂商目录全部收编；新增 7 条核心行为判据。
+- **L4 ✅**：boost 命令族（4 文件 1609 行 + 14 旗标 + 3 帮助条目）删除——上游
+  `runGates.mjs` / `tools/probes/` 未随迁，fail-closed 零产出。
+- **最终验收**：`npm run verify` 全链绿（kernel:check 九条 / typecheck 五闸 / check:exports /
+  232 文件 1064 用例 / build + build:web + smoke / desktop:build + desktop:test 44）。
 
 ---
 
@@ -158,10 +169,10 @@ B3(语言五层) 批次八已清。**仍在册/新发现**：
 | L1 | decisionLedgerService / DesktopConfigLoader 内聚单类切分（缓偿登记） | 2026-11-21 已开始拆，未完 |
 | L2 | `web/test/format.test.ts` 未提交改动（1 行 unused `beforeAll` import 清理，上轮 B2/B1 判据适配残留） | 工作树现存 |
 | L3 | **serveInstance 双副本**（本次盘点新发现）：`src/apps/cli/serveInstance.ts` ≡ `src/host/extensions/kernel/util/serveInstance.ts` 229 行逐字节同体（diff 仅 import 一行），消费分裂 6 处（cli 5 文件 + maintenanceRunner）——gate 9 盲区内的 app 内单点真源违例 | 未清偿 |
-| L4 | src/apps/cli 悬空脚本引用（runGates/auditStandards/check/buildAuditBin） | 未判定 |
+| L4 | src/apps/cli 悬空脚本引用（runGates/auditStandards/check/buildAuditBin） | ✅ 裁定 B（2026-11-22）：boost 命令族删除，-1609 行 |
 | L5 | eventsOf 内核侧缓存（缓偿登记「等 R22」——R22 已发未兑现；app 侧双缓存已兜） | 待判定：关闭登记或升内核提案 |
 | L6 | markdown legacy/full 混渲统一重渲设计（缓偿登记） | 待判定 |
-| L7 | 语言双真源互通（桌面 IPC+壳层重建设计，缓偿登记；B3 已五层收敛主体） | 触发条件未到 |
+| L7 | 语言双真源互通（桌面 IPC+壳层重建设计，缓偿登记；B3 已五层收敛主体） | ✅ 终态关闭：web→桌面已通，桌面无运行期语言入口 ⇒ 反向事件触发条件不成立 |
 | L8 | childRunFailure.mjs 孤儿（并入批次 T 处置） | 未清偿 |
 | L9 | 零消费导出批量收敛（B5 判定「纯噪音」不做） | 维持不做，除非 knip 扫描出新证据 |
 
@@ -288,7 +299,7 @@ PanelRegistry 为唯一源：Router VALID_PANES 从它派生校验、App.ts `pan
 判据与实现同 commit）；与 W1 类型拆分联动。
 **期望**：1058 行上帝类域化，与服务端结构对齐。
 
-### W5 资源钩子二次收编（5 变体 ~1,500 行）
+### W5 资源钩子二次收编（5 变体 ~1,500 行）✅ 2026-11-22 已收编
 在 useSessionResource 之上提增强核（poll/TTL/多流/选中详情）；迁移顺序按判据厚度：
 useProviderCatalog（判据厚）→ useFleet → useContextStudio → useDecisionLedger → useChangesReview。
 **行为判据先行**（批次七 --reasoning 教训：新行为必须配独立判据）。
@@ -317,10 +328,10 @@ useSessionResource 12 面板既有接线、theme.css token 纪律。
 | L1 | decisionLedgerService / DesktopConfigLoader 切分 | 按「账本存取 vs 编排」继续拆完（判据已钉行为）；DesktopConfigLoader 单类内聚切分 | 第三波插空 |
 | L2 | format.test.ts 未提交 1 行 | 随 T 批次首个 commit 顺带入库 | 第一波 |
 | L3 | serveInstance 双副本 | 见 K3 | 第二波 |
-| L4 | src/apps/cli 悬空脚本引用 | 见 T4 | 第一波 |
+| L4 | src/apps/cli 悬空脚本引用 | ✅ 裁定 B：删除 boost 命令族（2026-11-22） | 已完成 |
 | L5 | eventsOf 内核侧缓存缓偿登记 | 与内核仓对账后二选一：登记关闭（app 侧双缓存已兜，触发条件不再成立）或升 K1 提案 | 第二波 |
 | L6 | markdown 混渲统一设计 | 随 W7 legacy 隔离一并判定终态 | 第三波 |
-| L7 | 语言双真源互通（桌面 IPC） | 触发条件未到，维持缓偿登记并更新理由 | 不动 |
+| L7 | 语言双真源互通（桌面 IPC） | ✅ 终态关闭（触发条件不成立；见批次十三） | 已完成 |
 | L8 | childRunFailure.mjs 孤儿 | 随 T2 删除 | 第一波 |
 | L9 | 零消费导出收敛 | knip 扫描出硬证据才重启（W7） | 第三波 |
 
@@ -347,21 +358,21 @@ useSessionResource 12 面板既有接线、theme.css token 纪律。
 
 ## 八、终态验收清单
 
-- [ ] `.mjs/.cjs` 仅余 embed-demo.mjs + fakeElectron.cjs（刻意保留、有注释）
-- [ ] scripts/ + desktop/scripts + 根配置文件纳入 typecheck；2 个 `.d.mts` 退役
-- [ ] engines/CI = node >=22.18 对齐；webStressProbe strip-types 依赖转正
-- [ ] childRunFailure 孤儿删除；35 处 plugin.js 后缀核销；悬空脚本引用有结论
+- [x] `.mjs/.cjs` 仅余 embed-demo.mjs + fakeElectron.cjs（刻意保留、有注释；已用 `git ls-files` 复核）
+- [x] scripts/ + desktop/scripts + 根配置文件纳入 typecheck；2 个 `.d.mts` 退役（`testGlobals.d.mts` 是 fakeElectron 全局替身的必要声明，非手维壳）
+- [x] engines/CI = node >=22.18 对齐；webStressProbe strip-types 依赖转正
+- [x] childRunFailure 孤儿删除；35 处 plugin.js 后缀核销；悬空脚本引用有结论（L4）
 - [x] extensions 登记 0 条；上内核件删除（-938 行；二档 CliWorker -483 未随本轮）；README 归属契约同步
-- [ ] serveInstance 内外双副本清零（单一真源）
-- [ ] 126 条手维类型：高漂移域有 round-trip 判据（zod 化中期项）
-- [ ] PanelRegistry 单源：新增面板 1 处完成；App.ts 装配减重
+- [x] serveInstance 内外双副本清零（K3 + K2 后 extensions 副本一并删除）
+- [x] 126 条手维类型：8 条 round-trip 探针覆盖高漂移域（ThreadEvent/Fleet/Decision×2/ContextStudio/Profile/Vault×2）
+- [x] PanelRegistry 单源：新增面板 1 处完成；App.ts 装配减重
 - [x] ApiClient 分域 + apiClientParity 适配绿
-- [ ] 5 资源钩子编（W5 未启：useProviderCatalog → useFleet → useContextStudio → useDecisionLedger → useChangesReview）
+- [x] 5 资源钩子收编（W5：useSessionResource 增强核 + LatestRequest）
 - [x] FilePicker/FolderPicker 公共核（W6；机制层单源 + 4 条行为判据）
 - [x] W7 清理包全落（Icon 迁移/PascalCase/legacy 隔离/i18n 分片改名/knip）
 - [x] L9 零消费导出：knip 60→0 + devDep 闸入 verify（ignoreIssues 4 文件有据）
-- [ ] 遗留台账 L1-L9 全终态（L1/L3/L5/L6/L8/L9 已终态；L4 去留待拍板、L7 维持缓偿）
-- [x] `npm run verify` 全链绿（2026-11-22 实跑：231 文件 1057 用例 + desktop 44；CI 待推送后复核）
+- [x] 遗留台账 L1-L9 全终态（L4 裁定 B 已删 boost；L7 终态关闭）
+- [x] `npm run verify` 全链绿（2026-11-22 实跑：232 文件 1064 用例 + desktop 44；CI 待推送后复核）
 
 ## 工作量粗估
 
