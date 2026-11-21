@@ -6,6 +6,14 @@
 ## [Unreleased]
 
 ### Changed（变更）
+- **批次八（2026-11-21，A/B/C/D 清单全量执行）**：A1 旗标-only 旋钮 cliHelp 会话级标注
+  16 条；A2 成对判据互链补齐（6 对）；A3 main.ts 剩余三函数判定不抽取（耦合主进程模块态，
+  抽取只得行数不得单一真源——HarnessAttach/AppActions 两个真重复面已收口）；B1 空闲会话
+  事件读档缓存（LRU4+TTL30s+回退/检查点回滚/回合结束三处显式失效）；B2 markdown 惰性
+  装载（ensureMarkdownLibs + legacy 回落分支已有，渲染组件零改动）；B3 语言收敛五层
+  （DesktopI18n.setLocale / desktopState.locale / IPC omni:setLocale / preload 可选桥 /
+  SettingsModel 跟随调用 + boot 跟随记录优先于 system）；B6 PluginsTab 完整收编
+  （双列表派生 + 防抖保留 + error state）。B5 导出收敛判定不做（纯噪音）。
 - **深研优化轮六批（2026-11-20，三路深研 → 全部落地）**：
   · **批次一（工程效率）**：vitest 单项目全串行 → **双项目**（chrome 36 文件保持串行纪律，
     fast ~187 文件 node/jsdom 并行，配置期内容扫描+helper 一层传递闭包识别）；desktop TS
