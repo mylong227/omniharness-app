@@ -6,6 +6,32 @@
 ## [Unreleased]
 
 ### Changed（变更）
+- **深研优化轮六批（2026-11-20，三路深研 → 全部落地）**：
+  · **批次一（工程效率）**：vitest 单项目全串行 → **双项目**（chrome 36 文件保持串行纪律，
+    fast ~187 文件 node/jsdom 并行，配置期内容扫描+helper 一层传递闭包识别）；desktop TS
+    ^5.7.0(5.9.3)→^7.0.2 与根统一 + tsconfig 补 `exactOptionalPropertyTypes`/
+    `noUncheckedIndexedAccess` 严格闸（desktopState 两布尔偏好改必填是类型收窄正解）。
+    并行收益在本机（会话负载下）实测中性（1126s vs 串行 1045s），空闲机/CI 兑现——限幅 maxForks 6 是首轮无界并发实测 7 个 worker 启动超时后的稳定项。
+  · **批次二（架构收口）**：`app/HarnessAttach.ts` 单一真源（附着序列三处拷贝收口，历史
+    P2 事故面不可再复现）；Tray/Menu/IPC 三份动作回调收口单一 appActions；PERSISTABLE_KEYS
+    下沉 services/configPersistKeys（core 反向依赖消除）；core→ui 反向依赖清除
+    （localize 注入接缝，ApiClient/DialogService 7+5 处出口）。
+  · **批次三（RPC 模块按域重排）**：control 三拆 fleet/contextStudio/proof（模块 19→21）；
+    surface 杂物抽屉清仓（quota→observability、modes→threads、setWorkspace→sessions）；
+    方法名零变化（parity 快照零漂移，owner 抽样断言同步 14 条）。
+  · **批次四（运行时性能）**：threads.get 无 limit 缺省封顶 500（兼容洞闭合）；
+    memory.changed 300ms 去抖 + MemoryTab deps 收窄；MetricsTab 后台标签页闸；
+    启动装载两拍（归档补扫延后 1s）；buildConfig 三分支并行 + 维护巡检挪 listen 后；
+    Resizer 宽度落盘 rAF 合并。
+  · **批次五（配置化收尾）**：appLimits env 轴（附件/SSE 回放/预览/搜索/审计八旋钮，
+    `OMNI_*` 约定）；StorageKeys 键注册表；settingsPane「字段全集」判据改内核差集断言
+    （手维 EXPECTED 三处镜像 → 机器核对）。
+  · **批次六（结构打磨）**：SSE 分流纯函数化 StreamEventRouter（node 直测判据 ×2）；
+    desktop 令牌脱敏统一 DesktopLogger.redact；两端契约判据互链注记。
+  · **缓偿登记**（理由在案）：eventsOf 读档缓存（内核 jsonlStorage，等 R22 内核侧）；
+    markdown 惰性（legacy/full 混渲需统一重渲设计）；语言双真源互通（IPC+壳层重建
+    设计）；decisionLedgerService/DesktopConfigLoader 切分（内聚单类，判据已钉行为）；
+    零消费导出批量收敛（纯噪音）。
 - **桌面「快速提问」快捷键配置化（2026-11-20）**：全局快捷键从 main.ts 模块常量 +
   menu.ts 内联 accelerator 两处硬编码，收进 `desktop.config.json` 的
   `app.quickCaptureShortcut`（缺省 `CommandOrControl+Shift+Space` 不变；accelerator

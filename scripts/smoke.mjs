@@ -49,6 +49,10 @@ const child = spawn(
     'mock',
     '--model',
     'mock',
+    // 2026-11-21 补同一保证的第二处：用户级 modelRouter（openai 条目等）也会 fail-closed
+    // 拦下 serve（缺 env 密钥）——CLI 参数覆盖语义（args 优先）显式钉 mock 路由。
+    '--model-router',
+    '{"strategy":"round-robin","entries":[{"model":"mock","adapter":"mock"}]}',
   ],
   { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, OMNI_NO_OPEN: '1' } },
 );
