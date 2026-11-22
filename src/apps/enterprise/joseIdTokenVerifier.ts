@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * `IdTokenVerifierPort` 的 `jose` 实现（Wave A.5 · 依赖准入第二项）。
  *
@@ -140,7 +141,7 @@ export class JoseIdTokenVerifier implements IdTokenVerifierPort {
    * @returns 拒因；通过时 undefined
    */
   private static checkSize(token: string): string | undefined {
-    if (token.trim() === '') return 'id_token 为空';
+    if (token.trim() === '') return AppText.t('id_token 为空');
     if (Buffer.byteLength(token, 'utf8') > MAX_TOKEN_BYTES) {
       return `id_token 超过体积上限（${String(MAX_TOKEN_BYTES)} 字节）`;
     }
@@ -157,12 +158,12 @@ export class JoseIdTokenVerifier implements IdTokenVerifierPort {
     try {
       url = new URL(jwksUrl);
     } catch {
-      return `JWKS 端点不是合法 URL`;
+      return AppText.t(`JWKS 端点不是合法 URL`);
     }
     const localhost =
       url.hostname === '127.0.0.1' || url.hostname === 'localhost' || url.hostname === '[::1]';
     if (url.protocol !== 'https:' && !(url.protocol === 'http:' && localhost)) {
-      return `JWKS 端点必须为 https（本地环回例外）`;
+      return AppText.t(`JWKS 端点必须为 https（本地环回例外）`);
     }
     return undefined;
   }

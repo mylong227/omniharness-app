@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import { RuntimeConfig } from '../../config/RuntimeConfig.ts';
 import type { ImageContent, FileAttachment } from '../../../host/kernel/contracts.ts';
 import { Id } from '../../../host/kernel/util.ts';
@@ -182,7 +183,7 @@ export class TurnOrchestration {
     const files = params['files'] as readonly FileAttachment[] | undefined;
     const hasAttachments = (images?.length ?? 0) + (files?.length ?? 0) > 0;
     if (threadId === '' || (text.trim() === '' && !hasAttachments)) {
-      return { ok: false, error: 'threadId 与 text（或附件）都必填' };
+      return { ok: false, error: AppText.t('threadId 与 text（或附件）都必填') };
     }
     const agent = this.s.runtime.agent();
     if (!agent.runningSessionIds().includes(threadId)) {
@@ -213,7 +214,7 @@ export class TurnOrchestration {
     const files = params['files'] as readonly FileAttachment[] | undefined;
     const hasAttachments = (images?.length ?? 0) + (files?.length ?? 0) > 0;
     if (threadId === '' || (prompt.trim() === '' && !hasAttachments)) {
-      return { ok: false, error: 'threadId 与 prompt（或附件）都必填' };
+      return { ok: false, error: AppText.t('threadId 与 prompt（或附件）都必填') };
     }
     const agent = this.s.runtime.agent();
     if (!agent.runningSessionIds().includes(threadId)) {
@@ -234,7 +235,7 @@ export class TurnOrchestration {
       };
     }
     const queued = agent.steering.enqueue(threadId, {
-      text: prompt.trim() === '' ? '（用户补充了附件，请结合附件继续）' : prompt,
+      text: prompt.trim() === '' ? AppText.t('（用户补充了附件，请结合附件继续）') : prompt,
       images,
       files,
     });

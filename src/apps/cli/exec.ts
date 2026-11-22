@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * exec.ts —— OmniHarness CLI **薄入口**（冷启动优化后的进程入口）。
  *
@@ -82,7 +83,7 @@ export class Exec {
           log.warn(`未处理的 Promise 拒绝：${r.message}`, fields);
           return;
         }
-        log.error(`${r.kind === 'signal' ? '终止信号' : '未捕获异常'}：${r.message}`, fields);
+        log.error(`${r.kind === 'signal' ? AppText.t('终止信号') : AppText.t('未捕获异常')}：${r.message}`, fields);
       },
       // `serve` 自带 SIGINT/SIGTERM 处理器（要关服务器/冲事件/杀 MCP 子进程）；护栏再注册一份
       // 会让两条收尾路径并发抢 exit。故 serve 命令把信号所有权留给它，护栏只兜未捕获异常/rejection。

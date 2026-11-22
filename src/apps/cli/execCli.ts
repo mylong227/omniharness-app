@@ -336,7 +336,7 @@ export class ExecCli extends CliAgentCmds {
     if (interactive.length > 0) {
       throw new Error(
         `headless 模式（--print）不支持交互审批：${interactive.join(' / ')} 在无 stdin 环境会永久挂起。` +
-          `请改用 --approval rules|auto|deny 与 --escalation deny|auto。`,
+          AppText.t(`请改用 --approval rules|auto|deny 与 --escalation deny|auto。`),
       );
     }
   }
@@ -491,7 +491,7 @@ export class ExecCli extends CliAgentCmds {
       evaluated: verdicts.length,
       promoted: verdicts.filter((v) => v.promoted).length,
       report,
-      note: '晋升落在本进程内存技能表（会话级）；台账为持久产物。',
+      note: AppText.t('晋升落在本进程内存技能表（会话级）；台账为持久产物。'),
     };
     process.stdout.write(
       request.json

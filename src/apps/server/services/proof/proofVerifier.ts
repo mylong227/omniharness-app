@@ -1,3 +1,4 @@
+import { AppText } from '../../../i18n/AppText.ts';
 import { AuditBundles } from '../../../../host/kernel/util.ts';
 import type { AuditBundleVerdict, TrustStore } from '../../../../host/kernel/util.ts';
 
@@ -65,7 +66,7 @@ export class ProofVerifier {
   public verifyOf(bundle: unknown): ProofVerifyResult {
     const size = ProofVerifier.byteSizeOf(bundle);
     if (size === undefined) {
-      return ProofVerifier.fail('bundle_invalid', '证据包不是可序列化的 JSON 对象。');
+      return ProofVerifier.fail('bundle_invalid', AppText.t('证据包不是可序列化的 JSON 对象。'));
     }
     if (size > BUNDLE_MAX_BYTES) {
       return ProofVerifier.fail(
@@ -74,7 +75,7 @@ export class ProofVerifier {
       );
     }
     if (!ProofVerifier.looksLikeBundle(bundle)) {
-      return ProofVerifier.fail('bundle_invalid', '证据包缺少 version / sessions 结构。');
+      return ProofVerifier.fail('bundle_invalid', AppText.t('证据包缺少 version / sessions 结构。'));
     }
     let verdict: AuditBundleVerdict;
     const inner = ProofVerifier.innerBundleOf(bundle);

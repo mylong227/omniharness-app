@@ -1,3 +1,4 @@
+import { AppText } from '../../../i18n/AppText.ts';
 import { ContextAssembler, ContextCompactor } from '../../../../host/kernel/context.ts';
 import type { SessionEvent, ToolDefinition } from '../../../../host/kernel/contracts.ts';
 import { Id } from '../../../../host/kernel/util.ts';
@@ -96,12 +97,12 @@ export class ContextCompactionService {
    */
   public async compactOf(threadId: string): Promise<ContextCompactionOutcome> {
     if (threadId === '') {
-      return ContextCompactionService.fail('no_session', '先选择一个会话，再执行压缩。');
+      return ContextCompactionService.fail('no_session', AppText.t('先选择一个会话，再执行压缩。'));
     }
     if (this.deps.isRunning(threadId)) {
       return ContextCompactionService.fail(
         'session_running',
-        '会话正在运行，不能手动压缩；等本轮结束后再试。',
+        AppText.t('会话正在运行，不能手动压缩；等本轮结束后再试。'),
       );
     }
     let events: readonly SessionEvent[];
@@ -114,7 +115,7 @@ export class ContextCompactionService {
       );
     }
     if (events.length === 0) {
-      return ContextCompactionService.fail('compaction_noop', '会话没有可压缩的事件。');
+      return ContextCompactionService.fail('compaction_noop', AppText.t('会话没有可压缩的事件。'));
     }
     const windowTokens = this.deps.windowTokens();
     const compactor = new ContextCompactor({
@@ -147,8 +148,8 @@ export class ContextCompactionService {
       return ContextCompactionService.fail(
         'compaction_noop',
         result.degraded === true
-          ? '压缩摘要降级，未写入游标；请稍后重试。'
-          : '内核没有产生可写入的压缩游标（可能没有可折叠历史）。',
+          ? AppText.t('压缩摘要降级，未写入游标；请稍后重试。')
+          : AppText.t('内核没有产生可写入的压缩游标（可能没有可折叠历史）。'),
       );
     }
     const state = result.state;

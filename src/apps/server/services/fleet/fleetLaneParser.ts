@@ -1,3 +1,4 @@
+import { AppText } from '../../../i18n/AppText.ts';
 import type { SessionEvent } from '../../../../host/kernel/contracts.ts';
 import type { FleetNode, FleetStatus } from './fleetSnapshot.ts';
 
@@ -29,22 +30,22 @@ export class FleetLaneParser {
   private static readonly PATCH_PATTERN = /patch 在 `([^`]+)`/;
 
   /** 改动不可取回标记（采集失败的 fail-closed 提示首句）。 */
-  private static readonly WRITES_UNRECOVERABLE_MARK = '改动不可取回';
+  private static readonly WRITES_UNRECOVERABLE_MARK = AppText.t('改动不可取回');
 
   /** copy 降级禁写标记。 */
-  private static readonly WRITES_FORBIDDEN_MARK = '写类工具已被禁用';
+  private static readonly WRITES_FORBIDDEN_MARK = AppText.t('写类工具已被禁用');
 
   /** patch 截断标记（清单仍完整）。 */
-  private static readonly PATCH_TRUNCATED_MARK = 'patch 已截断';
+  private static readonly PATCH_TRUNCATED_MARK = AppText.t('patch 已截断');
 
   /** 未验证收尾标记（`unverified` 不得读成通过）。 */
-  private static readonly UNVERIFIED_MARK = '以**未验证**状态收尾';
+  private static readonly UNVERIFIED_MARK = AppText.t('以**未验证**状态收尾');
 
   /** 步数截断状态后缀。 */
-  private static readonly TRUNCATED_MARK = '未完成：达步数上限';
+  private static readonly TRUNCATED_MARK = AppText.t('未完成：达步数上限');
 
   /** 失控熔断 / 取消状态后缀。 */
-  private static readonly ABORTED_MARK = '未完成：被失控熔断';
+  private static readonly ABORTED_MARK = AppText.t('未完成：被失控熔断');
 
   /**
    * 从父会话事件流解析全部编队车道。
@@ -229,9 +230,9 @@ export class FleetLaneParser {
   private static changedFilesOf(output: string): readonly string[] | undefined {
     const line = output
       .split('\n')
-      .find((candidate) => candidate.startsWith('改动文件：'));
+      .find((candidate) => candidate.startsWith(AppText.t('改动文件：')));
     if (line === undefined) return undefined;
-    const body = line.slice('改动文件：'.length);
+    const body = line.slice(AppText.t('改动文件：').length);
     const truncated = body.split('…（共')[0] ?? body;
     const files = truncated
       .split('、')

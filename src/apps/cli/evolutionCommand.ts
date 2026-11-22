@@ -45,7 +45,7 @@ const USAGE =
   '      omniharness evolution lineage [--skill A --skill B] [--pack NAME] [--out FILE] [--sign-key FILE] [--json]\n' +
   '      omniharness evolution lineage --verify FILE [--trust <ssh-ed25519 …>] [--json]\n' +
   '      omniharness evolution rollback --seq N --yes [--out FILE] [--workspace DIR] [--dir REL]\n' +
-  '说明: status/history/lineage 只读；cycle / rollback 会改动状态，必须显式 --yes。\n';
+  AppText.t('说明: status/history/lineage 只读；cycle / rollback 会改动状态，必须显式 --yes。\n');
 
 /**
  * cycle 执行钩子：由命令链接入（需要配置装载 + 运行时装配能力）。
@@ -282,7 +282,7 @@ export class EvolutionCommand {
           row.name === undefined
             ? ''
             : ` ${row.name}${row.source === undefined ? '' : ` ← ${row.source}`}`;
-        const flag = row.verified ? '✓' : `✗（${row.reason ?? '复核失败'}）`;
+        const flag = row.verified ? '✓' : `✗（${row.reason ?? AppText.t('复核失败')}）`;
         process.stdout.write(`  #${String(row.seq)} ${row.action}${who} ${flag}\n`);
       }
       process.stdout.write(

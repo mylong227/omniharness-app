@@ -1,3 +1,4 @@
+import { AppText } from '../../../i18n/AppText.ts';
 import { closeSync, openSync, readSync, realpathSync, statSync } from 'node:fs';
 import { isAbsolute, relative, resolve } from 'node:path';
 
@@ -65,7 +66,7 @@ export class FleetPatchReader {
   public read(rawPath: string): FleetPatchResult {
     const path = rawPath.replaceAll('\\', '/');
     if (path === '' || isAbsolute(path)) {
-      return FleetPatchReader.fail('patch_forbidden', '补丁路径必须是工作区内的相对路径。');
+      return FleetPatchReader.fail('patch_forbidden', AppText.t('补丁路径必须是工作区内的相对路径。'));
     }
     if (!path.startsWith(`${PATCH_DIR}/`) || path.split('/').includes('..')) {
       return FleetPatchReader.fail(
@@ -75,7 +76,7 @@ export class FleetPatchReader {
     }
     const root = this.deps.workspaceRoot();
     if (root === '') {
-      return FleetPatchReader.fail('patch_unavailable', '工作区未定位，无法读取补丁。');
+      return FleetPatchReader.fail('patch_unavailable', AppText.t('工作区未定位，无法读取补丁。'));
     }
     try {
       const realRoot = realpathSync(root);
@@ -83,11 +84,11 @@ export class FleetPatchReader {
       const realTarget = realpathSync(target);
       const rel = relative(realRoot, realTarget).replaceAll('\\', '/');
       if (rel === '' || rel.startsWith('../') || rel === '..' || !rel.startsWith(`${PATCH_DIR}/`)) {
-        return FleetPatchReader.fail('patch_forbidden', '补丁真实路径越过了工作区补丁目录。');
+        return FleetPatchReader.fail('patch_forbidden', AppText.t('补丁真实路径越过了工作区补丁目录。'));
       }
       const stat = statSync(realTarget);
       if (!stat.isFile()) {
-        return FleetPatchReader.fail('patch_forbidden', '补丁路径不是普通文件。');
+        return FleetPatchReader.fail('patch_forbidden', AppText.t('补丁路径不是普通文件。'));
       }
       const bytes = stat.size;
       const readBytes = Math.min(bytes, PATCH_MAX_BYTES);
@@ -105,7 +106,7 @@ export class FleetPatchReader {
       }
       const content = buf.subarray(0, offset).toString('utf8');
       if (content.includes('\u0000')) {
-        return FleetPatchReader.fail('patch_not_text', '补丁包含 NUL 字节，无法作为文本预览。');
+        return FleetPatchReader.fail('patch_not_text', AppText.t('补丁包含 NUL 字节，无法作为文本预览。'));
       }
       return {
         ok: true,

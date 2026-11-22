@@ -287,7 +287,7 @@ export class ServerAutomations {
       const raw = JSON.parse(readFileSync(this.legacyFile, 'utf8').replace(/^\uFEFF/u, '')) as unknown;
       const items = (raw as { automations?: unknown }).automations;
       if (!Array.isArray(items)) {
-        this.retireLegacyFile('非数组形状');
+        this.retireLegacyFile(AppText.t('非数组形状'));
         return;
       }
       legacy = items.filter((item): item is LegacyAutomation => {
@@ -303,7 +303,7 @@ export class ServerAutomations {
         );
       });
     } catch {
-      this.retireLegacyFile('解析失败');
+      this.retireLegacyFile(AppText.t('解析失败'));
       return;
     }
     const known = new Set(

@@ -29,7 +29,7 @@ export type PluginRegistryFactory = (
 
 /** plugin 用法提示。 */
 const USAGE =
-  '用法: omniharness plugin load --file PATH [--allow PERM ...] | plugin list | plugin search [QUERY] | plugin install <name> | plugin remove <name>\n';
+  AppText.t('用法: omniharness plugin load --file PATH [--allow PERM ...] | plugin list | plugin search [QUERY] | plugin install <name> | plugin remove <name>\n');
 
 export class PluginCommand {
   /** 注入的注册表工厂（load/install 等动作经它解析插件源）。 */
@@ -122,7 +122,7 @@ export class PluginCommand {
       return 0;
     }
     for (const manifest of installed) {
-      const flag = Manifest.manifestHasDangerous(manifest) ? '  [危险权限]' : '';
+      const flag = Manifest.manifestHasDangerous(manifest) ? AppText.t('  [危险权限]') : '';
       process.stdout.write(
         `${manifest.name}@${manifest.version}\t${manifest.description ?? ''}${flag}\n`,
       );
@@ -144,7 +144,7 @@ export class PluginCommand {
       return 0;
     }
     for (const descriptor of results) {
-      const flag = Manifest.manifestHasDangerous(descriptor.manifest) ? '  [危险权限]' : '';
+      const flag = Manifest.manifestHasDangerous(descriptor.manifest) ? AppText.t('  [危险权限]') : '';
       process.stdout.write(
         `[${descriptor.source}]\t${descriptor.manifest.name}@${descriptor.manifest.version}\t${descriptor.manifest.description ?? ''}${flag}\n`,
       );
@@ -167,7 +167,7 @@ export class PluginCommand {
     try {
       const manifest = await this.createRegistry(args).install(name);
       const warn = Manifest.manifestHasDangerous(manifest)
-        ? '\n注意: 该插件声明危险权限，加载时将被 PermissionGate 拦截，除非显式 --allow 放行。'
+        ? AppText.t('\n注意: 该插件声明危险权限，加载时将被 PermissionGate 拦截，除非显式 --allow 放行。')
         : '';
       process.stdout.write(`已安装插件: ${manifest.name}@${manifest.version}${warn}\n`);
       return 0;

@@ -1,5 +1,5 @@
-import { RuntimeConfig } from '../../config/RuntimeConfig.ts';
 import { AppText } from '../../i18n/AppText.ts';
+import { RuntimeConfig } from '../../config/RuntimeConfig.ts';
 import { access, mkdir, readFile, readdir, stat } from 'node:fs/promises';
 import type { Dirent } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
@@ -247,7 +247,7 @@ export class FsExplorer {
     value: unknown,
   ): Promise<{ file: AttachedFile } | { path: string; error: string }> {
     if (typeof value !== 'string' || value.trim() === '') {
-      return { path: String(value), error: '路径无效' };
+      return { path: String(value), error: AppText.t('路径无效') };
     }
     const target = resolve(value.trim());
     let st;
@@ -257,7 +257,7 @@ export class FsExplorer {
       return { path: target, error: '文件不存在或不可访问：' + (e as Error).message };
     }
     if (!st.isFile()) {
-      return { path: target, error: '不是文件' };
+      return { path: target, error: AppText.t('不是文件') };
     }
     if (st.size > MAX_ATTACH_BYTES) {
       return { path: target, error: `文件超过 ${MAX_ATTACH_BYTES / 1024 / 1024}MB 限制` };

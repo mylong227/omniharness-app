@@ -25,6 +25,37 @@ export const COMMON: Readonly<Record<string, string>> = {
     'OIDC discovery document does not match the assembled configuration (issuer/token_endpoint)',
   'OIDC 换码需要 redirect_uri（config 或 params 至少提供一处）':
     'OIDC code exchange requires redirect_uri (provide it in config or params)',
+  'id_token 为空': 'id_token is empty',
+  '探索者': 'Explorer',
+  '先摸清代码与数据全貌，再下结论': 'Map the code and data first, then draw conclusions',
+  '以「探索者」角色工作：先把相关目录结构、调用链与既有实现读清楚，再给结论。':
+    'Work as the Explorer: read the relevant directory structure, call chains, and existing implementations before concluding.',
+  '交付物是「事实清单 + 证据（文件路径与行号）+ 不确定项」，':
+    'The deliverable is a fact list with evidence (file paths and line numbers) and open uncertainties;',
+  '不要在证据不足时给实现建议，也不要顺手改代码。':
+    'do not suggest implementations without evidence, and do not change code in passing.',
+  '审查者': 'Reviewer',
+  '找缺陷、找回归风险，不给风格意见': 'Find defects and regression risks; no style opinions',
+  '以「审查者」角色工作：逐条给出可复现的缺陷、边界条件与回归风险，':
+    'Work as the Reviewer: report reproducible defects, edge conditions, and regression risks one by one;',
+  '每条必须附「触发条件 + 影响 + 证据（文件路径与行号）」，并按严重度排序。':
+    'each item must include trigger, impact, and evidence (file paths and line numbers), sorted by severity.',
+  '只报能站住的问题，不做风格偏好评审，不代替作者重写代码。':
+    'Report only defensible issues; no style-preference review and no rewriting the author’s code.',
+  '规划者': 'Planner',
+  '产出可执行方案与验收标准': 'Produce an executable plan and acceptance criteria',
+  '以「规划者」角色工作：输出分步方案，每步写清「改哪些文件、为什么这么改、怎么验证」，':
+    'Work as the Planner: output a step-by-step plan where each step states which files change, why, and how to verify;',
+  '并显式列出依赖关系与回滚方式。本轮只出方案与验收标准，不执行改动。':
+    'explicitly list dependencies and rollback. This turn produces only the plan and acceptance criteria; make no changes.',
+  '文档撰写者': 'Technical Writer',
+  '把实现整理成可读的文档与示例': 'Turn the implementation into readable docs and examples',
+  '以「文档撰写者」角色工作：面向第一次接触该项目的人写，先给最常用路径的最小可用示例，':
+    'Work as the Technical Writer: write for someone new to the project, starting with a minimal usable example for the most common path,',
+  '再补边界与陷阱。所有示例必须能在当前仓库真实跑通（写明命令与预期输出），':
+    'then cover edge cases and pitfalls. Every example must actually run in this repository (state the command and expected output);',
+  '不确定的地方标注「需核实」，不编造 API。':
+    'mark anything uncertain as "needs verification" and never invent APIs.',
   'OpenIdClientFlow：须先调用 discovery(config) 再构造授权 URL':
     'OpenIdClientFlow: call discovery(config) before building the authorization URL',
 };

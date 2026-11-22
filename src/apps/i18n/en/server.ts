@@ -111,4 +111,132 @@ export const SERVER: Readonly<Record<string, string>> = {
   '路径越界工作区': 'Path escapes the workspace',
   '预览服务绑定后拿不到监听端口（address=null）——拒绝以 port 0 假装成功':
     'Preview server has no listening port after bind (address=null); refusing to fake success with port 0',
+  'answers 必须是数组': 'answers must be an array',
+  'answers 的每一项必须是对象': 'each answers item must be an object',
+  'answers 的每一项必须有非空 id': 'each answers item must have a non-empty id',
+  'threadId 与 text（或附件）都必填': 'threadId and text (or an attachment) are required',
+  'threadId 与 prompt（或附件）都必填': 'threadId and prompt (or an attachment) are required',
+  '（用户补充了附件，请结合附件继续）':
+    '(the user added attachments; continue with them in context)',
+  '先选择一个会话，再执行压缩。': 'Select a session before compacting.',
+  '会话正在运行，不能手动压缩；等本轮结束后再试。':
+    'The session is running and cannot be compacted manually; try again after this turn finishes.',
+  '会话没有可压缩的事件。': 'The session has no events to compact.',
+  '压缩摘要降级，未写入游标；请稍后重试。':
+    'The compaction summary was degraded and no cursor was written; try again later.',
+  '内核没有产生可写入的压缩游标（可能没有可折叠历史）。':
+    'The kernel produced no writable compaction cursor (there may be no foldable history).',
+  '缺少决策记录 id。': 'Missing decision record id.',
+  '这个会话还没有决策记录。': 'This session has no decision records yet.',
+  '这条决策已不在当前事件流里；刷新后再试。':
+    'This decision is no longer in the current event stream; refresh and try again.',
+  '这个会话还没有决策记录；没有可导出的 AAT。':
+    'This session has no decision records yet; there is no AAT to export.',
+  '结构复核未通过；先处理断链/字段问题，再导出。':
+    'Structural verification failed; resolve chain/field issues before exporting.',
+  '共形复核未通过；先处理证据问题，再导出。':
+    'Conformal verification failed; resolve the evidence issues before exporting.',
+  '先选择一个会话，再打开决策账本。': 'Select a session before opening the decision ledger.',
+  '原始审计链复核失败。': 'Raw audit-chain verification failed.',
+  'AAT 链复核失败。': 'AAT chain verification failed.',
+  'AAT 序号有缺口。': 'The AAT sequence has gaps.',
+  '序号连续。': 'Sequence is contiguous.',
+  'AAT 记录跨会话。': 'AAT records span multiple sessions.',
+  '记录属于同一会话。': 'Records belong to the same session.',
+  '单次授权被复用。': 'A single-use grant was reused.',
+  '未发现授权复用。': 'No grant reuse found.',
+  '所有决策都有授权主体。': 'Every decision has an authorization principal.',
+  '校准单元可还原（full / delta）。': 'Calibration units are recoverable (full / delta).',
+  '类摘要 / 全类摘要可按包内单元重算。':
+    'Class summaries / full-class summaries can be recomputed from the bundled units.',
+  '阈值 τ 可由 calibration units 重算。': 'The threshold τ can be recomputed from calibration units.',
+  '风险分可由 risk features 重算。': 'Risk scores can be recomputed from risk features.',
+  '风险权重模型摘要一致。': 'Risk-weight model digests match.',
+  '每条放行都满足 riskScore < threshold。': 'Every allow satisfies riskScore < threshold.',
+  '改动不可取回': 'Changes are unrecoverable',
+  '写类工具已被禁用': 'Write-type tools were disabled',
+  'patch 已截断': 'Patch was truncated',
+  '以**未验证**状态收尾': 'finished in an **unverified** state',
+  '未完成：达步数上限': 'Incomplete: step limit reached',
+  '未完成：被失控熔断': 'Incomplete: circuit breaker tripped',
+  '改动文件：': 'Changed files: ',
+  '应用补丁会改写主工作区；必须显式确认。':
+    'Applying the patch rewrites the main workspace; explicit confirmation is required.',
+  '补丁超过 512 KB 且预览被截断，不能安全应用；请从补丁文件直接处理。':
+    'The patch exceeds 512 KB and its preview was truncated, so it cannot be applied safely; process it from the patch file directly.',
+  '工作区未定位，无法应用补丁。': 'Workspace is not resolved; cannot apply the patch.',
+  '未知 git 错误': 'Unknown git error',
+  '补丁路径必须是工作区内的相对路径。':
+    'The patch path must be a relative path inside the workspace.',
+  '工作区未定位，无法读取补丁。': 'Workspace is not resolved; cannot read the patch.',
+  '补丁真实路径越过了工作区补丁目录。': 'The patch real path escapes the workspace patch directory.',
+  '补丁路径不是普通文件。': 'The patch path is not a regular file.',
+  '补丁包含 NUL 字节，无法作为文本预览。': 'The patch contains NUL bytes and cannot be previewed as text.',
+  '路径无效': 'Invalid path',
+  '不是文件': 'Not a file',
+  '先选择一个会话，再打开凭证。': 'Select a session before opening credentials.',
+  '这个回合没有可复核的事件。': 'This turn has no verifiable events.',
+  'Merkle 根不一致：事件流可能被增删或改序。':
+    'Merkle root mismatch: the event stream may have been added to, removed from, or reordered.',
+  '未配置签名器：结构自洽（未签名），复核方无法确认签发方身份。':
+    'No signer configured: structurally consistent (unsigned); a verifier cannot confirm the issuer identity.',
+  '证书未绑定工具面摘要。': 'The certificate is not bound to the tool-surface digest.',
+  '一致': 'consistent',
+  '不一致': 'inconsistent',
+  '本地审计链未启用（serve 组合根未注入 audit sink）。':
+    'The local audit chain is not enabled (serve composition root did not inject an audit sink).',
+  '本地审计链没有该会话的记录。': 'The local audit chain has no records for this session.',
+  '证据包不是可序列化的 JSON 对象。': 'The evidence bundle is not a serializable JSON object.',
+  '证据包缺少 version / sessions 结构。': 'The evidence bundle is missing its version / sessions structure.',
+  '专业': 'Pro',
+  '升级': 'Plus',
+  '免费': 'Free',
+  '名字里带轻量词（mini/nano/flash/lite/small/turbo…）⇒ 单次调用成本最低的那一档':
+    'Name contains a lightweight marker (mini/nano/flash/lite/small/turbo…): the lowest per-call cost tier',
+  '本地/自托管模型，不产生厂商账单 ⇒ 不受本地日预算倍率约束':
+    'Local/self-hosted model with no vendor bill: not subject to the local daily-budget multiplier',
+  'OpenAI o 系列（推理模型）按最高档计——它们的单次 token 消耗显著高于同代 chat 模型':
+    'OpenAI o-series (reasoning models) count as the top tier—their per-call token use is markedly higher than same-generation chat models',
+  '旗舰命名（opus / sonnet-4 / claude-4 / gpt-5）': 'Flagship naming (opus / sonnet-4 / claude-4 / gpt-5)',
+  'GPT-4o / GPT-4.1 这一代旗舰 chat 模型': 'Flagship chat models of the GPT-4o / GPT-4.1 generation',
+  '名字里带 pro/max/ultra/premium ⇒ 厂商自己标注的顶配档':
+    'Name contains pro/max/ultra/premium: the vendor-labeled top tier',
+  '推理型主力模型（deepseek-reasoner / R1 / v<N>-pro）':
+    'Reasoning-oriented flagship models (deepseek-reasoner / R1 / v<N>-pro)',
+  '通用主力命名（chat / standard / base / v<N>）——既非轻量也非旗舰，按中间档':
+    'General-purpose naming (chat / standard / base / v<N>): neither lightweight nor flagship, so the middle tier',
+  '工作区未配置': 'Workspace is not configured',
+  '缺少 path': 'Missing path',
+  '读取失败: 不是普通文件（目录或特殊文件）': 'Read failed: not a regular file (directory or special file)',
+  '文件过大（超过 64 MiB，拒绝整文件读入内存）':
+    'File too large (over 64 MiB; refusing to read it entirely into memory)',
+  '非数组形状': 'Not an array',
+  '解析失败': 'Parse failed',
+  '缺少 sessionId': 'Missing sessionId',
+  '缺少 keepEventId': 'Missing keepEventId',
+  '该会话有回合正在运行：请先中止再回退':
+    'A turn is running in this session: stop it before rewinding',
+  'skills.apply 需要合法 name（非空、无空白与路径分隔符、≤64 字符）':
+    'skills.apply requires a valid name (non-empty, no whitespace or path separators, ≤64 chars)',
+  'skills.apply 需要 description（一句话说明技能何时用）':
+    'skills.apply requires a description (one sentence on when to use the skill)',
+  'skills.apply 需要 instructions（技能正文，不能为空）':
+    'skills.apply requires instructions (the skill body, which cannot be empty)',
+  '（本轮未附文字说明，请按下方模式要求推进）':
+    '(no text explanation was attached this turn; proceed per the mode requirements below)',
+  '\n该目标在后续每轮都会重申；每轮结束时给出「已完成 / 未完成 / 阻塞点」，不要提前宣告达成。':
+    '\nThis goal is restated every turn; at the end of each turn report "done / not done / blocker" and do not declare completion early.',
+  '本轮不要修改任何文件、不要执行有副作用的命令——写类操作会被审批层直接拒绝。':
+    'Do not modify any files or run side-effecting commands this turn—write operations are rejected by the approval layer.',
+  '然后基于草图实现；实现完成后回头核对草图与实际是否一致，不一致要说明差异原因。':
+    'Then implement from the sketch; once done, check the sketch against the implementation and explain any differences.',
+  '无效请求': 'Invalid request',
+  '未认证或令牌无效（需 Authorization: Bearer <token>）':
+    'Unauthenticated or invalid token (requires Authorization: Bearer <token>)',
+  '缺少 path 查询参数': 'Missing path query parameter',
+  'path 解码失败': 'Failed to decode path',
+  '读取失败': 'Read failed',
+  '预览服务内部错误': 'Internal preview-server error',
+  '预览路径无法解析': 'Preview path cannot be resolved',
+  '文件过大，拒绝整文件读入内存': 'File too large; refusing to read it entirely into memory',
 };
