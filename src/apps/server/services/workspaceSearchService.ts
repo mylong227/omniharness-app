@@ -1,3 +1,4 @@
+import { RuntimeConfig } from '../../config/RuntimeConfig.ts';
 import { readdirSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { SEARCH_MAX_VISITED } from './appLimits.ts';
@@ -43,10 +44,10 @@ export interface WorkspaceSearchDeps {
 }
 
 /** 搜索上限（防御性：避免一次性把上万条路径推给 UI）。 */
-const MAX_HITS = 20;
+const MAX_HITS = RuntimeConfig.server.searchMaxHits;
 
 /** 遍历深度上限：够覆盖常规项目结构，又不至于在 monorepo 里卡住。 */
-const MAX_DEPTH = 6;
+const MAX_DEPTH = RuntimeConfig.server.searchMaxDepth;
 
 /** 访问条目数上限（防止超大仓库把一次搜索拖成秒级）。 */
 const MAX_VISITED = SEARCH_MAX_VISITED;

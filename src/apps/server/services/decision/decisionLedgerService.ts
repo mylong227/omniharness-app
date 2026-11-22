@@ -1,3 +1,4 @@
+import { RuntimeConfig } from '../../../config/RuntimeConfig.ts';
 import type { SessionEvent } from '../../../../host/kernel/contracts.ts';
 import type {
   AatRecord,
@@ -42,7 +43,7 @@ import {
 const EXPORT_MAX_BYTES = 8 * 1024 * 1024;
 
 /** 列表上限（超出仍可导出全会话）。 */
-const MAX_ROWS = 500;
+const MAX_ROWS = RuntimeConfig.server.decisionMaxRows;
 
 /** 服务依赖。 */
 export interface DecisionLedgerDeps {

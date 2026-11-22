@@ -1,3 +1,4 @@
+import { UI_TUNABLES } from '../../../config/RuntimeConfig.ts';
 // 回合结果卡：一轮结束后，把「修改的文件」与「新建的文件」统一收在一张卡里。
 //
 // 2026-11-01 二次改版（用户口径）：
@@ -36,7 +37,7 @@ const GROUPS: ReadonlyArray<{ readonly group: 'modified' | 'created'; readonly l
 ];
 
 /** 卡片默认展开的文件数上限：超过就收起，先让结论留在屏内。 */
-const AUTO_OPEN_LIMIT = 10;
+const AUTO_OPEN_LIMIT = UI_TUNABLES.turnSummaryAutoOpenLimit;
 
 /** 图片扩展名（用于给产物行选图标；不引入新的文件类型判定层）。 */
 const IMAGE_RE = /\.(?:png|jpe?g|gif|webp|svg|bmp|avif)$/iu;

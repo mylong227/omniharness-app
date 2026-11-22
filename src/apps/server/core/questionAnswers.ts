@@ -1,7 +1,8 @@
+import { RuntimeConfig } from '../../config/RuntimeConfig.ts';
 import type { AskAnswer, AskQuestion } from '../../../host/kernel/contracts.ts';
 
 /** 单题自由输入上限（字符）：上行通道是外部输入，超长文本不进模型上下文。 */
-const MAX_CUSTOM_CHARS = 4000;
+const MAX_CUSTOM_CHARS = RuntimeConfig.server.questionMaxCustomChars;
 
 /** 答案解析结果：成功给同序答案；失败给一句可读拒因（**不静默兜底**）。 */
 export type ParsedQuestionAnswers =

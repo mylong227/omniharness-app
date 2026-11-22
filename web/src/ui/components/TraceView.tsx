@@ -1,3 +1,4 @@
+import { UI_TUNABLES } from '../../config/RuntimeConfig.ts';
 // 「轨迹」视图：把当前会话的工具调用压成一张紧凑时间线（截图式三栏壳的中栏第二视图）。
 // 与「对话」的区别：不渲染任何正文 / 推理，只留「图标 + 动作 + 状态 + 时间」一行一条，
 // 用来回答「这一轮到底动了哪些文件、跑了哪些命令」。数据完全来自既有事件流，不新增请求。
@@ -26,7 +27,7 @@ import type { ThreadEvent } from '../../types/models.ts';
 import type { LiveInput, ToolResultView } from '../shared.ts';
 
 /** 轨迹一次最多渲染的行数（长会话防千行 DOM；筛选条件变化时复位）。 */
-const TRACE_RENDER_LIMIT = 300;
+const TRACE_RENDER_LIMIT = UI_TUNABLES.traceRenderLimit;
 
 /** TraceView 组件的入参。 */
 export interface TraceViewProps {

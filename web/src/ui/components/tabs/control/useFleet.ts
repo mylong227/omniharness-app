@@ -1,3 +1,4 @@
+import { UI_TUNABLES } from '../../../../config/RuntimeConfig.ts';
 // 编队数据钩子：2s 轮询（仅 tab 活跃时）+ 迟到响应守卫（设计 CR-05/CR-06）。
 //
 // 轮询口径（设计 §7.2）：编队允许活跃 tab 下 2s 轮询 `fleet.list`；`document.hidden`
@@ -15,13 +16,13 @@ import { useSessionResource } from '../../../hooks/useSessionResource.ts';
 import type { FleetSnapshotLike } from '../../../../types/models.ts';
 
 /** 轮询间隔（毫秒）。 */
-const POLL_MS = 2_000;
+const POLL_MS = UI_TUNABLES.fleetPollMs;
 
 /** 同会话快照缓存有效期（毫秒；过期才重发请求）。 */
-const CACHE_TTL_MS = 30_000;
+const CACHE_TTL_MS = UI_TUNABLES.fleetCacheTtlMs;
 
 /** 「已过期」读数刷新间隔（毫秒；不驱动 RPC）。 */
-const STALE_TICK_MS = 30_000;
+const STALE_TICK_MS = UI_TUNABLES.fleetStaleTickMs;
 
 /** 编队数据钩子的返回值。 */
 export interface UseFleetResult {

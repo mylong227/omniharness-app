@@ -1,3 +1,4 @@
+import { RuntimeConfig } from '../../config/RuntimeConfig.ts';
 import { AppText } from '../../i18n/AppText.ts';
 import { access, mkdir, readFile, readdir, stat } from 'node:fs/promises';
 import type { Dirent } from 'node:fs';
@@ -9,7 +10,7 @@ import { ATTACH_FILE_MAX_BYTES, ATTACH_TOTAL_MAX_BYTES } from './appLimits.ts';
 /** 单文件附加大小上限（20MB）。 */
 const MAX_ATTACH_BYTES = ATTACH_FILE_MAX_BYTES;
 /** 单次附加文件个数上限。 */
-const MAX_ATTACH_COUNT = 50;
+const MAX_ATTACH_COUNT = RuntimeConfig.server.fsMaxAttachCount;
 /**
  * 单次 attach.read 的**总字节**上限（32 MiB）。
  *
