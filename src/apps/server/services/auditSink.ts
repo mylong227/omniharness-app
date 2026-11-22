@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import {
   closeSync,
   existsSync,
@@ -337,7 +338,7 @@ export class AuditSink {
       const legacy: AuditChainReport = {
         ok: null,
         count: events.length,
-        reason: '旧格式日志：未启用哈希链，无法校验完整性（非篡改）',
+        reason: AppText.t('旧格式日志：未启用哈希链，无法校验完整性（非篡改）'),
       };
       log.debug('audit.verify.legacy', { count: events.length });
       return legacy;

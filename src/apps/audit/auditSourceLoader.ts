@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -84,7 +85,7 @@ export class AuditSourceLoader {
     if (buffer.byteLength > AuditSourceLoader.MAX_BYTES) {
       throw new Error(
         `文件 ${path} 为 ${String(buffer.byteLength)} 字节，超过 ${String(AuditSourceLoader.MAX_BYTES)} 字节上限；` +
-          '审计出证只面向单次会话文件。',
+          AppText.t('审计出证只面向单次会话文件。'),
       );
     }
     const text = buffer.toString('utf8');
@@ -92,7 +93,7 @@ export class AuditSourceLoader {
     if (resolved === null) {
       throw new Error(
         `无法识别 ${path} 的会话格式。支持：OmniHarness JSONL / Claude Code transcript / Codex rollout / ACP 转录。` +
-          '若确认格式可用 `--source-format omni|claude-code|codex|acp` 显式指定。',
+          AppText.t('若确认格式可用 `--source-format omni|claude-code|codex|acp` 显式指定。'),
       );
     }
     const result = this.parse(resolved, text);

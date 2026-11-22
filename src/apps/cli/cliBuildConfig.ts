@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * cliBuildConfig.ts —— ExecCli 的配置装配簇（god-class 拆分 · 第 1/6 层）。
  *
@@ -64,7 +65,6 @@ import { CliEventPort } from './cliEventPort.ts';
 import type { CliArgs } from './argParser.ts';
 import { CliConfigSections } from './cliConfigSections.ts';
 import type { ResolvedConfig } from '../../host/kernel/contracts.ts';
-import { AppText } from '../i18n/AppText.ts';
 import type { ExtraTool } from '../../host/kernel/contracts.ts';
 import type { UserResponder } from '../../host/kernel/contracts.ts';
 import type { EventPort } from '../../host/kernel/contracts.ts';
@@ -264,7 +264,7 @@ export class CliBuildConfig extends CliCredentialBuild {
   ): Promise<ResolvedConfig> {
     if (args.native && !new NativeKernel().available()) {
       process.stderr.write(
-        '⚠️ --native 已请求但原生内核不可用（原生内核随包预编译；本仓无 native:build 脚本），已回退 TS 路径\n',
+        AppText.t('⚠️ --native 已请求但原生内核不可用（原生内核随包预编译；本仓无 native:build 脚本），已回退 TS 路径\n'),
       );
     }
     // F3：凭据水合必须早于 buildModel——模型适配器与模型路由都在构造期直接读 process.env。
@@ -391,7 +391,7 @@ export class CliBuildConfig extends CliCredentialBuild {
     }
     const tools = config.tools;
     if (!(tools instanceof RegistryToolPort)) {
-      process.stderr.write('MCP 桥接需 RegistryToolPort 型工具端口，已跳过\n');
+      process.stderr.write(AppText.t('MCP 桥接需 RegistryToolPort 型工具端口，已跳过\n'));
       return;
     }
     const { SdkPreferredMcpConnector } =
@@ -447,7 +447,7 @@ export class CliBuildConfig extends CliCredentialBuild {
       modelAdapterRegistry.get(args.modelAdapter) ?? modelAdapterRegistry.get(MOCK_ADAPTER_ID);
     if (spec === undefined) {
       // 注册表恒含 mock（见 modelAdapterRegistry 的表）；走到这里说明表被改坏 ⇒ fail-closed。
-      throw new Error('模型适配器注册表缺少 mock 适配器');
+      throw new Error(AppText.t('模型适配器注册表缺少 mock 适配器'));
     }
     if (spec.defaultsId === undefined) {
       return spec.create({ baseUrl: '', model: args.model }); // mock：无端点、无凭据
@@ -582,8 +582,8 @@ export class CliBuildConfig extends CliCredentialBuild {
     if (!SandboxManager.isExecutionUnwired(profile)) return;
     throw new Error(
       `拒绝以 sandbox=${profile} 启动：该 OS 级后端目前只做裁决、执行包装尚未接线，` +
-        '命令不会真正进入 bwrap/landlock/seatbelt/unshare。请改用 policy/restricted，' +
-        '或等待执行包装接线后再启用。',
+        AppText.t('命令不会真正进入 bwrap/landlock/seatbelt/unshare。请改用 policy/restricted，') +
+        AppText.t('或等待执行包装接线后再启用。'),
     );
   }
 

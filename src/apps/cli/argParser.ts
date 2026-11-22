@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 import type { FileConfig } from '../../host/kernel/config.ts';
 import { CliFlagTable, FLAG_TABLE, VALUE_FLAGS } from './cliFlagTable.ts';
 import { ArgConfigDefaults } from './argConfigDefaults.ts';
@@ -144,7 +145,7 @@ export class ArgParser {
       return undefined;
     }
     if (args.prompt === '' && (args.resumeId !== undefined || args.forkId !== undefined)) {
-      throw new Error('resume/fork 模式需要 --prompt');
+      throw new Error(AppText.t('resume/fork 模式需要 --prompt'));
     }
     return args;
   }

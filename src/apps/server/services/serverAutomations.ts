@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 /**
  * server 自动化（M30 双定时器统一）：**唯一**自动化调度实现。
  *
@@ -118,10 +119,10 @@ export class ServerAutomations {
     const name = typeof raw['name'] === 'string' ? raw['name'].trim() : '';
     const prompt = typeof raw['prompt'] === 'string' ? raw['prompt'].trim() : '';
     const intervalMinutes = Number(raw['intervalMinutes']);
-    if (name === '' || name.length > 80) throw new Error('自动化名称必须为 1–80 字符');
-    if (prompt === '' || prompt.length > 8000) throw new Error('自动化提示词必须为 1–8000 字符');
+    if (name === '' || name.length > 80) throw new Error(AppText.t('自动化名称必须为 1–80 字符'));
+    if (prompt === '' || prompt.length > 8000) throw new Error(AppText.t('自动化提示词必须为 1–8000 字符'));
     if (!Number.isInteger(intervalMinutes) || intervalMinutes < 5 || intervalMinutes > 1440) {
-      throw new Error('自动化间隔必须为 5–1440 分钟');
+      throw new Error(AppText.t('自动化间隔必须为 5–1440 分钟'));
     }
     const automation: Automation = {
       id: `auto_${randomUUID()}`,

@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import { WorkflowRunner, WorkflowRunLog } from '../../../host/kernel/autonomy.ts';
 import type { WorkflowDef } from '../../../host/kernel/autonomy.ts';
 import type { GraphRunRegistry } from '../core/graphRunRegistry.ts';
@@ -31,18 +32,18 @@ export function graphsModule(): ServerModule {
       ctx.rpc('graph.get', async (params) => {
         const idParam = params['id'];
         if (typeof idParam !== 'string' || idParam.length === 0) {
-          throw new Error('graph.get 需要 id');
+          throw new Error(AppText.t('graph.get 需要 id'));
         }
         const def = s.runtime.graphStore().get(idParam);
         if (def === undefined) {
-          throw new Error('未找到图: ' + idParam);
+          throw new Error(AppText.t('未找到图: ') + idParam);
         }
         return def;
       });
       ctx.rpc('graph.save', async (params) => {
         const def = params['def'];
         if (!isWorkflowDefLike(def)) {
-          throw new Error('graph.save 需要 def（含 name 与 steps）');
+          throw new Error(AppText.t('graph.save 需要 def（含 name 与 steps）'));
         }
         const savedId = s.runtime.graphStore().save(def as WorkflowDef);
         return { ok: true, id: savedId };
@@ -50,7 +51,7 @@ export function graphsModule(): ServerModule {
       ctx.rpc('graph.delete', async (params) => {
         const idParam = params['id'];
         if (typeof idParam !== 'string' || idParam.length === 0) {
-          throw new Error('graph.delete 需要 id');
+          throw new Error(AppText.t('graph.delete 需要 id'));
         }
         return { ok: s.runtime.graphStore().delete(idParam) };
       });
@@ -61,7 +62,7 @@ export function graphsModule(): ServerModule {
       ctx.rpc('graph.resume', async (params) => {
         const runId = params['runId'];
         if (typeof runId !== 'string' || runId.length === 0) {
-          throw new Error('graph.resume 需要 runId（来自上次 graph.run 的返回值）');
+          throw new Error(AppText.t('graph.resume 需要 runId（来自上次 graph.run 的返回值）'));
         }
         const threadId = params['threadId'];
         const owner = typeof threadId === 'string' && threadId.length > 0 ? threadId : undefined;
@@ -74,7 +75,7 @@ export function graphsModule(): ServerModule {
       ctx.rpc('graph.status', async (params) => {
         const runId = params['runId'];
         if (typeof runId !== 'string') {
-          throw new Error('graph.status 需要 runId');
+          throw new Error(AppText.t('graph.status 需要 runId'));
         }
         // 视图塑形下沉到台账（`GraphRunRegistry.describe`）：「运行态 → UI 视图」本就是台账职责。
         return s.graphRuns.describe(runId);
@@ -106,17 +107,17 @@ function runGraph(deps: GraphDeps, params: Record<string, unknown>): { runId: st
   if (idParam !== undefined) {
     def = store.get(idParam);
     if (def === undefined) {
-      throw new Error('未找到图: ' + idParam);
+      throw new Error(AppText.t('未找到图: ') + idParam);
     }
   } else if (isWorkflowDefLike(defArg)) {
     def = defArg as WorkflowDef;
   } else {
-    throw new Error('graph.run 需要 id（已存图）或 def（内联定义）');
+    throw new Error(AppText.t('graph.run 需要 id（已存图）或 def（内联定义）'));
   }
   // 空计划必须拒绝：`WorkflowRunner.run([])` 会返回 `ok:true` 且零节点，于是模型收到
   // 「图跑成功了」却什么都没做（模型面的 `run_workflow` 早有同款守卫，两条入口口径必须一致）。
   if (def.steps.length === 0) {
-    throw new Error('graph.run 拒绝空计划：steps 至少需要一步');
+    throw new Error(AppText.t('graph.run 拒绝空计划：steps 至少需要一步'));
   }
   const owner = typeof params['threadId'] === 'string' ? params['threadId'] : '';
   return startGraphRun(deps, def, idParam, owner === '' ? undefined : owner);

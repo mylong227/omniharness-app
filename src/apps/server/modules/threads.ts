@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import type { ServerModule } from '../core/serverModule.ts';
 import { stringOf } from './rpcParams.ts';
 
@@ -25,7 +26,7 @@ export function threadsModule(): ServerModule {
       ctx.rpc('modes.get', async (params) => s.modes.get(stringOf(params['threadId'])));
       ctx.rpc('modes.set', async (params) => {
         const threadId = stringOf(params['threadId']);
-        if (threadId === '') throw new Error('modes.set 需要 threadId');
+        if (threadId === '') throw new Error(AppText.t('modes.set 需要 threadId'));
         const patch: { goal?: string; planMode?: boolean; sketchMode?: boolean } = {};
         const goal = params['goal'];
         if (typeof goal === 'string') patch.goal = goal;

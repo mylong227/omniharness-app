@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * cliServerCmds.ts —— ExecCli 命令簇（god-class 拆分 · 第 2/6 层）。
  *
@@ -75,6 +76,7 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
     const { AppServer } = await import('../server/core/appServer.ts');
     const app = new AppServer({
       config,
+      locale: process.env.OMNI_LOCALE === 'en' ? 'en' : 'zh',
       transport,
       pluginsDir,
       workspaceRoot: process.cwd(),
@@ -240,7 +242,7 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
     const jwksUri = this.flagValue(serveArgs, '--oidc-jwks-uri');
     if (issuer === undefined || clientId === undefined || jwksUri === undefined) {
       process.stderr.write(
-        '[auth] --auth-required 需同时提供 --oidc-issuer / --oidc-client-id / --oidc-jwks-uri（真实 IdP 的 jwks_uri 端点）\n',
+        AppText.t('[auth] --auth-required 需同时提供 --oidc-issuer / --oidc-client-id / --oidc-jwks-uri（真实 IdP 的 jwks_uri 端点）\n'),
       );
       return 2;
     }
@@ -447,6 +449,7 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
           audit,
           displayConfig,
           subagentTree,
+          locale: loadedFile.locale ?? 'zh',
         }),
       );
       // 启动优化（D1，2026-10-25）：插件加载 + Profile 应用不再挡在 HTTP listen 之前，
@@ -492,10 +495,10 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
       // 本提示只针对「项目级」缺省——别再把它指给 init（那永远消不掉这条提示，2026-11-06 审计）。
       process.stderr.write(
         `[omniharness] 未在 ${wsRoot} 找到项目级 omniharness.json；` +
-          '将只用用户级（~/.omniharness/omniharness.json）与内置默认。\n',
+          AppText.t('将只用用户级（~/.omniharness/omniharness.json）与内置默认。\n'),
       );
       process.stderr.write(
-        '              需要项目级差异化配置时，复制 omniharness.json.example 到本目录改名即可。\n',
+        AppText.t('              需要项目级差异化配置时，复制 omniharness.json.example 到本目录改名即可。\n'),
       );
     }
     const configPath = foundConfig ?? join(wsRoot, configFile.FILE_NAME);
@@ -542,6 +545,8 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
     readonly metrics: Metrics;
     readonly audit: AuditSink | undefined;
     readonly displayConfig: Record<string, string>;
+    /** 界面语言（用户级配置的 locale；缺省 zh）。 */
+    readonly locale: 'zh' | 'en';
     /** 子代理父子树（alpha.21）：与 buildConfig 期注入的是同一实例。 */
     readonly subagentTree: import('../../host/kernel/contracts.ts').SubagentTreePort;
   }): Promise<AppServerOptions> {
@@ -549,6 +554,7 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
     const serveProfile = this.flagValue(serveArgs, '--profile');
     return {
       config: deps.config,
+      locale: deps.locale,
       transport: deps.bridge,
       subagentTree: deps.subagentTree,
       // 复用同一份上行桥：`question.respond` 的处理器挂在同一个实例上，否则（各自新建）

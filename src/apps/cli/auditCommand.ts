@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * audit 子命令（AuditCommand）——三条能力，共用一个入口：
  *
@@ -156,19 +157,19 @@ export class AuditCommand {
     const out = reader.value('--out') ?? null;
     const format = this.resolveFormat(reader.value('--format'), out);
     if (format === null) {
-      process.stderr.write('[omniharness] --format 只支持 html / md / json\n');
+      process.stderr.write(AppText.t('[omniharness] --format 只支持 html / md / json\n'));
       return 2;
     }
     const sourceFormat = this.resolveSourceFormat(reader.value('--source-format'));
     if (sourceFormat === 'invalid') {
       process.stderr.write(
-        '[omniharness] --source-format 只支持 omni / claude-code / codex / acp\n',
+        AppText.t('[omniharness] --source-format 只支持 omni / claude-code / codex / acp\n'),
       );
       return 2;
     }
     const redact = this.resolveRedact(reader.value('--redact'));
     if (redact === 'invalid') {
-      process.stderr.write('[omniharness] --redact 只支持 off / paths / secrets / all\n');
+      process.stderr.write(AppText.t('[omniharness] --redact 只支持 off / paths / secrets / all\n'));
       return 2;
     }
     try {
@@ -381,7 +382,7 @@ export class AuditCommand {
     );
     if (chain.ok === false) {
       process.stderr.write(
-        `[omniharness] 审计哈希链校验失败：${chain.reason ?? '未知原因'}（断裂处 seq=${String(chain.brokenAt)}）\n` +
+        `[omniharness] 审计哈希链校验失败：${chain.reason ?? AppText.t('未知原因')}（断裂处 seq=${String(chain.brokenAt)}）\n` +
           `              该报告不可作为合规证据，请核查审计日志完整性。\n`,
       );
     }

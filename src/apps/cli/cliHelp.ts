@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 import { BuiltinDefaults } from '../../host/kernel/util.ts';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -195,7 +196,7 @@ class CliHelp {
       return [];
     }
     if (!Array.isArray(raw)) {
-      throw new Error('defaults/cliHelp.json 的 quickStart 应为字符串数组');
+      throw new Error(AppText.t('defaults/cliHelp.json 的 quickStart 应为字符串数组'));
     }
     return raw.map((item, index) => {
       const at = `quickStart[${index}]`;

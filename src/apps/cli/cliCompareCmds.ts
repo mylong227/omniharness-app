@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * cliCompareCmds.ts —— ExecCli 命令簇（god-class 拆分 · 第 4.5/6 层）。
  *
@@ -22,13 +23,13 @@ export class CliCompareCmds extends CliDataCmds {
     const prompt = this.flagValue(args, '--prompt');
     if (prompt === undefined) {
       process.stdout.write(
-        '用法: omniharness compare --prompt "任务" --adapter-a mock --adapter-b openai [--base-url-b URL --api-key-b KEY --model-b M]\n',
+        AppText.t('用法: omniharness compare --prompt "任务" --adapter-a mock --adapter-b openai [--base-url-b URL --api-key-b KEY --model-b M]\n'),
       );
       return 2;
     }
     const resultA = await this.runCompareSide(args, 'a', prompt);
     const resultB = await this.runCompareSide(args, 'b', prompt);
-    process.stdout.write('=== A/B 对比 ===\n');
+    process.stdout.write(AppText.t('=== A/B 对比 ===\n'));
     process.stdout.write(
       `模型 A: ${resultA.modelName}｜耗时 ${resultA.durationMs}ms｜${resultA.finalText}\n`,
     );

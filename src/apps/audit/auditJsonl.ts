@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * JSONL 读取器（审计解析器的共同入口）。
  *
@@ -27,7 +28,7 @@ export class AuditJsonl {
     if (lines.length > AuditJsonl.MAX_LINES) {
       throw new Error(
         `输入超过 ${String(AuditJsonl.MAX_LINES)} 行上限（${String(lines.length)} 行），` +
-          '为防误读非会话文件已拒绝；请先切分出单次会话再出证。',
+          AppText.t('为防误读非会话文件已拒绝；请先切分出单次会话再出证。'),
       );
     }
     const values: unknown[] = [];

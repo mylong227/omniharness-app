@@ -1,3 +1,4 @@
+import { AppText } from '../../../i18n/AppText.ts';
 import type { StoragePort } from '../../../../host/kernel/contracts.ts';
 import { invalidateEventsCache } from './sessionEventsCache.ts';
 import { CheckpointManager } from '../../../../host/kernel/core.ts';
@@ -32,7 +33,7 @@ export class SessionCheckpoints {
   public async list(params: Record<string, unknown>): Promise<unknown> {
     const sessionId = params['sessionId'];
     if (typeof sessionId !== 'string' || sessionId.length === 0) {
-      throw new Error('checkpoint.list 需要 sessionId');
+      throw new Error(AppText.t('checkpoint.list 需要 sessionId'));
     }
     const list = await this.manager().list(sessionId);
     return { sessionId, checkpoints: list };
@@ -48,10 +49,10 @@ export class SessionCheckpoints {
     const sessionId = params['sessionId'];
     const label = params['label'];
     if (typeof sessionId !== 'string' || sessionId.length === 0) {
-      throw new Error('checkpoint.create 需要 sessionId');
+      throw new Error(AppText.t('checkpoint.create 需要 sessionId'));
     }
     if (typeof label !== 'string' || label.length === 0) {
-      throw new Error('checkpoint.create 需要 label');
+      throw new Error(AppText.t('checkpoint.create 需要 label'));
     }
     const checkpoint = await this.manager().snapshot(sessionId, label);
     return { ok: true, checkpoint };
@@ -66,7 +67,7 @@ export class SessionCheckpoints {
   public async rollback(params: Record<string, unknown>): Promise<unknown> {
     const sessionId = params['sessionId'];
     if (typeof sessionId !== 'string' || sessionId.length === 0) {
-      throw new Error('checkpoint.rollback 需要 sessionId');
+      throw new Error(AppText.t('checkpoint.rollback 需要 sessionId'));
     }
     const label = typeof params['label'] === 'string' ? params['label'] : undefined;
     const checkpoint = await this.manager().rollback(sessionId, label);

@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * gc 子命令（GcCommand）——手动触发一轮维护巡检（2026-10-26，磁盘爆炸收口的手动面）。
  *
@@ -43,7 +44,7 @@ export class GcCommand {
     const dryRun = args.includes('--dry-run');
     const report = runner({ dryRun });
     process.stdout.write(
-      `${MaintenanceRunner.summarize(report)}${dryRun ? '（dry-run：未实际删除）' : ''}\n`,
+      `${MaintenanceRunner.summarize(report)}${dryRun ? AppText.t('（dry-run：未实际删除）') : ''}\n`,
     );
     for (const tmp of report.tmp) {
       if (tmp.removed === 0 && tmp.matched.length === 0) continue;

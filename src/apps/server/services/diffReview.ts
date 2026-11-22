@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import type { RepoPathGuard } from './repoPathGuard.ts';
 import { AsyncChildProcess } from '../../../host/kernel/util.ts';
 
@@ -38,7 +39,7 @@ export class DiffReview {
       },
     );
     if (inside.status !== 0 || inside.stdout.trim() !== 'true') {
-      throw new Error('当前工作区不是 git 仓库，无法执行 stage/revert');
+      throw new Error(AppText.t('当前工作区不是 git 仓库，无法执行 stage/revert'));
     }
     return ws;
   }
@@ -51,7 +52,7 @@ export class DiffReview {
    */
   public async stageFile(params: Record<string, unknown>): Promise<unknown> {
     const raw = params['path'];
-    if (typeof raw !== 'string') throw new Error('changes.stageFile 需要 path');
+    if (typeof raw !== 'string') throw new Error(AppText.t('changes.stageFile 需要 path'));
     const ws = await this.gitRootOrFail();
     const rel = this.options.guard.resolve(raw);
     const add = await AsyncChildProcess.spawnSyncAsync('git', ['add', '--', rel], {
@@ -59,7 +60,7 @@ export class DiffReview {
       encoding: 'utf8',
     });
     if (add.status !== 0) {
-      throw new Error('git add 失败：' + (add.stderr || add.stdout).trim());
+      throw new Error(AppText.t('git add 失败：') + (add.stderr || add.stdout).trim());
     }
     return { ok: true };
   }
@@ -72,18 +73,18 @@ export class DiffReview {
    */
   public async revertFile(params: Record<string, unknown>): Promise<unknown> {
     const raw = params['path'];
-    if (typeof raw !== 'string') throw new Error('changes.revertFile 需要 path');
+    if (typeof raw !== 'string') throw new Error(AppText.t('changes.revertFile 需要 path'));
     const ws = await this.gitRootOrFail();
     const rel = this.options.guard.resolve(raw);
     if ((await this.fileStatus(ws, rel)) === '??') {
-      throw new Error('未跟踪文件不做服务端丢弃（防误删），请手动删除或先 stage');
+      throw new Error(AppText.t('未跟踪文件不做服务端丢弃（防误删），请手动删除或先 stage'));
     }
     const co = await AsyncChildProcess.spawnSyncAsync('git', ['checkout', '--', rel], {
       cwd: ws,
       encoding: 'utf8',
     });
     if (co.status !== 0) {
-      throw new Error('git checkout 失败：' + (co.stderr || co.stdout).trim());
+      throw new Error(AppText.t('git checkout 失败：') + (co.stderr || co.stdout).trim());
     }
     return { ok: true };
   }
@@ -97,9 +98,9 @@ export class DiffReview {
   public async stageHunk(params: Record<string, unknown>): Promise<unknown> {
     const raw = params['path'];
     const hunk = params['hunk'];
-    if (typeof raw !== 'string') throw new Error('changes.stageHunk 需要 path');
+    if (typeof raw !== 'string') throw new Error(AppText.t('changes.stageHunk 需要 path'));
     if (typeof hunk !== 'string' || hunk.trim() === '') {
-      throw new Error('changes.stageHunk 需要 hunk 文本');
+      throw new Error(AppText.t('changes.stageHunk 需要 hunk 文本'));
     }
     const ws = await this.gitRootOrFail();
     const rel = this.options.guard.resolve(raw);
@@ -110,7 +111,7 @@ export class DiffReview {
         encoding: 'utf8',
       });
       if (addN.status !== 0) {
-        throw new Error('git add -N 失败：' + (addN.stderr || addN.stdout).trim());
+        throw new Error(AppText.t('git add -N 失败：') + (addN.stderr || addN.stdout).trim());
       }
     }
     const apply = await AsyncChildProcess.spawnSyncAsync(
@@ -123,7 +124,7 @@ export class DiffReview {
       },
     );
     if (apply.status !== 0) {
-      throw new Error('git apply --cached 失败：' + (apply.stderr || apply.stdout).trim());
+      throw new Error(AppText.t('git apply --cached 失败：') + (apply.stderr || apply.stdout).trim());
     }
     return { ok: true };
   }
@@ -137,9 +138,9 @@ export class DiffReview {
   public async revertHunk(params: Record<string, unknown>): Promise<unknown> {
     const raw = params['path'];
     const hunk = params['hunk'];
-    if (typeof raw !== 'string') throw new Error('changes.revertHunk 需要 path');
+    if (typeof raw !== 'string') throw new Error(AppText.t('changes.revertHunk 需要 path'));
     if (typeof hunk !== 'string' || hunk.trim() === '') {
-      throw new Error('changes.revertHunk 需要 hunk 文本');
+      throw new Error(AppText.t('changes.revertHunk 需要 hunk 文本'));
     }
     const ws = await this.gitRootOrFail();
     const rel = this.options.guard.resolve(raw);
@@ -153,7 +154,7 @@ export class DiffReview {
       },
     );
     if (apply.status !== 0) {
-      throw new Error('git apply -R 失败：' + (apply.stderr || apply.stdout).trim());
+      throw new Error(AppText.t('git apply -R 失败：') + (apply.stderr || apply.stdout).trim());
     }
     return { ok: true };
   }
@@ -169,18 +170,18 @@ export class DiffReview {
     const normalized = hunk.replace(/\r\n/g, '\n').replace(/\n+$/u, '');
     const lines = normalized.split('\n');
     if (!/^@@ -\d+(?:,\d+)? \+\d+(?:,\d+)? @@/u.test(lines[0] ?? '')) {
-      throw new Error('hunk 文本缺少 @@ 头');
+      throw new Error(AppText.t('hunk 文本缺少 @@ 头'));
     }
     // 一个 hunk 文本只允许一个 @@ 头；多段补丁会让 `git apply` 把后面的 `diff --git` 当第二条
     // 补丁执行（可改守卫范围外的文件）。同理拒绝任何补丁头行。
     if (lines.filter((line) => line.startsWith('@@')).length !== 1) {
-      throw new Error('hunk 文本只能包含一个 @@ 头（拒绝多段补丁）');
+      throw new Error(AppText.t('hunk 文本只能包含一个 @@ 头（拒绝多段补丁）'));
     }
     const FORBIDDEN_HEADER =
       /^(?:diff --git |index [0-9a-f]+\.\.|--- (?:a\/|\/dev\/null)|\+\+\+ (?:b\/|\/dev\/null)|new file mode |deleted file mode |rename (?:from|to) |similarity index |Binary files )/u;
     for (const line of lines.slice(1)) {
       if (FORBIDDEN_HEADER.test(line)) {
-        throw new Error('hunk 文本含补丁头（拒绝多文件补丁注入）');
+        throw new Error(AppText.t('hunk 文本含补丁头（拒绝多文件补丁注入）'));
       }
     }
     return `--- a/${rel}\n+++ b/${rel}\n${normalized}\n`;

@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import type { ServerModule } from '../core/serverModule.ts';
 import {
   applyDraft,
@@ -46,7 +47,7 @@ export function skillsModule(): ServerModule {
       ctx.rpc('skills.get', (params) => {
         const name = params['name'];
         if (typeof name !== 'string' || name.trim() === '') {
-          throw new Error('skills.get 需要 name');
+          throw new Error(AppText.t('skills.get 需要 name'));
         }
         return Promise.resolve(getSkillView(registrySkills(), configSkills(), name));
       });
@@ -78,7 +79,7 @@ export function skillsModule(): ServerModule {
       ctx.rpc('skills.delete', (params) => {
         const name = params['name'];
         if (typeof name !== 'string' || name.trim() === '') {
-          throw new Error('skills.delete 需要 name');
+          throw new Error(AppText.t('skills.delete 需要 name'));
         }
         const next = deleteSkill(configSkills(), name);
         if (next === null) {
@@ -100,15 +101,15 @@ export function skillsModule(): ServerModule {
 function draftOf(params: Record<string, unknown>): SkillDraft {
   const name = params['name'];
   if (typeof name !== 'string' || name.trim() === '') {
-    throw new Error('skills.apply 需要 name');
+    throw new Error(AppText.t('skills.apply 需要 name'));
   }
   const instructions = params['instructions'];
   if (typeof instructions !== 'string' || instructions.trim() === '') {
-    throw new Error('skills.apply 需要 instructions');
+    throw new Error(AppText.t('skills.apply 需要 instructions'));
   }
   const description = params['description'];
   if (typeof description !== 'string' || description.trim() === '') {
-    throw new Error('skills.apply 需要 description');
+    throw new Error(AppText.t('skills.apply 需要 description'));
   }
   const rawTags = params['tags'];
   const tags = Array.isArray(rawTags)

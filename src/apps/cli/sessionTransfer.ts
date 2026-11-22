@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 import type { SessionEvent } from '../../host/kernel/contracts.ts';
 import type { StoragePort } from '../../host/kernel/contracts.ts';
 
@@ -89,7 +90,7 @@ export class SessionTransfer {
   } {
     const trimmed = text.trim();
     if (trimmed === '') {
-      throw new Error('导入文件为空');
+      throw new Error(AppText.t('导入文件为空'));
     }
     const whole = SessionTransfer.tryParseJson(trimmed);
     if (
@@ -142,7 +143,7 @@ export class SessionTransfer {
     sessionId: string,
   ): { readonly events: readonly SessionEvent[]; readonly skipped: number } {
     if (!Array.isArray(envelope.events)) {
-      throw new Error('omni 信封缺 events 数组（文件损坏或被截断）');
+      throw new Error(AppText.t('omni 信封缺 events 数组（文件损坏或被截断）'));
     }
     const events = envelope.events.map((event, index) =>
       SessionTransfer.reid(event, index, workspace, sessionId),
@@ -203,7 +204,7 @@ export class SessionTransfer {
       // 只剩 session_meta 的空会话（那会让"导入成功"变成谎言）。
       throw new Error(
         `无法识别的会话格式（${String(skipped)} 行全部无法映射为 user/assistant 文本）` +
-          '——支持：omniharness.session.v1 信封 / Claude Code 会话 JSONL',
+          AppText.t('——支持：omniharness.session.v1 信封 / Claude Code 会话 JSONL'),
       );
     }
     return {

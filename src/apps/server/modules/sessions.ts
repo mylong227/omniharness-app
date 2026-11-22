@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import type { ServerModule } from '../core/serverModule.ts';
 
 /**
@@ -59,7 +60,7 @@ export function sessionsModule(): ServerModule {
         const sessionId = typeof params['sessionId'] === 'string' ? params['sessionId'] : '';
         // 运行中的会话不允许改写归属（存档正被 write-behind 追加）；注释与实现必须一致。
         if (s.activeTurns.has(sessionId)) {
-          throw new Error('会话正在运行，暂不能修改归属（结束后再试）');
+          throw new Error(AppText.t('会话正在运行，暂不能修改归属（结束后再试）'));
         }
         const workspace = typeof params['workspace'] === 'string' ? params['workspace'] : '';
         return s.assignSessionWorkspace(sessionId, s.requireDirectory(workspace));

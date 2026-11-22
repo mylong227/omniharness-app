@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * plugin 子命令（PluginCommand）——插件生态的发现 / 安装 / 加载 / 移除。
  *
@@ -78,7 +79,7 @@ export class PluginCommand {
     const file = reader.value('--file');
     if (file === undefined) {
       process.stdout.write(
-        '用法: omniharness plugin load --file PATH [--allow PERM ...] [--allow-all]\n',
+        AppText.t('用法: omniharness plugin load --file PATH [--allow PERM ...] [--allow-all]\n'),
       );
       return 2;
     }
@@ -117,7 +118,7 @@ export class PluginCommand {
   private async pluginList(args: readonly string[]): Promise<number> {
     const installed = await this.createRegistry(args).list();
     if (installed.length === 0) {
-      process.stdout.write('（无已安装插件；用 plugin search 发现，plugin install <name> 安装）\n');
+      process.stdout.write(AppText.t('（无已安装插件；用 plugin search 发现，plugin install <name> 安装）\n'));
       return 0;
     }
     for (const manifest of installed) {
@@ -139,7 +140,7 @@ export class PluginCommand {
     const query = reader.value('--query') ?? reader.at(1);
     const results = await this.createRegistry(args).search(query);
     if (results.length === 0) {
-      process.stdout.write('（无匹配插件）\n');
+      process.stdout.write(AppText.t('（无匹配插件）\n'));
       return 0;
     }
     for (const descriptor of results) {
@@ -160,7 +161,7 @@ export class PluginCommand {
   private async pluginInstall(args: readonly string[], reader: CliArgReader): Promise<number> {
     const name = reader.at(1);
     if (name === undefined) {
-      process.stdout.write('用法: omniharness plugin install <name> [--dir DIR]\n');
+      process.stdout.write(AppText.t('用法: omniharness plugin install <name> [--dir DIR]\n'));
       return 2;
     }
     try {
@@ -185,7 +186,7 @@ export class PluginCommand {
   private async pluginRemove(args: readonly string[], reader: CliArgReader): Promise<number> {
     const name = reader.at(1);
     if (name === undefined) {
-      process.stdout.write('用法: omniharness plugin remove <name> [--dir DIR]\n');
+      process.stdout.write(AppText.t('用法: omniharness plugin remove <name> [--dir DIR]\n'));
       return 2;
     }
     try {

@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import { DaemonController } from '../../daemon/daemonController.ts';
 import { AuditExporter, type AuditQuery } from '../services/auditExporter.ts';
 import type { AuditEvent } from '../services/auditSink.ts';
@@ -36,7 +37,7 @@ export function observabilityModule(): ServerModule {
       ctx.rpc('doctor.report', async (params) => {
         const provided = s.options.doctorReport;
         if (provided === undefined) {
-          return { ok: false, reason: 'doctor 未接线（serve 组合根未注入 doctorReport）' };
+          return { ok: false, reason: AppText.t('doctor 未接线（serve 组合根未注入 doctorReport）') };
         }
         const workspaceRoot =
           typeof params['workspaceRoot'] === 'string' ? params['workspaceRoot'] : undefined;
@@ -105,7 +106,7 @@ function queryAuditRpc(
   | { readonly ok: false; readonly reason: string } {
   const sink = s.options.audit;
   if (sink === undefined) {
-    return { ok: false, reason: 'audit 未接线（serve 组合根未注入 audit sink）' };
+    return { ok: false, reason: AppText.t('audit 未接线（serve 组合根未注入 audit sink）') };
   }
   const str = (v: unknown): string | undefined =>
     typeof v === 'string' && v.length > 0 ? v : undefined;

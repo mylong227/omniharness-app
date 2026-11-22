@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * `license` 子命令（商业化路线图 **F1**）：查看本机授权档位。
  *
@@ -66,7 +67,7 @@ export class LicenseCommand {
     process.stderr.write(`未采信 license：${verdict.reason}\n`);
     process.stderr.write(LicenseCommand.coreNotice());
     if (verdict.expired) {
-      process.stderr.write('提示：这是**降级**不是停摆——续期后即可恢复原档位。\n');
+      process.stderr.write(AppText.t('提示：这是**降级**不是停摆——续期后即可恢复原档位。\n'));
     }
     return 1;
   }

@@ -1,3 +1,4 @@
+import { AppText } from '../../../i18n/AppText.ts';
 import type { ToolCall, ToolContext, ToolDefinition, ToolPort, ToolResult } from '../../../../host/kernel/contracts.ts';
 
 /** 一条正在执行的子代理工具调用（取消句柄 + 观测信息）。 */
@@ -74,7 +75,7 @@ export class FleetControlRegistry {
       return {
         ok: false,
         code: 'call_not_found',
-        message: '这个子代理已不在运行列表里；可能已经结束。',
+        message: AppText.t('这个子代理已不在运行列表里；可能已经结束。'),
       };
     }
     entry.controller.abort();

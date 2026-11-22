@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 import crypto from 'node:crypto';
 import { chmodSync, readFileSync, writeFileSync } from 'node:fs';
 import { ArrayAt } from '../../host/kernel/util.ts';
@@ -134,7 +135,7 @@ export class OidcClient {
     const authorization_endpoint = doc['authorization_endpoint'];
     const token_endpoint = doc['token_endpoint'];
     if (typeof authorization_endpoint !== 'string' || typeof token_endpoint !== 'string') {
-      throw new Error('OIDC discovery 缺少必需端点 authorization_endpoint / token_endpoint');
+      throw new Error(AppText.t('OIDC discovery 缺少必需端点 authorization_endpoint / token_endpoint'));
     }
     return {
       issuer: typeof doc['issuer'] === 'string' ? doc['issuer'] : base,
@@ -224,7 +225,7 @@ export class OidcClient {
     const json = (await res.json()) as Record<string, unknown>;
     const access_token = json['access_token'];
     if (typeof access_token !== 'string') {
-      throw new Error('OIDC token 响应缺少 access_token');
+      throw new Error(AppText.t('OIDC token 响应缺少 access_token'));
     }
     return {
       access_token,
@@ -244,7 +245,7 @@ export class OidcClient {
    */
   public decodeJwt(token: string): JwtParts {
     const parts = token.split('.');
-    if (parts.length !== 3) throw new Error('非法 JWT：段数不为 3');
+    if (parts.length !== 3) throw new Error(AppText.t('非法 JWT：段数不为 3'));
     const header = JSON.parse(this.b64urlDecode(ArrayAt.at(parts, 0))) as Record<string, unknown>;
     const payload = JSON.parse(this.b64urlDecode(ArrayAt.at(parts, 1))) as Record<string, unknown>;
     return {
@@ -277,16 +278,16 @@ export class OidcClient {
         : Array.isArray(aud)
           ? aud.includes(opts.clientId)
           : false;
-    if (!okAud) throw new Error('id_token aud 不匹配 client_id');
+    if (!okAud) throw new Error(AppText.t('id_token aud 不匹配 client_id'));
     const exp = payload['exp'];
     // fail-closed：缺 exp / 字符串 exp 一律拒绝。旧实现只在 `typeof exp === 'number'` 时校验，
     // 于是 `exp` 缺失或 `'9999999999'` 都被当成“永不过期”的令牌放行（审查 P1）。
     if (typeof exp !== 'number' || !Number.isFinite(exp)) {
-      throw new Error('id_token 缺少有效的 exp（数字）');
+      throw new Error(AppText.t('id_token 缺少有效的 exp（数字）'));
     }
-    if (Date.now() / 1000 > exp) throw new Error('id_token 已过期');
+    if (Date.now() / 1000 > exp) throw new Error(AppText.t('id_token 已过期'));
     if (opts.nonce !== undefined && payload['nonce'] !== opts.nonce)
-      throw new Error('id_token nonce 不匹配');
+      throw new Error(AppText.t('id_token nonce 不匹配'));
   }
 
   /**
@@ -304,7 +305,7 @@ export class OidcClient {
     const kid = header['kid'];
     const key = jwks.keys.find((k) => k.kid === kid && k.kty === 'RSA');
     if (key === undefined || key.n === undefined || key.e === undefined) {
-      throw new Error('找不到匹配的 RSA JWK');
+      throw new Error(AppText.t('找不到匹配的 RSA JWK'));
     }
     const pub = crypto.createPublicKey({
       key: { kty: 'RSA', n: key.n, e: key.e },
@@ -316,7 +317,7 @@ export class OidcClient {
       pub,
       this.b64urlToBuf(signature),
     );
-    if (!ok) throw new Error('id_token 签名校验失败');
+    if (!ok) throw new Error(AppText.t('id_token 签名校验失败'));
   }
 
   /**
@@ -347,7 +348,7 @@ export class OidcClient {
   public readAuthState(path: string): AuthState {
     const parsed = JSON.parse(readFileSync(path, 'utf8')) as unknown;
     if (parsed === null || typeof parsed !== 'object') {
-      throw new Error('auth state 形状非法：不是对象');
+      throw new Error(AppText.t('auth state 形状非法：不是对象'));
     }
     const state = parsed as Partial<AuthState>;
     if (
@@ -357,12 +358,12 @@ export class OidcClient {
       typeof state.codeVerifier !== 'string' ||
       typeof state.createdAt !== 'string'
     ) {
-      throw new Error('auth state 形状非法：缺少 issuer/clientId/state/codeVerifier/createdAt');
+      throw new Error(AppText.t('auth state 形状非法：缺少 issuer/clientId/state/codeVerifier/createdAt'));
     }
     const created = Date.parse(state.createdAt);
     // 中间态只在一次登录跳转内有意义；超过 10 分钟即视为陈旧（防重放/长期落盘）。
     if (!Number.isFinite(created) || Date.now() - created > OidcClient.AUTH_STATE_TTL_MS) {
-      throw new Error('auth state 已过期（超过 10 分钟），请重新 auth login');
+      throw new Error(AppText.t('auth state 已过期（超过 10 分钟），请重新 auth login'));
     }
     return state as AuthState;
   }
@@ -590,7 +591,7 @@ export class EnterpriseAuth {
   private async getJwks(): Promise<{ readonly keys: readonly Jwk[] }> {
     if (this.jwksCache !== undefined && Date.now() - this.jwksCache.fetchedAt < 3_600_000)
       return this.jwksCache;
-    if (this.discovery.jwks_uri === undefined) throw new Error('discovery 未提供 jwks_uri');
+    if (this.discovery.jwks_uri === undefined) throw new Error(AppText.t('discovery 未提供 jwks_uri'));
     // 在飞合流：并发请求共享同一次拉取（失败时清空，下一次请求重新尝试）。
     this.jwksInFlight ??= this.fetchJwks(this.discovery.jwks_uri).finally(() => {
       this.jwksInFlight = undefined;

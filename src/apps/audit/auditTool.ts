@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 import { readdirSync, statSync } from 'node:fs';
 import { basename, extname, join } from 'node:path';
 import { API_VERSION } from '../../version.ts';
@@ -92,7 +93,7 @@ export class AuditTool {
     if (multiple && request.out !== null && !this.isDirectory(request.out)) {
       const ext = extname(request.out).toLowerCase();
       if (ext === '.html' || ext === '.htm' || ext === '.md' || ext === '.json') {
-        throw new Error('多个输入文件时 --out 必须是目录（不能是单份报告的路径）');
+        throw new Error(AppText.t('多个输入文件时 --out 必须是目录（不能是单份报告的路径）'));
       }
     }
     const outIsDir = multiple || this.isDirectory(request.out);
@@ -115,7 +116,7 @@ export class AuditTool {
         unrecognizedFiles += 1;
         process.stdout.write(
           `  ⚠ 未识别 ${String(hits)} 条来源条目（已以 other 记录保留；详见报告 coverage）` +
-            `${request.strict === true ? '——--strict 判为失败\n' : '\n'}`,
+            `${request.strict === true ? AppText.t('——--strict 判为失败\n') : '\n'}`,
         );
       }
     }
@@ -167,7 +168,7 @@ export class AuditTool {
       }
       const where = item.brokenAt === null ? '报告字段' : `第 ${String(item.brokenAt + 1)} 条记录`;
       process.stdout.write(
-        `✗ ${item.path} — ${where}：${item.reason ?? '未知原因'}（报告可能被改动，不可作为证据）\n`,
+        `✗ ${item.path} — ${where}：${item.reason ?? AppText.t('未知原因')}（报告可能被改动，不可作为证据）\n`,
       );
     }
     return failed === 0 ? 0 : 1;
@@ -188,7 +189,7 @@ export class AuditTool {
       }
     }
     if (files.length === 0) {
-      throw new Error('没有可处理的输入文件');
+      throw new Error(AppText.t('没有可处理的输入文件'));
     }
     return files;
   }
@@ -237,7 +238,7 @@ export class AuditTool {
       }
     }
     if (targets.length === 0) {
-      throw new Error('没有可复核的报告文件（支持 .html / .md / .json，或它们的目录）');
+      throw new Error(AppText.t('没有可复核的报告文件（支持 .html / .md / .json，或它们的目录）'));
     }
     return targets;
   }

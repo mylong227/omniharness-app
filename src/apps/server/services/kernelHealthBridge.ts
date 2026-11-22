@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 /**
  * 内核健康桥（2026-11-15）：把「本进程实际可观测的运行态」聚合成一份机读健康报告，
  * 供控制台诊断面板与运维探针消费。
@@ -171,7 +172,7 @@ export class KernelHealthBridge {
     return {
       status: 'absent',
       problems: [],
-      detail: { reason: '按回合签名回执由 proof.* 提供，本进程无内核全局回执链' },
+      detail: { reason: AppText.t('按回合签名回执由 proof.* 提供，本进程无内核全局回执链') },
     };
   }
 
@@ -180,7 +181,7 @@ export class KernelHealthBridge {
     return {
       status: 'absent',
       problems: [],
-      detail: { reason: '未装配内核遥测链（RuntimeTelemetry）' },
+      detail: { reason: AppText.t('未装配内核遥测链（RuntimeTelemetry）') },
     };
   }
 
@@ -233,7 +234,7 @@ export class KernelHealthBridge {
       return {
         status: 'absent',
         problems: [],
-        detail: { reason: '运行时尚未装配（首个回合后可见）' },
+        detail: { reason: AppText.t('运行时尚未装配（首个回合后可见）') },
       };
     }
     return { status: 'ok', problems: [], detail: { name: probe.sandboxName } };

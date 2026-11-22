@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * cliAgentCmds.ts —— ExecCli 命令簇（god-class 拆分 · 第 6/6 层）。
  *
@@ -140,7 +141,7 @@ export class CliAgentCmds extends CliNativeCmds {
     const [sub, ...rest] = args;
     if (sub !== 'probe') {
       process.stderr.write(
-        '用法: omniharness model probe [--model-adapter X] [--base-url U] [--api-key K] [--model M] [--json]\n',
+        AppText.t('用法: omniharness model probe [--model-adapter X] [--base-url U] [--api-key K] [--model M] [--json]\n'),
       );
       return 2;
     }
@@ -149,7 +150,7 @@ export class CliAgentCmds extends CliNativeCmds {
     // 发起一次真实网络探测（2026-11-06 审计 P1）。求助必须止于用法页。
     if (rest.includes('--help') || rest.includes('-h')) {
       process.stdout.write(
-        '用法: omniharness model probe [--model-adapter X] [--base-url U] [--api-key K] [--model M] [--json]\n',
+        AppText.t('用法: omniharness model probe [--model-adapter X] [--base-url U] [--api-key K] [--model M] [--json]\n'),
       );
       return 0;
     }
@@ -175,7 +176,7 @@ export class CliAgentCmds extends CliNativeCmds {
       args[0] !== undefined && !args[0].startsWith('--') ? args[0] : this.flagValue(args, '--goal');
     if (goal === undefined || goal.trim() === '') {
       process.stdout.write(
-        '用法: omniharness goal "<目标描述>" [--model-adapter ...] [--goal-max-iterations N]\n',
+        AppText.t('用法: omniharness goal "<目标描述>" [--model-adapter ...] [--goal-max-iterations N]\n'),
       );
       return 2;
     }
@@ -184,7 +185,7 @@ export class CliAgentCmds extends CliNativeCmds {
     // （2026-11-06 审计 P1，与 model probe 同型）。
     if (args.includes('--help') || args.includes('-h')) {
       process.stdout.write(
-        '用法: omniharness goal "<目标描述>" [--model-adapter ...] [--goal-max-iterations N]\n',
+        AppText.t('用法: omniharness goal "<目标描述>" [--model-adapter ...] [--goal-max-iterations N]\n'),
       );
       return 0;
     }
@@ -195,8 +196,8 @@ export class CliAgentCmds extends CliNativeCmds {
       CliDefaults;
     if (cliArgs.approval === 'ask') {
       process.stderr.write(
-        'goal 子命令没有交互审批通道：`--approval ask` 会退化为全放行，已拒绝。' +
-          '请改用 --approval rules|guardian|plan|deny，或使用 omniharness serve 的 Web 审批。\n',
+        AppText.t('goal 子命令没有交互审批通道：`--approval ask` 会退化为全放行，已拒绝。') +
+          AppText.t('请改用 --approval rules|guardian|plan|deny，或使用 omniharness serve 的 Web 审批。\n'),
       );
       return 2;
     }
@@ -222,7 +223,7 @@ export class CliAgentCmds extends CliNativeCmds {
     const file = this.flagValue(args, '--file');
     if (file === undefined && resumeRun === undefined) {
       process.stdout.write(
-        '用法: omniharness workflow --file workflow.json [--resume-run <runId>] [--model-adapter ...]\n',
+        AppText.t('用法: omniharness workflow --file workflow.json [--resume-run <runId>] [--model-adapter ...]\n'),
       );
       return 2;
     }
@@ -241,14 +242,14 @@ export class CliAgentCmds extends CliNativeCmds {
     // `--help` 必须止于用法页：`workflow --file x.json --help` 曾会真跑工作流（2026-11-06 审计 P1）。
     if (args.includes('--help') || args.includes('-h')) {
       process.stdout.write(
-        '用法: omniharness workflow --file workflow.json [--resume-run <runId>] [--model-adapter ...]\n',
+        AppText.t('用法: omniharness workflow --file workflow.json [--resume-run <runId>] [--model-adapter ...]\n'),
       );
       return 0;
     }
     if (cliArgs.approval === 'ask') {
       process.stderr.write(
-        'workflow 子命令没有交互审批通道：`--approval ask` 会退化为全放行，已拒绝。' +
-          '请改用 --approval rules|guardian|plan|deny，或使用 omniharness serve 的 Web 审批。\n',
+        AppText.t('workflow 子命令没有交互审批通道：`--approval ask` 会退化为全放行，已拒绝。') +
+          AppText.t('请改用 --approval rules|guardian|plan|deny，或使用 omniharness serve 的 Web 审批。\n'),
       );
       return 2;
     }
@@ -290,7 +291,7 @@ export class CliAgentCmds extends CliNativeCmds {
     if (sub === 'list') {
       const all = scheduler.list();
       if (all.length === 0) {
-        process.stdout.write('（无定时任务）\n');
+        process.stdout.write(AppText.t('（无定时任务）\n'));
         return 0;
       }
       for (const r of all) {
@@ -303,7 +304,7 @@ export class CliAgentCmds extends CliNativeCmds {
     if (sub === 'remove') {
       const name = routineArgs[1];
       if (name === undefined) {
-        process.stderr.write('用法: routines remove <name>\n');
+        process.stderr.write(AppText.t('用法: routines remove <name>\n'));
         return 2;
       }
       const ok = scheduler.remove(name);
@@ -315,7 +316,7 @@ export class CliAgentCmds extends CliNativeCmds {
       const prompt = this.flagValue(routineArgs, '--prompt');
       if (name === undefined || prompt === undefined) {
         process.stderr.write(
-          '用法: routines add --name N --prompt P [--every Nm | --cron "*/5 * * * *"] [--model-adapter mock]\n',
+          AppText.t('用法: routines add --name N --prompt P [--every Nm | --cron "*/5 * * * *"] [--model-adapter mock]\n'),
         );
         return 2;
       }
@@ -327,12 +328,12 @@ export class CliAgentCmds extends CliNativeCmds {
       } else if (every !== undefined) {
         const minutes = Number.parseInt(every.replace(/m$/, ''), 10);
         if (Number.isNaN(minutes) || minutes < 1) {
-          process.stderr.write('--every 需为正整数分钟（如 30m）\n');
+          process.stderr.write(AppText.t('--every 需为正整数分钟（如 30m）\n'));
           return 2;
         }
         schedule = { kind: 'interval', minutes };
       } else {
-        process.stderr.write('需指定 --every Nm 或 --cron "expr"\n');
+        process.stderr.write(AppText.t('需指定 --every Nm 或 --cron "expr"\n'));
         return 2;
       }
       const modelAdapter = (this.flagValue(routineArgs, '--model-adapter') ??
@@ -349,7 +350,7 @@ export class CliAgentCmds extends CliNativeCmds {
           ? scheduler.list().filter((r) => r.name === name)
           : scheduler.runDue(now);
       if (due.length === 0) {
-        process.stdout.write('无到期任务\n');
+        process.stdout.write(AppText.t('无到期任务\n'));
         return 0;
       }
       for (const r of due) {
@@ -359,7 +360,7 @@ export class CliAgentCmds extends CliNativeCmds {
       }
       return 0;
     }
-    process.stderr.write('用法: routines <add|list|remove|run>\n');
+    process.stderr.write(AppText.t('用法: routines <add|list|remove|run>\n'));
     return 2;
   }
 
@@ -401,10 +402,10 @@ export class CliAgentCmds extends CliNativeCmds {
     const workspace = this.flagValue(argv, '--workspace') ?? process.cwd();
     if (explicitConfig === undefined && configFile.find(workspace) === undefined) {
       process.stderr.write(
-        '[omniharness] 未找到 omniharness.json，使用内置默认配置（mock 模型）。\n',
+        AppText.t('[omniharness] 未找到 omniharness.json，使用内置默认配置（mock 模型）。\n'),
       );
       process.stderr.write(
-        '              可运行 omniharness init 一键生成（或复制 omniharness.json.example 手改）。\n',
+        AppText.t('              可运行 omniharness init 一键生成（或复制 omniharness.json.example 手改）。\n'),
       );
     }
     let workspaceTrusted = false;
@@ -439,7 +440,7 @@ export class CliAgentCmds extends CliNativeCmds {
   protected async runTui(args: readonly string[]): Promise<number> {
     if (!process.stdout.isTTY) {
       process.stdout.write(
-        'TUI 需要交互式终端（TTY）。非 TTY 环境下请用 omniharness goal / 直接 `omniharness 任务描述` 等方式。\n',
+        AppText.t('TUI 需要交互式终端（TTY）。非 TTY 环境下请用 omniharness goal / 直接 `omniharness 任务描述` 等方式。\n'),
       );
       return 1;
     }
@@ -466,7 +467,7 @@ export class CliAgentCmds extends CliNativeCmds {
       bridge.attach(agent);
       if (cliArgs.modelAdapter === 'mock') {
         process.stdout.write(
-          '提示：当前模型适配器为 mock（脚本化响应）。真实对话请用 --model-adapter / --api-key 或 omniharness.json。\n',
+          AppText.t('提示：当前模型适配器为 mock（脚本化响应）。真实对话请用 --model-adapter / --api-key 或 omniharness.json。\n'),
         );
       }
       await Interactive.startInteractive({ send: (input: string) => bridge.send(input) });

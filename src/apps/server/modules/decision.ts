@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import type { ServerModule } from '../core/serverModule.ts';
 
 /**
@@ -24,7 +25,7 @@ export function decisionModule(): ServerModule {
           return {
             ok: false,
             code: 'confirm_required',
-            message: '导出 AAT 会生成本地证据文件；必须显式确认。',
+            message: AppText.t('导出 AAT 会生成本地证据文件；必须显式确认。'),
           };
         }
         return s.decision.exportOf(stringOf(params['threadId']));
@@ -34,7 +35,7 @@ export function decisionModule(): ServerModule {
           return {
             ok: false,
             code: 'confirm_required',
-            message: '变更决策审计设置需要显式确认。',
+            message: AppText.t('变更决策审计设置需要显式确认。'),
           };
         }
         try {

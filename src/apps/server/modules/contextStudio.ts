@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import type { ServerModule } from '../core/serverModule.ts';
 import { stringOf, tagsOf } from './rpcParams.ts';
 
@@ -34,7 +35,7 @@ export function contextStudioModule(): ServerModule {
           return {
             ok: false,
             code: 'confirm_required',
-            message: '手动压缩会改写历史游标；必须显式确认。',
+            message: AppText.t('手动压缩会改写历史游标；必须显式确认。'),
           };
         }
         return s.contextCompaction.compactOf(stringOf(params['threadId']));

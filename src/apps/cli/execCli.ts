@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * execImpl.ts —— OmniHarness CLI 命令实现（god-class 拆分后的实体层）。
  *
@@ -294,23 +295,23 @@ export class ExecCli extends CliAgentCmds {
   private assertExecPathSupported(args: CliArgs, argv: readonly string[]): void {
     if (args.approval === 'ask') {
       throw new Error(
-        '单跑（exec）路径没有交互审批通道：`--approval ask` 在本路径上无对应实现，' +
-          '缺省分支会**静默降级为全放行**，故此处 fail-closed。' +
-          '请改用 `--approval rules|guardian|plan|deny`；需要"每次问人"请用 `omniharness serve`（由 Web UI 提供审批通道）。',
+        AppText.t('单跑（exec）路径没有交互审批通道：`--approval ask` 在本路径上无对应实现，') +
+          AppText.t('缺省分支会**静默降级为全放行**，故此处 fail-closed。') +
+          AppText.t('请改用 `--approval rules|guardian|plan|deny`；需要"每次问人"请用 `omniharness serve`（由 Web UI 提供审批通道）。'),
       );
     }
     if (args.pluginProfile !== undefined && args.pluginProfile.length > 0) {
       throw new Error(
-        '`--plugin-profile` 只在 `omniharness serve` 生效（插件集收敛点 applyPluginProfile 属 AppServer）；' +
-          '单跑路径上它零消费者，传了等于没传，故此处 fail-closed。',
+        AppText.t('`--plugin-profile` 只在 `omniharness serve` 生效（插件集收敛点 applyPluginProfile 属 AppServer）；') +
+          AppText.t('单跑路径上它零消费者，传了等于没传，故此处 fail-closed。'),
       );
     }
     const auditFlag = AUDIT_FLAGS.find((flag) => argv.includes(flag));
     if (auditFlag !== undefined) {
       throw new Error(
         `审计 sink 只在 \`omniharness serve\` / \`server\` 装配；单跑（exec）路径上 \`${auditFlag}\` ` +
-          '会被接受但**不产生任何审计条目**（实测：带它跑一次再 `audit export` 得到空数组），故此处 fail-closed。' +
-          '需要审计链请用 `omniharness serve --audit-dir …`，再用 `audit export` 读取。',
+          AppText.t('会被接受但**不产生任何审计条目**（实测：带它跑一次再 `audit export` 得到空数组），故此处 fail-closed。') +
+          AppText.t('需要审计链请用 `omniharness serve --audit-dir …`，再用 `audit export` 读取。'),
       );
     }
   }
@@ -358,7 +359,7 @@ export class ExecCli extends CliAgentCmds {
       await AsyncChildProcess.execFileAsync('git', ['add', '-A'], { stdio: 'ignore' });
       const message = `OmniHarness: ${finalText.slice(0, 72).replace(/\s+/g, ' ').trim() || 'auto-commit'}`;
       await AsyncChildProcess.execFileAsync('git', ['commit', '-m', message], { stdio: 'ignore' });
-      process.stderr.write('已自动提交变更（--auto-commit）\n');
+      process.stderr.write(AppText.t('已自动提交变更（--auto-commit）\n'));
     } catch {
       // 无变更可提交或提交被钩子拒绝：忽略
     }
@@ -478,7 +479,7 @@ export class ExecCli extends CliAgentCmds {
     const controller = runtime.evolution;
     if (controller === undefined) {
       process.stderr.write(
-        'evolution 未启用（配置 evolutionRlvr.enabled / --evolution-rlvr 未开），无可跑的闭环。\n',
+        AppText.t('evolution 未启用（配置 evolutionRlvr.enabled / --evolution-rlvr 未开），无可跑的闭环。\n'),
       );
       return 1;
     }

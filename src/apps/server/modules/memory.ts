@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import type { LongTermMemoryPort, MemoryFact, MemoryFactPatch } from '../../../host/kernel/contracts.ts';
 import { Id } from '../../../host/kernel/util.ts';
 import type { ServerModule } from '../core/serverModule.ts';
@@ -78,7 +79,7 @@ export function memoryModule(): ServerModule {
         if (typeof params['importance'] === 'number') patch.importance = params['importance'];
         const ok = store().update(id, patch);
         if (!ok) {
-          throw new Error('未找到记忆: ' + id);
+          throw new Error(AppText.t('未找到记忆: ') + id);
         }
         ctx.notify('memory.changed', {});
         return { ok: true };
@@ -87,7 +88,7 @@ export function memoryModule(): ServerModule {
         const id = memoryId(params, 'memory.delete');
         const ok = store().delete(id);
         if (!ok) {
-          throw new Error('未找到记忆: ' + id);
+          throw new Error(AppText.t('未找到记忆: ') + id);
         }
         ctx.notify('memory.changed', {});
         return { ok: true };
@@ -95,7 +96,7 @@ export function memoryModule(): ServerModule {
       ctx.rpc('memory.search', async (params) => {
         const query = params['query'];
         if (typeof query !== 'string' || query.trim() === '') {
-          throw new Error('memory.search 需要非空 query');
+          throw new Error(AppText.t('memory.search 需要非空 query'));
         }
         const limit =
           typeof params['limit'] === 'number'
@@ -138,7 +139,7 @@ function memoryId(params: Record<string, unknown>, label: string): string {
 function newFactFrom(params: Record<string, unknown>): MemoryFact {
   const text = params['text'];
   if (typeof text !== 'string' || text.trim() === '') {
-    throw new Error('memory.add 需要非空 text');
+    throw new Error(AppText.t('memory.add 需要非空 text'));
   }
   const topic = typeof params['topic'] === 'string' ? (params['topic'] as string) : undefined;
   const rawImp = typeof params['importance'] === 'number' ? params['importance'] : 3;

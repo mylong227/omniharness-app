@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * CliCredentialBuild —— ExecCli 命令族继承链的**新根基类**（god-class 拆分 · 第 0/6 层，2026-10-11）。
  *
@@ -53,7 +54,7 @@ export class CliCredentialBuild {
   protected async buildServeVault(args: CredentialHydrationArgs): Promise<VaultPort | undefined> {
     if (VaultKeyDefaults.disabledByEnv()) {
       process.stderr.write(
-        'ℹ️ 凭据保险库已按 OMNIHARNESS_VAULT=0 关闭（Web 端会如实显示未接线，且不会创建密钥文件）\n',
+        AppText.t('ℹ️ 凭据保险库已按 OMNIHARNESS_VAULT=0 关闭（Web 端会如实显示未接线，且不会创建密钥文件）\n'),
       );
       return undefined;
     }
@@ -91,7 +92,7 @@ export class CliCredentialBuild {
     }
     if (VaultKeyDefaults.disabledByEnv()) {
       process.stderr.write(
-        'ℹ️ --vault-hydrate 已按 OMNIHARNESS_VAULT=0 跳过（该开关关闭了整个凭据保险库）\n',
+        AppText.t('ℹ️ --vault-hydrate 已按 OMNIHARNESS_VAULT=0 跳过（该开关关闭了整个凭据保险库）\n'),
       );
       return [];
     }

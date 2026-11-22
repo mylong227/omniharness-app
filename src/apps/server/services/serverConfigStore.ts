@@ -1,7 +1,7 @@
+import { AppText } from '../../i18n/AppText.ts';
 import { existsSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { configFile, type FileConfig } from '../../../host/kernel/config.ts';
-import { AppText } from '../../i18n/AppText.ts';
 import { ConfigError } from '../../../host/kernel/config.ts';
 import { PERSISTABLE_KEYS, SECTION_REPLACE_KEYS } from './configPersistKeys.ts';
 import { ProviderPresets, type ProviderPreset } from './providerPresets.ts';
@@ -244,11 +244,11 @@ export class ServerConfigStore {
   public requireDirectory(raw: unknown): string {
     const candidate = typeof raw === 'string' ? raw.trim() : '';
     if (candidate === '') {
-      throw new Error('路径不能为空');
+      throw new Error(AppText.t('路径不能为空'));
     }
     const root = resolve(candidate);
     if (!existsSync(root) || !statSync(root).isDirectory()) {
-      throw new Error('目录不存在或不是文件夹: ' + root);
+      throw new Error(AppText.t('目录不存在或不是文件夹: ') + root);
     }
     return root;
   }

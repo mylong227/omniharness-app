@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Id } from '../../../host/kernel/util.ts';
@@ -53,10 +54,10 @@ export class DiffCommentStore {
     const text = params['text'];
     const line = params['line'];
     if (typeof rawPath !== 'string' || typeof text !== 'string' || text.trim() === '') {
-      throw new Error('changes.comments.add 需要非空 path 与 text');
+      throw new Error(AppText.t('changes.comments.add 需要非空 path 与 text'));
     }
     if (typeof line !== 'number' || !Number.isInteger(line) || line < 0) {
-      throw new Error('changes.comments.add 需要非负整数 line');
+      throw new Error(AppText.t('changes.comments.add 需要非负整数 line'));
     }
     const side: 'old' | 'new' = params['side'] === 'old' ? 'old' : 'new';
     const rel = this.options.guard.resolve(rawPath);
@@ -82,11 +83,11 @@ export class DiffCommentStore {
    */
   public remove(params: Record<string, unknown>): unknown {
     const idParam = params['id'];
-    if (typeof idParam !== 'string') throw new Error('changes.comments.delete 需要 id');
+    if (typeof idParam !== 'string') throw new Error(AppText.t('changes.comments.delete 需要 id'));
     const list = this.load();
     const next = list.filter((c) => c.id !== idParam);
     if (next.length === list.length) {
-      throw new Error('未找到评论: ' + idParam);
+      throw new Error(AppText.t('未找到评论: ') + idParam);
     }
     this.save(next);
     return { ok: true };

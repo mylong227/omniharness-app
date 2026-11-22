@@ -18,6 +18,8 @@ import type { ServerEventBridge } from './serverEventBridge.ts';
 /** AppServer 选项。 */
 export interface AppServerOptions {
   readonly config: ResolvedConfig;
+  /** 界面语言（服务端用户可见文案的语言；缺省 zh）。 */
+  readonly locale?: 'zh' | 'en' | undefined;
   readonly transport: Transport;
   readonly skills?: SkillRegistry | undefined;
   /** 自动化任务存储（缺省不启用调度；CLI serve 注入用户级文件）。 */

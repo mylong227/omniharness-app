@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 import { existsSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { join } from 'node:path';
@@ -86,7 +87,7 @@ export class InitCommand {
       }
       apiKey = (await this.ask(`请输入 ${preset.label} 的 API Key: `)).trim();
       if (apiKey === '') {
-        process.stderr.write('未输入 Key，已放弃（配置未改动）\n');
+        process.stderr.write(AppText.t('未输入 Key，已放弃（配置未改动）\n'));
         return 2;
       }
     }
@@ -131,13 +132,13 @@ export class InitCommand {
           : '落盘为明文（当前平台无系统级加密；请保证本机文件权限）';
       process.stdout.write(`  Key 已存入 providerKeys.${preset.id}（${secrecy}；本机文件勿提交仓库）\n`);
     }
-    process.stdout.write('\n下一步：\n  omniharness serve        起工作台\n  omniharness "任务描述"    跑一次任务\n');
+    process.stdout.write(AppText.t('\n下一步：\n  omniharness serve        起工作台\n  omniharness "任务描述"    跑一次任务\n'));
     return 0;
   }
 
   /** TTY 交互选厂商（编号列表 + 数字/ID 输入）。 */
   private async pickProvider(presets: readonly ProviderPreset[]): Promise<ProviderPreset | undefined> {
-    process.stdout.write('选择模型厂商（输入编号或 ID，回车=1）：\n');
+    process.stdout.write(AppText.t('选择模型厂商（输入编号或 ID，回车=1）：\n'));
     presets.forEach((p, i) => {
       process.stdout.write(`  ${String(i + 1).padStart(2)}. ${p.id.padEnd(12)} ${p.label}\n`);
     });

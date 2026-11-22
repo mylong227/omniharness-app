@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * cliMcpCmds.ts —— ExecCli 命令簇（god-class 拆分 · 第 3/6 层）。
  *
@@ -57,7 +58,7 @@ export class CliMcpCmds extends CliServerCmds {
       return 1;
     }
     process.stdout.write(
-      '用法: omniharness mcp serve [--mcp-http-port N] | mcp list --server NAME=CMD | mcp call --server NAME=CMD --tool NAME [--args JSON] | ' +
+      AppText.t('用法: omniharness mcp serve [--mcp-http-port N] | mcp list --server NAME=CMD | mcp call --server NAME=CMD --tool NAME [--args JSON] | ') +
         'mcp auth --authorize-url URL --token-url URL --client-id ID --resource RESOURCE [--scope a,b]\n' +
         'mcp registry [QUERY] [--limit N]\n',
     );
@@ -81,7 +82,7 @@ export class CliMcpCmds extends CliServerCmds {
       resource === undefined
     ) {
       process.stdout.write(
-        '用法: omniharness mcp auth --authorize-url URL --token-url URL --client-id ID --resource RESOURCE [--scope a,b] [--port N]\n',
+        AppText.t('用法: omniharness mcp auth --authorize-url URL --token-url URL --client-id ID --resource RESOURCE [--scope a,b] [--port N]\n'),
       );
       return 2;
     }
@@ -92,7 +93,7 @@ export class CliMcpCmds extends CliServerCmds {
     const portRaw = this.flagValue(args, '--port');
     const port = portRaw === undefined ? 0 : Number(portRaw);
     if (!Number.isInteger(port) || port < 0 || port > 65535) {
-      process.stdout.write('--port 必须是 0..65535 的整数\n');
+      process.stdout.write(AppText.t('--port 必须是 0..65535 的整数\n'));
       return 2;
     }
     const { McpAuthFlow } = await import('../../host/kernel/protocols.ts');
@@ -122,7 +123,7 @@ export class CliMcpCmds extends CliServerCmds {
     const limitRaw = this.flagValue(args, '--limit');
     const limit = limitRaw === undefined ? 20 : Number(limitRaw);
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
-      process.stdout.write('--limit 必须是 1..100 的整数\n');
+      process.stdout.write(AppText.t('--limit 必须是 1..100 的整数\n'));
       return 2;
     }
     const queryParts: string[] = [];
@@ -138,7 +139,7 @@ export class CliMcpCmds extends CliServerCmds {
     const { McpRegistryClient } = await import('../../host/extensions/protocols/mcp/mcpRegistryClient.ts');
     const entries = await McpRegistryClient.search(query, { limit });
     if (entries.length === 0) {
-      process.stdout.write('（没有匹配的 MCP server）\n');
+      process.stdout.write(AppText.t('（没有匹配的 MCP server）\n'));
       return 0;
     }
     for (const entry of entries) {
@@ -231,13 +232,13 @@ export class CliMcpCmds extends CliServerCmds {
   protected async runMcpHttpServe(options: McpHttpServeCliOptions): Promise<number> {
     const port = Number(options.port);
     if (!Number.isInteger(port) || port < 0 || port > 65535) {
-      process.stderr.write('--mcp-http-port 必须是 0..65535 的整数\n');
+      process.stderr.write(AppText.t('--mcp-http-port 必须是 0..65535 的整数\n'));
       return 2;
     }
     const host = options.host ?? '127.0.0.1';
     const path = options.path ?? '/mcp';
     if (!path.startsWith('/')) {
-      process.stderr.write('--mcp-http-path 必须以 / 开头\n');
+      process.stderr.write(AppText.t('--mcp-http-path 必须以 / 开头\n'));
       return 2;
     }
     const [{ McpHttpServer }, { McpAskUserInputHandler }, { McpProtocol }] = await Promise.all([
@@ -279,7 +280,7 @@ export class CliMcpCmds extends CliServerCmds {
   protected async runMcpList(args: readonly string[]): Promise<number> {
     const spec = this.flagValue(args, '--server');
     if (spec === undefined) {
-      process.stdout.write('用法: omniharness mcp list --server NAME=COMMAND | NAME=URL\n');
+      process.stdout.write(AppText.t('用法: omniharness mcp list --server NAME=COMMAND | NAME=URL\n'));
       return 2;
     }
     // 客户端方向走官方 SDK 优先（协议协商 + 远端 url 支持）；失败回落手写并打到 stderr。
@@ -315,7 +316,7 @@ export class CliMcpCmds extends CliServerCmds {
     const tool = this.flagValue(args, '--tool');
     if (spec === undefined || tool === undefined) {
       process.stdout.write(
-        '用法: omniharness mcp call --server NAME=COMMAND | NAME=URL --tool NAME [--args JSON]\n',
+        AppText.t('用法: omniharness mcp call --server NAME=COMMAND | NAME=URL --tool NAME [--args JSON]\n'),
       );
       return 2;
     }

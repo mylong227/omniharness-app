@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import { access, mkdir, readFile, readdir, stat } from 'node:fs/promises';
 import type { Dirent } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
@@ -99,28 +100,28 @@ export class FsExplorer {
     const parentRaw = params['parent'];
     const nameRaw = params['name'];
     if (typeof parentRaw !== 'string' || parentRaw.trim() === '') {
-      throw new Error('请先进入一个目录再新建文件夹');
+      throw new Error(AppText.t('请先进入一个目录再新建文件夹'));
     }
     if (typeof nameRaw !== 'string' || nameRaw.trim() === '') {
-      throw new Error('文件夹名称不能为空');
+      throw new Error(AppText.t('文件夹名称不能为空'));
     }
     const name = FsExplorer.sanitizeFolderName(nameRaw);
     if (name === '') {
-      throw new Error('非法的文件夹名称：' + nameRaw);
+      throw new Error(AppText.t('非法的文件夹名称：') + nameRaw);
     }
     const parent = resolve(parentRaw.trim());
     const parentOk = await stat(parent)
       .then((st) => st.isDirectory())
       .catch(() => false);
     if (!parentOk) {
-      throw new Error('父目录不存在：' + parent);
+      throw new Error(AppText.t('父目录不存在：') + parent);
     }
     const target = join(parent, name);
     const exists = await access(target)
       .then(() => true)
       .catch(() => false);
     if (exists) {
-      throw new Error('该文件夹已存在：' + target);
+      throw new Error(AppText.t('该文件夹已存在：') + target);
     }
     await mkdir(target, { recursive: false });
     return { path: target };
@@ -138,7 +139,7 @@ export class FsExplorer {
   public async readAttachments(params: Record<string, unknown>): Promise<unknown> {
     const paths = params['paths'];
     if (!Array.isArray(paths) || paths.length === 0) {
-      throw new Error('paths 必须是非空数组');
+      throw new Error(AppText.t('paths 必须是非空数组'));
     }
     if (paths.length > MAX_ATTACH_COUNT) {
       throw new Error(`单次最多附加 ${MAX_ATTACH_COUNT} 个文件`);

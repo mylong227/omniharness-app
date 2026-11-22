@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * profile 子命令（ProfileCommand）——命名插件集（Profile）的增删查用。
  *
@@ -52,7 +53,7 @@ export class ProfileCommand {
     const all = store.list();
     if (all.length === 0) {
       process.stdout.write(
-        '（无插件集 profile；用 profile create <name> --plugin P1 --plugin P2 创建）\n',
+        AppText.t('（无插件集 profile；用 profile create <name> --plugin P1 --plugin P2 创建）\n'),
       );
       return 0;
     }
@@ -73,7 +74,7 @@ export class ProfileCommand {
   private create(store: PluginProfileStore, reader: CliArgReader): number {
     const name = reader.at(1);
     if (name === undefined) {
-      process.stdout.write('用法: omniharness profile create <name> [--desc D] [--plugin P ...]\n');
+      process.stdout.write(AppText.t('用法: omniharness profile create <name> [--desc D] [--plugin P ...]\n'));
       return 2;
     }
     const plugins = reader.values('--plugin');
@@ -96,7 +97,7 @@ export class ProfileCommand {
   private delete(store: PluginProfileStore, reader: CliArgReader): number {
     const name = reader.at(1);
     if (name === undefined) {
-      process.stdout.write('用法: omniharness profile delete <name>\n');
+      process.stdout.write(AppText.t('用法: omniharness profile delete <name>\n'));
       return 2;
     }
     const removed = store.delete(PluginProfileStore.sanitizeProfileName(name));
@@ -116,7 +117,7 @@ export class ProfileCommand {
   private use(store: PluginProfileStore, wsRoot: string, reader: CliArgReader): number {
     const name = reader.at(1);
     if (name === undefined) {
-      process.stdout.write('用法: omniharness profile use <name>\n');
+      process.stdout.write(AppText.t('用法: omniharness profile use <name>\n'));
       return 2;
     }
     const id = PluginProfileStore.sanitizeProfileName(name);

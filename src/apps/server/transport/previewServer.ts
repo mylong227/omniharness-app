@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 // 工作区**网页预览**源（2026-10-19）：把工作区里的静态站点（HTML / CSS / JS / 字体 / 图片）
 // 原样以只读方式提供给右栏的 `<iframe>`。
 //
@@ -135,7 +136,7 @@ export class PreviewServer {
     if (boundPort === 0) {
       server.closeAllConnections?.();
       server.close(() => undefined);
-      throw new Error('预览服务绑定后拿不到监听端口（address=null）——拒绝以 port 0 假装成功');
+      throw new Error(AppText.t('预览服务绑定后拿不到监听端口（address=null）——拒绝以 port 0 假装成功'));
     }
     this.server = server;
     this.boundPort = boundPort;

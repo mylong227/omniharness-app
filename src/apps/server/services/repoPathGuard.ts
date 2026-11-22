@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import { isAbsolute, relative, resolve } from 'node:path';
 
 /**
@@ -21,15 +22,15 @@ export class RepoPathGuard {
    * @throws 路径为空串、为绝对/盘符路径，或规范化后越出仓库范围时。
    */
   public resolve(raw: string): string {
-    if (raw.length === 0) throw new Error('path 不能为空');
+    if (raw.length === 0) throw new Error(AppText.t('path 不能为空'));
     // 控制字符（含换行）会把路径注入到补丁头 / 命令行参数里，必须在单点拒绝。
-    if (/[\u0000-\u001f\u007f]/u.test(raw)) throw new Error('路径含控制字符');
-    if (isAbsolute(raw) || /^[a-zA-Z]:/.test(raw)) throw new Error('仅接受仓库内相对路径');
+    if (/[\u0000-\u001f\u007f]/u.test(raw)) throw new Error(AppText.t('路径含控制字符'));
+    if (isAbsolute(raw) || /^[a-zA-Z]:/.test(raw)) throw new Error(AppText.t('仅接受仓库内相对路径'));
     const ws = this.workspaceRoot();
     const abs = resolve(ws, raw);
     const rel = relative(ws, abs);
     if (rel.startsWith('..') || isAbsolute(rel) || rel.length === 0) {
-      throw new Error('路径越出仓库范围：' + raw);
+      throw new Error(AppText.t('路径越出仓库范围：') + raw);
     }
     return rel;
   }

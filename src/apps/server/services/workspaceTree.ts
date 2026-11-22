@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import { existsSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { SafeFs } from './safeFs.ts';
@@ -37,7 +38,7 @@ export class WorkspaceTree {
     const maxDepth = typeof params['depth'] === 'number' ? params['depth'] : 2;
     const root = resolve(base, requested);
     if (!root.startsWith(base)) {
-      throw new Error('路径越界工作区');
+      throw new Error(AppText.t('路径越界工作区'));
     }
     return { root, tree: this.scan(root, maxDepth, 0) };
   }

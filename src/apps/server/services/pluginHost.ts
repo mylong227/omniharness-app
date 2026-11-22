@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import { Container } from '../../../host/kernel/core.ts';
 import { ServiceKeys } from '../../composition/runtime.ts';
 import { PluginManager } from '../../../host/kernel/plugin.ts';
@@ -165,7 +166,7 @@ export class PluginHost {
     const manager = this.pluginManager;
     const pluginsDir = this.deps.pluginsDir;
     if (registry === undefined || manager === undefined || pluginsDir === undefined) {
-      throw new Error('插件系统未初始化（serve 需注入 registry/pluginsDir）');
+      throw new Error(AppText.t('插件系统未初始化（serve 需注入 registry/pluginsDir）'));
     }
     return PluginProfileStore.applyProfile(manager, pluginsDir, registry, profile, {
       onInstall: (name) => this.notifyProfile('install', name),

@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 /**
  * 图运行台账（runId → 运行态 + 取消句柄）——从 `AppServer` 按职责缝抽出。
  *
@@ -129,7 +130,7 @@ export class GraphRunRegistry {
   } {
     const run = this.runs.get(runId);
     if (run === undefined) {
-      throw new Error('未找到运行: ' + runId);
+      throw new Error(AppText.t('未找到运行: ') + runId);
     }
     return {
       runId: run.runId,
