@@ -4,11 +4,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import { writeFileSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { openStubSession, stubHtmlCdp, type CdpSession } from './browserHarness.ts';
+import { join } from 'node:path';
+import { openStubSession, archiveDir, stubHtmlCdp, type CdpSession } from './browserHarness.ts';
 
-const ARCHIVE = join(dirname(fileURLToPath(import.meta.url)), '..', 'archive');
+const ARCHIVE = archiveDir();
 
 /** stub 页：config.get 返回带新键的配置 + config.update 记录 params。 */
 function stubWithConfig(): string {
@@ -25,6 +24,11 @@ function stubWithConfig(): string {
 
 /** 打开设置并跳到指定分栏（控制台左导航按文本点）。 */
 async function openSettingsTab(cdp: CdpSession, tab: string): Promise<void> {
+  // 侧栏页脚可能比 composer 晚一帧挂载：先等设置入口出现，避免点击落空后干等控制台。
+  assert.ok(
+    await cdp.waitFor("!!document.querySelector('.side-foot button[aria-label=\"打开设置\"]')", 2000),
+    '设置入口未出现',
+  );
   await cdp.evaluate(`(function(){
     var b = document.querySelector('.side-foot button[aria-label="打开设置"]');
     if (b) b.click();

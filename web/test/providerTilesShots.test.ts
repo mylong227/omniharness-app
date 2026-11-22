@@ -3,11 +3,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import { writeFileSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { openStubSession, stubHtmlCdp, type CdpSession } from './browserHarness.ts';
+import { join } from 'node:path';
+import { openStubSession, archiveDir, stubHtmlCdp, type CdpSession } from './browserHarness.ts';
 
-const ARCHIVE = join(dirname(fileURLToPath(import.meta.url)), '..', 'archive');
+const ARCHIVE = archiveDir();
 
 
 /** 多厂商目录 stub（stub 默认 providers 空 ⇒ 网格 0 卡）：覆盖为 3 家形状完整的厂商。 */
@@ -37,6 +36,11 @@ function stubWithCatalog(): string {
 
 /** 真机：打开设置「模型与厂商」页（stub 的 mock 厂商已够渲染网格）。 */
 async function openModelPane(cdp: CdpSession): Promise<void> {
+  // 侧栏页脚可能比 composer 晚一帧挂载（CI 上 40 次自旋会踩空）：先等入口出现再点。
+  assert.ok(
+    await cdp.waitFor("!!document.querySelector('.side-foot button[aria-label=\"打开设置\"]')", 2000),
+    '设置入口未出现',
+  );
   const clicked = await cdp.evaluate(`(function(){
     var b = document.querySelector('.side-foot button[aria-label="打开设置"]');
     if (b === null) return false;

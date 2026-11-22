@@ -9,7 +9,7 @@
 
 import { spawn, execFileSync } from 'node:child_process';
 import { createServer } from 'node:http';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer as createNetServer } from 'node:net';
@@ -24,6 +24,19 @@ import { makeOmniTemp, rmRfRetry } from './omniTemp.ts';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WEB_ROOT = resolve(HERE, '..');
 const INDEX_HTML = join(WEB_ROOT, 'index.html');
+
+/**
+ * 真机截图存档目录（`web/archive`）。
+ *
+ * 为什么在这里创建：存档目录不进仓（`.gitignore` 忽略），CI 干净检出时并不存在；
+ * 截图类判据若直接 `writeFileSync` 会以 ENOENT 红（2026-11-22 CI 实测）。
+ * @returns 已确保存在的存档目录绝对路径。
+ */
+export function archiveDir(): string {
+  const dir = join(WEB_ROOT, 'archive');
+  mkdirSync(dir, { recursive: true });
+  return dir;
+}
 
 /** 候选浏览器可执行文件（env 覆盖优先；Windows / macOS / Linux 三平台）。 */
 const BROWSER_CANDIDATES: (string | undefined)[] = [
@@ -684,6 +697,8 @@ export class CdpSession {
       captureBeyondViewport: false,
     })) as { data: string };
     const buf = Buffer.from(r.data, 'base64');
+    // 存档目录可能是首次写入（CI 干净检出）：父目录不存在时 writeFileSync 会 ENOENT。
+    mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, buf);
     return buf.length;
   }

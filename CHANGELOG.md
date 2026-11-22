@@ -5,6 +5,15 @@
 
 ## [Unreleased]
 
+### Fixed（修复）
+- **CI 真机截图判据在干净检出下必红**（2026-11-22，`verify` run 44972776474）：
+  · `settingsRuntimeCards` / `providerTilesShots` / `brandArc` 直接 `writeFileSync` 到
+    `web/archive/`，而该目录被 `.gitignore` 忽略、CI 检出时并不存在 ⇒ ENOENT 判红。
+    改由 `browserHarness.archiveDir()` 按需创建（`mkdir -p`），并让 `CdpSession.screenshot()`
+    自建父目录——所有截图类判据共用同一修复。
+  · `providerTilesShots` 点「打开设置」时侧栏页脚可能尚未挂载（40 次自旋踩空）：
+    改为先 `waitFor` 入口出现再点击，与 `settingsRuntimeCards` 的等待语义一致。
+
 ### Changed（变更）
 - **批次十六（2026-11-22，硬编码治理：AppText 全量 + 配置单一来源 + 三类门禁）**：
   · **服务端/CLI/审计/企业/TUI/host 用户可见文案全量外部化**：新增

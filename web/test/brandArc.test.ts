@@ -4,11 +4,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import { writeFileSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { openStubSession, type CdpSession } from './browserHarness.ts';
+import { join } from 'node:path';
+import { openStubSession, archiveDir, type CdpSession } from './browserHarness.ts';
 
-const ARCHIVE = join(dirname(fileURLToPath(import.meta.url)), '..', 'archive');
+const ARCHIVE = archiveDir();
 
 /** 触发一个挂起的回合（stub 的 turns.run 由 __RESOLVE_TURN__ 控制收尾）→ busy 星环出现。 */
 async function startBusy(cdp: CdpSession): Promise<void> {
