@@ -4,7 +4,7 @@
 // 渲染口径（DOM 结构与 class 名逐字段照搬，避免视觉回归）。
 
 import { FileSizeFormatter } from '../../models/FileSizeFormatter.ts';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import { AttachmentIcon, type AttachmentDraft } from '../../models/AttachmentIcon.ts';
 import { t } from '../../i18n/i18n.ts';
 

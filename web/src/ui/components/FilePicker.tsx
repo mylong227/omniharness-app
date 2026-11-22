@@ -6,27 +6,28 @@
 //   · 过滤：已加载树上的客户端过滤（无新增后端接口），过滤后勾选集不丢；
 //   · 刷新：重拉 fs.list，展开键与勾选键都是路径，天然稳定。
 //
-// 未纳入本期：工作区之外的「文件系统…」懒加载子树（P2）、右侧预览窗格（P3）。
 // 保留契约：`PickerModal` 的 Esc 关闭与焦点归还；页脚「0 选择禁用确认」；回传绝对路径数组。
 
 import * as React from 'react';
 import { Tree } from 'antd';
 import type { TreeDataNode } from 'antd';
 import { PickerModal } from './PickerModal.tsx';
-import { icon } from '../models/Icon.ts';
+import { icon } from '../kit/Icon.tsx';
 import { FileSizeFormatter } from '../models/FileSizeFormatter.ts';
 import { FS_ROOT, fsKeyOf, fsPathOf, isFsKey } from '../models/FsPickerLazy.ts';
+import { attachLazy, lazyChildrenOf, useFsLazyTree } from '../models/FsLazyTree.tsx';
+import type { LazyLoadResult } from '../models/FsLazyTree.tsx';
 import type { ApiClient } from '../../core/ApiClient.ts';
+import { useWorkspaceTree } from '../hooks/useWorkspaceTree.ts';
 import type { FsNode } from '../../types/models.ts';
 import { t } from '../i18n/i18n.ts';
-
-/** `fs.list` 的默认深度（与侧栏文件树一致；超深目录本期不续接，见设计 §10 风险登记）。 */
-const DEPTH = 3;
 
 /** FilePicker 组件的入参。 */
 export interface FilePickerProps {
   /** ApiClient（fs.list 取整棵工作区树）。 */
   api: ApiClient;
+  /** 弹窗标题（缺省「选择附件文件」；凭证模式等复用场景给语义化标题）。 */
+  title?: string;
   /** 取消选择（关闭弹窗）。 */
   onCancel: () => void;
   /** 确认：传入选中文件的绝对路径列表（Composer 再调 attach.read 读 base64）。 */
@@ -38,44 +39,6 @@ interface TreeState {
   tree: FsNode[];
   loading: boolean;
   error: string | null;
-}
-
-/**
- * 拉工作区整树（`fs.list`）：首开一次，刷新按钮再拉一次。
- *
- * 与旧的逐目录代际守卫不同：这里只有**一个**请求，不存在"后到的旧目录响应改写列表"的竞态；
- * 但刷新可以与首次加载重叠，故仍用序号丢弃过期响应（语义变成"最后一次刷新为准"）。
- *
- * @param api RPC 客户端
- * @returns 数据态与 refresh
- */
-function useWorkspaceTree(api: ApiClient): TreeState & { refresh: () => void } {
-  const [state, setState] = React.useState<TreeState>({ tree: [], loading: true, error: null });
-  const seq = React.useRef(0);
-
-  const load = React.useCallback(async (): Promise<void> => {
-    const mine = ++seq.current;
-    setState((prev) => ({ ...prev, loading: true, error: null }));
-    try {
-      const r = await api.listFs(DEPTH);
-      if (mine !== seq.current) return;
-      if (!Array.isArray(r?.tree)) {
-        // fail-closed：形状不合法 ⇒ 当作读取失败，绝不把 undefined 灌进树。
-        setState({ tree: [], loading: false, error: t('文件树返回格式异常（fs.list）') });
-        return;
-      }
-      setState({ tree: r.tree, loading: false, error: null });
-    } catch (e) {
-      if (mine !== seq.current) return;
-      setState({ tree: [], loading: false, error: (e as Error).message });
-    }
-  }, [api]);
-
-  React.useEffect(() => {
-    void load();
-  }, [load]);
-
-  return { ...state, refresh: () => void load() };
 }
 
 /**
@@ -158,15 +121,6 @@ function fileKeysOf(nodes: readonly FsNode[]): string[] {
   return out;
 }
 
-/** 懒加载节点状态：children 为 null = 尚未加载。 */
-interface LazyNode {
-  children: TreeDataNode[] | null;
-  /** 该节点下的文件 key（勾选闸用：懒加载目录的 key 也在 checkedKeys 里出现）。 */
-  files: Set<string>;
-  loading: boolean;
-  error: string | null;
-}
-
 /** `fs.browse(includeFiles=true)` 的回包。 */
 type BrowseWithFiles =
   | { level: 'drives'; roots: string[]; home: string }
@@ -178,54 +132,12 @@ type BrowseWithFiles =
     };
 
 /**
- * 「文件系统…」懒加载子树（工作区之外也能选附件）。
- *
- * 节点级状态：每次展开是独立异步任务，A 的迟到响应只会迟到地填 A 节点——
- * 结构上不存在旧实现的「全局代际号防整列表串台」。
- *
- * @param api RPC 客户端
- * @returns 节点状态表与 load
- */
-function useLazyFsFiles(api: ApiClient): {
-  nodes: Record<string, LazyNode>;
-  load: (key: string) => Promise<void>;
-} {
-  const [nodes, setNodes] = React.useState<Record<string, LazyNode>>({});
-  const load = async (key: string): Promise<void> => {
-    setNodes((prev) => ({
-      ...prev,
-      [key]: { children: prev[key]?.children ?? null, files: prev[key]?.files ?? new Set(), loading: true, error: null },
-    }));
-    const path = fsPathOf(key) ?? undefined;
-    try {
-      const r: BrowseWithFiles = await api.browseFs(path, true);
-      const [children, files] = resultOf(key, r);
-      setNodes((prev) => ({
-        ...prev,
-        [key]: { children, files, loading: false, error: null },
-      }));
-    } catch (e) {
-      setNodes((prev) => ({
-        ...prev,
-        [key]: {
-          children: prev[key]?.children ?? null,
-          files: prev[key]?.files ?? new Set(),
-          loading: false,
-          error: (e as Error).message,
-        },
-      }));
-    }
-  };
-  return { nodes, load };
-}
-
-/**
  * 把一次 `fs.browse` 回包映射成懒加载子节点。
  * @param key 父节点 key
  * @param r 回包
  * @returns [子节点, 该层文件 key 集]
  */
-function resultOf(key: string, r: BrowseWithFiles): [TreeDataNode[], Set<string>] {
+function resultOf(key: string, r: BrowseWithFiles): LazyLoadResult {
   const files = new Set<string>();
   if (r.level === 'drives') {
     const roots = Array.isArray(r.roots) ? r.roots : [];
@@ -242,7 +154,7 @@ function resultOf(key: string, r: BrowseWithFiles): [TreeDataNode[], Set<string>
         isLeaf: false,
       });
     }
-    return [children, files];
+    return { children, files };
   }
   if (r.level !== 'dir' || !Array.isArray(r.dirs)) {
     throw new Error(t('文件列表返回格式异常（fs.browse）'));
@@ -264,7 +176,7 @@ function resultOf(key: string, r: BrowseWithFiles): [TreeDataNode[], Set<string>
       };
     }),
   ];
-  return [children, files];
+  return { children, files };
 }
 
 /**
@@ -297,91 +209,6 @@ function lazyTitle(kind: 'dir' | 'file', name: string, size?: string): React.Rea
   );
 }
 
-/**
- * 懒加载节点的子节点（加载中 / 错误+重试 / 空目录 的占位行）。
- * @param key 节点 key
- * @param node 该节点状态
- * @param onRetry 重试回调
- * @returns 子节点数组
- */
-function lazyChildrenOf(
-  key: string,
-  node: LazyNode | undefined,
-  onRetry: (key: string) => void,
-): TreeDataNode[] {
-  if (node === undefined) return [];
-  if (node.error !== null) {
-    return [
-      {
-        key: `${key}#err`,
-        selectable: false,
-        checkable: false,
-        title: (
-          <span className="fp-tree-error">
-            {node.error}
-            <button
-              type="button"
-              className="fp-retry"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRetry(key);
-              }}
-            >
-              {t('重试')}
-            </button>
-          </span>
-        ),
-      },
-    ];
-  }
-  if (node.loading) {
-    return [
-      {
-        key: `${key}#loading`,
-        selectable: false,
-        checkable: false,
-        title: <span className="fp-tree-loading">{t('读取中…')}</span>,
-      },
-    ];
-  }
-  if (node.children !== null && node.children.length === 0) {
-    return [
-      {
-        key: `${key}#empty`,
-        selectable: false,
-        checkable: false,
-        title: <span className="fp-tree-empty">{t('（空目录）')}</span>,
-      },
-    ];
-  }
-  return node.children ?? [];
-}
-
-/**
- * 把已加载的懒节点子级**递归**挂回树上（父节点每帧现拼，不回填的话深层目录永远挂不上）。
- * @param nodes 待挂的节点
- * @param nodesState 节点状态表
- * @param onRetry 重试回调
- * @returns 挂好子级的新数组
- */
-function attachLazy(
-  nodes: TreeDataNode[],
-  nodesState: Record<string, LazyNode>,
-  onRetry: (key: string) => void,
-): TreeDataNode[] {
-  return nodes.map((node) => {
-    const key = String(node.key);
-    const state = nodesState[key];
-    if (!isFsKey(key) || state === undefined) return node;
-    return { ...node, children: attachLazy(lazyChildrenOf(key, state, onRetry), nodesState, onRetry) };
-  });
-}
-
-/**
- * 选择器主体：过滤条 + 树 + 页脚。
- * @param props 数据态、过滤值、展开/勾选集与回调
- * @returns 主体节点
- */
 /**
  * 树 + 预览两栏。
  * @param props 数据态、选择态、懒加载子树、预览与回调
@@ -475,8 +302,8 @@ function FilePickerBody(props: {
   return (
     <>
       <div className="fp-treebar">
-        {/* 原生 input 而非 antd Input：`antd/es/input` 属于 panel-antd 异步块，
-            在选择器里静态引用会把该块拖回首屏（vendorFreePipeline 实测拦截）。 */}
+        {/* 原生 input 而非 antd Input：与相邻原生控件同口径的历史决定
+            （2026-11-11 分块合并后 antd 已全部在 vendor-antd，换 antd Input 不再有首屏代价）。 */}
         <input
           className="fp-filter"
           type="text"
@@ -546,7 +373,12 @@ function useFilePreview(api: ApiClient): {
     setPreview({ path, loading: true, text: null, binary: false, error: null });
     // fail-closed：老桩/未接线后端没有 fs.read 时，预览给明确提示，绝不抛未处理异常
     //（2026-10-30：其它用例的 api 桩没这个方法，无守卫时会变成 unhandled rejection）。
-    const read = typeof api.readFs === 'function' ? api.readFs.bind(api) : null;
+    // 不用 `.bind(api)`：W4 后域对象是普通对象，但测试桩是递归 Proxy——`.bind` 会被
+    // 代理 get 截获成下一层代理而非函数；直接闭包调用对两种宿主都稳。
+    const read =
+      typeof api.workspace.readFs === 'function'
+        ? (p: string) => api.workspace.readFs(p)
+        : null;
     if (read === null) {
       setPreview({
         path,
@@ -603,15 +435,10 @@ function PreviewPane(props: { preview: PreviewState; name: string }): ReactEleme
   );
 }
 
-/**
- * 文件选择器：工作区整树 → 勾选文件 → 确认回传绝对路径列表。
- * @param props 组件入参
- * @returns 文件选择弹窗节点
- */
 /** 选中与展开态（FilePicker 的逻辑段抽出）：过滤、懒文件集、展开联动、勾选预览与确认。 */
 function useFilePickerSelection(
   state: ReturnType<typeof useWorkspaceTree>,
-  lazy: ReturnType<typeof useLazyFsFiles>,
+  lazy: ReturnType<typeof useFsLazyTree>,
   filePreview: ReturnType<typeof useFilePreview>,
   query: string,
   composing: React.RefObject<boolean>,
@@ -677,7 +504,13 @@ function useFilePickerSelection(
 export function FilePicker(props: FilePickerProps): ReactElement {
   const { api, onCancel, onPick } = props;
   const state = useWorkspaceTree(api);
-  const lazy = useLazyFsFiles(api);
+  // 「文件系统…」懒加载子树（工作区之外也能选附件）：机制走公共核，映射留本组件。
+  const loadFsChildren = React.useCallback(
+    async (key: string): Promise<LazyLoadResult> =>
+      resultOf(key, await api.workspace.browseFs(fsPathOf(key) ?? undefined, true)),
+    [api],
+  );
+  const lazy = useFsLazyTree(loadFsChildren);
   const filePreview = useFilePreview(api);
   const [query, setQuery] = React.useState<string>('');
   const composing = React.useRef(false);
@@ -713,7 +546,7 @@ export function FilePicker(props: FilePickerProps): ReactElement {
   );
 
   return (
-    <PickerModal title={t('选择附件文件')} onCancel={onCancel}>
+    <PickerModal title={props.title ?? t('选择附件文件')} onCancel={onCancel}>
       <div
         onCompositionStart={() => {
           composing.current = true;

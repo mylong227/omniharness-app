@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * execImpl.ts —— OmniHarness CLI 命令实现（god-class 拆分后的实体层）。
  *
@@ -53,7 +54,7 @@ const AUDIT_FLAGS: readonly string[] = ['--audit-dir', '--audit-file', '--audit-
 export class ExecCli extends CliAgentCmds {
   /**
    * 链基半段的分发器（**组合，不是继承**）：`server`/`serve`/`schema`/`session`/`plugin`/`profile`/
-   * `bundle`/`doctor`/`mcp`/`kv`/`vault`/`identity`/`daemon`/`audit`/`trace`/`sdk`/`boost`/`auth`。
+   * `bundle`/`doctor`/`mcp`/`kv`/`vault`/`identity`/`daemon`/`audit`/`trace`/`sdk`/`auth`。
    *
    * 为什么是组合：单继承链是**线性的**，`ExecCli` 必须继承链顶才能拿到 `goal`/`workflow`/`execute`
    * 等链顶方法；若让它去继承链基（`ExecLocal`）就会丢掉链顶。故这里持有一个实例并按需委托，
@@ -97,8 +98,8 @@ export class ExecCli extends CliAgentCmds {
     }
     // 检索默认档**只对真正的 agent 路径**生效（2026-10-11 收窄：此前它在 `run()` 开头无条件调用）。
     //
-    // **实测边界（别把收益说大）**：挪到这里**不会**让非 agent 子命令变快——`boost probe list`
-    // 改前 1.67s、改后 1.72s（那 ~2s 是整条命令继承链的加载与配置分层，与本变量无关，已另立登记项）。
+    // **实测边界（别把收益说大）**：挪到这里**不会**让非 agent 子命令变快——`trace` 改前 1.67s、
+    // 改后 1.72s（那 ~2s 是整条命令继承链的加载与配置分层，与本变量无关）。
     // 它换来的是**影响面**：`kv` / `session` / 用法提示这类根本不碰检索的路径，不再顺手把一个
     // 进程级默认打开（该默认只对检索栈有意义）。agent 路径语义**完全不变**：仍默认开，
     // 原注释里的两关判定依据、三重安全垫与 `OMNI_SEMANTIC_RECALL=0` 的关闭权全部保留。
@@ -294,23 +295,23 @@ export class ExecCli extends CliAgentCmds {
   private assertExecPathSupported(args: CliArgs, argv: readonly string[]): void {
     if (args.approval === 'ask') {
       throw new Error(
-        '单跑（exec）路径没有交互审批通道：`--approval ask` 在本路径上无对应实现，' +
-          '缺省分支会**静默降级为全放行**，故此处 fail-closed。' +
-          '请改用 `--approval rules|guardian|plan|deny`；需要"每次问人"请用 `omniharness serve`（由 Web UI 提供审批通道）。',
+        AppText.t('单跑（exec）路径没有交互审批通道：`--approval ask` 在本路径上无对应实现，') +
+          AppText.t('缺省分支会**静默降级为全放行**，故此处 fail-closed。') +
+          AppText.t('请改用 `--approval rules|guardian|plan|deny`；需要"每次问人"请用 `omniharness serve`（由 Web UI 提供审批通道）。'),
       );
     }
     if (args.pluginProfile !== undefined && args.pluginProfile.length > 0) {
       throw new Error(
-        '`--plugin-profile` 只在 `omniharness serve` 生效（插件集收敛点 applyPluginProfile 属 AppServer）；' +
-          '单跑路径上它零消费者，传了等于没传，故此处 fail-closed。',
+        AppText.t('`--plugin-profile` 只在 `omniharness serve` 生效（插件集收敛点 applyPluginProfile 属 AppServer）；') +
+          AppText.t('单跑路径上它零消费者，传了等于没传，故此处 fail-closed。'),
       );
     }
     const auditFlag = AUDIT_FLAGS.find((flag) => argv.includes(flag));
     if (auditFlag !== undefined) {
       throw new Error(
         `审计 sink 只在 \`omniharness serve\` / \`server\` 装配；单跑（exec）路径上 \`${auditFlag}\` ` +
-          '会被接受但**不产生任何审计条目**（实测：带它跑一次再 `audit export` 得到空数组），故此处 fail-closed。' +
-          '需要审计链请用 `omniharness serve --audit-dir …`，再用 `audit export` 读取。',
+          AppText.t('会被接受但**不产生任何审计条目**（实测：带它跑一次再 `audit export` 得到空数组），故此处 fail-closed。') +
+          AppText.t('需要审计链请用 `omniharness serve --audit-dir …`，再用 `audit export` 读取。'),
       );
     }
   }
@@ -335,7 +336,7 @@ export class ExecCli extends CliAgentCmds {
     if (interactive.length > 0) {
       throw new Error(
         `headless 模式（--print）不支持交互审批：${interactive.join(' / ')} 在无 stdin 环境会永久挂起。` +
-          `请改用 --approval rules|auto|deny 与 --escalation deny|auto。`,
+          AppText.t(`请改用 --approval rules|auto|deny 与 --escalation deny|auto。`),
       );
     }
   }
@@ -358,7 +359,7 @@ export class ExecCli extends CliAgentCmds {
       await AsyncChildProcess.execFileAsync('git', ['add', '-A'], { stdio: 'ignore' });
       const message = `OmniHarness: ${finalText.slice(0, 72).replace(/\s+/g, ' ').trim() || 'auto-commit'}`;
       await AsyncChildProcess.execFileAsync('git', ['commit', '-m', message], { stdio: 'ignore' });
-      process.stderr.write('已自动提交变更（--auto-commit）\n');
+      process.stderr.write(AppText.t('已自动提交变更（--auto-commit）\n'));
     } catch {
       // 无变更可提交或提交被钩子拒绝：忽略
     }
@@ -403,7 +404,7 @@ export class ExecCli extends CliAgentCmds {
       // 同样返回 undefined，用户改坏 omniharness.json 后看到的是"功能不存在"——排查方向
       // 完全被带偏。留一行 stderr 把两者区分开（命令本身仍照常走"未启用"分支不打挂）。
       process.stderr.write(
-        `[omniharness] capability 装配失败（注意：这与"未启用"不同，多为配置错误）：` +
+        AppText.t(`[omniharness] capability 装配失败（注意：这与"未启用"不同，多为配置错误）：`) +
           `${error instanceof Error ? error.message : String(error)}\n`,
       );
       return undefined;
@@ -478,7 +479,7 @@ export class ExecCli extends CliAgentCmds {
     const controller = runtime.evolution;
     if (controller === undefined) {
       process.stderr.write(
-        'evolution 未启用（配置 evolutionRlvr.enabled / --evolution-rlvr 未开），无可跑的闭环。\n',
+        AppText.t('evolution 未启用（配置 evolutionRlvr.enabled / --evolution-rlvr 未开），无可跑的闭环。\n'),
       );
       return 1;
     }
@@ -490,7 +491,7 @@ export class ExecCli extends CliAgentCmds {
       evaluated: verdicts.length,
       promoted: verdicts.filter((v) => v.promoted).length,
       report,
-      note: '晋升落在本进程内存技能表（会话级）；台账为持久产物。',
+      note: AppText.t('晋升落在本进程内存技能表（会话级）；台账为持久产物。'),
     };
     process.stdout.write(
       request.json

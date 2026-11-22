@@ -83,6 +83,7 @@ export const EN_SHELL: Record<string, string> = {
   'RPC 请求失败：HTTP {status}': 'RPC request failed: HTTP {status}',
   '需要授权：令牌缺失或已失效——请重新用服务端打印的带 token 地址打开': 'Authorization required: token missing or invalid — reopen with the tokened URL printed by the server',
   'RPC 响应不是合法 JSON': 'RPC response is not valid JSON',
+  '无法连接服务端（服务未运行或网络不可达）：{reason}': 'Cannot reach the server (not running, or network unreachable): {reason}',
   'metrics 请求失败：{status}': 'metrics request failed: HTTP {status}',
   // core/DialogService.ts
   'DialogService 尚未绑定宿主，无法显示对话框': 'DialogService is not bound to a host; cannot show the dialog',
@@ -90,4 +91,8 @@ export const EN_SHELL: Record<string, string> = {
   '请输入': 'Please enter',
   '确定': 'OK',
   '取消': 'Cancel',
-};
+  '控制室': 'Control room',
+  '编队 / 上下文 / 凭证三模式都跟随当前会话；切换会话整页跟随。':
+    'Fleet / context / proof all follow the current session; switching sessions switches the whole page.',
+  '本会话执行前决策、审批、授权与共形证据；切换会话整页跟随。':
+    'Pre-execution decisions, approvals, grants and conformal evidence for this session; switching sessions switches the whole page.',};

@@ -19,11 +19,14 @@
 // 标准 React 项目写法：`import * as React from 'react'`（Vite 解析裸标识符）。
 import * as React from 'react';
 import { useApp } from '../../context.ts';
+import { useSessionResource } from '../../hooks/useSessionResource.ts';
 import { timeOf } from '../../format.ts';
 import type { ReactElement } from 'react';
 import type { TraceReadResultLike } from '../../../types/models.ts';
 import { t } from '../../i18n/i18n.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
+import Input from 'antd/es/input';
+import Button from 'antd/es/button';
 import Table from 'antd/es/table';
 import type { ColumnsType } from 'antd/es/table';
 import Alert from 'antd/es/alert';
@@ -53,24 +56,24 @@ function TraceFilters(props: {
       <div className="detail-h">{t('过滤')}</div>
       <label>
         {t('类别')}
-        <input
-          type="text"
+        <Input
+          aria-label={t('类别')}
           value={props.kindFilter}
           placeholder={t('如 tool.call（留空＝全部）')}
-          onChange={(e: { target: { value: string } }) => props.onKind(e.target.value)}
+          onChange={(e) => props.onKind(e.target.value)}
         />
       </label>
       <label>
         {t('条数上限')}
-        <input
-          type="text"
+        <Input
+          aria-label={t('条数上限')}
           value={props.limit}
-          onChange={(e: { target: { value: string } }) => props.onLimit(e.target.value)}
+          onChange={(e) => props.onLimit(e.target.value)}
         />
       </label>
-      <button type="button" onClick={props.onRefresh}>
+      <Button onClick={props.onRefresh}>
         {t('查询')}
-      </button>
+      </Button>
       <span className="hint">
         {t('会话 {session} · 本次返回 {count} 条', { session: props.session, count: props.count })}
         {props.kindFilter === '' ? '' : t(' · 类别 {kind}', { kind: props.kindFilter })}
@@ -120,64 +123,44 @@ function TraceError(props: { message: string; onRetry: () => void }): ReactEleme
   return (
     <div className="trace-tab">
       <Alert type="error" showIcon message={t('读取 trace 失败：{msg}', { msg: props.message })} />
-      <button type="button" onClick={props.onRetry}>
+      <Button onClick={props.onRetry}>
         {t('重试')}
-      </button>
+      </Button>
     </div>
   );
 }
 
 /** Trace 自省面板：只读条目列表。 */
 export function TraceTab(props: TraceTabProps): ReactElement {
-  const { api, sessionTick } = useApp();
+  const { api } = useApp();
   const sessionId = props.sessionId ?? '';
-  const [data, setData] = React.useState<TraceReadResultLike | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
-  const [loading, setLoading] = React.useState<boolean>(true);
   const [kindFilter, setKindFilter] = React.useState<string>('');
   const [limit, setLimit] = React.useState<string>('20');
-
-  /** 拉取只读条目（失败也进状态）。 */
-  const refresh = React.useCallback(async (): Promise<void> => {
-    if (sessionId === '') {
-      setData(null);
-      setError(null);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
+  // 取数收编进 useSessionResource（2026-11-17）：此前无 seq 守卫，快速切会话时旧会话的
+  // 迟到响应会覆盖新会话的数据（跨会话串数据）；sessionTick 高频重入的旧帧也会回滚新数据。
+  const { data, error, loading, refresh } = useSessionResource<TraceReadResultLike>({
+    enabled: sessionId !== '',
+    load: React.useCallback(async () => {
       const parsed = Number.parseInt(limit, 10);
-      const r = await api.traceRead({
+      return api.observability.traceRead({
         session: sessionId,
         ...(kindFilter === '' ? {} : { kind: kindFilter }),
         ...(Number.isFinite(parsed) && parsed > 0 ? { limit: parsed } : {}),
       });
-      setData(r);
-    } catch (e) {
-      setError((e as Error).message);
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [api, sessionId, kindFilter, limit]);
-
-  React.useEffect(() => {
-    void refresh();
-  }, [refresh, sessionTick]);
+    }, [api, sessionId, kindFilter, limit]),
+  });
 
   if (sessionId === '') {
     // 不猜会话：空会话时给出明确指引，而不是拿"最近会话"糊一个结果。
     return <div className="trace-tab">{t('请先选择一个会话（trace 自省按会话读取）。')}</div>;
   }
   if (loading) return <div className="trace-tab">{t('载入 trace 条目…')}</div>;
-  if (error !== null) {
-    return <TraceError message={error} onRetry={() => void refresh()} />;
+  if (data === null && error !== null) {
+    return <TraceError message={error} onRetry={refresh} />;
   }
   if (data === null) return <div className="trace-tab">{t('暂无 trace 数据。')}</div>;
   if (data.error !== undefined) {
-    return <TraceError message={data.error} onRetry={() => void refresh()} />;
+    return <TraceError message={data.error} onRetry={refresh} />;
   }
 
   return (
@@ -189,7 +172,7 @@ export function TraceTab(props: TraceTabProps): ReactElement {
         count={data.count}
         onKind={setKindFilter}
         onLimit={setLimit}
-        onRefresh={() => void refresh()}
+        onRefresh={refresh}
       />
       <TraceEntries entries={data.entries} />
     </div>

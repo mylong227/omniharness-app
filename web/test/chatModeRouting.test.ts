@@ -36,11 +36,15 @@ interface ApiStub {
   readonly runCalls: Record<string, unknown>[];
   readonly interjectCalls: Record<string, unknown>[];
   readonly configCalls: Record<string, unknown>[];
-  runTurn: (params: Record<string, unknown>) => Promise<TurnRunResult>;
-  interjectTurn: (params: Record<string, unknown>) => Promise<unknown>;
-  steerTurn: () => Promise<{ ok: boolean }>;
-  abortTurn: () => Promise<{ ok: boolean }>;
-  updateConfig: (patch: Record<string, unknown>) => Promise<unknown>;
+  readonly threads: {
+    runTurn: (params: Record<string, unknown>) => Promise<TurnRunResult>;
+    interjectTurn: (params: Record<string, unknown>) => Promise<unknown>;
+    steerTurn: () => Promise<{ ok: boolean }>;
+    abortTurn: () => Promise<{ ok: boolean }>;
+  };
+  readonly config: {
+    updateConfig: (patch: Record<string, unknown>) => Promise<unknown>;
+  };
 }
 
 /**
@@ -81,23 +85,27 @@ function makeController(mode: 'queue' | 'steer') {
     runCalls: [],
     interjectCalls: [],
     configCalls: [],
-    async runTurn(params) {
-      api.runCalls.push(params);
-      return { threadId: 't1' };
+    threads: {
+      async runTurn(params) {
+        api.runCalls.push(params);
+        return { threadId: 't1' };
+      },
+      async interjectTurn(params) {
+        api.interjectCalls.push(params);
+        return { ok: true, action: 'steered' };
+      },
+      async steerTurn() {
+        return { ok: true };
+      },
+      async abortTurn() {
+        return { ok: true };
+      },
     },
-    async interjectTurn(params) {
-      api.interjectCalls.push(params);
-      return { ok: true, action: 'steered' };
-    },
-    async steerTurn() {
-      return { ok: true };
-    },
-    async abortTurn() {
-      return { ok: true };
-    },
-    async updateConfig(patch) {
-      api.configCalls.push(patch);
-      return { ok: true };
+    config: {
+      async updateConfig(patch) {
+        api.configCalls.push(patch);
+        return { ok: true };
+      },
     },
   };
   const services = {
@@ -113,6 +121,11 @@ function makeController(mode: 'queue' | 'steer') {
   };
   const sessions = {
     async refreshSessions() {},
+    clearRemoteBusy() {},
+    // 队列在飞判定读的远端登记（isBusy 依赖）；桩缺了它 drain 会 TypeError。
+    hasRemoteBusy() {
+      return false;
+    },
     streamPhase() {},
     viewAttachment: { attach: () => 0, epoch: () => 0, detached: false },
     modes: { flush: async () => {} },
@@ -129,7 +142,7 @@ test('队列模式：回合中发送只入队，收尾后按 FIFO 依次发送�
   const { state, ctrl, api, toasts } = makeController('queue');
   const gates = [deferred<TurnRunResult>(), deferred<TurnRunResult>()];
   let call = 0;
-  api.runTurn = (params) => {
+  api.threads.runTurn = (params) => {
     api.runCalls.push(params);
     return gates[call++]!.promise;
   };
@@ -168,7 +181,7 @@ test('队列模式：回合中发送只入队，收尾后按 FIFO 依次发送�
 test('「停止」暂停队列：回合收尾后不自动续发，resume 才继续', async () => {
   const { state, ctrl, api } = makeController('queue');
   const gate = deferred<TurnRunResult>();
-  api.runTurn = (params) => {
+  api.threads.runTurn = (params) => {
     api.runCalls.push(params);
     return gate.promise;
   };
@@ -194,7 +207,7 @@ test('「停止」暂停队列：回合收尾后不自动续发，resume 才继�
 test('插话模式 · 相关：走 turns.interject 并入当前回合，附件一起送，不入队', async () => {
   const { state, ctrl, api, toasts } = makeController('steer');
   const gate = deferred<TurnRunResult>();
-  api.runTurn = (params) => {
+  api.threads.runTurn = (params) => {
     api.runCalls.push(params);
     return gate.promise;
   };
@@ -222,11 +235,11 @@ test('插话模式 · 相关：走 turns.interject 并入当前回合，附件�
 test('插话模式 · 无关：服务端判定 interrupted 后，本条内容成为新任务并保住附件', async () => {
   const { state, ctrl, api, toasts } = makeController('steer');
   const gate = deferred<TurnRunResult>();
-  api.runTurn = (params) => {
+  api.threads.runTurn = (params) => {
     api.runCalls.push(params);
     return api.runCalls.length === 1 ? gate.promise : Promise.resolve({ threadId: 't1' });
   };
-  api.interjectTurn = async (params) => {
+  api.threads.interjectTurn = async (params) => {
     api.interjectCalls.push(params);
     return { ok: true, action: 'interrupted', reason: 'interrupt-marker' };
   };
@@ -258,4 +271,45 @@ test('聊天模式切换：写状态并落盘到用户级配置', () => {
   ctrl.chatQueue.setMode('steer');
   assert.strictEqual(state.chatMode, 'steer');
   assert.deepStrictEqual(api.configCalls, [{ chatMode: 'steer' }]);
+});
+
+test('远端回合（打开在跑会话）：send() 分流不并发开跑；stop() 降级收口', async () => {
+  const { state, ctrl, api } = makeController('queue');
+  // loadThread 打开「正在运行」的会话写入的远端忙碌：inFlight=false、busy=true。
+  state.busy = true;
+  const aborts: unknown[] = [];
+  api.threads.abortTurn = (id?: unknown) => {
+    aborts.push(id);
+    return Promise.resolve({ ok: true });
+  };
+
+  // 远端忙碌期间发送：按模式分流，不得并发开跑第二个回合（幽灵回合）。
+  await ctrl.send('排队一条', [], []);
+  assert.strictEqual(api.runCalls.length, 0, '远端忙碌时发送不得直接开跑');
+  assert.strictEqual((state.queuedMessages as unknown[]).length, 1, '队列模式应入队等待');
+
+  // 远端收尾（SessionController 解除 busy 后接 queueDrain）：队列自动续发。
+  state.busy = false;
+  ctrl.queueDrain();
+  await flush();
+  assert.strictEqual(api.runCalls.length, 1, '远端收尾后队列续发');
+  assert.strictEqual(api.runCalls[0]?.['prompt'], '排队一条');
+  await flush();
+
+  // 降级停止：再次远端忙碌（无本地 runRound），stop() 必须收口 UI 并通知后端取消
+  // （旧实现在 !inFlight 时直接 return——停止按钮点了没反应）。
+  state.busy = true;
+  ctrl.stop();
+  await flush();
+  assert.strictEqual(state.busy, false, '降级停止必须立即收口忙碌态');
+  assert.strictEqual(aborts.length, 1, '必须通知后端取消远端回合');
+  assert.strictEqual(aborts[0], 't1', 'abortTurn 必须带当前线程 id');
+});
+
+test('远端回合（插话模式）：send() 走 turns.interject 并入远端回合，不并发开跑', async () => {
+  const { state, ctrl, api } = makeController('steer');
+  state.busy = true;
+  await ctrl.send('补充一句', [], []);
+  assert.strictEqual(api.interjectCalls.length, 1, '插话模式并入当前（远端）回合');
+  assert.strictEqual(api.runCalls.length, 0, '不得并发开跑');
 });

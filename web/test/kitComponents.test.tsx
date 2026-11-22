@@ -8,7 +8,6 @@ import { afterEach, test } from 'vitest';
 
 import * as React from 'react';
 import { ThemeProvider } from '../src/ui/theme/ThemeProvider.tsx';
-import { PageHeader } from '../src/ui/kit/PageHeader.tsx';
 import { PanelSection } from '../src/ui/kit/PanelSection.tsx';
 import { StatusTag } from '../src/ui/kit/StatusTag.tsx';
 import { EmptyState } from '../src/ui/kit/EmptyState.tsx';
@@ -19,31 +18,6 @@ afterEach(cleanup);
 function ui(node: React.ReactElement): React.ReactElement {
   return React.createElement(ThemeProvider, { theme: 'dark' }, node);
 }
-
-test('PageHeader：标题/说明/动作 + testId 透传', () => {
-  render(
-    ui(
-      React.createElement(PageHeader, {
-        title: '上下文容量',
-        description: '大条分母是窗口、行百分比分母是已用上下文',
-        actions: React.createElement('button', { type: 'button' }, '刷新'),
-        testId: 'capacity-header',
-      }),
-    ),
-  );
-  assert.ok(screen.getByTestId('capacity-header'));
-  assert.ok(screen.getByText('上下文容量'));
-  assert.ok(screen.getByText(/大条分母是窗口/));
-  assert.ok(screen.getByText('刷新'));
-  cleanup();
-
-  // 无说明/无动作时不渲染空占位。
-  render(
-    ui(React.createElement(PageHeader, { title: '只有标题', testId: 'bare-header' })),
-  );
-  assert.ok(screen.getByTestId('bare-header'));
-  assert.ok(screen.getByText('只有标题'));
-});
 
 test('PanelSection：标题 + 说明 + 内容结构', () => {
   render(

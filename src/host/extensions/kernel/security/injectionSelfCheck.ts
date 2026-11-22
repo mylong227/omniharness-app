@@ -1,3 +1,4 @@
+import { AppText } from '../../../../apps/i18n/AppText.ts';
 /**
  * 注入护栏离线自检（doctor 面）——把此前两件互不相接的资产（生产护栏 `PromptInjectionGuard`
  * 与离线度量 `InjectionMetric`）变成一条用户可跑的诊断输出。
@@ -71,11 +72,11 @@ export class InjectionSelfCheck {
    */
   public static fromJson(raw: unknown): InjectionSelfCheck {
     if (typeof raw !== 'object' || raw === null) {
-      throw new Error('注入快照顶层应为对象 { cases: [...] }');
+      throw new Error(AppText.t('注入快照顶层应为对象 { cases: [...] }'));
     }
     const casesValue = (raw as { cases?: unknown }).cases;
     if (!Array.isArray(casesValue) || casesValue.length === 0) {
-      throw new Error('注入快照 cases 应为非空数组');
+      throw new Error(AppText.t('注入快照 cases 应为非空数组'));
     }
     const seen = new Set<string>();
     const cases: InjectionCase[] = casesValue.map((item, index) => {

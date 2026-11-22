@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * sdk 子命令（SdkCommand）——用本仓 TypeScript SDK 客户端连真实 app-server 发一次 JSON-RPC。
  *
@@ -15,7 +16,7 @@ import { CliArgReader } from './cliArgReader.ts';
 
 /** 用法提示。 */
 const USAGE =
-  '用法: omniharness sdk call --url ws://HOST:PORT/ws --method NAME [--params JSON] [--timeout MS]\n' +
+  AppText.t('用法: omniharness sdk call --url ws://HOST:PORT/ws --method NAME [--params JSON] [--timeout MS]\n') +
   '      omniharness sdk ping --url ws://HOST:PORT/ws\n';
 
 /**
@@ -102,7 +103,7 @@ export class SdkCommand {
   private methodOf(reader: CliArgReader): string {
     const method = reader.value('--method');
     if (method === undefined || method.trim() === '') {
-      throw new Error('sdk call 需要 --method');
+      throw new Error(AppText.t('sdk call 需要 --method'));
     }
     return method;
   }
@@ -144,7 +145,7 @@ export class SdkCommand {
     }
     const parsed = JSON.parse(raw) as unknown;
     if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      throw new Error('--params 必须是 JSON 对象');
+      throw new Error(AppText.t('--params 必须是 JSON 对象'));
     }
     return parsed as Record<string, unknown>;
   }

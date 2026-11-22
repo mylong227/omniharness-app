@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import type { SessionModes } from './session/sessionModeStore.ts';
 
 /**
@@ -23,7 +24,7 @@ export class TurnDirectiveComposer {
   public compose(prompt: string, modes: SessionModes): string {
     const blocks = this.blocks(modes);
     if (blocks.length === 0) return prompt;
-    const body = prompt.trim() === '' ? '（本轮未附文字说明，请按下方模式要求推进）' : prompt;
+    const body = prompt.trim() === '' ? AppText.t('（本轮未附文字说明，请按下方模式要求推进）') : prompt;
     return blocks.join('\n') + '\n\n' + body;
   }
 
@@ -36,21 +37,21 @@ export class TurnDirectiveComposer {
     const out: string[] = [];
     if (modes.goal.trim() !== '') {
       out.push(
-        '【本会话目标】' +
+        AppText.t('【本会话目标】') +
           modes.goal.trim() +
-          '\n该目标在后续每轮都会重申；每轮结束时给出「已完成 / 未完成 / 阻塞点」，不要提前宣告达成。',
+          AppText.t('\n该目标在后续每轮都会重申；每轮结束时给出「已完成 / 未完成 / 阻塞点」，不要提前宣告达成。'),
       );
     }
     if (modes.planMode) {
       out.push(
-        '【计划模式】先产出可执行的步骤方案（含涉及文件与验证方式）并停下来等确认；' +
-          '本轮不要修改任何文件、不要执行有副作用的命令——写类操作会被审批层直接拒绝。',
+        AppText.t('【计划模式】先产出可执行的步骤方案（含涉及文件与验证方式）并停下来等确认；') +
+          AppText.t('本轮不要修改任何文件、不要执行有副作用的命令——写类操作会被审批层直接拒绝。'),
       );
     }
     if (modes.sketchMode) {
       out.push(
-        '【绘图模式】动手前先用 Mermaid（结构/流程/时序）画清方案草图，再调用 sketch_write 保存草图，' +
-          '然后基于草图实现；实现完成后回头核对草图与实际是否一致，不一致要说明差异原因。',
+        AppText.t('【绘图模式】动手前先用 Mermaid（结构/流程/时序）画清方案草图，再调用 sketch_write 保存草图，') +
+          AppText.t('然后基于草图实现；实现完成后回头核对草图与实际是否一致，不一致要说明差异原因。'),
       );
     }
     return out;

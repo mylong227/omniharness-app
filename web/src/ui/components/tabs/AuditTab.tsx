@@ -19,9 +19,12 @@
 import * as React from 'react';
 // 子路径导入（不走 'antd' 桶文件）：桶文件在 vendor 块里静态 re-export 每个组件族，
 // 面板组件走 barrel 导入会把该族钉死在首屏 vendor（见 vite.config.ts「分块改造」注释）。
+import Input from 'antd/es/input';
+import Button from 'antd/es/button';
 import Table from 'antd/es/table';
 import type { ColumnsType } from 'antd/es/table';
 import { useApp } from '../../context.ts';
+import { useSessionResource } from '../../hooks/useSessionResource.ts';
 import { timeOf } from '../../format.ts';
 import type { ReactElement } from 'react';
 import type { AuditQueryResult } from '../../../types/models.ts';
@@ -89,41 +92,29 @@ function AuditEventTable(props: { events: readonly AuditEventView[] }): ReactEle
 
 /** 审计面板：过滤 + 列表。 */
 export function AuditTab(): ReactElement {
-  const { api, sessionTick } = useApp();
-  const [data, setData] = React.useState<AuditQueryResult | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
-  const [loading, setLoading] = React.useState<boolean>(true);
+  const { api } = useApp();
   const [typeFilter, setTypeFilter] = React.useState<string>('');
-
-  /** 拉取审计事件（失败也进状态：UI 必须能显示"读不出来"）。 */
-  const refresh = React.useCallback(async (): Promise<void> => {
-    setLoading(true);
-    setError(null);
-    try {
-      const r = await api.auditQuery(typeFilter === '' ? {} : { type: typeFilter });
-      setData(r);
-    } catch (e) {
-      setError((e as Error).message);
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [api, typeFilter]);
-
-  React.useEffect(() => {
-    void refresh();
-  }, [refresh, sessionTick]);
+  // 取数收编进 useSessionResource（2026-11-17）：seq 守卫 + 失败保留旧数据（tick 高频重入时
+  // 一次瞬时失败不再把整屏打回错误页）。审计是全局只读，不跟随 sessionTick 陪跑。
+  const { data, error, loading, refresh } = useSessionResource<AuditQueryResult>({
+    enabled: true,
+    followTick: false,
+    load: React.useCallback(
+      async () => api.observability.auditQuery(typeFilter === '' ? {} : { type: typeFilter }),
+      [api, typeFilter],
+    ),
+  });
 
   // 只有**首次**取数（尚无数据）才占整屏：刷新期间保持过滤输入框挂载，否则每敲一个字符
   // 都会被切成「载入…」而卸载输入框 ⇒ 失焦，多字符过滤实际不可用。
   if (loading && data === null) return <div className="audit-tab">{t('载入审计事件…')}</div>;
-  if (error !== null) {
+  if (data === null && error !== null) {
     return (
       <div className="audit-tab">
         <p className="err">{t('读取审计数据失败：{msg}', { msg: error })}</p>
-        <button type="button" className="btn" onClick={() => void refresh()}>
+        <Button onClick={refresh}>
           {t('重试')}
-        </button>
+        </Button>
       </div>
     );
   }
@@ -134,16 +125,16 @@ export function AuditTab(): ReactElement {
         <div className="filter-bar">
           <label className="filter-field">
             <span>{t('类型')}</span>
-            <input
-              type="text"
+            <Input
+              aria-label={t('类型')}
               value={typeFilter}
               placeholder={t('如 tool_call（留空＝全部）')}
-              onChange={(e: { target: { value: string } }) => setTypeFilter(e.target.value)}
+              onChange={(e) => setTypeFilter(e.target.value)}
             />
           </label>
-          <button type="button" className="btn" onClick={() => void refresh()}>
+          <Button onClick={refresh}>
             {t('查询')}
-          </button>
+          </Button>
         </div>
         {typeFilter !== '' ? <span className="hint">{t('当前过滤类型：{type}', { type: typeFilter })}</span> : null}
       </div>

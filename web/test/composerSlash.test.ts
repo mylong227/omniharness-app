@@ -6,6 +6,7 @@ import { fireEvent, renderFacadeAsync, waitFor } from './rtlHarness.ts';
 import { allText, byClass, byTag, facadeOf } from './domFacade.ts';
 import { Composer } from '../src/ui/components/Composer.tsx';
 import type { ApiClient } from '../src/core/ApiClient.ts';
+import { flatApiStub } from './rtlHarness.ts';
 
 /** 只实现 listSkills，其余 RPC 一律空成功。 */
 function fakeApi(): ApiClient {
@@ -17,12 +18,7 @@ function fakeApi(): ApiClient {
       ],
     }),
   };
-  return new Proxy(target, {
-    get: (obj, prop) => {
-      if (prop in obj) return obj[prop as keyof typeof obj];
-      return () => Promise.resolve({});
-    },
-  }) as unknown as ApiClient;
+  return flatApiStub(target as Record<string, unknown>) as unknown as ApiClient;
 }
 
 test('输入 / 显示技能候选，点击后插入技能名', async () => {

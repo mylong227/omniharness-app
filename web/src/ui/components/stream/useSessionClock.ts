@@ -1,3 +1,4 @@
+import { UI_TUNABLES } from '../../../config/RuntimeConfig.ts';
 // 会话时钟 + 「回合刚收尾」回闪窗口（2026-11-02 从 StreamView 下沉）。
 //
 // 为什么单独成 hook：`StreamView` 的职责是「事件 → 可视块」的编排；计时（每秒 tick）、
@@ -16,7 +17,7 @@ import { SessionDuration } from '../../models/SessionDuration.ts';
 import type { SessionDurationView } from '../../models/SessionDuration.ts';
 
 /** 「刚收尾」回闪窗口（ms）：超过即不再给过程簇加高亮。 */
-const CLUSTER_FRESH_MS = 1500;
+const CLUSTER_FRESH_MS = UI_TUNABLES.clusterFreshMs;
 
 /** `useSessionClock` 的产物。 */
 export interface SessionClockState {

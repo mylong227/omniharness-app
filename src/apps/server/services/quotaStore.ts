@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { JsonObjectFile } from '../../../host/kernel/util.ts';
@@ -67,7 +68,7 @@ export class QuotaStore {
     let dailyTokens = current.dailyTokens;
     if (patch.dailyTokens !== undefined) {
       if (!Number.isFinite(patch.dailyTokens) || patch.dailyTokens <= 0) {
-        throw new Error('日预算必需为正数');
+        throw new Error(AppText.t('日预算必需为正数'));
       }
       dailyTokens = Math.floor(patch.dailyTokens);
     }

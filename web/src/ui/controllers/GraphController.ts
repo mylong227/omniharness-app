@@ -88,7 +88,7 @@ export class GraphController {
     }));
     if (!this.services.stream.isOpen) this.pollRun(runId);
     try {
-      const res = await this.services.api.resumeGraph(runId);
+      const res = await this.services.api.graph.resumeGraph(runId);
       this.services.toast(t('已续跑{name}（复用已完成步骤，只重跑剩下的）', { name: name ? `「${name}」` : '' }), 'ok');
       void res;
     } catch (e) {
@@ -108,7 +108,7 @@ export class GraphController {
     const tick = async (i: number): Promise<void> => {
       if (i >= 240) return;
       try {
-        const st = await this.services.api.graphStatus(runId);
+        const st = await this.services.api.graph.graphStatus(runId);
         this.host.patch((s) => ({ graphRuns: this.services.reducers.applyGraphStatus(s.graphRuns, runId, st) }));
         if (st.done) return;
       } catch {

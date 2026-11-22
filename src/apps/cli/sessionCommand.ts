@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * session 子命令（SessionCommand）——列出工作区会话日志（session list）+
  * 跨机器搬运（session export / import，U3 平台互操作，2026-10-31）。
@@ -25,7 +26,7 @@ export class SessionCommand {
     const sub = args[0];
     if (sub !== 'list' && sub !== 'export' && sub !== 'import') {
       process.stdout.write(
-        '用法:\n' +
+        AppText.t('用法:\n') +
           '  omniharness session list [--storage-dir DIR]\n' +
           '  omniharness session export <sessionId> [--storage-dir DIR] [--out FILE] [--format omni|claude-code]\n' +
           '  omniharness session import <FILE> [--storage-dir DIR]\n',
@@ -46,7 +47,7 @@ export class SessionCommand {
         name.endsWith('.jsonl') && !SessionArchive.isSyntheticId(name.replace(/\.jsonl$/, '')),
     );
     if (names.length === 0) {
-      process.stdout.write('（无会话文件）\n');
+      process.stdout.write(AppText.t('（无会话文件）\n'));
       return 0;
     }
     for (const name of names) {
@@ -66,7 +67,7 @@ export class SessionCommand {
     const sessionId = reader.at(0);
     if (sessionId === undefined || sessionId.trim() === '') {
       process.stdout.write(
-        '用法: omniharness session export <sessionId> [--out FILE] [--format omni|claude-code]\n',
+        AppText.t('用法: omniharness session export <sessionId> [--out FILE] [--format omni|claude-code]\n'),
       );
       return 2;
     }
@@ -91,7 +92,7 @@ export class SessionCommand {
         ? SessionTransfer.renderClaudeCode(envelope)
         : `${JSON.stringify(envelope, null, 2)}\n`;
     if (body.trim() === '') {
-      process.stderr.write('✗ 会话没有可导出的文本事件（空会话或全为工具事件）\n');
+      process.stderr.write(AppText.t('✗ 会话没有可导出的文本事件（空会话或全为工具事件）\n'));
       return 1;
     }
     const out = reader.value('--out');
@@ -113,7 +114,7 @@ export class SessionCommand {
     const reader = new CliArgReader(args);
     const file = reader.at(0);
     if (file === undefined || file.trim() === '') {
-      process.stdout.write('用法: omniharness session import <FILE> [--storage-dir DIR]\n');
+      process.stdout.write(AppText.t('用法: omniharness session import <FILE> [--storage-dir DIR]\n'));
       return 2;
     }
     let text: string;

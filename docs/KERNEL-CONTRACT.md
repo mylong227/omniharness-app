@@ -1,24 +1,71 @@
 # 本仓与内核（`@omniharness/kernel`）的契约
 
-> 实测日期 2026-11-08（alpha.15 对齐批次）。**结论**：应用消费 vendored `@omniharness/kernel@0.1.0-alpha.15`，
-> 全部内核导入收敛于 **`src/host/kernel/` 分域对接面**（19 个**自动生成**的域文件，
+> 实测日期 2026-11-22（alpha.38 对齐批次）。**结论**：应用消费 vendored `@omniharness/kernel@0.1.0-alpha.38`，
+> 全部内核导入收敛于 **`src/host/kernel/` 分域对接面**（20 个**自动生成**的域文件，
 > `npm run kernel:check` 第 7 条强制单点、第 8 条拒绝生成物漂移、第 9 条拒绝「已承诺能力的同名副本」）；
 > 内核切片清掉、app 仍需要的能力收留于 **`src/host/extensions/`**（app 自有扩展层，原 `kernel-compat/`，
 > M27 兼容层清零后更名；归属契约见[其 README](../src/host/extensions/README.md)）。
-> 后端 RPC 面由 **16 个域模块声明式注册**（92 方法，parity 快照钉住）。
+> 后端 RPC 面由 **21 个域模块声明式注册**（116 方法，parity 快照钉住）。
+>
+> **2026-11-22 内核同步（alpha.38，R27 worker 域收编）**：`CliWorker` / `ExternalCliWorker` /
+> `WindowsShim` 三件（461 行）上内核 worker 域并承诺三条深路径；应用侧 extensions 对应件删除、
+> 消费点改指 `src/host/kernel/worker.ts`（对接面 19→20 域）。内核 17 门全绿（`cross:check`
+> 在应用侧影子清零后复绿）；应用 `kernel:check` 九条绿（278 源文件 / 294 处包导入 / 原生内核实载）。
+>
+> **2026-11-21 内核同步（alpha.37，R26 四件收编）**：`CompactionStateCodec` 深路径承诺 +
+> maintenance 域 `ServeInstance`/`MaintenanceRunner` + autonomy 域 `GraphStore`/`GraphSummary`
+> 契约；应用侧删除 extensions 四件 947 行，登记表归零。
+>
+> **2026-11-19 内核同步（alpha.31，连同 alpha.30 一并跨过）**：R16+R17（M105–M109 + 深度
+> review 收口）——委托边继承标记 `inherited-untrusted` 第四能力维度、链式洗白窗口、
+> paraphrase 三档曲线、全派生边执法扩面（`IN_PROCESS_DERIVED_TOOL_NAMES` 单一真源 + CFI
+> 提取器强转镜像工具层），均为内核/安全内部面，应用消费面零变化（19 域「无变化」、60/60
+> 导出面无新增导出）。依赖钉 `vendor/omniharness-kernel-0.1.0-alpha.31.tgz`；
+> `kernel:check` 九条复绿（284 源文件 / 290 处包导入 / 原生内核实载）。
+>
+> **2026-11-19 内核同步（alpha.29）**：R15 遗留清偿轮（M102–M104 + 深度 review 收口）——
+> 参考轨迹匹配四档组合子（`TraceMatch`）、Multi-CaMeL 双通道子代理契约、金丝雀感染曲线
+> （`eval:propagation`），均为内核/评测/安全内部面，应用消费面零变化。依赖钉
+> `vendor/omniharness-kernel-0.1.0-alpha.29.tgz`；`./eval` 子路径新增 TraceMatch + 4 类型；
+> 公共根导出面仍 60/60；`kernel:check` 九条复绿（284 源文件 / 290 处包导入 / 原生内核实载）。
+>
+> **2026-11-18 内核同步（alpha.28）**：R14（M99–M101 + 深度 review 收口）——CapFlow 确认门
+> （require-approval 真确认门，fail-closed）、污点跨委托传播（执法面闭合进子代理树）、
+> 确定性轨迹评测器（`eval:trace` 规则型零凭据），均为内核/安全/评测内部面，应用消费面
+> 零变化。依赖钉 `vendor/omniharness-kernel-0.1.0-alpha.28.tgz`；公共根导出面仍 60/60；
+> `kernel:check` 九条复绿（284 源文件 / 290 处包导入 / 原生内核实载）。
+>
+> **2026-11-18 内核同步（alpha.27）**：R13（M94–M98 + 深度 review 收口）——统一工具结果预算
+> 读数（哨兵 `budget` 分区）、tail 侧预算内确定性整形、MCP 工具指纹 JCS 化、区分性检索对照池、
+> RNG 收敛，均为内核/评测/测量内部面，应用消费面零变化。依赖钉
+> `vendor/omniharness-kernel-0.1.0-alpha.27.tgz`；公共根导出面仍 60/60；
+> `kernel:check` 九条复绿（284 源文件 / 290 处包导入 / 原生内核实载）。
+>
+> **2026-11-17 内核同步（alpha.26）**：alpha.25（R12 第一批 M88–M92：缓存命中率三层修复、
+> 内存上界收口、内部缓存一致性三项、会话级前缀计量器与稳定性探针）与 alpha.26（R12 第二批
+> M93：工具暴露稳定杠杆 `monotonic` 模式 + 三轮 review 收口）均为内核/评测/测量内部面，
+> 应用消费面零变化。本仓 vendor 重建自 `v0.1.0-alpha.26`，依赖钉
+> `vendor/omniharness-kernel-0.1.0-alpha.26.tgz`；公共根导出面仍 60/60；
+> `kernel:surface` 19 域再生成「无变化」；`kernel:check` 九条复绿
+> （284 源文件 / 290 处包导入 / 原生内核实载）。
+>
+> **2026-11-15 内核同步（alpha.24）**：alpha.21 应用侧深度适配三项（`FileConfig` 的
+> `toolCache`/`capflow` 文件面、子代理父子树 `SubagentTree` 注入、压缩 `audit`/`signals`
+> 证据随 `OMNI_COMPACTION_V1` 游标持久化）已并入；alpha.23/24 的端到端评测、请求哈希、
+> 引用检查、压缩长段落与 checkpoint 文件态恢复均为内核/评测面，应用消费面零变化。
 
 ## 1. 现在的依赖方向
 
 ```text
 web/ + desktop/ ──HTTP/SSE──▶ src/apps（宿主：CLI / RPC 域模块 / 会话 / 审批 / 插件宿主 / 嵌入 API）
                                    │
-                                   ├─▶ src/host/kernel/            ★ 唯一内核导入点（19 域）
+                                   ├─▶ src/host/kernel/            ★ 唯一内核导入点（20 域）
                                    │      core / config / util / adapters-* / plugin / …
                                    │
                                    ├─▶ src/host/extensions/        app 自有扩展层
-                                   │      Laya 决策引擎 / CLI worker / doctor / 图存储 / web 广播 / …
+                                   │      Laya 决策引擎 / doctor / web 广播 / 资产 wasm / …
                                    │
-                                   └─▶ @omniharness/kernel@0.1.0-alpha.15（vendored tarball）
+                                   └─▶ @omniharness/kernel@0.1.0-alpha.38（vendored tarball）
                                           ├─ dist/kernel/**        主循环 / 编排单源 / 工具 / 门禁 / 存储 / Jcs
                                           ├─ dist/contracts/**     端口 / 类型 / schema
                                           ├─ dist/protocols/**     ACP / MCP
@@ -27,8 +74,8 @@ web/ + desktop/ ──HTTP/SSE──▶ src/apps（宿主：CLI / RPC 域模块 
 
 - `src/**` 只有 `src/host/kernel/<域>.ts` 允许 `import '@omniharness/kernel…'`；
   业务代码（含 `src/host/extensions/`）一律经对接面消费——全仓不出现内核包名
-  （实测 256 源文件 / 286 处包导入全部命中，`kernel:check` 实载验证）。
-- `src/host/kernel/` 只放**自动生成**的 19 个分域 re-export，**不放实现**
+  （实测 278 源文件 / 294 处包导入全部命中，`kernel:check` 实载验证）。
+- `src/host/kernel/` 只放**自动生成**的 20 个分域 re-export，**不放实现**
   （Laya 与解析器在 `extensions/kernel/`，企业 OIDC 适配器在 `src/apps/enterprise/`）。
 - `extensions/` 只依赖 `../kernel/<域>.ts` 与目录内相对路径，同样不得绕过对接面。
 - 内核 `kernel/composition/{runtime,serviceKeys}.ts` 就是编排单源：app 的
@@ -49,12 +96,20 @@ web/ + desktop/ ──HTTP/SSE──▶ src/apps（宿主：CLI / RPC 域模块 
 | M31（2026-11-08） | alpha.14 | 对接收口：`CryptoVault` / `EnvVault` 从 extensions 迁回对接面（内核已承诺，app 旧版缺 scrypt/legacy 修复）；删除 `extensions/kernel/adapters/index.ts` 纯再导出桶（70 条 → 仅 3 条有消费者）；`governance.rollbackTargets` 冗余 RPC 删除；门禁新增第 9 条「已承诺能力无同名副本」 |
 | M32（2026-11-08 傍晚） | alpha.14 | 影子清零终盘：修复第 9 条的两处漏检（curated 键拼成目录、再导出桶未解析）后，`IsolationLadderFactory` / `SdkPreferredMcpConnector` / `SessionGc` / `SessionStorageLocation` / `TmpSweep` + 6 类型共 11 个名字判红；删除 5 件影子（约 760 行），消费点改经 `maintenance` / `adapters-sandbox` / `adapters-misc` 对接面，生成器支持 curated 子路径落点；登记表清零，新增桶再导出回归判据 |
 | M33（2026-11-08 夜） | alpha.15 | 内核 P1 信任边界收敛 + 16 件 L0 清零 + MCP 反向请求 + 覆盖率收紧 + 跨仓消费契约层；app 重新 vendor 到 alpha.15（对接面/域文件/符号数零变化，`kernel:check` 九条复绿） |
+| M34（2026-11-14） | alpha.19 | 内核 M55–M76 批次（观测/缓存/成本 + 检索供给与质量 + 上下文策略 + CapFlow + 评测/应用侧收尾）；app 重新 vendor 到 alpha.19（19 域零变化，`kernel:check` 282 源文件 / 288 导入 / 九条复绿，typecheck×3 + web 用例 + build/smoke/desktop 全通过） |
+| M36（2026-11-15） | alpha.22 | 应用侧深度适配三项（内核同步改）：`toolCache`/`capflow` 配置文件面；`SubagentTree` 注入 + 编队运行中子会话 id；压缩 `audit`/`signals` 随游标持久化 + 面板呈现。另修 alpha.19 遗留断链：上下文三段 FileConfig → CliArgs → ConfigFactory 通道从未映射（设置页能存、内核收不到）。 |
+| M37（2026-11-15） | alpha.24 | R9–R11 收口：alpha.23/24 的评测/压缩/checkpoint 能力并入；应用消费面零变化（19 域、60/60 导出面），vendor tarball 升 alpha.24，`kernel:check` 284/290 复绿，桌面安装包重新打包。 |
+| M38（2026-11-17） | alpha.26 | R12 两批一并 vend（alpha.25 缓存命中率三层修复 + 内存上界收口 + 会话级前缀计量器；alpha.26 工具暴露 `monotonic` 杠杆 + 三轮 review 收口）：均为内核内部面，应用消费面零变化（19 域再生成「无变化」、60/60 导出面），`kernel:check` 284/290 复绿。 |
+| M39（2026-11-18） | alpha.28 | R14 vend（M99–M101：CapFlow 确认门 / 污点跨委托传播 / 确定性轨迹评测器 + 深度 review 收口）：均为内核内部面，应用消费面零变化（19 域「无变化」、60/60 导出面），`kernel:check` 284/290 复绿。 |
+| M40（2026-11-19） | alpha.29 | R15 vend（M102–M104：参考轨迹匹配四档组合子 / Multi-CaMeL 双通道子代理契约 / 金丝雀感染曲线 + 深度 review 收口）：均为内核内部面，应用消费面零变化（19 域「无变化」、60/60 导出面），`kernel:check` 284/290 复绿。 |
+| M41（2026-11-19） | alpha.31 | R16+R17 两版一并 vend（M105–M109：委托边继承标记 / 链式洗白窗口 / paraphrase 三档曲线 / 全派生边执法扩面）：均为内核安全内部面，应用消费面零变化（19 域「无变化」、60/60 导出面无新增），`kernel:check` 284/290 复绿。 |
+| M35（2026-11-15） | alpha.19（不升版） | alpha.19 能力落地（可选批次）：① 设置页「上下文与检索」卡 + `retrievalContext`/`semanticRecall`/`contextPolicy` 三段进 `PERSISTABLE_KEYS`（服务端 `SECTION_REPLACE_KEYS` 按段替换）；② `kernel.health` 健康桥（108→109 RPC，七分区 absent≠degraded）+ 诊断面板「内核健康（哨兵桥）」；③ `context.studio.kernel` 与上下文面板「内核上下文策略」（与健康桥同一读模型，检索/语义召回/降档/缓存守卫生效值）。不改内核依赖、19 域零变化；`kernel:check` / typecheck×3 / web 全套 / build / smoke（9 条）/ desktop 全绿；能力↔UI 对齐矩阵见 [design/kernel-ui-alignment](design/kernel-ui-alignment/README.md) |
 
 对接面规模随迁移演化：alpha.6 时代 349 源文件 / 316 处导入 / 17 域 → M30 收官 267/361/18 →
 2026-11-08 上午清死桶 `src/indexBeta.ts`（从未接线的 beta 发布面，消费 45 处内核符号却零被消费）
 并把模型探针/注入度量收编进 `eval` 域后 263/318/18 → 同日下午 M31 收口（迁走 2 件影子、
 删 1 个 compat 桶与 2 个旧实现文件）后 260/287/18 → 傍晚 M32 收口（删 5 件影子、加 1 个
-`maintenance` 域）后 **256 源文件 / 286 处导入 / 19 域**（对接面 408 符号 / 241 条模块落点：
+`maintenance` 域）后 **278 源文件 / 294 处导入 / 20 域**（对接面 435 符号 / 247 条模块落点：
 238 条深路径 + 3 个 curated 子路径）。内核**已承诺**能力的影子由此**真正**清零：
 M31 的账把 5 件「内核未承诺」自留件登记在案，M32 复核发现它们早就在 `./sandbox` / `./mcp` /
 `./maintenance` 的**再导出桶**里被承诺——旧扫描只认 `.d.ts` 直接声明才漏检。现在业务对内核的
@@ -89,7 +144,7 @@ M22–M31 的每一轮内核升级都走的这条回路，常态业务代码零�
 5. `vendor/*.tgz` 的 SHA-512 必须等于 `package-lock.json` 的 integrity；
 6. `NativeKernel.available() === true` 且 `ping()` 成功；
 7. **对接面单点**：`src/**` 里只有 `src/host/kernel/<域>.ts` 允许导入内核包；
-8. **对接面不漂移且纯净**：19 个域文件必须与「业务代码实际 import + 内核包 `.d.ts`」一致，
+8. **对接面不漂移且纯净**：20 个域文件必须与「业务代码实际 import + 内核包 `.d.ts`」一致，
    且 `src/host/kernel/` 内只允许这些生成物（实现/子目录一律不收）；只改业务 import 不跑
    `npm run kernel:surface` 即红。
 9. **已承诺能力无同名副本**：`src/host/extensions/**` 声明的符号名不得与内核 `exports` 承诺
@@ -104,7 +159,7 @@ M22–M31 的每一轮内核升级都走的这条回路，常态业务代码零�
 `npm run kernel:surface`（无需手写 re-export）；已无使用的符号会被裁掉。`kernel:check`
 第 8 条是这条工作流的唯一裁决点（`tests/kernelSurface.test.ts` 把「生成物一致 + 目录纯净」
 纳入常规 `web:test`，忘了跑生成命令本地测试也直接红）；第 9 条不依赖生成器，直接比对
-内核承诺面与 extensions 声明名——实现在 `scripts/kernelShadowScan.mjs`，`tests/kernelShadowScan.test.ts`
+内核承诺面与 extensions 声明名——实现在 `scripts/kernelShadowScan.ts`，`tests/kernelShadowScan.test.ts`
 以子进程跑同一份实现（并断言两侧计数，防「扫描器扫空也算绿」），所以 `web:test` 同样会红。
 
 重建发行物：`npm run kernel:vendor`（tag 缺省从 package.json 钉定版本解析——
@@ -125,7 +180,7 @@ M22–M31 的每一轮内核升级都走的这条回路，常态业务代码零�
   条目——深路径是「应用消费闭包」的生成产物，不该被单个消费者倒逼膨胀。
 - **vendored tarball 是二进制发行物**：不是 `npm publish` 的产物。用 `kernel:vendor`
   重建，`kernel:check` 钉 integrity；不要手工改 tarball。
-- **桌面打包**：`stageHarness.mjs` 会把 `vendor/` 一起带进 `.desktop-stage`，否则 stage 内
+- **桌面打包**：`stageHarness.mts` 会把 `vendor/` 一起带进 `.desktop-stage`，否则 stage 内
   `npm ci` 无法解析 `file:` 依赖。
 - **原生内核**：随 tarball 分发；内核升级必须用 `kernel:vendor` 重新注入与应用 ABI 匹配的
   `native/omni_napi.node`，否则门禁第 6 条会红。
@@ -135,8 +190,11 @@ M22–M31 的每一轮内核升级都走的这条回路，常态业务代码零�
 | 检查 | 结果 |
 | ---- | ---- |
 | `npm run typecheck`（后端 / 前端 / 桌面） | ✅ 0 error |
-| `npm run kernel:check` | ✅ 256 源文件 / 286 处包导入（19 域，全部收敛对接面）/ 内嵌副本 0 / integrity 一致 / native ping / 生成物一致 / extensions 无已承诺影子 |
-| `npm run build` + `npm run smoke` | ✅ 7/7（banner token、healthz、readyz、HTML、config.get、sessions.list、原生内核实载） |
-| `npm run web:test` | ✅ 165 文件 / 775 用例（web 152 + 后端 13；含 parity/守卫/家具/golden/影子扫描） |
-| `npm run desktop:build` + `desktop:test` | ✅ 34/34 |
+| `npm run kernel:check` | ✅ 278 源文件 / 294 处包导入（20 域，全部收敛对接面）/ 内嵌副本 0 / integrity 一致 / native ping / 生成物一致 / extensions 无已承诺影子 |
+| `npm run build` + `npm run smoke` | ✅ 8/8（banner token、healthz、readyz、HTML、config.get、sessions.list、原生内核实载） |
+| `npm run web:test` | ✅ 180 文件 / 828 用例（web 772 + 后端 56；含 parity/守卫/家具/golden/影子扫描） |
+| `npm run desktop:build` + `desktop:test` | ✅ 36/36 |
 | 嵌入 API 实测 | ✅ `createOmniHarness` 启动 / healthz 200 / RPC 往返 / 优雅关闭（tests/embedApi.test.ts 常规跑） |
+
+
+

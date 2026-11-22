@@ -32,7 +32,7 @@
  */
 
 /** 不可信失败的结构化报告（日志出口与致命路径共用）。 */
-export interface CrashReport {
+interface CrashReport {
   /** 失败类别。 */
   readonly kind: 'unhandledRejection' | 'uncaughtException' | 'signal';
   /** 人话描述（含原始 message / 信号名）。 */
@@ -44,7 +44,7 @@ export interface CrashReport {
 }
 
 /** 护栏所需的最小进程视图（真进程与测试假目标都满足）。 */
-export interface CrashGuardTarget {
+interface CrashGuardTarget {
   /** 注册监听（返回什么不重要，真进程返回自身）。 */
   on(event: string, listener: (...args: unknown[]) => void): unknown;
   /** 退出（缺省时护栏只报告、不退出——便于测试与嵌入）。 */

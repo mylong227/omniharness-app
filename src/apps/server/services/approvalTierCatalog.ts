@@ -21,7 +21,7 @@ import { ArrayAt } from '../../../host/kernel/util.ts';
  */
 
 /** 审批档位的风险级别（UI 据此决定是否显示警示色/徽标）。 */
-export type ApprovalRisk = 'low' | 'medium' | 'high';
+type ApprovalRisk = 'low' | 'medium' | 'high';
 
 /** 单个审批档位。 */
 export interface ApprovalTier {

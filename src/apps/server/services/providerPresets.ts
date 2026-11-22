@@ -36,5 +36,5 @@ export class ProviderPresets {
   }
 }
 
-export { PROVIDER_PRESETS, providerPresets } from '../../../host/kernel/config.ts';
+export { providerPresets } from '../../../host/kernel/config.ts';
 export type { ProviderPreset } from '../../../host/kernel/config.ts';

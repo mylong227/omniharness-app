@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 import { accessSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { createServer } from 'node:net';
@@ -17,7 +18,7 @@ import {
   type InjectionSelfCheckSummary,
 } from '../../host/extensions/kernel/security/injectionSelfCheck.ts';
 import type { SandboxCapabilityEntry } from '../../host/kernel/adapters-sandbox.ts';
-import { PluginWorkerMetrics } from '../../host/kernel/plugin.js';
+import { PluginWorkerMetrics } from '../../host/kernel/plugin.ts';
 
 /** 由**内核**强制隔离的 profile（其余为纯 TS 策略类：passthrough / policy / restricted）。 */
 const KERNEL_ENFORCED_PROFILES: ReadonlySet<string> = new Set([
@@ -160,7 +161,7 @@ export class DoctorRunner {
     // 结果只作 info（网络问题不该让「环境诊断」退出码变红——那是配置/安装问题的信号）。
     const modelProbe = opts.probeModel === true
       ? await this.probeModel(workspaceRoot)
-      : { attempted: false, detail: '未开启（--probe-model 可探测模型连通性）' };
+      : { attempted: false, detail: AppText.t('未开启（--probe-model 可探测模型连通性）') };
 
     return {
       nodeVersion,
@@ -261,7 +262,7 @@ export class DoctorRunner {
     try {
       const path = this.findConfig(workspaceRoot) ?? this.userConfigPath();
       if (path === undefined || !existsSync(path)) {
-        return { attempted: false, detail: '未找到配置文件（先运行 omniharness init）' };
+        return { attempted: false, detail: AppText.t('未找到配置文件（先运行 omniharness init）') };
       }
       const file = JSON.parse(readFileSync(path, 'utf8')) as {
         modelAdapter?: unknown;
@@ -270,7 +271,7 @@ export class DoctorRunner {
         providerKeys?: Record<string, string>;
       };
       if (file.modelAdapter === 'mock') {
-        return { attempted: false, detail: 'mock 适配器（脚本化应答，无需联网）' };
+        return { attempted: false, detail: AppText.t('mock 适配器（脚本化应答，无需联网）') };
       }
       const presets = providerPresets.resolve();
       const topKey = typeof file.apiKey === 'string' ? file.apiKey : undefined;
@@ -284,7 +285,7 @@ export class DoctorRunner {
       if (matched === undefined) {
         return {
           attempted: false,
-          detail: `未在配置中找到可用厂商（modelAdapter=${String(file.modelAdapter ?? '缺省')}；--provider 初始化后可探测）`,
+          detail: `未在配置中找到可用厂商（modelAdapter=${String(file.modelAdapter ?? AppText.t('缺省'))}；--provider 初始化后可探测）`,
         };
       }
       const preset: ProviderPreset = matched;
@@ -295,7 +296,7 @@ export class DoctorRunner {
         ok: result.ok,
         detail: result.ok
           ? `${preset.label} 连通（经 ${result.source}，模型 ${String(result.models.length)} 个）`
-          : `${preset.label} 不可达：${result.error ?? '未知原因'}`,
+          : `${preset.label} 不可达：${result.error ?? AppText.t('未知原因')}`,
       };
     } catch (error) {
       return { attempted: true, ok: false, detail: `探测失败：${this.messageOf(error)}` };
@@ -343,14 +344,20 @@ export class DoctorRunner {
       executionWired && entry?.real === true && KERNEL_ENFORCED_PROFILES.has(sandboxProfile);
     const windowsNote =
       process.platform === 'win32' && sandbox.restrictedToken
-        ? '；Windows 受限令牌只削减特权与资源（restricting-SID 计数为 0），**无**文件/网络拒绝语义'
+        ? AppText.t('；Windows 受限令牌只削减特权与资源（restricting-SID 计数为 0），**无**文件/网络拒绝语义')
         : '';
     return {
       isolationLevel: kernelEnforced ? 'L3' : 'L2',
-      isolationBasis:
-        `生效档 ${sandboxProfile}；执行包装=${executionWired ? '已接' : '未接'}；` +
-        `内核强制=${kernelEnforced ? '是' : '否'}；` +
-        `后端真机可达=${entry?.real === true ? '是' : '否'}${windowsNote}`,
+      isolationBasis: AppText.t(
+        '生效档 {profile}；执行包装={execution}；内核强制={kernel}；后端真机可达={real}{note}',
+        {
+          profile: sandboxProfile,
+          execution: executionWired ? AppText.t('已接') : AppText.t('未接'),
+          kernel: kernelEnforced ? AppText.t('是') : AppText.t('否'),
+          real: entry?.real === true ? AppText.t('是') : AppText.t('否'),
+          note: windowsNote,
+        },
+      ),
       sandboxProfile,
       kernelEnforced,
       networkGuardSurfaces: NetworkEgressGuard.COVERAGE.surfaces,
@@ -403,7 +410,7 @@ export class DoctorRunner {
     const path = configPath ?? this.findConfig(workspaceRoot) ?? this.userConfigPath();
     if (path === undefined || !existsSync(path)) {
       issues.push(
-        `未找到 omniharness.json 配置文件（项目级或用户级均无；可运行 omniharness init 一键生成，或复制 omniharness.json.example 手改）`,
+        AppText.t(`未找到 omniharness.json 配置文件（项目级或用户级均无；可运行 omniharness init 一键生成，或复制 omniharness.json.example 手改）`),
       );
       return { exists: false, valid: false };
     }
@@ -430,7 +437,7 @@ export class DoctorRunner {
     const restrictedToken = this.isElevated();
     if (!bwrap && !sandboxExec && !restrictedToken) {
       issues.push(
-        '未检测到可用沙箱后端（bwrap / sandbox-exec / Windows RestrictedToken 均不可用）',
+        AppText.t('未检测到可用沙箱后端（bwrap / sandbox-exec / Windows RestrictedToken 均不可用）'),
       );
     }
     return { bwrap, sandboxExec, restrictedToken };
@@ -492,47 +499,90 @@ export class DoctorRunner {
    */
   public printDoctor(report: DoctorReport): void {
     const lines: string[] = [];
-    lines.push('OmniHarness 诊断报告');
+    lines.push(AppText.t('OmniHarness 诊断报告'));
     lines.push('--------------------------------------------------');
-    lines.push(`  Node 版本         : ${report.nodeVersion}`);
+    lines.push(AppText.t('  Node 版本         : {version}', { version: report.nodeVersion }));
     if (report.kernelVersion !== undefined) {
-      lines.push(`  内核版本          : @omniharness/kernel ${report.kernelVersion}`);
+      lines.push(
+        AppText.t('  内核版本          : @omniharness/kernel {version}', {
+          version: report.kernelVersion,
+        }),
+      );
     }
     lines.push(
-      `  配置文件          : ${report.config.exists ? '存在' : '缺失'} / ${report.config.valid ? '合法' : '非法'}` +
-        (report.config.error !== undefined ? ` (${report.config.error})` : ''),
+      AppText.t('  配置文件          : {state} / {valid}{error}', {
+        state: report.config.exists ? AppText.t('存在') : AppText.t('缺失'),
+        valid: report.config.valid ? AppText.t('合法') : AppText.t('非法'),
+        error: report.config.error !== undefined ? ` (${report.config.error})` : '',
+      }),
     );
     lines.push(
-      `  沙箱后端          : bwrap=${report.sandbox.bwrap ? 'OK' : 'NO'} ` +
-        `sandbox-exec=${report.sandbox.sandboxExec ? 'OK' : 'NO'} ` +
-        `restrictedToken=${report.sandbox.restrictedToken ? 'OK' : 'NO'}`,
+      AppText.t('  沙箱后端          : bwrap={bwrap} sandbox-exec={se} restrictedToken={rt}', {
+        bwrap: report.sandbox.bwrap ? 'OK' : 'NO',
+        se: report.sandbox.sandboxExec ? 'OK' : 'NO',
+        rt: report.sandbox.restrictedToken ? 'OK' : 'NO',
+      }),
     );
-    lines.push(`  插件目录可读      : ${report.pluginsDirReadable ? '是' : '否'}`);
-    lines.push(`  权限清单可读      : ${report.permissionsManifestReadable ? '是' : '否'}`);
+    lines.push(
+      AppText.t('  插件目录可读      : {value}', {
+        value: report.pluginsDirReadable ? AppText.t('是') : AppText.t('否'),
+      }),
+    );
+    lines.push(
+      AppText.t('  权限清单可读      : {value}', {
+        value: report.permissionsManifestReadable ? AppText.t('是') : AppText.t('否'),
+      }),
+    );
     // 2026-11 新增三项：构建产物 / 缺省端口 / 模型连通性（可选探测）。
     const build = report.build;
     if (build !== undefined) {
-      lines.push(`  后端构建          : ${build.backend ? 'OK（dist/）' : '未构建（源码直跑）'}`);
       lines.push(
-        `  工作台构建        : ${build.web ? 'OK' : '缺失'}（${build.webDir}）` +
-          (build.web ? '' : ' —— serve 能起但浏览器白页；先跑 npm run build:web'),
+        AppText.t('  后端构建          : {value}', {
+          value: build.backend ? 'OK（dist/）' : AppText.t('未构建（源码直跑）'),
+        }),
+      );
+      lines.push(
+        AppText.t('  工作台构建        : {value}（{dir}）{hint}', {
+          value: build.web ? 'OK' : AppText.t('缺失'),
+          dir: build.webDir,
+          hint: build.web ? '' : AppText.t(' —— serve 能起但浏览器白页；先跑 npm run build:web'),
+        }),
       );
     }
     const port = report.servePort;
     if (port !== undefined) {
       lines.push(
-        `  缺省 serve 端口   : ${String(port.port)}（回环口径）${port.available ? ' 空闲' : ' 被占用（可能已有 serve 在跑；--port N 换端口）'}`,
+        AppText.t('  缺省 serve 端口   : {port}（回环口径）{state}', {
+          port: String(port.port),
+          state: port.available
+            ? AppText.t(' 空闲')
+            : AppText.t(' 被占用（可能已有 serve 在跑；--port N 换端口）'),
+        }),
       );
     }
-    lines.push(`  模型连通性        : ${report.modelProbe?.detail ?? '未探测'}`);
+    lines.push(
+      AppText.t('  模型连通性        : {detail}', {
+        detail: report.modelProbe?.detail ?? AppText.t('未探测'),
+      }),
+    );
     const workers = Object.entries(report.workers ?? {});
     lines.push(
-      `  Worker 指标       : ${workers.length === 0 ? '无活动 Worker' : `${String(workers.length)} 个`}`,
+      AppText.t('  Worker 指标       : {value}', {
+        value:
+          workers.length === 0
+            ? AppText.t('无活动 Worker')
+            : AppText.t('{count} 个', { count: String(workers.length) }),
+      }),
     );
     for (const [name, metrics] of workers) {
       lines.push(
-        `    ${name}: 激活 ${String(metrics.activations)} / 调用 ${String(metrics.calls)} / ` +
-          `失败 ${String(metrics.failures)} / 崩溃 ${String(metrics.crashes)}`,
+        AppText.t('    {name}: 激活 {activations} / 调用 {calls} / 失败 {failures} / 崩溃 {crashes}', {
+          name,
+          activations: String(metrics.activations),
+          calls: String(metrics.calls),
+          failures: String(metrics.failures),
+          crashes: String(metrics.crashes),
+        }),
       );
     }
     // 安全边界自述（G5）：不写"有沙箱"这种让人误以为已隔离的话，直接报实际强度与覆盖面。
@@ -540,29 +590,47 @@ export class DoctorRunner {
     const thresholds = Object.entries(security.injectionThresholds)
       .map(([tier, value]) => `${tier}=${String(value)}`)
       .join(' / ');
-    lines.push(`  隔离强度          : ${security.isolationLevel}（${security.isolationBasis}）`);
     lines.push(
-      `  网络守卫覆盖      : ${security.networkGuardSurfaces.join('、')}；` +
-        `shell 出网被拦=${security.shellEgressGuarded ? '是' : '否'}`,
+      AppText.t('  隔离强度          : {level}（{basis}）', {
+        level: security.isolationLevel,
+        basis: security.isolationBasis,
+      }),
     );
-    lines.push(`  注入护栏          : ${security.injectionMode}（弱证据阈值 ${thresholds}）`);
+    lines.push(
+      AppText.t('  网络守卫覆盖      : {surfaces}；shell 出网被拦={guarded}', {
+        surfaces: security.networkGuardSurfaces.join(AppText.t('、')),
+        guarded: security.shellEgressGuarded ? AppText.t('是') : AppText.t('否'),
+      }),
+    );
+    lines.push(
+      AppText.t('  注入护栏          : {mode}（弱证据阈值 {thresholds}）', {
+        mode: security.injectionMode,
+        thresholds,
+      }),
+    );
     // 注入护栏自检（质量面）：档位与阈值只回答"开没开、多严"，这里回答"开了拦不拦得住"。
     const selfCheck = report.injectionSelfCheck;
     lines.push(
       selfCheck === undefined
-        ? '  注入护栏自检      : 不可用（见问题清单）'
-        : `  注入护栏自检      : recall=${(selfCheck.recall * 100).toFixed(1)}% / ` +
-            `FP=${(selfCheck.falsePositiveRate * 100).toFixed(1)}% / ` +
-            `precision=${(selfCheck.precision * 100).toFixed(1)}%（${selfCheck.cases} 例，${selfCheck.basis}）`,
+        ? AppText.t('  注入护栏自检      : 不可用（见问题清单）')
+        : AppText.t('  注入护栏自检      : recall={recall}% / FP={fp}% / precision={precision}%（{cases} 例，{basis}）', {
+            recall: (selfCheck.recall * 100).toFixed(1),
+            fp: (selfCheck.falsePositiveRate * 100).toFixed(1),
+            precision: (selfCheck.precision * 100).toFixed(1),
+            cases: String(selfCheck.cases),
+            basis: selfCheck.basis,
+          }),
     );
     lines.push('');
     // OS 沙箱能力自述表：区分「实现存在」与「本机真能跑」，避免把无证据当可用。
     lines.push(SandboxCapabilityTable.format(report.sandboxCapabilities));
     lines.push('');
     if (report.issues.length === 0) {
-      lines.push('[OK] 未发现健康问题');
+      lines.push(AppText.t('[OK] 未发现健康问题'));
     } else {
-      lines.push(`[WARN] 发现 ${report.issues.length} 项问题:`);
+      lines.push(
+        AppText.t('[WARN] 发现 {count} 项问题:', { count: String(report.issues.length) }),
+      );
       for (const issue of report.issues) {
         lines.push(`  - ${issue}`);
       }

@@ -1,3 +1,4 @@
+import { flatApiStub } from './rtlHarness.ts';
 // 工作区切换的**列表与视图**收口门禁（真控制器 + 真 reducer，零 DOM）。
 //
 // ## 缺陷形态（2026-10-07 用户报「切换不同的工作区，会话列表还是显示之前的会话」）
@@ -19,7 +20,7 @@ import { test } from 'vitest';
 const { SessionController } = await import('../src/ui/controllers/SessionController.ts');
 const { AppReducers } = await import('../src/ui/controllers/AppReducers.ts');
 import type { AppHost, AppServices } from '../src/ui/controllers/AppController.ts';
-import type { AppRoute } from '../src/core/Router.ts';
+import type { AppRoute } from '../src/ui/models/Router.ts';
 import type { ToastKind } from '../src/core/ToastService.ts';
 
 test('onWorkspaceSwitched：列表换新工作区响应（旧项目消失、归档保留），视图清空', async () => {
@@ -49,13 +50,13 @@ test('onWorkspaceSwitched：列表换新工作区响应（旧项目消失、归�
     getState: () => state,
   } as unknown as AppHost;
   const services = {
-    api: {
+    api: flatApiStub({
       // 新工作区的响应只含 new-1：old-1 不在响应里（服务端已按工作区过滤）。
       listSessions: async () => ({
         dir: 'd',
         sessions: [{ sessionId: 'new-1', label: '新项目会话', workspace: 'D:/new', updatedAt: '', turns: 1 }],
       }),
-    },
+    }),
     toast: (message: string, kind: ToastKind) => toasts.push([message, kind]),
     navigate: (partial: Partial<AppRoute>) => navs.push(partial),
     reducers,

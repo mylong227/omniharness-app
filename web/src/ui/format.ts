@@ -3,10 +3,10 @@
 
 import * as React from 'react';
 import { markdownRender, markdownLibsReady, handleCodeblockCopyClick } from './markdown.ts';
-import { icon } from './models/Icon.ts';
+import { icon } from './kit/Icon.tsx';
 import { parseTurnDiffFiles, turnDiffTotals } from './models/TurnDiffFiles.ts';
 import { describeToolCall, truncate } from './textUtils.ts';
-import type { IconName } from './models/Icon.ts';
+import type { IconName } from './kit/Icon.tsx';
 import type { ThreadEvent } from '../types/models.ts';
 import { t } from './i18n/i18n.ts';
 
@@ -61,13 +61,15 @@ export function badge(type: string): ReactElement {
 
 /**
  * 时间戳转本地时间字符串；缺失或非法时间戳一律返回空串（不抛错）。
- * @param ts 毫秒时间戳，可空。
+ * @param ts 毫秒时间戳或 ISO 串（内核 SessionEvent 发 ISO 串；本地构造/历史存档用毫秒），可空。
  * @returns `toLocaleTimeString()` 结果，或空串。
  */
-export function timeOf(ts?: number): string {
+export function timeOf(ts?: number | string): string {
   if (!ts) return '';
+  const ms = typeof ts === 'number' ? ts : Date.parse(ts);
+  if (!Number.isFinite(ms)) return '';
   try {
-    return new Date(ts).toLocaleTimeString();
+    return new Date(ms).toLocaleTimeString();
   } catch {
     return '';
   }
@@ -77,7 +79,7 @@ export function timeOf(ts?: number): string {
  * 空状态插画占位（图标 + 主文案 + 可选副提示）。
  *
  * `icon` 接受**字符串或元素**：字符串是为历史调用点保留的兼容形态（也能放短文本），
- * 新代码一律传 `icon('<图标名>')`（见 models/Icon.ts）——emoji 的字形随系统字体变、
+ * 新代码一律传 `icon('<图标名>')`（见 kit/Icon.tsx）——emoji 的字形随系统字体变、
  * 尺寸不受控、且不跟随 `currentColor`，不适合当图标用。
  *
  * `hint` 可省略：只有主文案时也走同一套版式（图标槽 + 主文案），避免"有的空态有图标、

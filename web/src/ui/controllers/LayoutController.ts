@@ -13,7 +13,9 @@ import {
   watchSystemTheme,
   type ThemePreference,
 } from '../models/ThemePreference.ts';
+import { RightPanePreference, RIGHT_COLLAPSED_STORAGE_KEY } from '../models/RightPanePreference.ts';
 import type { ThemeScheme } from '../theme/palette.ts';
+import { EFFORTS_BY_MODEL, MODEL_OPTIONS, PROVIDER_LABEL } from '../models/StorageKeys.ts';
 
 /** 布局 / 主题偏好控制器。 */
 export class LayoutController {
@@ -57,19 +59,34 @@ export class LayoutController {
     applyScheme(scheme);
     this.host.patch({ theme, themePref: pref, scheme });
     try {
-      const cachedOptions = localStorage.getItem('omni-model-options');
-      const cachedLabel = localStorage.getItem('omni-provider-label');
+      const cachedOptions = localStorage.getItem(MODEL_OPTIONS);
+      const cachedLabel = localStorage.getItem(PROVIDER_LABEL);
       if (cachedOptions) {
         const parsed = JSON.parse(cachedOptions) as string[];
         if (Array.isArray(parsed) && parsed.length > 0) this.host.patch({ modelOptions: parsed });
       }
       if (cachedLabel) this.host.patch({ providerLabel: cachedLabel });
+      // 每模型档位表与模型清单同缓存口径（adaptive-reasoning）：刷新后首屏（catalog RPC
+      // 返回前）没有它，deepseek-chat/gpt-4o 这类"确证不支持"的模型会先按厂商档画出假
+      // 进度条。只接受纯对象（形状不符就丢弃——缓存值可能被旧版本写成别的）。
+      const cachedEfforts = localStorage.getItem(EFFORTS_BY_MODEL);
+      if (cachedEfforts) {
+        const parsedEfforts = JSON.parse(cachedEfforts) as unknown;
+        const plain =
+          typeof parsedEfforts === 'object' &&
+          parsedEfforts !== null &&
+          !Array.isArray(parsedEfforts);
+        if (plain) this.host.patch({ effortsByModel: parsedEfforts as Record<string, string[]> });
+      }
       const cachedLeft = Number(localStorage.getItem('omni-left-width'));
       const cachedRight = Number(localStorage.getItem('omni-right-width'));
       if (cachedLeft >= 180 && cachedLeft <= 600) this.host.patch({ leftWidth: cachedLeft });
       if (cachedRight >= 180 && cachedRight <= 760) this.host.patch({ rightWidth: cachedRight });
       // 右栏收起态也是本机偏好：上次收着，这次就别再撑开（2026-10-07 用户反馈「右栏也要可收起」）。
-      this.host.patch({ rightCollapsed: localStorage.getItem('omni-right-collapsed') === '1' });
+      // 2026-11-10：没有显式偏好时按视口自动收起——900–1100px 的三栏会把中栏挤到不可读。
+      const storedRight = localStorage.getItem(RIGHT_COLLAPSED_STORAGE_KEY);
+      const viewportWidth = typeof window === 'undefined' ? 1600 : window.innerWidth;
+      this.host.patch({ rightCollapsed: RightPanePreference.resolve(storedRight, viewportWidth) });
     } catch {
       /* 忽略 */
     }
@@ -194,7 +211,7 @@ export class LayoutController {
     }
     const next = !this.host.getState().rightCollapsed;
     try {
-      localStorage.setItem('omni-right-collapsed', next ? '1' : '');
+      localStorage.setItem(RIGHT_COLLAPSED_STORAGE_KEY, next ? '1' : '');
     } catch {
       /* 忽略 */
     }
@@ -208,11 +225,9 @@ export class LayoutController {
    */
   public onLeftWidthChange(w: number): void {
     this.host.patch({ leftWidth: w });
-    try {
-      localStorage.setItem('omni-left-width', String(w));
-    } catch {
-      /* 忽略 */
-    }
+    // localStorage 落盘 rAF 合并（2026-11-20 批次四 4.6）：拖拽中每个 mousemove 都会进来，
+    // 同步写盘 + 整树 patch 已在 patch 侧；持久化每帧一次足够。
+    this.scheduleWidthPersist('omni-left-width', w);
   }
 
   /**
@@ -222,10 +237,33 @@ export class LayoutController {
    */
   public onRightWidthChange(w: number): void {
     this.host.patch({ rightWidth: w });
-    try {
-      localStorage.setItem('omni-right-width', String(w));
-    } catch {
-      /* 忽略 */
-    }
+    this.scheduleWidthPersist('omni-right-width', w);
+  }
+
+  /** 待落盘的宽度（键 → 值；rAF 合并一次性写）。 */
+  private pendingWidthWrites = new Map<string, number>();
+  /** 已排程的 rAF 句柄（null = 无挂起）。 */
+  private widthPersistFrame: number | null = null;
+
+  /**
+   * rAF 合并持久化宽度：同帧多次变更只写一次盘。
+   * @param key localStorage 键
+   * @param value 最新宽度
+   * @returns 无返回值
+   */
+  private scheduleWidthPersist(key: string, value: number): void {
+    this.pendingWidthWrites.set(key, value);
+    if (this.widthPersistFrame !== null) return;
+    this.widthPersistFrame = requestAnimationFrame(() => {
+      this.widthPersistFrame = null;
+      for (const [k, v] of this.pendingWidthWrites) {
+        try {
+          localStorage.setItem(k, String(v));
+        } catch {
+          /* 忽略 */
+        }
+      }
+      this.pendingWidthWrites.clear();
+    });
   }
 }

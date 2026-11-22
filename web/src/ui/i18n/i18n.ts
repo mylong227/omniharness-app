@@ -24,12 +24,9 @@ export function getLocale(): Locale {
   return current;
 }
 
-/** 订阅语言变化（返回退订函数）。 */
-export function subscribeLocale(fn: () => void): () => void {
-  listeners.add(fn);
-  return () => {
-    listeners.delete(fn);
-  };
+/** 当前语言（组件内做 locale 分支时用；切换经 setLocale 同步）。 */
+export function currentLocale(): Locale {
+  return current;
 }
 
 /** 把 <html lang> 对齐当前语言（读屏发音跟随 UI 语言；中文用 zh-CN，与 index.html 静态初值一致）。 */

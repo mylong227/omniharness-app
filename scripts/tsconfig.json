@@ -1,0 +1,29 @@
+{
+  "//": "脚本区（scripts/**）+ 根构建配置的 typecheck 闸（2026-11-21 全仓 .ts 化收口）。与根 tsconfig 同一严格度（strict 全开 + noUncheckedIndexedAccess + exactOptionalPropertyTypes）——脚本是执法点与开发回路，不降级。noEmit：脚本由 Node ≥22.18 原生类型剥离直跑源文件，无编译产物；rewriteRelativeImportExtensions 使 .ts 后缀相对导入可解析（与 src 同约定）。根 vite/vitest.config 一并纳入（此前游离于全部 tsconfig 之外）。",
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "rewriteRelativeImportExtensions": true,
+    "lib": ["ES2024"],
+    "strict": true,
+    "verbatimModuleSyntax": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": [
+    "**/*.ts",
+    "../vite.config.ts",
+    "../vitest.config.ts"
+  ]
+}

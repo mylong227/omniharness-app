@@ -8,7 +8,7 @@
  */
 
 /** 审计时间线上的记录类别。 */
-export type AuditRecordKind =
+type AuditRecordKind =
   | 'session'
   | 'user'
   | 'assistant'
@@ -22,7 +22,7 @@ export type AuditRecordKind =
   | 'other';
 
 /** 工具调用的结局（缺省 = 源里没有给出明确结局，不臆测）。 */
-export type AuditStatus = 'ok' | 'error' | 'pending';
+type AuditStatus = 'ok' | 'error' | 'pending';
 
 /** 时间线上的一条规范化记录。 */
 export interface AuditRecord {
@@ -60,7 +60,7 @@ export type AuditRecordDraft = Omit<AuditRecord, 'seq'>;
 export type AuditSourceFormat = 'omni' | 'claude-code' | 'codex' | 'acp';
 
 /** 报告来源（一份报告对应一个输入会话文件）。 */
-export interface AuditSourceInfo {
+interface AuditSourceInfo {
   /** 输入文件路径（报告里保留调用方给的路径，便于对账）。 */
   readonly path: string;
   /** 识别出的格式。 */
@@ -113,7 +113,7 @@ export interface AuditSummary {
  * 源文件的覆盖率口径（2026-11-03 P0「未识别记录可见化」）：回答复核方的第一个问题
  * ——「这份报告覆盖了源文件的全部内容吗？」。语义详见 `docs/audit/ATTESTATION.md` §3。
  */
-export interface AuditCoverage {
+interface AuditCoverage {
   /** 载入时间线的记录数（= `records.length` = `summary.total`，`verify` 机械对账）。 */
   readonly recognized: number;
   /** 解析器明确不认识的来源条目数（坏行 / 非对象 / 类型缺失或未知 / 非法帧）。 */
@@ -144,7 +144,7 @@ export interface AuditChainedRecord {
 }
 
 /** 链摘要：复核方只要重算到 `head` 即可判定报告未被改动。 */
-export interface AuditIntegrity {
+interface AuditIntegrity {
   readonly algorithm: 'sha256';
   readonly genesis: string;
   /**

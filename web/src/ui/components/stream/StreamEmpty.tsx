@@ -5,7 +5,7 @@
 // 只有一个挂点。
 
 import type { ReactElement } from 'react';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import { t } from '../../i18n/i18n.ts';
 import { StarterTasks } from '../../models/StarterTasks.ts';
 
@@ -48,6 +48,19 @@ export function StreamEmpty(props: StreamEmptyProps): ReactElement {
                 <span className="starter-label">{t(task.label)}</span>
               </button>
             ))}
+          </div>
+          {/* 快捷键提示（2026-11-10）：空态是唯一适合教「@ / / / 命令面板」的位置；
+              正文里不再堆说明，三条键帽就够。 */}
+          <div className="starter-hints" aria-label={t('输入区快捷键')}>
+            <span className="starter-hint">
+              <kbd>Ctrl/Cmd K</kbd> {t('命令面板')}
+            </span>
+            <span className="starter-hint">
+              <kbd>@</kbd> {t('引用文件')}
+            </span>
+            <span className="starter-hint">
+              <kbd>/</kbd> {t('调用技能')}
+            </span>
           </div>
         </div>
       )}

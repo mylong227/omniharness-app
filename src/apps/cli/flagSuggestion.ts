@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * CLI **未知旗标的拼写建议**（did-you-mean，2026-10-08 易用性轮）。
  *
@@ -53,7 +54,7 @@ export class FlagSuggestion {
     const lead = guess === null ? '' : `你是不是想用 ${guess}？`;
     return (
       `未知旗标 ${token}（${lead}本 CLI 不认识它；用 --help 查看全部旗标。` +
-      `若 prompt 本身以 - 开头，请用 --prompt 传递或写在 \`--\` 之后）`
+      AppText.t(`若 prompt 本身以 - 开头，请用 --prompt 传递或写在 \`--\` 之后）`)
     );
   }
 

@@ -42,7 +42,7 @@ const { PermissionTab, rulesOf, toWireRules } = await import(
   '../src/ui/components/tabs/PermissionTab.tsx'
 );
 const { PANELS } = await import('../src/ui/models/PanelRegistry.ts');
-const { parseHash } = await import('../src/core/Router.ts');
+const { parseHash } = await import('../src/ui/models/Router.ts');
 
 /**
  * 渲染权限面板并等首次 `getConfig` 落地。
@@ -58,12 +58,13 @@ async function renderSeeded(responses: Record<string, unknown>) {
 
 /** 取「保存」按钮。 */
 function saveButton(tree: Facade): FacadeNode | undefined {
-  return byTag(tree, 'button').find((b) => allText(b) === '保存');
+  // antd Button 在无 ThemeProvider 的测试里会给两字中文插空格（`保 存`）：比较前去掉空白。
+  return byTag(tree, 'button').find((b) => allText(b).replace(/\s/g, '') === '保存');
 }
 
 /** 点「新增规则」（让面板进入 dirty 态）。 */
 function addRule(tree: Facade): void {
-  const btn = byTag(tree, 'button').find((b) => allText(b) === '新增规则');
+  const btn = byTag(tree, 'button').find((b) => allText(b).replace(/\s/g, '') === '新增规则');
   assert.ok(btn !== undefined, '必须有新增规则按钮');
   fireEvent.click(btn.el);
 }

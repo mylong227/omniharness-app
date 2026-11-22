@@ -1,3 +1,4 @@
+import { RuntimeConfig } from '../../config/RuntimeConfig.ts';
 import { jsonRpc } from '../../../host/kernel/runtime.ts';
 import type { Transport } from '../../../host/kernel/runtime.ts';
 import type { Metrics } from '../services/metrics.ts';
@@ -21,7 +22,7 @@ import type { EventPort } from '../../../host/kernel/contracts.ts';
 import { PendingRequests, type PendingTimeout } from '../../../host/kernel/util.ts';
 
 /** 审批上行缺省等待上限（毫秒）：超时按 deny 兑现（fail-closed）。 */
-const DEFAULT_APPROVAL_TIMEOUT_MS = 120_000;
+const DEFAULT_APPROVAL_TIMEOUT_MS = RuntimeConfig.server.approvalTimeoutMs;
 
 /**
  * 提问上行缺省等待上限（毫秒）：超时按「没拿到回答」兑现（fail-soft，与无人值守默认一致）。
@@ -30,10 +31,10 @@ const DEFAULT_APPROVAL_TIMEOUT_MS = 120_000;
  * （常 2~4 题），真实阅读与比较需要更长时间。为什么必须有上限：超时兜底是「人不在了
  * 就别把回合吊死」的唯一保证——没有它，`ask_user` 会像审批上行那样让回合永久挂起。
  */
-const DEFAULT_QUESTION_TIMEOUT_MS = 300_000;
+const DEFAULT_QUESTION_TIMEOUT_MS = RuntimeConfig.server.questionTimeoutMs;
 
 /** 审批入参下行的序列化上限（字符）：超出截断为预览（write_file 整文件入参可到百 KB 级）。 */
-const MAX_ARGS_PAYLOAD_CHARS = 8_192;
+const MAX_ARGS_PAYLOAD_CHARS = RuntimeConfig.server.approvalArgsMaxChars;
 
 /** 事件/审批/提问桥依赖。 */
 export interface ServerEventBridgeDeps {

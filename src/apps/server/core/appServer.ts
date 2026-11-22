@@ -1,11 +1,13 @@
+import { AppText } from '../../i18n/AppText.ts';
 import { jsonRpc, type RpcMessage } from '../../../host/kernel/runtime.ts';
 import type { AppServerOptions } from './appServerState.ts';
-import { registerModules, type RpcHandler, type ServerModule } from './serverModule.ts';
+import { rpcErrorCodeFor } from './rpcErrorCodes.ts';
+import { registerModules, type RpcHandler } from './serverModule.ts';
 import { ServerServices } from './serverServices.ts';
 import { coreModules } from '../modules/index.ts';
 import type { ServerAutomations } from '../services/serverAutomations.ts';
 import { providerPresets } from '../services/providerPresets.ts';
-import type { PluginProfile, ApplyProfileResult } from '../../../host/kernel/plugin.js';
+import type { PluginProfile, ApplyProfileResult } from '../../../host/kernel/plugin.ts';
 
 export type { AppServerOptions } from './appServerState.ts';
 
@@ -39,6 +41,8 @@ export class AppServer {
    */
   public constructor(options: AppServerOptions) {
     this.services = new ServerServices(options);
+    // 应用层文案目录的语言随启动配置（显式传入，不在此处读盘）；运行期 update 由 store 同步。
+    AppText.setLocale(options.locale ?? 'zh');
     const registered = registerModules(
       [...coreModules(), ...(options.modules ?? [])],
       this.services,
@@ -86,8 +90,13 @@ export class AppServer {
       const result = await handler(message.params ?? {});
       this.services.options.transport.send(jsonRpc.response(message.id, result));
     } catch (error) {
+      // 码位走共享分类器（core/rpcErrorCodes.ts）：调用方参数问题判 -32602（JSON-RPC 标准
+      // Invalid params），与 HTTP 路径（httpBridgeTransport）同源同码——排查时可区分
+      // 「调用方问题」与「服务端故障」；超时仍判 -32002（2026-11-19 遗留清偿）。
+      const text =
+        error instanceof Error ? error.message : String(error);
       this.services.options.transport.send(
-        jsonRpc.errorResponse(message.id, -32000, this.services.messageOf(error)),
+        jsonRpc.errorResponse(message.id, rpcErrorCodeFor(text), this.services.messageOf(error)),
       );
     }
   }
@@ -182,4 +191,3 @@ export class AppServer {
 }
 
 // 类型面提示：模块经 AppServerOptions.modules 注入（见 appServerState.ts）。
-export type { ServerModule };

@@ -42,6 +42,8 @@ export interface IpcDeps {
   closeToTray(): boolean;
   /** 设置关闭到托盘。 */
   setCloseToTray(enabled: boolean): void;
+  /** 壳层语言跟随（B3：持久化 + i18n 运行时切换 + 菜单/托盘重建）。 */
+  setLocale(locale: 'zh-CN' | 'en-US'): void;
   /** 开机启动状态。 */
   openAtLogin(): boolean;
   /** 设置开机启动。 */
@@ -83,6 +85,12 @@ export function registerIpc(deps: IpcDeps): void {
       closeToTray: deps.closeToTray(),
       openAtLogin: deps.openAtLogin(),
     };
+  });
+  ipcMain.handle('omni:setLocale', (event, locale: unknown) => {
+    assertTrusted(event, deps);
+    if (locale !== 'zh-CN' && locale !== 'en-US') throw new Error('invalid locale');
+    deps.setLocale(locale);
+    return locale;
   });
   ipcMain.handle('omni:showDiagnostics', (event) => {
     assertTrusted(event, deps);
@@ -194,11 +202,13 @@ function assertTrusted(event: IpcMainInvokeEvent, deps: IpcDeps): void {
 /**
  * 弹出原生目录选择。
  * @param defaultPath 默认路径。
+ * @param title 对话框标题（**本地化后的文案**，由调用方从 `DesktopI18n` 取——
+ *              此前在这里硬编码中文标题，en 用户看到的是中文框题，2026-11-18 收口）。
  * @returns 选中路径或 null。
  */
-export async function pickDirectory(defaultPath: string): Promise<string | null> {
+export async function pickDirectory(defaultPath: string, title: string): Promise<string | null> {
   const result = await dialog.showOpenDialog({
-    title: '选择工作区',
+    title,
     defaultPath,
     properties: ['openDirectory', 'createDirectory'],
   });

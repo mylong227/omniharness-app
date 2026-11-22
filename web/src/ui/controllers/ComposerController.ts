@@ -13,6 +13,9 @@ import type { ToolResultView } from '../shared.ts';
 import type { SessionController } from './SessionController.ts';
 import { MethodBinder } from './methodBinder.ts';
 import { EventFields } from '../models/EventFields.ts';
+import { MessageQuote } from '../models/MessageQuote.ts';
+import { ComposerOptions } from '../models/ComposerOptions.ts';
+import { RpcError, INVALID_PARAMS_CODE, SERVER_WAIT_TIMEOUT_CODE } from '../../core/ApiClient.ts';
 import { t } from '../i18n/i18n.ts';
 import { desktopBridge, notifyDesktop } from '../../core/desktop/DesktopBridge.ts';
 import { ChatQueueController } from './ChatQueueController.ts';
@@ -49,9 +52,13 @@ export class ComposerController {
     this.sessions = sessions;
     this.queueController = new ChatQueueController({
       host: this.host,
-      api: this.services.api,
+      api: this.services.api.config,
       toast: (message, kind) => this.services.toast(message, kind),
-      isBusy: () => this.inFlight,
+      // 在飞判定 = 本地回合 + 远端回合（打开在跑会话）。远端用 SessionController 的同步
+      // 登记字段（hasRemoteBusy），不读 state.busy——它经 React setState 异步提交，本地回合
+      // finally 里同步 drain 时读到的还是本回合刚要清掉的旧值，会把收尾续发永远挡住
+      // （2026-11-17 chatQueueE2e 实测回归；收尾续发由本地 finally / onRemoteBusyCleared 接力）。
+      isBusy: () => this.inFlight || this.sessions.hasRemoteBusy(),
       // 续发复用同一个回合执行体（队列只决定"发哪一条"，不自己碰 RPC）。
       sendQueued: (message) => {
         void this.runRound(message.prompt, [...message.images], [...message.files]).catch(() => {
@@ -74,17 +81,39 @@ export class ComposerController {
   /**
    * 按失败原因给出**可执行**的下一步建议（静态纯函数，便于单测）。
    *
-   * 原先无论什么失败都拼「可尝试切换模型或检查 API Key」，而 2026-09-27 用户遭遇的是
-   * `turns.run` 等服务端等待超时（回合仍在后台推进）——把用户引向换模型查 Key 是误导。
-   * @param message 失败原因文本（来自 ApiClient 的真实错误消息）。
+   * 分类**结构化**（2026-11-18 硬编码清理批次）：`RpcError.kind` / `status` / `code` 驱动，
+   * 不再匹配翻译后的文案——en 词条变化不再让提示静默失效（与批次 C 的 `includes('重启')`
+   * 同类缺陷）。后端桥接等待超时（`SERVER_WAIT_TIMEOUT_CODE` = -32002，协议面）单列：
+   * 回合可能仍在后台继续，绝不能把用户引向「换模型 / 查 Key」。
+   * @param error 抛出值（RpcError 优先分类；字符串/旧 Error 走文案兜底）。
    * @returns 追加在系统提示末尾的建议句（含前导句号）。
    */
-  public static failureHint(message: string): string {
-    if (/RPC 超时|HTTP 5\d\d|RPC 请求失败/.test(message)) {
+  public static failureHint(error: unknown): string {
+    const kind = RpcError.kindOf(error);
+    if (kind === 'network') {
+      return t('。服务端不可达：请确认本地服务正在运行（或检查网络/代理设置），恢复后重新发送即可。');
+    }
+    if (kind === 'auth') {
+      return t('。请按页面顶部的授权提示，用服务端打印的带 token 地址重新打开后再试。');
+    }
+    // 调用方参数问题（JSON-RPC 标准 Invalid params，后端域模块「X 需要 Y / 未找到 X / 拒绝」
+    // 形态）：错误信息本身已说明缺什么——换模型/查 Key 都是误导（2026-11-19 遗留清偿）。
+    if (error instanceof RpcError && error.code === INVALID_PARAMS_CODE) {
+      return t('。请求未满足服务端要求（属调用参数问题）：请按上方错误信息修正后重试，无需切换模型或检查 Key。');
+    }
+    if (
+      (error instanceof RpcError && error.code === SERVER_WAIT_TIMEOUT_CODE) ||
+      (kind === 'http-status' && (error as RpcError).status !== undefined && (error as RpcError).status! >= 500)
+    ) {
       return t('。服务端等待超时，回合可能仍在后台继续；可稍候重新打开该会话查看结果，或点「停止」后再发一次。');
     }
+    // 非结构化兜底（旧客户端 / 非 rpc() 抛出）：按文案识别中止；其余给通用建议。
+    const message = error instanceof Error ? error.message : String(error);
     if (/中止|abort/i.test(message)) {
       return t('。');
+    }
+    if (/HTTP 5\d\d/.test(message)) {
+      return t('。服务端等待超时，回合可能仍在后台继续；可稍候重新打开该会话查看结果，或点「停止」后再发一次。');
     }
     return t('。可尝试切换模型或检查 API Key。');
   }
@@ -106,7 +135,9 @@ export class ComposerController {
     files: FileAttachment[],
   ): Promise<void> {
     const state = this.host.getState();
-    if (this.inFlight) {
+    // busy 覆盖两种在跑：本页面的 runRound（inFlight）与打开「正在运行」会话时的远端回合。
+    // 远端回合同样要按模式分流（插话 / 队列），否则会并出第二个回合（2026-11-17 全面 review）。
+    if (this.inFlight || state.busy) {
       // 在跑回合里再发：按设置的模式处理（此前一律退化为 steering，队列模式无入口）。
       if (state.chatMode === 'steer') {
         await this.interject(prompt, images, files);
@@ -168,7 +199,7 @@ export class ComposerController {
     this.host.patch({ busy: true, activeTool: null, streamText: '', finalizedStreamText: '' });
     void desktopBridge()?.setProgress?.(2);
     try {
-      const res = await this.services.api.runTurn(params);
+      const res = await this.services.api.threads.runTurn(params);
       // 用户已中止：即使后端以正常响应收尾（取消在飞请求后的回落），也不再补最终文本，
       // 统一走 finally 的中止收口，避免「停了又冒出一条回复」。
       if (this.abortRequested) return;
@@ -187,7 +218,7 @@ export class ComposerController {
         // 错误不再弹窗阻断，而是写进对话流作为 system 提示 + toast，页面保持可用。
         this.services.toast(t('运行失败：{msg}', { msg }), 'err');
         this.host.patch((s) => ({
-          events: [...s.events, this.systemNote(t('运行失败：{msg}{hint}', { msg, hint: ComposerController.failureHint(msg) }))],
+          events: [...s.events, this.systemNote(t('运行失败：{msg}{hint}', { msg, hint: ComposerController.failureHint(e) }))],
         }));
       }
     } finally {
@@ -226,11 +257,11 @@ export class ComposerController {
     }
     let result: InterjectResult;
     try {
-      result = await this.services.api.interjectTurn({ threadId, prompt, images, files });
+      result = await this.services.api.threads.interjectTurn({ threadId, prompt, images, files });
     } catch {
       // RPC 不可用：回退到旧 steering（只做并入；失败就排队，等本回合结束后再发）。
       const steered = await this.services.api
-        .steerTurn(threadId, prompt, images, files)
+        .threads.steerTurn(threadId, prompt, images, files)
         .then((r) => r.ok === true)
         .catch(() => false);
       if (steered) this.services.toast(t('已并入当前任务，下一步生效'), 'info');
@@ -293,18 +324,40 @@ export class ComposerController {
    * @returns 无返回值。
    */
   public stop(): void {
-    if (!this.inFlight || this.abortRequested) return;
-    this.abortRequested = true;
+    if (this.abortRequested) return;
+    const threadId = this.host.getState().currentThreadId;
+    if (!this.inFlight) {
+      // 打开「正在运行」的会话（loadThread 置 busy）时，跑着的回合不是本页面发起的：没有本地
+      // runRound 可收口，但不能就此吞掉停止——降级为「立即收口本地 UI + 通知后端取消」，
+      // 否则停止按钮点了没反应、发送还会并出第二个回合（2026-11-17 全面 review）。
+      if (!this.host.getState().busy) return;
+      // 登记先清：否则随后的本地回合会被远端收尾检测误伤（busy 被清 ⇒ 增量被丢弃）。
+      this.sessions.clearRemoteBusy();
+      this.queueController.pauseIfPending(threadId);
+      this.settleRound(true);
+      void this.services.api.threads.abortTurn(threadId ?? undefined).catch(() => {});
+      return;
+    }
     // 「停止」要停的是**这一串**：队列里还有待发项时一并暂停，避免回合收尾时自动续发，
     // 让用户看到「刚停下又自己跑起来」。恢复入口在队列坞（继续）。
-    const threadId = this.host.getState().currentThreadId;
+    // abortRequested 必须置位：runRound 的成功/失败分支据此静默，迟到收尾不再补正文或报错。
+    this.abortRequested = true;
     this.queueController.pauseIfPending(threadId);
     this.settleRound(true);
     // 带上当前 threadId：服务端允许多回合并行，不带 id 会退化成「取消全部在跑回合」
     // （2026-09-22 修：此前不带 id，并发会话下会误停别的会话）。
     void this.services.api
-      .abortTurn(threadId ?? undefined)
+      .threads.abortTurn(threadId ?? undefined)
       .catch(() => {});
+  }
+
+  /**
+   * 远端回合（打开在跑会话）收尾后的队列续发入口：由组合根接到
+   * `SessionController.onRemoteBusyCleared`，与本地回合 finally 的 drain 同一口径。
+   * @returns 无
+   */
+  public queueDrain(): void {
+    this.queueController.drain();
   }
 
   /**
@@ -344,7 +397,7 @@ export class ComposerController {
    * @returns 异步完成
    */
   public async regenerate(): Promise<void> {
-    if (this.inFlight) {
+    if (this.inFlight || this.host.getState().busy) {
       this.services.toast(t('正在生成，请先停止后再重生成'), 'info');
       return;
     }
@@ -356,7 +409,7 @@ export class ComposerController {
     const threadId = this.host.getState().currentThreadId;
     if (threadId !== null) {
       const outcome = await this.services.api
-        .rewindThread(threadId, last.id)
+        .threads.rewindThread(threadId, last.id)
         .catch((e: unknown) => ({ ok: false, error: (e as Error).message || t('未知错误') }));
       if (!outcome.ok) {
         this.services.toast(t('重生成失败（服务端未回退）：{reason}', { reason: outcome.error ?? t('未知原因') }), 'err');
@@ -390,6 +443,22 @@ export class ComposerController {
     this.host.patch((s) => ({
       composerSeed: { text: trimmed, nonce: (s.composerSeed?.nonce ?? 0) + 1 },
     }));
+  }
+
+  /**
+   * 引用追问（2026-11-17 粘性批次）：把任意一条 user / assistant 消息以 Markdown 引用块
+   * 填回输入框，用户在引用下面直接补问题发送——模型天然能从 blockquote 分辨「哪段是历史、
+   * 哪段是新问题」。与编辑重发共用 seedDraft 回填通道，零新 RPC。
+   * @param ev 被引用的消息事件
+   * @returns 无
+   */
+  public quoteMessage(ev: ThreadEvent): void {
+    const quote = MessageQuote.compose(EventFields.content(ev));
+    if (quote === null) {
+      this.services.toast(t('这条消息没有可引用的正文'), 'info');
+      return;
+    }
+    this.seedDraft(quote);
   }
 
   /**
@@ -478,9 +547,27 @@ export class ComposerController {
    * @returns 无
    */
   public async changeModel(v: string): Promise<void> {
-    this.host.patch({ model: v });
+    // 切模型即钳强度（adaptive-reasoning，2026-11-14）：同一厂商不同模型支持的档位不同，
+    // 已保存的档位可能越界——只画"该模型不支持"标记会让越界值一直留在配置里、每次请求
+    // 都带着（上游报错才暴露）。越界时钳到新模型最近的支持档，并**合并进同一次**
+    // config.update（不新增请求窗口）。档位源与 ModelPicker 同口径（effortsFor）。
+    //
+    // 模型级确证不支持（effortsByModel 命中且为空）时**不写 reasoning 字段**（review P0-2）：
+    // 空串不是合法配置值（内核枚举 fail-closed），且保留原值意味着切回支持模型时用户
+    // 之前选的档位原样恢复——不支持只是"当前模型不显示强度"，不是"删掉用户的偏好"。
+    const state = this.host.getState();
+    const modelEfforts = state.effortsByModel?.[v];
+    const unsupported = modelEfforts !== undefined && modelEfforts.length === 0;
+    const efforts = ComposerOptions.effortsFor(v, state.effortsByModel, state.reasoningOptions);
+    const clamped =
+      unsupported || efforts === undefined
+        ? state.reasoning // 确证不支持 / 档位源未知（旧服务端）：保留原值不钳制
+        : ComposerOptions.closestLevel(efforts, state.reasoning);
+    const patch: { model: string; reasoning?: string } = { model: v };
+    if (clamped !== state.reasoning) patch.reasoning = clamped;
+    this.host.patch(patch);
     try {
-      await this.services.api.updateConfig({ model: v });
+      await this.services.api.config.updateConfig(patch);
     } catch (e) {
       this.services.toast(t('切换模型失败：{msg}', { msg: (e as Error).message }), 'err');
     }
@@ -494,7 +581,7 @@ export class ComposerController {
   public async changeReasoning(v: string): Promise<void> {
     this.host.patch({ reasoning: v });
     try {
-      await this.services.api.updateConfig({ reasoning: v });
+      await this.services.api.config.updateConfig({ reasoning: v });
     } catch (e) {
       this.services.toast(t('切换推理强度失败：{msg}', { msg: (e as Error).message }), 'err');
     }
@@ -508,7 +595,7 @@ export class ComposerController {
   public async changePermission(v: string): Promise<void> {
     this.host.patch({ permission: v });
     try {
-      await this.services.api.updateConfig({ approval: v });
+      await this.services.api.config.updateConfig({ approval: v });
     } catch (e) {
       this.services.toast(t('切换权限等级失败：{msg}', { msg: (e as Error).message }), 'err');
     }

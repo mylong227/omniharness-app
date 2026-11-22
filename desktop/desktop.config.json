@@ -2,8 +2,9 @@
   "app": {
     "appId": "com.mylong227.omniharness",
     "protocol": "omniharness",
-    "repositoryUrl": "https://github.com/mylong227/OmniHarness",
-    "language": "system"
+    "repositoryUrl": "https://github.com/mylong227/omniharness-app",
+    "language": "system",
+    "quickCaptureShortcut": "CommandOrControl+Shift+Space"
   },
   "window": {
     "width": 1280,
@@ -17,7 +18,7 @@
   },
   "harness": {
     "host": "127.0.0.1",
-    "readyTimeoutMs": 30000,
+    "readyTimeoutMs": 60000,
     "readyPollIntervalMs": 50,
     "readyzTimeoutMs": 8000,
     "readyzProbeTimeoutMs": 1500,

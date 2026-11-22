@@ -11,7 +11,7 @@ import { t } from '../i18n/i18n.ts';
 /** 一组搜索结果。 */
 export interface SearchGroup {
   /** 组类型（决定点击后的去向：会话跳转 / 文件预览）。 */
-  readonly kind: 'chat' | 'file';
+  readonly kind: 'chat' | 'chat-text' | 'file';
   /** 组标题。 */
   readonly title: string;
   /** 组内命中（已确定性排序）。 */
@@ -66,13 +66,22 @@ export class SearchHitGrouper {
   public static group(
     files: readonly SearchHit[],
     chats: readonly SearchHit[],
+    messages: readonly SearchHit[],
     query: string,
   ): SearchGroup[] {
     const out: SearchGroup[] = [];
     const chatsSorted = SearchHitGrouper.sort(chats, query).slice(0, SearchHitGrouper.LIMIT);
+    // 对话内容组按服务端口径排序（命中行数多者优先，id 兜底）：设计 §2。
+    const messagesSorted = messages
+      .slice()
+      .sort((a, b) => (b.matchCount ?? 0) - (a.matchCount ?? 0) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+      .slice(0, SearchHitGrouper.LIMIT);
     const filesSorted = SearchHitGrouper.sort(files, query).slice(0, SearchHitGrouper.LIMIT);
     if (chatsSorted.length > 0)
       out.push({ kind: 'chat', title: t('会话'), items: chatsSorted });
+    // 对话内容组：会话标题命中之后、文件之前——「我要找的那段话」通常就是它。
+    if (messagesSorted.length > 0)
+      out.push({ kind: 'chat-text', title: t('对话内容'), items: messagesSorted });
     if (filesSorted.length > 0)
       out.push({ kind: 'file', title: t('工作区文件'), items: filesSorted });
     return out;

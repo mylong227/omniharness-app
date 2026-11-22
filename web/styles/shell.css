@@ -159,6 +159,33 @@
 }
 .side-foot .pill { font-size: 11.5px; }
 
+/* 多会话运行聚合徽标（2026-11-17 粘性批次）：一行小字 + 呼吸圆点，与 pill 同族但不抢眼。 */
+.run-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.run-badge-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ok);
+  animation: run-badge-breathe 2.2s ease-in-out infinite;
+}
+@keyframes run-badge-breathe {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .run-badge-dot { animation: none; }
+}
+/* 窄侧栏（图标条）放不下文字徽标：隐藏文字保圆点也容易误解，整个隐藏最干净。 */
+.side.rail .run-badge { display: none; }
+
 /* ---------- 面板划分（用户实测"面板要能进行划分"）：三栏各用一层底色 + 发丝线分隔 ---------- */
 
 /* 桌面端收起右栏（面板菜单旁的「»」或中栏头的面板按钮 / Ctrl+Cmd+Shift+E）；窄屏抽屉不受影响。 */
@@ -547,44 +574,92 @@
   padding: 6px 14px;
 }
 
-/* ---------- 「全部面板」菜单（12 个功能面板的收起入口） ---------- */
-.pp-wrap { position: relative; display: inline-flex; flex: none; }
-.pp-btn.active { color: var(--accent); }
-.pp-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 60;
-  min-width: 168px;
-  display: flex;
-  flex-direction: column;
-}
-.pp-title {
-  font-size: 10.5px;
-  letter-spacing: 0.6px;
-  color: var(--dim);
-  padding: 4px 8px 6px;
-}
-.pp-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12.5px;
-  padding: 6px 8px;
-  cursor: pointer;
-  text-align: left;
-}
-.pp-item .pp-ico { display: inline-flex; color: var(--dim); }
-
 /* ---------- 轨迹视图 ---------- */
+/* 与对话流共用同一条正文列（`.stream` 的 22/28 内边距 + `.stream-inner` 800px 居中）：
+   此前 `.trace` 只有 10/14 且无内层约束，轨迹贴中栏左缘、状态与时间被甩到极右，
+   与下方 800px 居中的对话卡形成两条错位的内容轴。 */
 .trace {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 10px 14px;
+  padding: 22px 28px 10px;
 }
-.trace-head { font-size: 11.5px; color: var(--dim); margin-bottom: 8px; }
+.trace-inner {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+/* 专注模式与对话流同步放宽（minimal.css 里 `.body.focus .stream-inner` 为 920px）。 */
+.body.focus .trace-inner { max-width: 920px; }
+.trace-head {
+  font-size: 11.5px;
+  color: var(--dim);
+  margin-bottom: 8px;
+  padding: 0 8px;
+}
 .trace-empty { font-size: 12.5px; color: var(--dim); padding: 24px 8px; text-align: center; }
+/* 轨迹筛选（2026-11-15）：139 条调用先缩范围，再逐行读。 */
+.tr-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 2px 0 8px;
+}
+.tr-chips { display: flex; gap: 4px; flex-wrap: wrap; }
+.tr-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border-soft);
+  background: transparent;
+  color: var(--dim);
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.tr-chip:hover { color: var(--text); border-color: var(--border-strong); }
+.tr-chip.on { color: var(--text); border-color: var(--border-strong); background: var(--panel-2); }
+.tr-chip-count {
+  font-size: 10px;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.tr-search {
+  margin-left: auto;
+  width: 170px;
+  max-width: 100%;
+  border: 1px solid var(--border-soft);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 11.5px;
+}
+.tr-search:focus { outline: none; border-color: var(--brand); }
+.tr-turn {
+  margin: 8px 8px 2px;
+  font-size: 10.5px;
+  color: var(--faint);
+  letter-spacing: 0.04em;
+}
+.tr-row.failed .tr-act { color: var(--dim); }
+.tr-more {
+  align-self: center;
+  margin: 10px 0 4px;
+  border: 1px solid var(--border-soft);
+  background: transparent;
+  color: var(--dim);
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.tr-more:hover { color: var(--text); border-color: var(--border-strong); }
+@media (max-width: 880px) {
+  .tr-search { margin-left: 0; width: 100%; }
+}
 .trace-list { display: flex; flex-direction: column; gap: 2px; }
 .tr-row {
   display: flex;
@@ -603,8 +678,21 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.tr-st { flex: none; }
-.tr-time { flex: none; font-size: 11px; color: var(--dim); }
+/* 状态徽标定宽居中：「完成 / 进行中」字宽不同，定宽后右邻的时间列不会左右跳。 */
+.tr-st {
+  flex: none;
+  min-width: 3.2em;
+  text-align: center;
+}
+/* 时间右对齐 + 等宽数字：同一列的时间不会因 1/7 字宽参差而看起来"没排齐"。 */
+.tr-time {
+  flex: none;
+  min-width: 3.4em;
+  text-align: right;
+  font-size: 11px;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
 
 /* ---------- 通用 ---------- */
 .flex-spacer { flex: 1 1 auto; min-width: 0; }
@@ -868,7 +956,6 @@ body {
 .ws-switch-menu,
 .addmenu-pop,
 .mention-pop,
-.pp-menu,
 .row-menu,
 .cmdk {
   border-radius: 12px;
@@ -878,7 +965,6 @@ body {
 }
 .dd-item,
 .addmenu-item,
-.pp-item,
 .row-menu button,
 .ws-project {
   min-height: 28px;
@@ -989,7 +1075,7 @@ body {
 
 /* 模态遮罩：用主题底色而不是纯黑，浅色主题下不再是「黑幕」。 */
 .modal {
-  border-radius: 16px;
+  border-radius: var(--r-xl);
   border-color: var(--border-strong);
   box-shadow: var(--shadow-2);
   padding: 22px 24px;
@@ -1071,14 +1157,12 @@ body {
 .dd-menu,
 .addmenu-scroll,
 .cmdk-list,
-.pp-menu,
 .ws-switch-menu {
   scrollbar-width: none;
 }
 .dd-menu::-webkit-scrollbar,
 .addmenu-scroll::-webkit-scrollbar,
 .cmdk-list::-webkit-scrollbar,
-.pp-menu::-webkit-scrollbar,
 .ws-switch-menu::-webkit-scrollbar {
   width: 0;
   height: 0;
@@ -1193,12 +1277,39 @@ input[type='radio'] {
   background: var(--bg-elev);
   -webkit-app-region: drag;
   user-select: none;
+  padding: 0;
+}
+.titlebar-actions {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  margin-left: auto;
+  -webkit-app-region: no-drag;
+}
+.tb-quick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--dim);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+.tb-quick:hover {
+  background: var(--hover);
+  color: var(--text);
 }
 .titlebar-controls {
   display: inline-flex;
   align-items: stretch;
   height: 100%;
-  margin-left: auto;
+  margin-left: 0;
   -webkit-app-region: no-drag;
 }
 .tb-btn {
@@ -1220,3 +1331,38 @@ input[type='radio'] {
   background: var(--err);
   color: var(--on-err);
 }
+
+/* ---- 轨迹动作区按钮（2026-11-17 粘性批次）：回到当前轮 + 导出，与筛选 chips 同行不抢位 ----
+   2026-11-18 拆类名：此前按钮复用行内文本的 .tr-act，胶囊规则（margin-left:auto + 描边）
+   同时命中每一行的动作 span，整列被推成居中胶囊；现按钮独立为 .tr-btn，
+   .tr-act 回归纯行内文本（shell.css:674 的 flex:1 左对齐布局）。 */
+.tr-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  flex: none;
+  border: 1px solid var(--border-soft);
+  background: transparent;
+  color: var(--dim);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.tr-btn + .tr-btn { margin-left: 0; }
+.tr-btn:hover { color: var(--text); border-color: var(--border-strong); background: var(--hover); }
+.tr-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ---- 左栏空态一行化（2026-11-17 美化批次，ux-audit P2）：中栏已有完整主空态，
+   左栏收成一行状态，不再挂大插画把同一句话说三遍。 ---- */
+.session-empty {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 14px 10px;
+  color: var(--faint);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.session-empty svg { flex: none; opacity: 0.7; }

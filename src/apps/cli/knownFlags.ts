@@ -146,21 +146,6 @@ export const KNOWN_EXTRA_FLAGS: ReadonlySet<string> = new Set([
   '--out-md',
   '--out-py',
   '--out-ts',
-  // boost 子命令（2026-10-10）：`boost probe` / `boost gate` 的旗标。全部由
-  // `cliDataCmds.readBoostOptions` 用 `CliArgReader` **字面量读取**（同一层里读，判据③才成立），
-  // 名字统一加 `--boost-` 前缀以避免与 `--list` / `--diff` / `--run` 这类通用词在
-  // **无子命令的 exec 路径**上互相干扰。取值型旗标一律 `--flag VALUE` 两 token 形式（与全仓子命令一致）。
-  '--boost-list',
-  '--boost-probe',
-  '--boost-arg',
-  '--boost-network',
-  '--boost-diff',
-  '--boost-dir',
-  '--boost-timeout-ms',
-  '--boost-mode',
-  '--boost-tier',
-  '--boost-run',
-  '--boost-explain',
   // gc 子命令（2026-10-26）：`gcCommand.run` 用 `args.includes('--dry-run')` 直读的布尔旗标
   // （审计面：只报告要清理什么、不动手）。未登记会被「未知旗标 fail-closed」口径的判据③点名。
   '--dry-run',

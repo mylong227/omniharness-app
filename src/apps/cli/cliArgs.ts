@@ -1,14 +1,15 @@
 import type { McpServerConfig } from '../../host/kernel/protocols.ts';
-import type { ExternalCliWorkerSpec } from '../../host/extensions/kernel/worker/externalCliWorker.ts';
+import type { ExternalCliWorkerSpec } from '../../host/kernel/worker.ts';
 import type { SkillEntry } from '../../host/kernel/platform.ts';
 import type {
+  FileConfig,
   ModelRouterConfig,
   PermissionRuleConfig,
   PermissionRuleDecision,
   SsrfPolicyConfig,
 } from '../../host/kernel/config.ts';
 import type { ModelAdapterId } from '../../host/kernel/contracts.ts';
-import type { MediaAnalysisConfig } from '../../host/kernel/plugin.js';
+import type { MediaAnalysisConfig } from '../../host/kernel/plugin.ts';
 import type { CapabilityConfig } from '../../host/kernel/contracts.ts';
 import type { RbacConfig } from '../../host/kernel/contracts.ts';
 import type { DecisionEngineConfig } from '../../host/kernel/contracts.ts';
@@ -259,4 +260,18 @@ export interface CliArgs {
   decisionEngineMode?: 'off' | 'shadow' | 'enforce' | undefined;
   /** （Laya 战略线）解释器路径旗标取值（`--decision-engine-python <path>`；覆盖配置文件与自动探测）。 */
   decisionEnginePython?: string | undefined;
+  /**
+   * 上下文三段（alpha.19 配置，alpha.21 补齐 CLI 通道）：检索供给 / 语义召回 / 上下文策略。
+   *
+   * 2026-11-15 实测发现：FileConfig 声明了这三段、设置页也能落盘，但 `configDefaults`
+   * 从未映射 ⇒ 走 CLI/serve 启动时被**静默丢弃**（内核收到 undefined，行为回落到 off）。
+   * 与 `capability` / `rbac` 同一条路：FileConfig 收了字段就必须在 CLI 层透传。
+   */
+  retrievalContext?: FileConfig['retrievalContext'];
+  semanticRecall?: FileConfig['semanticRecall'];
+  contextPolicy?: FileConfig['contextPolicy'];
+  /** 确定性读缓存段（alpha.21 文件面补齐；整段透传）。 */
+  toolCache?: FileConfig['toolCache'];
+  /** 能力数据流防火墙段（alpha.21 文件面补齐；整段透传）。 */
+  capflow?: FileConfig['capflow'];
 }

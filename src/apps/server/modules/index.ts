@@ -2,6 +2,10 @@ import type { ServerModule } from '../core/serverModule.ts';
 import { automationsModule } from './automations.ts';
 import { checkpointsModule } from './checkpoints.ts';
 import { configModule } from './config.ts';
+import { contextStudioModule } from './contextStudio.ts';
+import { fleetModule } from './fleet.ts';
+import { proofModule } from './proof.ts';
+import { decisionModule } from './decision.ts';
 import { governanceModule } from './governance.ts';
 import { introspectModule } from './introspect.ts';
 import { graphsModule } from './graphs.ts';
@@ -10,6 +14,7 @@ import { observabilityModule } from './observability.ts';
 import { pluginsModule } from './plugins.ts';
 import { reviewModule } from './review.ts';
 import { sessionsModule } from './sessions.ts';
+import { skillsModule } from './skills.ts';
 import { surfaceModule } from './surface.ts';
 import { threadsModule } from './threads.ts';
 import { uplinkModule } from './uplink.ts';
@@ -17,7 +22,7 @@ import { vaultModule } from './vault.ts';
 import { workspaceModule } from './workspace.ts';
 
 /**
- * AppServer 内置模块清单 —— 92 个 RPC 方法的**唯一**注册出处（parity 快照测试钉住）。
+ * AppServer 内置模块清单 —— 116 个 RPC 方法（21 个域模块）的**唯一**注册出处（parity 快照测试钉住）。
  *
  * 加新能力 = 在本目录新建一个模块文件（或往同域模块里加 `ctx.rpc`），再在此登记一行。
  * 嵌入方经 `createOmniHarness({ modules })` / `new AppServer({ modules })` 追加的模块
@@ -28,6 +33,7 @@ export function coreModules(): readonly ServerModule[] {
     threadsModule(),
     uplinkModule(),
     configModule(),
+    skillsModule(),
     automationsModule(),
     workspaceModule(),
     sessionsModule(),
@@ -36,6 +42,10 @@ export function coreModules(): readonly ServerModule[] {
     graphsModule(),
     memoryModule(),
     checkpointsModule(),
+    fleetModule(),
+    contextStudioModule(),
+    proofModule(),
+    decisionModule(),
     reviewModule(),
     observabilityModule(),
     vaultModule(),

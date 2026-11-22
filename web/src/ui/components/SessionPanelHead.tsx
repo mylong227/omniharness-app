@@ -21,7 +21,7 @@ import type { PanelView } from './session/viewCycle.ts';
 import type { SessionEntry } from '../shared.ts';
 
 /** 本区块实际读到的面板 props 子集（结构化类型，不必引用完整 SessionPanelProps）。 */
-export interface SessionPanelHeadPanel {
+interface SessionPanelHeadPanel {
   readonly sessions: SessionEntry[];
   readonly activePane?: string | undefined;
   readonly onNew: () => void;
@@ -82,7 +82,6 @@ export function SessionPanelHead(props: SessionPanelHeadProps): ReactElement {
         onToggleScope={panel.onToggleScope}
         view={view}
         onCycleView={onCycleView}
-        onAddProject={workspace.addProject}
       />
       {search.open && !chrome.rail ? (
         <SessionSearchBox
@@ -99,6 +98,7 @@ export function SessionPanelHead(props: SessionPanelHeadProps): ReactElement {
         selectedIndex={search.hitIndex}
         query={search.query}
         loading={search.searching}
+        messagesTruncated={search.messagesTruncated}
         onPick={search.openHit}
       />
     </>

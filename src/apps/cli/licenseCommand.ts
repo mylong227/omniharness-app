@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * `license` 子命令（商业化路线图 **F1**）：查看本机授权档位。
  *
@@ -24,8 +25,8 @@ import { CliArgReader } from './cliArgReader.ts';
 
 /** 用法提示。 */
 const USAGE =
-  '用法: omniharness license status --license <file> --license-public-key <ssh-ed25519 …>\n' +
-  '说明: 校验本机 license 并打印生效档位；无 license / 已过期 ⇒ 退出码 1（核心功能照常可用，请续期）。\n';
+  AppText.t('用法: omniharness license status --license <file> --license-public-key <ssh-ed25519 …>\n') +
+  AppText.t('说明: 校验本机 license 并打印生效档位；无 license / 已过期 ⇒ 退出码 1（核心功能照常可用，请续期）。\n');
 
 /** license 子命令。 */
 export class LicenseCommand {
@@ -66,7 +67,7 @@ export class LicenseCommand {
     process.stderr.write(`未采信 license：${verdict.reason}\n`);
     process.stderr.write(LicenseCommand.coreNotice());
     if (verdict.expired) {
-      process.stderr.write('提示：这是**降级**不是停摆——续期后即可恢复原档位。\n');
+      process.stderr.write(AppText.t('提示：这是**降级**不是停摆——续期后即可恢复原档位。\n'));
     }
     return 1;
   }
@@ -76,7 +77,7 @@ export class LicenseCommand {
    * @returns 提示文本
    */
   private static coreNotice(): string {
-    return `当前档位：core ｜ 核心功能照常可用（harness / 本地进化）；Pro 及以上功能未启用。\n`;
+    return AppText.t(`当前档位：core ｜ 核心功能照常可用（harness / 本地进化）；Pro 及以上功能未启用。\n`);
   }
 
   /**

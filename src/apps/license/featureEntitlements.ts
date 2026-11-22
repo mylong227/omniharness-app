@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * 功能权益解析器（**F4 落地**：把 `LicenseEngine.FEATURE_TIERS` 从"展示表"变成"产品闸门"）。
  *
@@ -59,7 +60,7 @@ export class FeatureEntitlements implements EntitlementPort {
    */
   public static core(observer?: EntitlementObserver | undefined): FeatureEntitlements {
     return new FeatureEntitlements({
-      verdict: { ok: false, tier: 'core', reason: '未持授权（core 档）', expired: false },
+      verdict: { ok: false, tier: 'core', reason: AppText.t('未持授权（core 档）'), expired: false },
       ...(observer !== undefined ? { observer } : {}),
     });
   }
@@ -107,7 +108,7 @@ export class FeatureEntitlements implements EntitlementPort {
       feature,
       requiredTier,
       `功能 "${feature}" 需要 ${requiredTier} 档（当前 ${this.tier}）` +
-        (this.licensed ? '' : '；当前未持有效授权'),
+        (this.licensed ? '' : AppText.t('；当前未持有效授权')),
     );
   }
 

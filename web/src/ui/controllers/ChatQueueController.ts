@@ -12,7 +12,7 @@
 // React、RPC 客户端实现或视图层，可在 node 下用桩直测。
 
 import type { AppHost } from './AppController.ts';
-import type { ApiClient } from '../../core/ApiClient.ts';
+import type { ConfigApi } from '../../core/api/configApi.ts';
 import { t } from '../i18n/i18n.ts';
 import { ChatMessageQueue, type ImageAttachment, type QueuedMessage } from '../models/ChatMessageQueue.ts';
 import { ChatModePreference, type ChatMode } from '../models/ChatModePreference.ts';
@@ -23,7 +23,7 @@ export interface ChatQueueControllerDeps {
   /** 状态宿主：`queuedMessages` / `queuePaused` / `chatMode` 的快照写到 App 状态。 */
   readonly host: AppHost;
   /** 只用到配置写回（聊天模式落用户级 omniharness.json）。 */
-  readonly api: Pick<ApiClient, 'updateConfig'>;
+  readonly api: Pick<ConfigApi, 'updateConfig'>;
   /** 轻提示出口。 */
   readonly toast: (message: string, kind?: 'ok' | 'err' | 'info') => void;
   /** 是否有回合在飞（在飞时 drain 不发）。 */

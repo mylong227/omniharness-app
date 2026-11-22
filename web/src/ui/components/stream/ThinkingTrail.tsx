@@ -7,17 +7,19 @@
 //     高度封顶），收尾后自动折叠成一行「总思考」。
 //   · 本轮中间的助手消息（「我先看看 / 让我读一下 / 事实核对完毕…」）同样是思考的步骤，
 //     标记为「说明」收进同一条轨迹；只有本轮最后一条（最终答复）留在对话里。
-//   · 每条思考是一行：左侧状态（运行中 = 旋转环，完成 = ✓）、一句话预览、字数 / 耗时；
+//   · 每条思考是一行：左侧状态（运行中 = 旋转虚线环 + Ω，完成 = ✓）、一句话预览、字数 / 耗时；
 //     点击就地展开全文，再点收起。运行中的那条预览跟随末三行，读到的永远是「此刻在想什么」。
 //   · 头部给出「思考中 + 当前动作」或「总思考 + 本轮做了什么」，尾部给步数、失败数与耗时。
 //
 // 数据面只有事件；组件只管状态（展开 / 滚动贴底 / 每秒时钟），不做任何事件改写。
 
 import * as React from 'react';
-import { icon } from '../../models/Icon.ts';
+import { BrandMark } from '../BrandMark.tsx';
+import { icon } from '../../kit/Icon.tsx';
 import { formatDuration } from '../../models/DurationFormat.ts';
 import { describeToolCall, processSummary } from '../../textUtils.ts';
 import { t } from '../../i18n/i18n.ts';
+import { useNow } from '../../hooks/useNow.ts';
 import { EventFields } from '../../models/EventFields.ts';
 import { TrailFilter } from '../../models/TrailFilter.ts';
 import type { TrailCounts, TrailFilterMode, TrailRow } from '../../models/TrailFilter.ts';
@@ -137,21 +139,7 @@ function latestAction(events: readonly ThreadEvent[]): string {
   return describeToolCall(name, last.payload?.args);
 }
 
-/**
- * 每秒时钟（只在运行中跳动；收尾即停，避免历史回放空转）。
- * @param running 是否运行中
- * @returns 当前时刻（ms）
- */
-function useClock(running: boolean): number {
-  const [now, setNow] = React.useState<number>(() => Date.now());
-  React.useEffect(() => {
-    if (!running) return undefined;
-    setNow(Date.now());
-    const id = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(id);
-  }, [running]);
-  return now;
-}
+// 每秒时钟收编进 hooks/useNow（2026-11-17 review）：与 useFleet 的 30s 时钟同源。
 
 /**
  * 单条思考行：状态 + 预览 + 展开全文。
@@ -177,7 +165,7 @@ export function ReasoningStep(props: ReasoningStepProps): React.ReactElement {
         onClick={() => setOpen((prev) => !prev)}
       >
         <span className="tt-state" aria-hidden="true">
-          {running === true ? <span className="tt-spinner" /> : icon('check', { size: 12 })}
+          {running === true ? <BrandMark bare /> : icon('check', { size: 12 })}
         </span>
         <span className="tt-step-label">{label ?? t('思考')}</span>
         {open ? null : (
@@ -224,7 +212,7 @@ function TrailHead(props: {
       onClick={onToggle}
     >
       <span className="tt-icon" aria-hidden="true">
-        {running ? <span className="tt-spinner" /> : icon('brain', { size: 14 })}
+        {running ? <BrandMark bare /> : icon('brain', { size: 14 })}
       </span>
       <span className="tt-title">{running ? t('思考中') : t('总思考')}</span>
       <span className="tt-sub" title={running ? action : summary}>
@@ -374,7 +362,18 @@ export function ThinkingTrail(props: ThinkingTrailProps): React.ReactElement | n
   const runIdRef = React.useRef<string>(events[0]?.id ?? '');
   const bodyRef = React.useRef<HTMLDivElement | null>(null);
   const stickRef = React.useRef<boolean>(true);
-  const now = useClock(running);
+  const now = useNow(running);
+  // 派生收编（2026-11-17 性能批次）：stepCount / failureCount / latestAction / processSummary
+  // 都是 O(轮内事件) 全遍历，此前每帧重跑——与 view 的同一个 useMemo 合并成一次派生。
+  const derived = React.useMemo(
+    () => ({
+      steps: stepCount(events),
+      failures: failureCount(events),
+      action: latestAction(events),
+      summary: processSummary(events),
+    }),
+    [events],
+  );
   const view = React.useMemo(() => TrailFilter.view(events), [events]);
 
   // busy 变化即复位形态：开跑自动展开（看得到实时思考），收尾自动折成一行总思考；
@@ -406,10 +405,10 @@ export function ThinkingTrail(props: ThinkingTrailProps): React.ReactElement | n
 
   if (events.length === 0) return null;
 
-  const steps = stepCount(events);
-  const failures = failureCount(events);
-  const action = latestAction(events);
-  const summary = processSummary(events);
+  const steps = derived.steps;
+  const failures = derived.failures;
+  const action = derived.action;
+  const summary = derived.summary;
   const firstAt = startedAt !== undefined && startedAt > 0 ? startedAt : EventFields.timestamp(events[0]!);
   // 收尾后优先用「本轮末条事件」（含助手正文 / turn_diff），与结果卡耗时一致；
   // 老数据没有该字段时退回最后一条过程事件。

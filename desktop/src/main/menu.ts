@@ -9,6 +9,8 @@ export interface MenuActions {
   restartHarness(): void;
   /** 新开一个工作台窗口（多窗口）。 */
   newWindow?(): void;
+  /** 全局「快速提问」：显示窗口并聚焦输入框。 */
+  quickCapture?(): void;
   checkForUpdates(): void;
   closeToTray(): boolean;
   setCloseToTray(enabled: boolean): void;
@@ -18,6 +20,8 @@ export interface MenuActions {
   isPackaged: boolean;
   /** 「帮助」菜单打开的仓库地址。 */
   readonly repositoryUrl: string;
+  /** 全局「快速提问」快捷键（desktop.config 的 app.quickCaptureShortcut；菜单展示与全局注册同源）。 */
+  readonly quickCaptureAccelerator: string;
   /** 本地化文案（中/英由配置决定）。 */
   readonly i18n: DesktopI18n;
 }
@@ -66,6 +70,16 @@ export function installMenu(actions: MenuActions): void {
           accelerator: 'CmdOrCtrl+O',
           click: actions.openWorkspace,
         },
+        ...(actions.quickCapture !== undefined
+          ? [
+              {
+                label: actions.i18n.t('menu.quickCapture'),
+                // 快捷键单一真源在 desktop.config（全局注册与菜单展示同源，2026-11-20 配置化集中）。
+                accelerator: actions.quickCaptureAccelerator,
+                click: actions.quickCapture,
+              },
+            ]
+          : []),
         { label: actions.i18n.t('menu.restartHarness'), click: actions.restartHarness },
         { label: actions.i18n.t('menu.checkUpdates'), click: actions.checkForUpdates },
         { type: 'separator' },

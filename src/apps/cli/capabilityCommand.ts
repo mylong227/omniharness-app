@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * capability 子命令（Wave B/D · ADR-0009 / ADR-0011）：`list` / `metadata` / `install`。
  *
@@ -32,10 +33,10 @@ import { CliArgReader } from './cliArgReader.ts';
 
 /** 用法提示。 */
 const USAGE =
-  '用法: omniharness capability list [--json]\n' +
+  AppText.t('用法: omniharness capability list [--json]\n') +
   '      omniharness capability metadata [--kind KIND] [--json]\n' +
   '      omniharness capability install <pack.ohb> --yes [--allow-unsigned]\n' +
-  '说明: list / metadata 只读；install 会改动状态（入册 + 入账），必须显式 --yes。\n';
+  AppText.t('说明: list / metadata 只读；install 会改动状态（入册 + 入账），必须显式 --yes。\n');
 
 /**
  * 取资产协议切片（由命令链注入：`ExecCli` 用配置装载 + 装配得到它）。
@@ -173,7 +174,7 @@ export class CapabilityCommand {
     }
     const installer = await this.installerOf?.();
     if (installer === undefined) {
-      process.stderr.write('capability install 未接线（缺少安装器装配，或 capability 未启用）。\n');
+      process.stderr.write(AppText.t('capability install 未接线（缺少安装器装配，或 capability 未启用）。\n'));
       return 2;
     }
     let bytes: Uint8Array;
@@ -189,7 +190,7 @@ export class CapabilityCommand {
       ...(reader.has('--allow-unsigned') ? { requireSignature: false } : {}),
     });
     if (!report.ok) {
-      process.stderr.write(`拒装：${report.rejectedReason ?? '未给原因'}\n`);
+      process.stderr.write(`拒装：${report.rejectedReason ?? AppText.t('未给原因')}\n`);
       return 1;
     }
     const fields = {
@@ -206,7 +207,7 @@ export class CapabilityCommand {
         : `已安装 ${fields.installed} 条资产（发布者 ${String(fields.publisher)}）｜ 台账 seq=${String(fields.ledgerSeq)}\n` +
             report.installed.map((name) => `  ${name}\n`).join('') +
             (report.unsigned === true
-              ? '  注意：本包未签名（--allow-unsigned），资产记 external 档。\n'
+              ? AppText.t('  注意：本包未签名（--allow-unsigned），资产记 external 档。\n')
               : ''),
     );
     return 0;
@@ -251,7 +252,7 @@ export class CapabilityCommand {
    * @returns 退出码 1
    */
   private static reportDisabled(): number {
-    process.stderr.write('capability 未启用（配置 `capability.enabled` 未开或未生效）。\n');
+    process.stderr.write(AppText.t('capability 未启用（配置 `capability.enabled` 未开或未生效）。\n'));
     return 1;
   }
 }

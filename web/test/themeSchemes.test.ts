@@ -145,7 +145,7 @@ for (const theme of ['dark', 'light'] as const) {
         return !!b;
       })()`);
       assert.ok(
-        await cdp.waitFor("!!document.querySelector('.csl-seg[aria-label=\\\"主题色\\\"]')", 4000),
+        await cdp.waitFor("!!document.querySelector('.ant-segmented[aria-label=\\\"主题色\\\"]')", 4000),
         '设置里没有渲染「主题色」分段控件',
       );
 
@@ -153,8 +153,8 @@ for (const theme of ['dark', 'light'] as const) {
       for (const scheme of Object.keys(SCHEMES) as ThemeScheme[]) {
         const label = { ink: '靛墨', moss: '苔青', plum: '绛紫', amber: '琥珀', rose: '玫红', graphite: '石墨' }[scheme];
         const clicked = await cdp.evaluate(`(function(){
-          var seg = document.querySelector('.csl-seg[aria-label=\"主题色\"]');
-          var hit = [].slice.call(seg.querySelectorAll('button.csl-seg-item')).filter(function(b){
+          var seg = document.querySelector('.ant-segmented[aria-label=\"主题色\"]');
+          var hit = [].slice.call(seg.querySelectorAll('.ant-segmented-item')).filter(function(b){
             return (b.textContent || '').trim() === '${label}';
           })[0];
           if (!hit) return false;
@@ -166,9 +166,10 @@ for (const theme of ['dark', 'light'] as const) {
         // 选中标记必须移动到刚点的项（用户 2026-10-31 截图：切换后没有任何一项高亮——
         // 副作用全生效了、控件 value 却没跟上，就是这条断言要抓的断链）。
         const marked = (await cdp.evaluate(`(function(){
-          var seg = document.querySelector('.csl-seg[aria-label=\"主题色\"]');
-          var on = [].slice.call(seg.querySelectorAll('button.csl-seg-item.on'));
-          return on.map(function(b){ return (b.textContent || '').trim(); }).join(',');
+          var seg = document.querySelector('.ant-segmented[aria-label=\"主题色\"]');
+          // 选中态读 radio 的 checked（类别名要等滑块动画落地）。
+          var on = [].slice.call(seg.querySelectorAll('.ant-segmented-item-input')).filter(function(i){ return i.checked; });
+          return on.map(function(i){ return (i.closest('.ant-segmented-item').textContent || '').trim(); }).join(',');
         })()`)) as string;
         if (marked !== label) violations.push(`${scheme}: 选中标记停在「${String(marked)}」，应为「${label}」`);
         const probe = await readSchemeState(cdp);

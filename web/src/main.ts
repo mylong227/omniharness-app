@@ -28,6 +28,7 @@ import '../styles/resilience.css'; // 错误边界 / 无障碍
 import '../styles/shell.css'; // 三栏壳层
 import '../styles/minimal.css'; // 「纸与墨」设计体系：唯一视觉事实源
 import '../styles/console.css'; // 工作台控制台（设置中心）：分组导航 + 卡片式设置行
+import '../styles/decision.css'; // 决策账本：执行前决策列表 + 详情 + 复核
 import '../styles/highlight.css'; // **必须最后**：语法色要盖住前面的基线
 
 import { mountApp } from './ui/App.ts';
@@ -39,6 +40,16 @@ import { installAuthRequiredBanner } from './ui/authRequiredBanner.ts';
 // authToken.resolve() 都还读得到 URL，但挂载后的请求与刷新都走持久化层。
 authToken.adoptFromUrl();
 installAuthRequiredBanner();
+
+// 全局未处理 rejection 兜底（2026-11-17 全面 review，与后端 crashGuard 同思路）：此前任何
+// 一处漏写 catch 的 Promise 都会静默消失（控制台无提示、用户无感知）。这里统一记日志并派发
+// 应用事件；toast 由 AppController 监听该事件给出（节流防刷屏）。
+window.addEventListener('unhandledrejection', (ev) => {
+  const reason: unknown = (ev as PromiseRejectionEvent).reason;
+  const message = reason instanceof Error ? reason.message : String(reason ?? 'unknown');
+  console.error('[omni] unhandled rejection:', reason);
+  window.dispatchEvent(new CustomEvent<string>('omni:unhandled-rejection', { detail: message }));
+});
 
 const root = document.getElementById('root');
 if (root) {

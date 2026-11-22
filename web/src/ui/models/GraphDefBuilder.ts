@@ -9,7 +9,7 @@ export interface StepDraft {
 }
 
 /** 图定义中的一步（提交给服务端的结构）。 */
-export interface GraphStepDef {
+interface GraphStepDef {
   id: string;
   prompt: string;
   dependsOn?: string[];

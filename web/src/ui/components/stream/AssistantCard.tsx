@@ -11,10 +11,10 @@
 
 import * as React from 'react';
 import { badge, timeOf, renderMarkdown } from '../../format.ts';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import { extractUrls } from '../../textUtils.ts';
 import { TextRevealer } from '../../models/TextRevealer.ts';
-import { ClipboardCopier } from '../../models/ClipboardCopier.ts';
+import { useCopyFeedback } from '../../hooks/useCopyFeedback.ts';
 import { AttachmentChips } from './AttachmentChips.tsx';
 import { CollapsibleDoc } from './CollapsibleDoc.tsx';
 import { ExternalLinkCards } from './ExternalLinkCards.tsx';
@@ -39,6 +39,8 @@ export interface AssistantCardProps {
   animate?: boolean;
   /** 重新生成回调（仅最后一条助手消息挂载；点击「重新生成」用最后一条用户消息重发）。 */
   onRegenerate?: () => void;
+  /** 引用追问：把这条回复以引用块填回输入框（缺省不渲染该入口）。 */
+  onQuote?: () => void;
   /** 定时器注入点（单测可替换；组件内默认用全局 setTimeout）。 */
   schedule?: (fn: () => void, ms: number) => ReturnType<typeof setTimeout>;
 }
@@ -54,19 +56,34 @@ const COPY_BTN: Record<string, string> = {
 };
 
 /**
- * 助手卡头部：徽标、时间与重新生成入口。
- * @param props 事件与重新生成回调。
+ * 助手卡头部：徽标、时间、重新生成与引用追问入口。
+ * @param props 事件与回调。
  * @returns 头部节点。
  */
 function AssistantHead(props: {
   ev: ThreadEvent;
   onRegenerate?: (() => void) | undefined;
+  onQuote?: (() => void) | undefined;
 }): ReactElement {
-  const { ev, onRegenerate } = props;
+  const { ev, onRegenerate, onQuote } = props;
   return (
     <div className="head">
       {badge(ev.type)}
       <span className="time">{timeOf(ev.timestamp)}</span>
+      {/* 引用追问（2026-11-17 粘性批次）：引用任意一条回复继续问。 */}
+      {onQuote ? (
+        <button
+          className="msg-act"
+          title={t('引用追问：把这条回复填回输入框，补一句继续问')}
+          aria-label={t('引用追问')}
+          onClick={(e: React.MouseEvent) => {
+            e.stopPropagation();
+            onQuote();
+          }}
+        >
+          {icon('message', { size: 12 })}
+        </button>
+      ) : null}
       {onRegenerate ? (
         <button
           className="msg-act"
@@ -107,51 +124,20 @@ function openFileFromClick(
 }
 
 /**
- * 复制反馈 hook：真实写入成功才亮 ✓（1.4s 后回落）——「勾选感」必须等于**真实写入成功**，
- * 失败（两条路径都被拒）不放假勾。定时器经 schedule 注入点驱动（单测可替换）。
- * @param full 要复制的正文全文。
- * @param schedule 定时器注入点（单测可替换；缺省用全局 setTimeout）。
- * @returns copied 当前是否处于成功反馈态；onCopy 复制按钮的点击处理。
- */
-function useCopyFeedback(
-  full: string,
-  schedule?: (fn: () => void, ms: number) => ReturnType<typeof setTimeout>,
-): { copied: boolean; onCopy: (e: React.MouseEvent) => void } {
-  const [copied, setCopied] = React.useState(false);
-  const copiedTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  React.useEffect(() => () => {
-    if (copiedTimerRef.current !== null) clearTimeout(copiedTimerRef.current);
-  }, []);
-  const onCopy = (e: React.MouseEvent): void => {
-    e.stopPropagation();
-    const fire = (): void => {
-      setCopied(false);
-      copiedTimerRef.current = null;
-    };
-    void ClipboardCopier.copy(full).then((ok) => {
-      if (!ok) return;
-      setCopied(true);
-      if (copiedTimerRef.current !== null) clearTimeout(copiedTimerRef.current);
-      const after = (fn: () => void, ms: number): ReturnType<typeof setTimeout> =>
-        schedule ? schedule(fn, ms) : setTimeout(fn, ms);
-      copiedTimerRef.current = after(fire, 1400);
-    });
-  };
-  return { copied, onCopy };
-}
-
-/**
  * 助手消息卡：渲染正文（生成中渐进揭示）、附件、外链与复制入口。
  * @param props 组件入参
  * @returns 助手消息节点
  */
 export function AssistantCard(props: AssistantCardProps): ReactElement {
-  const { ev, busy, animate, onOpenFile, onOpenUrl, onRegenerate, schedule } = props;
+  const { ev, busy, animate, onOpenFile, onOpenUrl, onRegenerate, onQuote, schedule } = props;
   const [shown, setShown] = React.useState<string>('');
   const full = (ev.payload?.content as string) || '';
-  // 收折判定与渲染统一走 LongContentCollapser / CollapsibleDoc（阈值与摘要在模型层可单测）。
-  // 这里只算一个布尔：收折时跳过揭示动画（见下）。
-  const folded = busy !== true && LongContentCollapser.shouldCollapse(full);
+  // 收折判定（2026-11-17 性能批次）：shouldCollapse 内部 countLines 是 O(len) 字符扫描，
+  // 此前同一次渲染跑两遍、流式期间每帧重跑——memo 到 full 变化才重算，busy 分支在下游组合。
+  const foldable = React.useMemo(() => LongContentCollapser.shouldCollapse(full), [full]);
+  const folded = busy !== true && foldable;
+  // 外链抽取同型：matchAll 全文正则每帧重跑收进 memo。
+  const urls = React.useMemo(() => extractUrls(full), [full]);
 
   // 揭示器跨渲染复用（构造只发生一次，等价原 class 的「生命周期内复用」）。
   // **不在这里兜 `schedule ?? setTimeout`**：把宿主函数直接塞进去会诱发
@@ -178,7 +164,7 @@ export function AssistantCard(props: AssistantCardProps): ReactElement {
   const p = ev.payload || {};
   return (
     <>
-      <AssistantHead ev={ev} onRegenerate={onRegenerate} />
+      <AssistantHead ev={ev} onRegenerate={onRegenerate} onQuote={onQuote} />
       <div className={'card ' + ev.type}>
         {/* 长内容默认收起为简报卡（2026-10-13 用户反馈：数千字报告整段平铺糊满一屏）。
             仅对**最终卡片**生效：生成中（busy）正文还在长，收起会跟揭示动画打架。 */}
@@ -187,14 +173,14 @@ export function AssistantCard(props: AssistantCardProps): ReactElement {
           spellCheck="false"
           onClick={(e: React.MouseEvent) => openFileFromClick(e, onOpenFile)}
         >
-          {busy !== true && LongContentCollapser.shouldCollapse(full) ? (
+          {folded ? (
             <CollapsibleDoc content={full} />
           ) : (
             renderMarkdown(shown || full)
           )}
         </div>
         <AttachmentChips files={p.files as FileAttachment[] | undefined} />
-        <ExternalLinkCards urls={extractUrls(full)} onOpenInPanel={onOpenUrl} />
+        <ExternalLinkCards urls={urls} onOpenInPanel={onOpenUrl} />
         <button
           className={'copy-btn' + (copied ? ' copy-btn--done' : '')}
           title={t(copied ? '已复制' : '复制结果')}

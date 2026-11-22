@@ -10,7 +10,7 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import { act, fireEvent, renderUi } from './rtlHarness.ts';
+import { act, fireEvent, renderUi, flatApiStub } from './rtlHarness.ts';
 
 const { FolderPicker } = await import('../src/ui/components/FolderPicker.tsx');
 
@@ -53,14 +53,14 @@ async function renderPicker(
 ): Promise<ReturnType<typeof renderUi>> {
   const ui = renderUi(FolderPicker, {
     props: {
-      api: {
+      api: flatApiStub({
         listFs: async () => ({ tree: WS_TREE }),
         browseFs: async (path?: string) => {
           browseCalls.push(path);
           return browse(path);
         },
         mkdirFs: async () => ({ path: 'proj/new' }),
-      },
+      }),
       onCancel: () => {},
       onPick: (path: string) => picked.push(path),
     },

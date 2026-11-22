@@ -1,13 +1,16 @@
+import { AppText } from '../../i18n/AppText.ts';
+import { RuntimeConfig } from '../../config/RuntimeConfig.ts';
 import { access, mkdir, readFile, readdir, stat } from 'node:fs/promises';
 import type { Dirent } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { MimeType } from '../../../host/kernel/util.ts';
+import { ATTACH_FILE_MAX_BYTES, ATTACH_TOTAL_MAX_BYTES } from './appLimits.ts';
 
 /** 单文件附加大小上限（20MB）。 */
-const MAX_ATTACH_BYTES = 20 * 1024 * 1024;
+const MAX_ATTACH_BYTES = ATTACH_FILE_MAX_BYTES;
 /** 单次附加文件个数上限。 */
-const MAX_ATTACH_COUNT = 50;
+const MAX_ATTACH_COUNT = RuntimeConfig.server.fsMaxAttachCount;
 /**
  * 单次 attach.read 的**总字节**上限（32 MiB）。
  *
@@ -15,7 +18,7 @@ const MAX_ATTACH_COUNT = 50;
  * 允许一次 RPC 读入 ~1 GB 并全部转成 base64 驻留内存（再叠加 JSON 序列化放大 ~1.37×）⇒ 单请求 OOM。
  * 32 MiB 对「多张截图/短片」仍有余量，同时把这条路径封死。
  */
-const MAX_ATTACH_TOTAL_BYTES = 32 * 1024 * 1024;
+const MAX_ATTACH_TOTAL_BYTES = ATTACH_TOTAL_MAX_BYTES;
 /** 允许附加的 mediaType 前缀白名单（凭扩展名推断后的二次校验）。 */
 const ALLOWED_MEDIA_PREFIXES: readonly string[] = [
   'image/',
@@ -98,28 +101,28 @@ export class FsExplorer {
     const parentRaw = params['parent'];
     const nameRaw = params['name'];
     if (typeof parentRaw !== 'string' || parentRaw.trim() === '') {
-      throw new Error('请先进入一个目录再新建文件夹');
+      throw new Error(AppText.t('请先进入一个目录再新建文件夹'));
     }
     if (typeof nameRaw !== 'string' || nameRaw.trim() === '') {
-      throw new Error('文件夹名称不能为空');
+      throw new Error(AppText.t('文件夹名称不能为空'));
     }
     const name = FsExplorer.sanitizeFolderName(nameRaw);
     if (name === '') {
-      throw new Error('非法的文件夹名称：' + nameRaw);
+      throw new Error(AppText.t('非法的文件夹名称：') + nameRaw);
     }
     const parent = resolve(parentRaw.trim());
     const parentOk = await stat(parent)
       .then((st) => st.isDirectory())
       .catch(() => false);
     if (!parentOk) {
-      throw new Error('父目录不存在：' + parent);
+      throw new Error(AppText.t('父目录不存在：') + parent);
     }
     const target = join(parent, name);
     const exists = await access(target)
       .then(() => true)
       .catch(() => false);
     if (exists) {
-      throw new Error('该文件夹已存在：' + target);
+      throw new Error(AppText.t('该文件夹已存在：') + target);
     }
     await mkdir(target, { recursive: false });
     return { path: target };
@@ -137,7 +140,7 @@ export class FsExplorer {
   public async readAttachments(params: Record<string, unknown>): Promise<unknown> {
     const paths = params['paths'];
     if (!Array.isArray(paths) || paths.length === 0) {
-      throw new Error('paths 必须是非空数组');
+      throw new Error(AppText.t('paths 必须是非空数组'));
     }
     if (paths.length > MAX_ATTACH_COUNT) {
       throw new Error(`单次最多附加 ${MAX_ATTACH_COUNT} 个文件`);
@@ -244,17 +247,17 @@ export class FsExplorer {
     value: unknown,
   ): Promise<{ file: AttachedFile } | { path: string; error: string }> {
     if (typeof value !== 'string' || value.trim() === '') {
-      return { path: String(value), error: '路径无效' };
+      return { path: String(value), error: AppText.t('路径无效') };
     }
     const target = resolve(value.trim());
     let st;
     try {
       st = await stat(target);
     } catch (e) {
-      return { path: target, error: '文件不存在或不可访问：' + (e as Error).message };
+      return { path: target, error: AppText.t('文件不存在或不可访问：') + (e as Error).message };
     }
     if (!st.isFile()) {
-      return { path: target, error: '不是文件' };
+      return { path: target, error: AppText.t('不是文件') };
     }
     if (st.size > MAX_ATTACH_BYTES) {
       return { path: target, error: `文件超过 ${MAX_ATTACH_BYTES / 1024 / 1024}MB 限制` };
@@ -262,13 +265,13 @@ export class FsExplorer {
     const name = basename(target);
     const mediaType = FsExplorer.inferMediaType(name);
     if (!ALLOWED_MEDIA_PREFIXES.some((p) => mediaType.startsWith(p))) {
-      return { path: target, error: '不支持的文件类型：' + mediaType };
+      return { path: target, error: AppText.t('不支持的文件类型：') + mediaType };
     }
     let buf: Buffer;
     try {
       buf = await readFile(target);
     } catch (e) {
-      return { path: target, error: '读取失败：' + (e as Error).message };
+      return { path: target, error: AppText.t('读取失败：') + (e as Error).message };
     }
     return {
       file: {

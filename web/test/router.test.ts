@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import type { AppHost, AppState } from '../src/ui/controllers/AppController.ts';
 
-const { parseHash, toHash, navigate, isValidPane } = await import('../src/core/Router.ts');
+const { parseHash, toHash, navigate, isValidPane } = await import('../src/ui/models/Router.ts');
 const { RouteBinding } = await import('../src/ui/controllers/RouteBinding.ts');
 
 /** 设置全局 location（node 默认无 location）。 */
@@ -76,6 +76,15 @@ test('解析 pane + thread 深链', () => {
   assert.deepEqual(parseHash(), { pane: 'profiles', threadId: 'abc-123' });
 });
 
+test('控制室 view 深链：合法三模式解析，未知 view 落回 fleet，序列化总带 view', () => {
+  withHash('#pane=control&thread=s1&view=proof');
+  assert.deepEqual(parseHash(), { pane: 'control', threadId: 's1', view: 'proof' });
+  withHash('#pane=control&view=unknown');
+  assert.deepEqual(parseHash(), { pane: 'control', threadId: null }, '未知 view 不写入状态');
+  assert.strictEqual(toHash({ pane: 'control', threadId: null }), '#pane=control&view=fleet');
+  assert.strictEqual(toHash({ pane: 'control', threadId: null, view: 'context' }), '#pane=control&view=context');
+});
+
 test('settings 不再是合法 pane：旧深链安全落回默认面板', () => {
   // 2026-10-17：设置从右栏面板改为模态（左栏页脚按钮 + 居中模态）。
   // 旧书签 `#pane=settings` 必须**明确落回 tools**，而不是"解析成合法但渲染空白"——
@@ -109,6 +118,7 @@ test('navigate 写入 location.hash', () => {
 test('isValidPane 仅放行已知面板', () => {
   assert.strictEqual(isValidPane('profiles'), true);
   assert.strictEqual(isValidPane('vault'), true);
+  assert.strictEqual(isValidPane('decision'), true);
   // 设置已改为模态（2026-10-17）：它不再是面板，故不再是合法 pane。
   assert.strictEqual(isValidPane('settings'), false, 'settings 已移出面板注册表，不该再被放行');
   assert.strictEqual(isValidPane('bogus'), false);

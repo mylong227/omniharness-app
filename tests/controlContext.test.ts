@@ -1,0 +1,177 @@
+// [互链] 同一域的两端：web/test/contextMode.test.ts（上下文工作室面板模式）。
+import assert from 'node:assert/strict';
+import { test } from 'vitest';
+import type { SessionEvent } from '../src/host/kernel/contracts.ts';
+import { ContextStudioService } from '../src/apps/server/services/context/contextStudioService.ts';
+import type { ContextUsageReport } from '../src/apps/server/services/contextUsageService.ts';
+
+/** 构造一条最小事件。 */
+function event(index: number, type: SessionEvent['type'], payload: unknown = {}): SessionEvent {
+  return {
+    id: `evt_${String(index)}`,
+    sessionId: 'sess_test',
+    type,
+    timestamp: new Date(1_700_000_000_000 + index * 1000).toISOString(),
+    payload,
+  };
+}
+
+/** 一份最小、形状完整的用量报告。 */
+const REPORT: ContextUsageReport = {
+  threadId: 'sess_test',
+  windowTokens: 128_000,
+  usedTokens: 41_000,
+  percent: 32,
+  rows: [],
+  mcpToolCount: 0,
+  systemToolCount: 0,
+  source: 'measured',
+  cache: {
+    promptTokens: 0,
+    cachedPromptTokens: 0,
+    calls: 0,
+    lastCall: {
+      cause: 'not-reported',
+      reason: 'not reported',
+      evidence: {},
+      promptTokens: 0,
+      cachedPromptTokens: 0,
+    },
+  },
+  collectedAt: new Date(0).toISOString(),
+};
+
+/** 构造服务（事件与用量固定）。 */
+function serviceOf(events: readonly SessionEvent[]): ContextStudioService {
+  return new ContextStudioService({
+    usage: () => Promise.resolve(REPORT),
+    events: () => Promise.resolve(events),
+  });
+}
+
+test('ContextStudioService：解码 OMNI_COMPACTION_V1 游标并如实标记未记录审计', async () => {
+  const marker = 'OMNI_COMPACTION_V1 upTo=155 hash=abc123\n## 摘要\n已改文件：a.ts';
+  const snapshot = await serviceOf([
+    event(0, 'user', { content: 'first' }),
+    event(1, 'system', { content: marker }),
+  ]).snapshotOf('sess_test');
+  assert.equal(snapshot.compactions.length, 1);
+  assert.equal(snapshot.compactions[0]?.compactedUpTo, 155);
+  assert.equal(snapshot.compactions[0]?.headHash, 'abc123');
+  assert.match(snapshot.compactions[0]?.summary ?? '', /已改文件/u);
+  assert.equal(snapshot.compactions[0]?.turnIndex, 0);
+  assert.equal(snapshot.compactions[0]?.auditRecorded, false);
+  assert.equal(snapshot.handoffAvailable, false);
+  // 未注入内核读模型的服务（嵌入方/单测）如实给全关视图，不伪造开启态。
+  assert.equal(snapshot.kernel.retrievalContext.mode, 'off');
+  assert.equal(snapshot.kernel.semanticRecall.degraded, false);
+});
+
+test('ContextStudioService：注入内核读模型后快照带出生效值（与健康桥同源）', async () => {
+  const service = new ContextStudioService({
+    usage: () => Promise.resolve(REPORT),
+    events: () => Promise.resolve([]),
+    kernel: () => ({
+      retrievalContext: {
+        mode: 'bm25',
+        rewriter: 'off',
+        rerank: 'off',
+        maxSnippets: 4,
+        maxTokens: 600,
+      },
+      semanticRecall: { requested: true, active: false, degraded: true },
+      contextPolicy: {
+        shapersAggressive: false,
+        compactionForce: false,
+        cacheGuardFloor: 0.5,
+      },
+    }),
+  });
+  const snapshot = await service.snapshotOf('sess_test');
+  assert.equal(snapshot.kernel.retrievalContext.mode, 'bm25');
+  assert.equal(snapshot.kernel.retrievalContext.maxSnippets, 4);
+  assert.equal(snapshot.kernel.semanticRecall.degraded, true);
+  assert.equal(snapshot.kernel.contextPolicy.cacheGuardFloor, 0.5);
+});
+
+test('ContextStudioService：alpha.21 压缩证据随游标解码，auditRecorded 如实为 true', async () => {
+  const evidence = Buffer.from(
+    JSON.stringify({
+      audit: { ok: false, missing: ['缺 a.ts'], checked: { editedFiles: 1, commands: 0, openTodos: 0 } },
+      signals: {
+        budgetRatio: 0.8,
+        turns: 2,
+        toolResultShare: 0.5,
+        repetitionRate: 0,
+        combinedWouldTrigger: true,
+      },
+    }),
+    'utf8',
+  ).toString('base64url');
+  const marker = `OMNI_COMPACTION_V1 upTo=5 hash=abc evidence=${evidence}\n摘要`;
+  const snapshot = await serviceOf([event(0, 'system', { content: marker })]).snapshotOf('sess_test');
+  const mark = snapshot.compactions[0];
+  assert.equal(mark?.auditRecorded, true);
+  assert.equal(mark?.audit?.ok, false);
+  assert.deepEqual(mark?.audit?.checked, { editedFiles: 1, commands: 0, openTodos: 0 });
+  assert.equal(mark?.signals?.combinedWouldTrigger, true);
+});
+
+test('ContextStudioService：坏 marker 不当作压缩记录，避免“坏数据=无压缩”混淆', async () => {
+  const snapshot = await serviceOf([
+    event(0, 'system', { content: 'OMNI_COMPACTION_V1 upTo=bad hash=zzz\n摘要' }),
+  ]).snapshotOf('sess_test');
+  assert.equal(snapshot.compactions.length, 0);
+});
+
+test('ContextStudioService：事件流不可读返回快照级错误，不伪装成「尚未压缩」', async () => {
+  const service = new ContextStudioService({
+    usage: () => Promise.resolve(REPORT),
+    events: () => Promise.reject(new Error('archive broken')),
+  });
+  const snapshot = await service.snapshotOf('sess_test');
+  assert.match(snapshot.error ?? '', /archive broken/u);
+  assert.deepEqual(snapshot.compactions, []);
+});
+
+test('ContextStudioService：便签接入后读取最近便签，并能追加交接物', async () => {
+  // tags 用 readonly（scratchpad.append 的契约形态），避免 append 写入时 readonly→mutable 报错。
+  const notes: { id: string; at: string; text: string; tags?: readonly string[] }[] = [
+    { id: 'n1', at: new Date(1).toISOString(), text: '已完成 A', tags: ['handoff'] },
+  ];
+  const scratchpad = {
+    append(text: string, tags?: readonly string[]) {
+      const note = { id: `n${notes.length + 1}`, at: new Date(2).toISOString(), text, ...(tags !== undefined ? { tags } : {}) };
+      notes.unshift(note);
+      return note;
+    },
+    recent: (k = 10) => notes.slice(0, k),
+    clear: () => { notes.length = 0; },
+  };
+  const service = new ContextStudioService({
+    usage: () => Promise.resolve(REPORT),
+    events: () => Promise.resolve([]),
+    scratchpad,
+  });
+  const snapshot = await service.snapshotOf('sess_test');
+  assert.equal(snapshot.handoffAvailable, true);
+  assert.equal(snapshot.handoff.length, 1);
+  assert.equal(snapshot.handoff[0]?.text, '已完成 A');
+  const added = service.appendHandoff('下一步 B', ['handoff']);
+  assert.equal(added?.text, '下一步 B');
+  assert.equal(notes.length, 2);
+});
+
+test('ContextStudioService：空会话不触发事件回放，返回空压缩记录', async () => {
+  let read = 0;
+  const service = new ContextStudioService({
+    usage: () => Promise.resolve(REPORT),
+    events: () => {
+      read += 1;
+      return Promise.resolve([]);
+    },
+  });
+  const snapshot = await service.snapshotOf('');
+  assert.equal(read, 0);
+  assert.deepEqual(snapshot.compactions, []);
+});

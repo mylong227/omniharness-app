@@ -8,7 +8,7 @@ M27 兼容层清零后更名 `extensions/`：内核形状的部分已全部回�
 本目录只剩**真应用形状**的实现（Laya 决策引擎、CLI worker、doctor 诊断面、web 广播、
 daemon/routine 契约、图存储等产品件）——它们不是「兼容」，是产品。
 
-## 归属契约（三条，机检于 `scripts/checkKernelBoundary.mjs`）
+## 归属契约（三条，机检于 `scripts/checkKernelBoundary.ts`）
 
 1. **归属**：本目录的所有权在 app 仓。内核不承诺这里的任何模块存在或兼容；
    内核升级**不**需要同步本目录（除非 app 主动想让某个模块回归内核）。
@@ -21,9 +21,9 @@ daemon/routine 契约、图存储等产品件）——它们不是「兼容」�
 ## 结构
 
 ```
-contracts/   app 形态的端口契约（daemon/routine、doctor 报告、图摘要、spec 端口等）
-kernel/      上述契约的实现（Laya 决策引擎、CLI worker、doctor/注入自检、图存储、
-             资产 wasm 技能包、维护 runner、web 广播、模型能力探针、…）
+contracts/   app 形态的端口契约（daemon/routine、doctor 报告、spec 端口等）
+kernel/      上述契约的实现（Laya 决策引擎、CLI worker、doctor/注入自检、
+             资产 wasm 技能包、web 广播、模型能力探针、…）
 protocols/   MCP 客户端活代码（mcpRegistryClient / mcpServerCommand，src/index.ts 与 CLI 消费）
 ```
 
@@ -47,6 +47,24 @@ protocols/   MCP 客户端活代码（mcpRegistryClient / mcpServerCommand，src
 本轮把扫描器改成「直接声明 + 再导出名单 + `export *`」递归可达，11 个名字立刻判红；随后
 删除 5 件（约 760 行），消费点改经 `src/host/kernel/{maintenance,adapters-sandbox,adapters-misc}.ts`
 对接面，由生成器落到内核 curated 子路径（不再为应用消费倒逼深路径承诺膨胀）。
+
+**2026-11-11 登记新增 1 条 → 2026-11-21 终态清偿**：`kernel/context/compactionMarkerReader.ts`
+（`CompactionMarkerReader`）当年因 vendored alpha.19 的 `exports` 未承诺 codec 深路径而自有
+（登记理由与逐字节对齐口径见 git 历史）；**内核 R26（alpha.37）已承诺
+`kernel/context/compactionStateCodec.js`**，本件按归属契约第 3 条删除，消费点
+（contextCompactionService / contextStudioService）改指对接面。**登记表现归零。**
+
+**2026-11-21 R26 同轮清偿**：`kernel/util/serveInstance.ts`（ServeInstance）、
+`kernel/util/maintenanceRunner.ts`（MaintenanceRunner）、`kernel/autonomy/graphStore.ts`
+（GraphStore）三件随内核 alpha.37 收编进 maintenance/autonomy 域（跨仓交换条件在内核
+ROADMAP `m4-source-lines` 记账），消费点改指 `src/host/kernel/{maintenance,autonomy}.ts`
+对接面；GraphSummary 契约随迁内核 contracts/ports/autonomy/。
+
+**2026-11-22 R27 worker 域清偿**：`kernel/worker/cliWorker.ts`（CliWorker）、
+`externalCliWorker.ts`（ExternalCliWorker）、`windowsShim.ts`（WindowsShim）三件
+（461 行）随内核 alpha.38 收编进 worker 域，消费点 3 处改指 `src/host/kernel/worker.ts`
+对接面；跨仓交换条件在内核 ROADMAP/planCheck 记账（源行上限提额，条件=应用侧退役 483 行
+口径）。本目录 worker 子目录清空删除。
 
 ## 消费方式
 

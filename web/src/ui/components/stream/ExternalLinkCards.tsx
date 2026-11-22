@@ -8,7 +8,7 @@
 // 纯展示组件（函数组件范式）：无内部状态、无副作用。
 
 import { PreviewUrl } from '../../models/PreviewUrl.ts';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import { hostOf } from '../../textUtils.ts';
 import { t } from '../../i18n/i18n.ts';
 

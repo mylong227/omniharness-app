@@ -18,6 +18,7 @@
 // 标准 React 项目写法：`import * as React from 'react'`（Vite 解析裸标识符）。
 import * as React from 'react';
 import { useApp } from '../../context.ts';
+import { useSessionResource } from '../../hooks/useSessionResource.ts';
 import type { ReactElement } from 'react';
 import type { VaultListResult } from '../../../types/models.ts';
 import { t } from '../../i18n/i18n.ts';
@@ -146,65 +147,54 @@ function useVaultTab(api: ReturnType<typeof useApp>['api']): {
   readonly save: () => Promise<void>;
   readonly remove: (target: string) => Promise<void>;
 } {
-  const [data, setData] = React.useState<VaultListResult | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
   const [notice, setNotice] = React.useState<string | null>(null);
-  const [loading, setLoading] = React.useState<boolean>(true);
+  const [actionError, setActionError] = React.useState<string | null>(null);
   const [name, setName] = React.useState<string>('');
   const [secret, setSecret] = React.useState<string>('');
-
-  /** 拉取凭据名列表。 */
-  const refresh = React.useCallback(async (): Promise<void> => {
-    setLoading(true);
-    setError(null);
-    try {
-      setData(await api.vaultList());
-    } catch (e) {
-      setError((e as Error).message);
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [api]);
-
-  React.useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  // 列表取数收编进 useSessionResource（2026-11-17）：seq 守卫 + 失败保留旧数据。
+  // 全局状态类，不跟随 sessionTick 陪跑。
+  const { data, error: fetchError, loading, refresh } = useSessionResource<VaultListResult>({
+    enabled: true,
+    followTick: false,
+    load: React.useCallback(async () => api.vault.vaultList(), [api]),
+  });
+  // 动作失败（写入 / 删除）与取数失败分帐：动作错误不顶掉列表，取数错误不清动作提示。
+  const error = actionError ?? fetchError;
 
   /** 写入（或覆盖）一项；成功后清空两个输入（不保留密文）。 */
   const save = React.useCallback(async (): Promise<void> => {
-    setError(null);
+    setActionError(null);
     setNotice(null);
     try {
-      const result = await api.vaultSet(name, secret);
+      const result = await api.vault.vaultSet(name, secret);
       if (!result.ok) {
-        setError(result.reason);
+        setActionError(result.reason);
         return;
       }
       setName('');
       setSecret('');
       setNotice(t('已写入 {name}（服务端不回读，值不会在界面上出现）', { name: result.name }));
-      await refresh();
+      refresh();
     } catch (e) {
-      setError((e as Error).message);
+      setActionError(e instanceof Error ? e.message : String(e));
     }
   }, [api, name, secret, refresh]);
 
   /** 删除一项。 */
   const remove = React.useCallback(
     async (target: string): Promise<void> => {
-      setError(null);
+      setActionError(null);
       setNotice(null);
       try {
-        const result = await api.vaultDelete(target);
+        const result = await api.vault.vaultDelete(target);
         if (!result.ok) {
-          setError(result.reason);
+          setActionError(result.reason);
           return;
         }
         setNotice(result.removed === true ? t('已删除 {name}', { name: target }) : t('{name} 本来就不存在', { name: target }));
-        await refresh();
+        refresh();
       } catch (e) {
-        setError((e as Error).message);
+        setActionError(e instanceof Error ? e.message : String(e));
       }
     },
     [api, refresh],

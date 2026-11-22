@@ -1,11 +1,12 @@
 import type { CliArgs } from './argParser.ts';
 import { McpServerCommand } from '../../host/extensions/protocols/mcp/mcpServerCommand.ts';
-import { ExternalCliWorker } from '../../host/extensions/kernel/worker/externalCliWorker.ts';
+import { ExternalCliWorker } from '../../host/kernel/worker.ts';
 import type { ModelRouterConfig } from '../../host/kernel/config.ts';
 import { KNOWN_EXTRA_FLAGS } from './knownFlags.ts';
 import { VALUE_FLAGS } from './cliValueFlags.ts';
 import {
   MODEL_ADAPTERS,
+  REASONINGS,
   STORAGE_ADAPTERS,
   APPROVALS,
   APPROVAL_ASKS,
@@ -20,31 +21,6 @@ import {
   ENFORCEMENT_MODES,
   DECISION_ENGINE_MODES,
 } from './cliEnums.ts';
-
-/**
- * 取值受枚举约束的旗标 → 允许值清单。
- *
- * **与 `FLAG_TABLE` 的校验引用同一批常量**（`cliEnums` 的数组），故这份「视图」不可能漂移；
- * 供 CLI 帮助从单一来源派生枚举文本——此前帮助里手写 `--storage-adapter memory|jsonl`，
- * 而实际白名单早已是 `memory|jsonl|sqlite` ⇒ 帮助与行为不一致（用户按帮助选不到 sqlite）。
- */
-export const FLAG_ENUM_VALUES: Readonly<Record<string, readonly string[]>> = {
-  '--model-adapter': MODEL_ADAPTERS,
-  '--storage-adapter': STORAGE_ADAPTERS,
-  '--approval': APPROVALS,
-  '--approval-ask': APPROVAL_ASKS,
-  '--sandbox': SANDBOX_PROFILES,
-  '--escalation': ESCALATIONS,
-  '--elevated-sandbox': ELEVATED_SANDBOXES,
-  '--guard-prompt-injection-mode': ENFORCEMENT_MODES,
-  '--decision-engine': DECISION_ENGINE_MODES,
-  '--spill-adapter': SPILL_ADAPTERS,
-  '--events': EVENT_PORTS,
-  '--kv-adapter': KV_ADAPTERS,
-  '--output-format': OUTPUT_FORMATS,
-  '--cost-budget-on-exceed': BUDGET_ON_EXCEED,
-  '--acp-permission': ['client', 'auto'],
-};
 
 /**
  * CliFlagTable 相关纯函数工具（C7 收口：原顶层内部函数迁入）。
@@ -191,6 +167,12 @@ const FLAG_TABLE: Record<string, FlagApply> = {
   },
   '--model': (a, argv, i) => {
     a.model = CliFlagTable.valueOf(argv, i, '--model');
+    return 1;
+  },
+  // 推理强度（#B6 三通道补齐，2026-11-21 P7）：文件 / env / 旗标同源，argv 后出现者生效。
+  // 独立条目——此前误放进 --model 分支内，单独使用 --reasoning 会被吞（自查修正）。
+  '--reasoning': (a, argv, i) => {
+    a.reasoning = CliFlagTable.enumOf(argv, i, '--reasoning', REASONINGS);
     return 1;
   },
   '--storage-adapter': (a, argv, i) => {
@@ -412,9 +394,16 @@ const FLAG_TABLE: Record<string, FlagApply> = {
     return 1;
   },
   '--model-router': (a, argv, i) => {
-    a.modelRouter = JSON.parse(
-      CliFlagTable.valueOf(argv, i, '--model-router'),
-    ) as ModelRouterConfig;
+    // 非法 JSON 不裸崩（2026-11-17 review）：此前用户传一个坏 JSON 就把 SyntaxError 栈
+    // 直接砸给终端；这里捕住转成带用法提示的参数错误（CLI 错误口径：可读一句话 + 修复建议）。
+    const raw = CliFlagTable.valueOf(argv, i, '--model-router');
+    try {
+      a.modelRouter = JSON.parse(raw) as ModelRouterConfig;
+    } catch {
+      throw new Error(
+        `--model-router 参数不是合法 JSON: ${raw}（示例: {"默认模型":"gpt-5"}；也可改用 --model-router-file）`,
+      );
+    }
     return 1;
   },
   '--model-router-file': (a, argv, i) => {

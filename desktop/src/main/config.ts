@@ -22,7 +22,7 @@ export type {
   LoadedDesktopConfig,
 } from './config/types.ts';
 export { DEFAULT_DESKTOP_CONFIG } from './config/defaults.ts';
-export { DesktopConfigLoader } from './config/DesktopConfigLoader.ts';
+export { CONFIG_WARNING_CODES, DesktopConfigLoader } from './config/DesktopConfigLoader.ts';
 export { CspFormatter } from './config/formatCsp.ts';
 
 import { DesktopConfigLoader } from './config/DesktopConfigLoader.ts';

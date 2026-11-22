@@ -87,7 +87,7 @@ test('运行中：自动展开、标题「思考中」，只有最后一条思�
   assert.strictEqual(ui.container.querySelector('.tt-head')?.getAttribute('aria-expanded'), 'true');
   const running = ui.container.querySelectorAll('.tt-step.running');
   assert.strictEqual(running.length, 1, '只有正在生成的那条思考带运行态');
-  assert.ok(running[0]?.querySelector('.tt-spinner') !== null, '运行态有转圈动画');
+  assert.ok(running[0]?.querySelector('.brand-mark--bare .bm-omega') !== null, '运行态有水感 Ω 信号');
   assert.ok((ui.container.querySelector('.tt-body')?.textContent ?? '').includes('再改结果卡。'));
 });
 

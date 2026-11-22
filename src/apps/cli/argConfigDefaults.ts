@@ -21,10 +21,15 @@ export class ArgConfigDefaults {
       result.reasoning = file.reasoning;
     }
     if (file.mcpServers !== undefined) {
+      // env/cwd（内核 M117 文件面补全，2026-11-20 应用侧映射补全）：连接器早已消费——
+      // 此处不映射 = 用户在 omniharness.json 写了 env/cwd 静默失效（声明-校验-接线三缺的
+      // 接线缺）。判据 configSectionWiring 钉住。
       result.mcpServers = file.mcpServers.map((server) => ({
         ...(server.url !== undefined
           ? { name: server.name, url: server.url }
           : { name: server.name, command: server.command ?? '', args: server.args ?? [] }),
+        ...(server.env !== undefined ? { env: server.env } : {}),
+        ...(server.cwd !== undefined ? { cwd: server.cwd } : {}),
         ...(server.headers !== undefined ? { headers: server.headers } : {}),
         ...(server.auth !== undefined ? { auth: server.auth } : {}),
       }));
@@ -49,6 +54,25 @@ export class ArgConfigDefaults {
     }
     if (file.modelRouter !== undefined) {
       result.modelRouter = file.modelRouter;
+    }
+    // 上下文三段（alpha.19）：**不映射 = CLI/serve 通道丢配置**。2026-11-15 实测发现
+    // 设置页能落盘、内核却收不到（configDefaults 从未映射），行为静默回落到 off。
+    // 与 media/capability/rbac/decisionEngine 同一条接线纪律。
+    if (file.retrievalContext !== undefined) {
+      result.retrievalContext = file.retrievalContext;
+    }
+    if (file.semanticRecall !== undefined) {
+      result.semanticRecall = file.semanticRecall;
+    }
+    if (file.contextPolicy !== undefined) {
+      result.contextPolicy = file.contextPolicy;
+    }
+    // alpha.21 文件面补齐的两段：读缓存 / 能力防火墙（整段透传，未配置 = 零行为）。
+    if (file.toolCache !== undefined) {
+      result.toolCache = file.toolCache;
+    }
+    if (file.capflow !== undefined) {
+      result.capflow = file.capflow;
     }
   }
 

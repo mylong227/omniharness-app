@@ -19,6 +19,7 @@ export const VALUE_FLAGS: ReadonlySet<string> = new Set([
   '--config',
   '--profile',
   '--model-adapter',
+  '--reasoning',
   '--base-url',
   '--api-key',
   '--model',

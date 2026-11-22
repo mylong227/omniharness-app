@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * unconfiguredModel.ts —— 「尚未配置模型凭据」的占位模型端口。
  *
@@ -73,7 +74,7 @@ export class UnconfiguredModel implements ModelPort {
         : `（也可设置环境变量 ${this.apiKeyEnv} 后重启）`;
     return new ConfigError(
       `尚未配置 ${this.adapter} 厂商的 API Key，模型 ${this.model} 暂不可用${envHint}。` +
-        '应用已正常启动：请打开「设置 → 模型接入」填写 API Key 并保存，再重新发送即可（无需重启应用）。',
+        AppText.t('应用已正常启动：请打开「设置 → 模型接入」填写 API Key 并保存，再重新发送即可（无需重启应用）。'),
     );
   }
 }

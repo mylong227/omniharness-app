@@ -1,9 +1,11 @@
+import { RuntimeConfig } from '../../config/RuntimeConfig.ts';
 import type { ServerResponse } from 'node:http';
 import type { RpcMessage } from '../../../host/kernel/runtime.ts';
 import { SseBackpressureGuard } from './sseBackpressureGuard.ts';
+import { SSE_HISTORY_MAX_BYTES as SSE_REPLAY_MAX_BYTES } from '../services/appLimits.ts';
 
 /** 重放历史帧上限（条数）：覆盖一次短暂断网即可。 */
-const SSE_HISTORY_MAX = 256;
+const SSE_HISTORY_MAX = RuntimeConfig.server.sseHistoryMax;
 
 /**
  * 重放历史字节上限（缺省 8 MiB）。
@@ -12,7 +14,7 @@ const SSE_HISTORY_MAX = 256;
  * 单张上限 5 MiB）。256 条 × 6.7 MiB 的理论上限是 ~1.7 GB；只按条数限制等于没有内存上限。
  * 超限帧（单帧就大于预算）不进入重放历史，但照常广播给在线客户端。
  */
-const SSE_HISTORY_MAX_BYTES = 8 * 1024 * 1024;
+const SSE_HISTORY_MAX_BYTES = SSE_REPLAY_MAX_BYTES;
 
 /** SSE 扇出回调。 */
 export interface SseFanoutHooks {

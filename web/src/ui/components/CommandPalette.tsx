@@ -10,7 +10,7 @@
 //
 // 2026-10-19 视觉重构（「纸与墨」体系内）：
 // - 输入从「一整块带默认焦点环的裸 input」改成**搜索头**（镜片图标 + 无环输入 + Esc/清除）；
-// - 每行加一枚线性图标（`models/Icon.ts`，currentColor，选中时随文字一起变墨色）；
+// - 每行加一枚线性图标（`kit/Icon.tsx`，currentColor，选中时随文字一起变墨色）；
 // - 组标题用「小字 + 发丝线」分开，右侧只保留真实快捷键的键帽；
 // - 键盘说明从 placeholder 挪到页脚，搜索槽只回答「这里能搜什么」；
 // - 补上 combobox / listbox / aria-activedescendant 与选中项自动滚入视野。
@@ -21,8 +21,8 @@ import Modal from 'antd/es/modal';
 // 领域模型下沉到 models/（零 React 依赖，可单测）；此处 re-export 保持调用方 import 路径不变。
 import { CommandPaletteModel } from '../models/CommandPaletteModel.ts';
 import type { CommandItem } from '../models/CommandPaletteModel.ts';
-import { icon } from '../models/Icon.ts';
-import type { IconName } from '../models/Icon.ts';
+import { icon } from '../kit/Icon.tsx';
+import type { IconName } from '../kit/Icon.tsx';
 import { t } from '../i18n/i18n.ts';
 
 export type { CommandItem };
@@ -56,6 +56,8 @@ const ITEM_ICONS: Readonly<Record<string, IconName>> = {
   'pane-file': 'folder',
   'new-session': 'plus',
   'reload-sessions': 'refresh',
+  'export-session': 'download',
+  'copy-session-link': 'link',
   'open-settings': 'gear',
   'toggle-theme': 'contrast',
   'toggle-left': 'panel-left',

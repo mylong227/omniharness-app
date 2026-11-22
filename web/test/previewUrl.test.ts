@@ -90,3 +90,29 @@ test('LocalDevUrls.collect：只收回环地址、去重、排除工作台自身
     ['http://localhost:5173/', 'http://127.0.0.1:3000/api'],
   );
 });
+
+test('endpointScopeOf：厂商卡「本地 / 云端」归属判定（2026-11-17 美化批次）', async () => {
+  const { PreviewUrl } = await import('../src/ui/models/PreviewUrl.ts');
+  // 回环。
+  for (const url of [
+    'http://127.0.0.1:11434',
+    'http://localhost:8080/v1',
+    'http://[::1]:9000',
+    'localhost:11434',
+    '127.0.0.1:11434',
+  ]) {
+    assert.strictEqual(PreviewUrl.endpointScopeOf(url), 'local', url);
+  }
+  // 私有网段 IPv4（10 / 172.16–31 / 192.168）。
+  assert.strictEqual(PreviewUrl.endpointScopeOf('http://10.0.0.5:8000'), 'local');
+  assert.strictEqual(PreviewUrl.endpointScopeOf('http://192.168.1.10:11434'), 'local');
+  assert.strictEqual(PreviewUrl.endpointScopeOf('http://172.16.3.9:8000'), 'local');
+  assert.strictEqual(PreviewUrl.endpointScopeOf('http://172.32.0.1:8000'), 'cloud', '172.32 不在私有段');
+  // 不带点的内网主机名（企业内网 DNS 约定）。
+  assert.strictEqual(PreviewUrl.endpointScopeOf('http://ollama:11434'), 'local');
+  // 公网。
+  assert.strictEqual(PreviewUrl.endpointScopeOf('https://api.deepseek.com'), 'cloud');
+  assert.strictEqual(PreviewUrl.endpointScopeOf('https://8.8.8.8/v1'), 'cloud');
+  // 解析失败保守按云端。
+  assert.strictEqual(PreviewUrl.endpointScopeOf('not a url'), 'cloud');
+});

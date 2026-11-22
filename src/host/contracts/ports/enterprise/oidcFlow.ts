@@ -16,7 +16,7 @@
 import type { OidcDiscovery } from './oidcDiscovery.ts';
 import type { OidcProviderConfig } from './oidcProviderConfig.ts';
 
-export type { OidcDiscovery, OidcProviderConfig };
+export type { OidcDiscovery };
 
 /**
  * @beta

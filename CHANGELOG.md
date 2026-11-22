@@ -5,13 +5,605 @@
 
 ## [Unreleased]
 
+### Changed（变更）
+- **批次十六（2026-11-22，硬编码治理：AppText 全量 + 配置单一来源 + 三类门禁）**：
+  · **服务端/CLI/审计/企业/TUI/host 用户可见文案全量外部化**：新增
+    `src/apps/i18n/AppText.ts` 与 `en/{server,cli,audit,common}.ts` 分片（中文原文即键、
+    `{param}` 插值、缺词回落）；服务端/CLI/审计报告/doctor/决策视图/证明/配额/回滚/模型指令/
+    角色提示/审计解析器/TUI/license/daemon 等 500+ 键全部有逐字英文；locale 随
+    `AppServerOptions.locale`（serve 读用户配置）与 `config.update` 同步。
+  · **可调参数单一来源 `src/config/app.json`**：`RuntimeConfig`（服务端）与 `UI_TUNABLES`
+    （web）启动 fail-fast 校验；两批共 40+ 项（搜索去抖/轨迹上限/轮询/TTL/历史分页/审批与提问
+    超时/分页/trace/搜索/附件/决策行数/markdown 缓存/草稿/引用上限/流式节流/HTTP 超时/线程与图
+    上限/OIDC 超时等）迁入；协议/安全常量按策略保留命名常量。
+  · **门禁**：`tests/appTextCoverage`（en 覆盖/分片去重/裸 CJK）、`web/test/webTableI18n`
+    （表值 en 覆盖）、`web/test/webHardcodedText`（Error/toast/JSX 属性）、`tests/runtimeConfig`
+    （配置形状/单一来源）、`tests/magicValues`（超时/间隔/上限必须来自配置）。
+  · **策略文档**：新增 `docs/HARDCODE-POLICY.md`，定义 A 文本 / B 参数 / C 安全·展示常量三类、
+    门禁清单与显式豁免（协议 schema 与 codegen 模板、TUI 展示截断、CI/scripts、解析匹配标记）。
+  · 验证：`npm run verify` 全链绿（237 文件 1075 用例 + desktop 44；knip 0；build/build:web/smoke 全过）。
+- **批次十五（2026-11-22，K2 接收 alpha.38 / R27——worker 域补齐，R25d 收口）**：
+  · vendored kernel 升 `0.1.0-alpha.38`（内核仓 R27：`51f6282` / `adfa1a7` / `27abbb6`，
+  tag `v0.1.0-alpha.38`）：内核新承诺三条 worker 深路径 `kernel/worker/cliWorker.js`、
+  `externalCliWorker.js`、`windowsShim.js`，并携带 23 条内核判据。
+  · 应用侧按归属契约删除 extensions 三件 **461 行**（CliWorker 202 / ExternalCliWorker 129 /
+  WindowsShim 130），3 处消费点（cliArgs / cliBuildConfig / cliFlagTable）改指新生成的
+  `src/host/kernel/worker.ts` 对接面（20 个域）。
+  · 内核 17 门复绿（含此前预期红的 `cross:check`——应用侧影子已清，跨仓契约一致）；
+    app `kernel:check` 九条绿（278 源文件 / 294 包导入 / 影子 0）。
+  · `src/host/extensions/README.md` 登记 R27 终态；R25d 二档项正式收口。
+- **批次十四（2026-11-22，L9 全类别清偿——knip 从「导出」扩到「导出+类型+文件+依赖」全绿）**：
+  · **未消费导出类型 143→0**：90 个「仅本文件内部使用」的类型降级为模块私有；删除零引用
+    `MetricLine` / `RouteApply` / `SkillEditReport`；清理未消费的类型再导出（`CredentialHydrationArgs` /
+    `OidcFlowPort` / `ServerModule` / `RpcRequest` / `ApiTransport` / `SettingsFieldKind` /
+    `SettingsTabDef`，以及 `shared.ts` 里与 `ToastService` 重复的 `ToastKind` 和
+    `GraphRunState`/`ThreadEvent` 再导出）。
+  · **未消费文件 5→0**：`copyAssets` 与两个 eval 探针、`auditBin` 标记为 knip entry
+    （按路径 spawn 的脚本入口）；删除全仓零引用的 `src/omniError.ts`。
+  · **未消费依赖 2→0**：删除 `zod` 与 `@modelcontextprotocol/sdk`（全仓零 import；内核自带
+    MCP client）；`axe-core` 是真 Chrome a11y 判据专用，以 `ignoreDependencies` 收口。
+  · **删除自引用无消费的 memory 端口族**：`cosmicWeb` / `resonantField` 6 文件（无实现、无消费、
+    不外露于 `src/index.ts`）；`resonantMemory` / `vortexRing` 属公共 API，保留。
+  · `check:exports` 从 `knip --include exports` 升级为**全量 `knip`**（files / dependencies /
+    exports / types / binaries），当前 **0 issue**；`ignoreIssues` 仅保留 kernel 生成物 /
+    extensions 端口聚合桶 / enterprise `LegacyOidcFlow` 回退资产三类有据豁免。
+- **批次十三（2026-11-22，W5 资源钩子收编 + L4 boost 定裁 + W7 尾巴 + W1 扩面 + L7 终态）**：
+  · **W5 五资源钩子收编**：`useSessionResource` 升级为唯一取数核，新增 `pollMs`（活跃轮询、
+    文档隐藏暂停）/ `cacheTtlMs`（触发式缓存窗口）/ `resetKey`（切会话复位）/
+    `keepDataWhenDisabled`（暂不活跃保留旧快照），返回值补 `refreshing`（已有数据的后台刷新）、
+    `settled`（首取落地，成败均算）、`updatedAt`（最近成功时刻）；「后发必胜」票号判定抽成
+    `LatestRequest`（`begin/isCurrent/invalidate`），六处手写 `seqRef` 收敛为一个类。
+    五个变体 hook 全部改吃同一核：上下文工作室（删自有 seq + 切会话复位）、编队
+    （2s 轮询 + 30s TTL + 不活跃保留，由核直接表达）、决策账本（视图/详情两流各自一核，
+    静默刷新由 `refreshing` 提供）、变更审查（清单入核，patch 用 `LatestRequest`）、
+    厂商目录（目录入核，打码 Key 仍为静默旁路）。新增 `web/test/sessionResourceCore.test.ts`
+    **7 条核心行为判据**（首取/失败保留旧数据/禁用弃在飞/resetKey/TTL/轮询停表/暂不活跃保留）。
+  · **L4 裁定 B：删除 boost 命令族**（-1609 行）：`boost probe/gate/audit-surface` 全部依赖
+    本仓不存在的 `scripts/runGates.mjs` 与 `tools/probes/`，fail-closed 降级正确但**零产出**；
+    删除 4 文件 + 14 个专用旗标 + 3 条帮助条目 + 分发/解析代码。cliFlagsDiscipline 三项
+    （读取必登记 / 白名单不腐化 / 帮助不许诺幽灵命令）与 cliReasoningFlag 全绿。若上游基建
+    确定随迁，按 git 历史恢复命令面即可。
+  · **W7 尾巴**：删除 `ComposerOptions.KNOWN_MODELS` 离线兜底模型清单——它是厂商目录的第二份
+    手维真源，catalog 下发后永不再用且会随厂商演进静默过期；catalog 不可用时模型下拉只保留
+    当前值（fail-closed），不拿过期清单冒充可用模型。
+  · **W1 类型护栏扩面**：round-trip 探针 4→**8**（新增 ContextStudio 快照 / Profile 列表摘要 /
+    Vault 列名 / Vault 写回包）。扩面即抓 **四处真漂移**并清偿：`ContextUsageReport.rows`
+    后端 readonly 前端可变；`KernelContextViewLike` 三个可选字段未显式含 undefined
+    （exactOptionalPropertyTypes）；`Profile` 缺 `pluginCount`、`description` 未含 undefined；
+    Vault `names` 同样 readonly。顺带修真缺陷：ProfilesTab 插件列只读 `plugins`，而
+    `profile.list` 只回摘要（`pluginCount`），该列一直渲染为空。
+  · **L7 终态关闭**：`web→桌面` 方向已在 B3 落地（SettingsModel 保存 locale 即调
+    `omni:setLocale`，壳层重建菜单/托盘并持久化）；`桌面→web` 运行期事件的**触发条件不成立**
+    ——桌面壳没有运行期语言入口（menu 无语言项、config 仅在启动读、无配置热重载），
+    无需为不存在的生产者造订阅。触发条件：桌面壳新增运行期语言切换/语言热重载时再实现
+    事件互通（B3 五层已为其留好 IPC 与持久化基座）。
+  · 验收：**`npm run verify` 全链绿**（kernel:check 九条 / typecheck 五闸 / check:exports /
+    232 文件 1064 用例 / build + build:web + smoke / desktop:build + desktop:test 44）。
+- **批次十二（2026-11-22 凌晨，W6 双选择器收编 + L9 零消费导出首轮清偿）**：
+  · **W6**：FilePicker(699) / FolderPicker(515) 的懒加载机制逐行同构——节点级状态表、
+    展开时 `fs.browse`、加载中/错误+重试/空目录占位行、已加载子级**递归**回填——抽出
+    `ui/models/FsLazyTree.tsx` 单一核（`useFsLazyTree` + `lazyChildrenOf` + `attachLazy`），
+    两个选择器只保留「回包 → 子节点」映射（文件/目录、体积、置灰等业务差异）。新增
+    `web/test/fsLazyTree.test.ts` 4 条机制判据（占位 key 后缀不得混用 / 重试回传自身 key +
+    stopPropagation / 递归回填深层节点 / 非 fs 节点原样保留）——此前这些行为只能靠两个
+    选择器的端到端判据间接覆盖。净行数 **-13**：与计划 300-500 行估计偏差的原因是
+    P2 重设计时已抽出 FsPickerLazy/PickerKeys/PathJoiner，剩余重复只在机制层。
+  · **L9**：knip 6.47 扫描 60 条 → **0 条**。① 34 个「仅本文件内部使用」的导出降级为
+    模块私有（不改逻辑；`noUnusedLocals` 全链保绿）；② 清真死码 9 处——
+    `workspaceLease.withWorkspaceLease` + 选项（~35 行，全仓零引用）、`safeFs.pathJoin`、
+    `PROOF_BUNDLE_MAX_BYTES`、`FLEET_PATCH_MAX_BYTES`/`FLEET_PATCH_DIR`（「供测试用」别名，
+    判据已改用内部常量）、`cliFlagTable.FLAG_ENUM_VALUES`（重复数据视图，帮助已走
+    HELP_ENUM_SOURCES）、`ConsoleUI.ConsoleKeycap`、`i18n.subscribeLocale`、
+    `decisionModel.checkStatusLabel`（与 ProofMode/DecisionDialogs 两份本地实现重复）；
+    ③ `providerPresets` 去掉未消费的 `PROVIDER_PRESETS` 转发，`kernel:surface` 随之重生成
+    `src/host/kernel/config.ts`；④ **knip 6.47.0 入 devDependency** + `knip.json`
+    （entry=`web/src/main.ts`，project 覆盖 src/web/scripts，tests 排除）+ `check:exports`
+    纳入 verify 链（kernel:check → typecheck → check:exports → …）。`ignoreIssues` 仅 4 类
+    文件且有据：kernel 生成物（`config/contracts`）、extensions 端口聚合桶、
+    enterprise `LegacyOidcFlow`（OIDC 差分判据未随迁本仓的回退资产，去留待 L4 同批拍板）。
+  · 验收：**`npm run verify` 全链绿**（kernel:check 九条 / typecheck 五闸 / check:exports /
+    231 文件 **1057** 用例 / build + build:web + smoke / desktop:build + desktop:test 44）。
+- **批次十一（2026-11-21 晚，K2 内核归属收编 + W4 ApiClient 域拆分）**：
+  · **K2 接收内核 alpha.37（R26）**：vendored kernel 升 `0.1.0-alpha.37`（内核仓 d8d9ce7/R26）。
+    内核补齐三处归属缺口——context 域承诺 `compactionStateCodec` 深路径、maintenance 域
+    承诺 `ServeInstance` + `MaintenanceRunner`、autonomy 域承诺 `GraphStore` + `GraphSummary`
+    契约。app 侧按归属契约第 3 条删除 extensions 四件 **947 行**（compactionMarkerReader 192 /
+    serveInstance 229 / maintenanceRunner 372 / graphStore 145 + graphSummary 契约 9），
+    消费点 13 处改指 `src/host/kernel/{context,maintenance,autonomy}.ts` 对接面；
+    `extensions/README.md` 登记表**归零**（2026-11-11 的 compactionMarkerReader 条目终态）。
+    R25d（CliWorker 族 483 行，二档）未随本轮，待内核 worker 域排期。
+    联动核对：内核 R25 的「Node 24 切换」仅门禁工具链口径（内核 package engines 仍
+    `>=22.14.0`、CI 仍 node 22），**app engines/CI 无需升版**；`kernel:check` 九条绿。
+  · **W4 ApiClient 域拆分**：1058 行上帝类（112 个 RPC 方法 / 114 处 `this.rpc`）按服务端域
+    拆为 `core/api/` **19 个域对象**（threads/control/config/observability/workspace/sessions/
+    review/profile/memory/plugins/skills/automations/vault/governance/graph/context/fleet/proof/
+    decision），ApiClient 收敛为 **318 行传输本体 + 域组合根**（统一 `rpc()` / RpcError 分类 /
+    鉴权头 / nextId，外挂 `/healthz` 预览探针与 `/metrics` 解析）；调用形态
+    `api.listSessions()` → `api.sessions.listSessions()`，81 处消费点一次改写。
+    · **判据先行（前置）**：`apiClientParity` 提取源从单文件扩到 `core/api/` 目录 + 注释剥离
+      ——否则拆域后扫描到 0 条字面量会**静默假绿**；diagnosticsTab 的 RPC 名锚点同改。
+    · **测试桩升级**：`rtlHarness.makeFakeApi` 改递归 Proxy + 新增 `flatApiStub`（扁平方法表
+      零迁移命中域调用）；7 处手写扁平桩/渲染后改 api 的用例改域形态（flatApiStub 的 flat 表
+      是闭包，事后赋值不生效——这本身是 W4 引入的陷阱，已在 helper 注释钉住）。
+    · 验收：typecheck 五闸 / fast 项目 193 文件 968 用例（4 分片）/ chrome 项目 37 文件 85 用例
+      （2 分片）/ build + build:web + smoke + desktop:build + desktop:test(44) 全绿。
+- **批次十（2026-11-21，前端重构 W1/W2/W3/W7 + 遗留终态判定）**：
+  · **W1 类型护栏**：`tsconfig.tests.json` 把 tests/ 纳入 typecheck 链（第 5 个 tsc 闸）+
+    `tests/typeParity.test.ts` 编译期 round-trip 判据（后端服务返回形状 → web models.ts
+    镜像的恒等函数探针：fleet 快照 / decision 会话+详情 / ThreadEvent）。**上线即抓到两处
+    真漂移并清偿**：① 前端 `EventType` 缺内核 `'rollback'`/`'calibration_units'` 两类；
+    ② `ThreadEvent.timestamp` number↔ISO 串（内核线格式是 ISO；`format.ts timeOf` 同口径
+    放宽 + 4 组件解锁）。payload 为 UI 域刻意收窄（unknown→Record，EventFields fail-soft
+    守卫），探针显式投影注明。顺带清偿 tests/ 盲区历史欠账 20 处（skillEditor 夹具 /
+    sessionEventsCache SessionEvent 全形 / cliHelp JSON import attribute 等）。
+  · **W2 settingsCatalog 拆域**：816 行纯数据 + 全仓零判据 → `ui/models/settings/` 六域
+    文件（types/tabs/fieldsPrimary/fieldsRuntime/fields 合并/labels，tab 三段保序切分）+
+    `web/test/settingsCatalog.test.ts` **12 条结构不变量机检**（fieldId 唯一 / tab 合法 /
+    NUMBER_RANGES 与 number 字段双向对账 / 标签表孤儿键 / select 必有 options / 规模快照）。
+    消费面零涟漪（仅 SettingsModel 一个消费者）。
+  · **W3 面板 key 单源化**：三处手维（Router VALID_PANES / PanelRegistry / App paneOf）
+    收口到 PanelRegistry 唯一真源——`satisfies` 保字面量键 + 导出 `PaneKey` 联合；
+    Router 迁 `ui/models/`（消费 PanelRegistry 不再构成 core→ui 反向依赖）+ VALID_PANES
+    改派生；新增 `paneRenderers.ts` 渲染器表（`Record<PaneKey, Renderer>` **编译期完整**
+    ：新增面板漏渲染器即 tsc 红，旧 switch 会静默落 default）+ lazy 声明与空闲预取随迁；
+    App.ts -170 行。
+  · **W7 清理包**：Icon 迁出 models 层到 `ui/kit/Icon.tsx`（models 唯一 JSX 越界，67 处
+    导入面同改 + iconPolicy 判据路径钉同步）；`checkpoint.ts` → `Checkpoint.ts`（PascalCase
+    补齐）；i18n 分片 `tabs_a/b/c` → `tabsAuditChanges/tabsToolsVault/tabsControl`（域语义
+    名，词条键零牵连）；`legacyMarkdown.test.ts` 引用面锁死判据（生产不可达兜底资产：
+    format 定义 / markdown 回退 / format.test 直测之外即红）。
+  · **遗留终态判定**：L1 decisionLedger/DesktopConfigLoader 切分由并行轮完成（f5d16c0）；
+    L5 eventsOf 内核侧缓存登记关闭（app 侧双缓存已兑现收益，触发条件不再成立）；
+    L6 混渲统一登记关闭（B2 + W7c 引用面锁死）；L9 零消费导出获 knip 硬证据（53 条）
+    转逐项清偿，详见下方缓偿登记段；L7 维持缓偿（触发条件未到）。
+- **批次九（2026-11-21，全仓 .ts 化最后一公里）**：27 个脚本类 .mjs/.cjs（约 4.8k 行）→
+  25 件 .ts/.mts + 2 件刻意保留（`examples/embed-demo.mjs` 随 npm 发行给用户、
+  `desktop/scripts/fakeElectron.cjs` 是 esbuild alias 目标）——源码区 .mjs/.cjs 清零。
+  · 运行时：engines/CI `>=22.14` → **`>=22.18`**（Node strip-types 无旗标默认开启线；
+  脚本由 Node 原生类型剥离直跑源文件，零编译产物）；
+  · 类型门：新增 `scripts/tsconfig.json`（与根同严格度）+ `typecheck:scripts` 入 verify 链，
+  desktop tsconfig include 扩 `scripts/**/*.mts`——**scripts/ 与根 vite/vitest.config
+  此前是 typecheck 全盲区，现已收口**；2 个手维 `.d.mts` 声明壳（70 行）退役，
+  vite.config / web/test / tests 对脚本的消费全部升级为编译期真类型；
+  · 牵连同改：17 条 npm scripts、5 处测试子进程 spawn/import 路径、
+  `tests/devAddressContract` 的 vite.config 源码正则钉、CI 字面路径、10+ 处文档与源码注释；
+  · **顺带清偿（盘点外发现）**：① vitest.config 残留 Vitest 4 的 `poolOptions` 键被
+  Vitest 5 静默忽略——`maxWorkers:6` 限幅自升级起未生效，现以继任键恢复（当年
+  无界并发炸 7 worker 的稳定阀）；② `childRunFailure.mjs` 全仓零引用孤儿删除；
+  ③ 35 处 `host/kernel/plugin.js` 后缀残留核销；④ vendorKernel git 子命令显式 cwd；
+  ⑤ boost 命令族上游继承依赖悬空状态登记（fail-closed 降级不变，去留另行裁决）。
+  转换纪律：逻辑零改动、diff 最小、逐批 commit（T0+T1/T2a/T2b/T2c/T3/T4a）。
+- **批次八（2026-11-21，A/B/C/D 清单全量执行）**：A1 旗标-only 旋钮 cliHelp 会话级标注
+  16 条；A2 成对判据互链补齐（6 对）；A3 main.ts 剩余三函数判定不抽取（耦合主进程模块态，
+  抽取只得行数不得单一真源——HarnessAttach/AppActions 两个真重复面已收口）；B1 空闲会话
+  事件读档缓存（LRU4+TTL30s+回退/检查点回滚/回合结束三处显式失效）；B2 markdown 惰性
+  装载（ensureMarkdownLibs + legacy 回落分支已有，渲染组件零改动）；B3 语言收敛五层
+  （DesktopI18n.setLocale / desktopState.locale / IPC omni:setLocale / preload 可选桥 /
+  SettingsModel 跟随调用 + boot 跟随记录优先于 system）；B6 PluginsTab 完整收编
+  （双列表派生 + 防抖保留 + error state）。B5 导出收敛判定不做（纯噪音）。
+- **深研优化轮六批（2026-11-20，三路深研 → 全部落地）**：
+  · **批次一（工程效率）**：vitest 单项目全串行 → **双项目**（chrome 36 文件保持串行纪律，
+    fast ~187 文件 node/jsdom 并行，配置期内容扫描+helper 一层传递闭包识别）；desktop TS
+    ^5.7.0(5.9.3)→^7.0.2 与根统一 + tsconfig 补 `exactOptionalPropertyTypes`/
+    `noUncheckedIndexedAccess` 严格闸（desktopState 两布尔偏好改必填是类型收窄正解）。
+    并行收益在本机（会话负载下）实测中性（1126s vs 串行 1045s），空闲机/CI 兑现——限幅 maxForks 6 是首轮无界并发实测 7 个 worker 启动超时后的稳定项。
+  · **批次二（架构收口）**：`app/HarnessAttach.ts` 单一真源（附着序列三处拷贝收口，历史
+    P2 事故面不可再复现）；Tray/Menu/IPC 三份动作回调收口单一 appActions；PERSISTABLE_KEYS
+    下沉 services/configPersistKeys（core 反向依赖消除）；core→ui 反向依赖清除
+    （localize 注入接缝，ApiClient/DialogService 7+5 处出口）。
+  · **批次三（RPC 模块按域重排）**：control 三拆 fleet/contextStudio/proof（模块 19→21）；
+    surface 杂物抽屉清仓（quota→observability、modes→threads、setWorkspace→sessions）；
+    方法名零变化（parity 快照零漂移，owner 抽样断言同步 14 条）。
+  · **批次四（运行时性能）**：threads.get 无 limit 缺省封顶 500（兼容洞闭合）；
+    memory.changed 300ms 去抖 + MemoryTab deps 收窄；MetricsTab 后台标签页闸；
+    启动装载两拍（归档补扫延后 1s）；buildConfig 三分支并行 + 维护巡检挪 listen 后；
+    Resizer 宽度落盘 rAF 合并。
+  · **批次五（配置化收尾）**：appLimits env 轴（附件/SSE 回放/预览/搜索/审计八旋钮，
+    `OMNI_*` 约定）；StorageKeys 键注册表；settingsPane「字段全集」判据改内核差集断言
+    （手维 EXPECTED 三处镜像 → 机器核对）。
+  · **批次六（结构打磨）**：SSE 分流纯函数化 StreamEventRouter（node 直测判据 ×2）；
+    desktop 令牌脱敏统一 DesktopLogger.redact；两端契约判据互链注记。
+  · **批次七（2026-11-21 钩子收编 + model.adapters）**：useSessionResource 补 reloadTick
+    option + refresh 返回在飞 Promise；六面板收编（Graph/Profiles/Skills/Rollback/Memory
+    双钩子/Plugins 裸奔补 toast）——三处注释与代码不符顺带修正；model.adapters RPC
+    （116→117）+ Router 卡凭据实时预检；--reasoning 旗标三通道补齐（自查抓到 handler
+    误放 --model 分支内单独使用被吞 → 拆独立条目 + 行为判据三例）；三配置面写入者清单。
+  · **缓偿登记（2026-11-21 批次十复核后终态）**：
+    ▸ eventsOf 读档缓存（等 R22 内核侧）——**登记关闭**：R22-R24（alpha.36）未做内核侧
+      缓存，但 app 侧 B1（sessionEventsCache LRU+TTL）+ sessionScanCache 双缓存已把收益
+      兑现完毕，触发条件不再成立；内核若未来自带缓存属其内部优化，无需 app 动作。
+    ▸ markdown 惰性 / legacy-full 混渲统一——**登记关闭**：B2 惰性装载已落地；
+      W7c 以引用面锁死判据（legacyMarkdown.test）把 legacyRenderMarkdown 钉成
+      「format 定义 / markdown 回退 / format.test 直测」三点之外的零引用资产，混渲统一
+      设计不再有触发场景。
+    ▸ 语言双真源互通（桌面 IPC+壳层重建）——**维持缓偿**：触发条件未到（B3 已五层
+      收敛主体，仅剩桌面壳与 web 的 locale 事件互通这一独立面）。
+    ▸ decisionLedgerService/DesktopConfigLoader 切分——**已完成**（并行轮 f5d16c0：
+      decisionLedger 四文件 / DesktopConfigLoader 三文件）。
+    ▸ 零消费导出批量收敛——**已清偿（批次十二）**：knip 扫描 60 条（含 web 面）→ 0；
+      34 条降级模块私有、9 处真死码删除，knip 入 devDep + `check:exports` 入 verify 闸；
+      `ignoreIssues` 仅保留 kernel 生成物 / extensions 端口桶 / LegacyOidcFlow 回退资产。
+- **桌面「快速提问」快捷键配置化（2026-11-20）**：全局快捷键从 main.ts 模块常量 +
+  menu.ts 内联 accelerator 两处硬编码，收进 `desktop.config.json` 的
+  `app.quickCaptureShortcut`（缺省 `CommandOrControl+Shift+Space` 不变；accelerator
+  形态校验 fail-closed 回落）——全局注册与菜单展示同源单一真源。
+  `releaseManifest.mjs` 产品名同步单一真源化（读 electron-builder.yml `productName`）。
+- **桌面发布面账实收口（2026-11-20）**：electron-builder publish 与 `repositoryUrl`
+  （菜单「仓库」项同源）从上游旧仓 `OmniHarness` 改指本仓 `omniharness-app`（遗留总表
+  #12 收口；draft release 渠道不变，electron-updater 自动更新改订本仓 release）；
+  `releaseManifest.mjs` 安装包文件名从写死 0.2.0 改为按 package.json 版本推导。
+- **metricsTabStale 判据硬化（2026-11-20）**：组件按 POLL_MS=2s 真实 setInterval 轮询，
+  满载并发（223 worker）下 interval 可在 settle 微任务窗口内开火、多打一次失败调用
+  让「健康时无陈旧提示」偶发翻车（单次实测 + 隔离恒绿取证）。判据改 fake timers：
+  冻结轮询、断言后显式推进恰好一档——轮询次数确定化，负载不再影响判定。
+
 ### Added（新增）
+- **内核升级 alpha.34（2026-11-20，R20 好用收口轮）+ mcpServers env/cwd 应用侧映射补全**：
+  vendored kernel 升到 `v0.1.0-alpha.34`（M115–M119 + review 收口；公共根导出面 60/60，
+  消费面零变化，kernel:check 287/290 复绿）。R20：厂商一键接线（embed `model` 字符串
+  快捷）、close 生命周期收口（drain 有界等待 + `drainTimeoutMs`）、配置孤儿清偿
+  （mcpServers 文件面补 env/cwd + `classifyInterjection` 接线）、配置错误自愈（未知键
+  did-you-mean）。**应用侧工单同轮清偿**：`argConfigDefaults` mcpServers 映射补
+  env/cwd 透传（连接器早已消费——此前用户在 omniharness.json 写了静默失效）；判据
+  configSectionWiring 钉住两种形态（stdio 透传 env/cwd / 远端形状归一）。
+- **设置页 v2 专家能力卡（2026-11-20，settings-completion 扩展）**：运行时栏新增「专家能力」
+  卡——evolutionRlvr / decisionEngine / calibratedAutonomy / rbac 四结构段共 20 行叶子
+  （进化闭环开关/自动运行/七环编排/预算与门禁、决策引擎模式/热进程/trace/超时、校准
+  自主性开关/最少校准单元/三类风险预算 α、RBAC 开关/会话角色）。四段收编
+  `SECTION_REPLACE_KEYS` + `PERSISTABLE_KEYS`（整段提交按段替换，内核各自严格校验器
+  fail-closed）；needRestart 常驻标记（运行时装配在 boot 期）。路径语义字段
+  （ledgerDir/pythonPath/modelDir/repo）与 roles 角色表经配置文件设置——pickerUniformity
+  面约束的诚实边界，settings-completion 设计稿已回写。判据同步：settingsPane 字段全集
+  清单 +20、OPTION_LABELS 补决策引擎三档、settingsPersistKeys 四键、i18n 全词条。
+- **技能实验室 Skill Lab v1（2026-11-20，next-panels §13 第三项兑现，§13 关闭）**：
+  新 skills 域模块（第 19 个域模块，RPC 112→116）——`skills.list`（**数据源修复**：旧读
+  `AppServerOptions.skills` 三组合根均未注入、生产态恒空；改为 skillRegistry 装配真值 ∪
+  `fileConfig().skills` 编辑面按名归并）/ `skills.get` / `skills.diff`（结构差异测试
+  dry-run，fail-closed）/ `skills.apply`（通过才落 `config.skills` 整段）/ `skills.delete`
+  （仅 config 内联可删）。`SkillEditorService` 纯逻辑层实现 CRISPR SPI 语义
+  （定点编辑=精确点名 + 差异测试 fail-closed + 回滚=不落盘无副作用；Report 本地同构——
+  `crisprEditReport.js` 不在内核 exports 承诺清单）。存储=config.skills[]（三条组合根
+  通用、无信任闸；工作区文件面在 serve 默认不装配，留 v2，见设计稿
+  docs/design/skill-lab/README.md）。SkillsTab 编辑面：来源列/覆盖徽标/编辑/删除 +
+  编辑器 + 本地行级 LCS diff 预览（SkillDiff 纯模型，单一 diff 实现）。生效 = 下一会话。
+  判据 tests/skillEditor + web/test/skillDiff + parity 116 + settingsPersistKeys。
+- **记忆时间图 Memory Atlas v1（2026-11-20，next-panels §13 第二项兑现）**：新 RPC
+  `memory.facts`（111→112，memory 域）：`factsSnapshot` 纯函数窄转型探测
+  `FileLongTermMemory.factGraph`（图是实现细节不进端口契约——探测消费，零内核改动），
+  返回全量 `TemporalFactCard` + total/active（内核 `<=` 到点即失效口径）；无图如实
+  `supported:false`。记忆面板新增「时间图」区：三元组卡（subject·predicate·object +
+  原文 + 起止日期）+ 生命状态徽标（有效/已被取代/已过期），有效卡在前、组内 validFrom
+  降序——「这条偏好现在还有效吗？谁取代了谁？」一眼可读；SSE `memory.changed` 自动跟随。
+  判据 tests/memoryFacts（探测命中/无图降级/取代字段透传）+ parity 112。已知边界如实
+  继承内核 temporalTripleParser（中文关系句暂不入卡）。
+- **服务端价表下发 `model.pricing`（2026-11-20，遗留 #9 收口）**：新 RPC（110→111，
+  config 域）纯静态下发内核 `DEFAULT_ROUTE_PRICING`（36 条单一真源）+
+  `UNPRICED_DEFAULT_FAMILIES`（故意不定价登记）+ 兜底价；web ModelPricing 服务端表优先、
+  内置 20 条表兜底（两表并扫最长前缀），AppController 启动期拉取失败静默兜底；路由卡
+  条目补 ≈ 单价或「未收录单价」——「成本差多少」兑现。口径提示：内核表经
+  routePricingDefaults 判据核对，切换后成本读数变化属预期。
+- **遗留全清零轮（2026-11-20）：总表 14 项全部终态**——
+  · **输入历史按天持久化**（#8）：`omni.inputHistory.<YYYY-MM-DD>` 按天档，同天重启/刷新
+    找回、跨天清空（「旧任务语境不带进新的一天」原设计精神保留）；存储注入可测，
+    localStorage 不可用 fail-soft 退内存态；判据 5→8 条。
+  · **桌面配置告警码化 i18n**（#4）：16 处硬编码文案 → `issues: ConfigIssue[]`
+    （path+code+params 单漏斗），文案单一真源迁 DesktopI18n messages.ts（15 键 ×中英），
+    诊断对话框补告警计数——告警首次有日志之外的出口；判据 43→44 条。
+  · **页头与右栏路径去重**（#10）：撤右栏空态首页 `.wb-path` 绝对路径层（同面板两层
+    重复）；全路径悬停保留，常驻路径只在中栏面包屑。
+  · **#14 并行会话 UI WIP 代收口**（review 验收后提交）+ **#12 桌面发布面**（2026-11-19）
+    + **#5/#7/#11 决策终态**（Electron 46 未发布 / types 锁 engines 主版本 / 仓间事实）
+    ——总表与 desktop README §8 全部账实回写。
+
+- **模型角色路由设置卡（2026-11-19，内核 #B4 接入，next-panels §13 Router 兑现）**：
+  设置「模型与厂商」栏新增「模型角色路由」卡——按角色给规划/执行/审查/压缩等工作负载
+  分配不同模型。未启用态引导 + 启用种子（默认模型 + 当前适配器做 entries[0]，未映射角色
+  先与不路由行为一致）；策略 7 档 / 条目（模型名+适配器）/ 角色映射 8 角色（executor/
+  planner/reviewer/compactor/memory/guardian/goal/subagent，仅 by-role 策略显示）；停用 =
+  整段发 null。服务端 `SECTION_REPLACE_KEYS` 收编 `modelRouter`（整段提交按段替换，
+  杜绝「roles 指到已删条目」的静默坏配置）；前端预挡四形态（空条目/缺模型名/重复/
+  角色目标缺失——内核 by-role fail-closed 的同构预挡）。诚实边界写进卡脚注：条目凭据
+  取自对应适配器环境变量（与 CLI 一致），主配置 API Key 不用于路由条目。纯逻辑层
+  `ModelRouterDraft` node 直测（web/test/modelRouterDraft.test.ts）；i18n 全词条补齐。
+- **内核升级 alpha.33（2026-11-19）**：vendored kernel 升到
+  `v0.1.0-alpha.33`（R19 遗留总清偿轮：M112–M114 + 深度 review 收口 P1×1/P2×3/P3×9，
+  0 P0）。**会话上下文贯穿**（`ToolContext` 增可选 `capflowSessionContext` 实时闭包：
+  recorder 同源零滞后 + 继承指令信道 capflowInheritedTask，RunWorkflowTool resume 预检
+  优先消费——review-r18 窗口滞后/派生会话继承源双收口）、**遗留台账总收口**（RESIDUAL.md
+  全面刷新）、**EOL 卫生**（`.gitattributes` 钉未来 + 149 代码文件 CRLF→LF 归一）——
+  均为内核/安全内部面，应用消费面零变化（19 域「无变化」、公共根导出面 60/60 无新增）；
+  本仓 `kernel:check` 九条复绿（285 源文件 / 290 处包导入 / 原生内核实载）。版本历史见
+  [vendor/README.md](vendor/README.md)，契约见 [KERNEL-CONTRACT.md](docs/KERNEL-CONTRACT.md)。
+- **内核升级 alpha.32（2026-11-19）**：vendored kernel 升到
+  `v0.1.0-alpha.32`（R18 resume 盲区收口轮：M110–M111 + 深度 review 收口 P1×2/P2×2/P3×4，
+  0 P0）。**resume 续跑档 CFI 闭合**（RunWorkflowTool resume 分支预检 `resumeCfiCheckOf`：
+  WorkflowRunLog 预读存档 step prompts 逐条 × 当前会话最近工具输出重查，enforce 命中
+  先于任何子会话拒绝；预检 specHash 传 runner 锁内复验）、**workflow 边四档实测**
+  （`eval:propagation` 十三档：subagent/goal/workflow 三进程内派生边实测曲线收官）——
+  均为内核/安全内部面，应用消费面零变化（19 域「无变化」、公共根导出面 60/60 无新增）；
+  本仓 `kernel:check` 九条复绿（285 源文件 / 290 处包导入 / 原生内核实载）。版本历史见
+  [vendor/README.md](vendor/README.md)，契约见 [KERNEL-CONTRACT.md](docs/KERNEL-CONTRACT.md)。
+- **内核升级 alpha.31（2026-11-19，连同 alpha.30 一并跨过）**：vendored kernel 升到
+  `v0.1.0-alpha.31`（R16 跨代理 provenance 轮 + R17 派生边收口轮：M105–M109 + 深度
+  review 收口，0 P0）。**委托边继承标记**（`inherited-untrusted` 第四能力维度：信任标签
+  随委托交接保持而非逐代理重置）、**链式洗白窗口**（boundary laundering 逐代理防御的
+  窗口闭合）、**paraphrase 三档曲线**、**全派生边执法扩面**（`IN_PROCESS_DERIVED_TOOL_NAMES`
+  单一真源：subagent/run_workflow/run_goal/run_plan + CFI 指令信道文本按工具提取器
+  强转镜像工具层）——均为内核/安全内部面，应用消费面零变化（19 域「无变化」、公共根
+  导出面 60/60 无新增）；本仓 `kernel:check` 九条复绿（284 源文件 / 290 处包导入 /
+  原生内核实载）。版本历史见 [vendor/README.md](vendor/README.md)，契约见
+  [KERNEL-CONTRACT.md](docs/KERNEL-CONTRACT.md)。
+- **后端 RPC 错误码位化（2026-11-19，遗留清偿）**：新增共享分类器
+  `core/rpcErrorCodes.ts`（appServer WS 与 httpBridgeTransport HTTP 两条路径同源消费）——
+  调用方参数问题（域模块「X 需要 Y / 未找到 X / X 拒绝」约定形态）判 **-32602**（JSON-RPC
+  标准 Invalid params），不再与内部服务端故障同码 -32000；等待超时保持 -32002。前端
+  failureHint 增 -32602 专属提示（错误信息已说明缺什么，换模型/查 Key 是误导）。
+  判据：tests/rpcErrorCodes（三类形态/超时/兜底）+ rpcFailureMessage ③ 增 -32602 路。
+- **TypeScript 7 收编（2026-11-19）**：typescript 5.9.3→**7.0.2**（Go 原生化编译器）。
+  实证迁移：desktop tsconfig 的 `moduleResolution: Node`（node10）在 TS 7 已移除 →
+  换 `module: node16 / moduleResolution: node16`（typecheck-only 面，esbuild 产物不受
+  影响）；后端（NodeNext）/ web（bundler）两配置零改动直过。门禁：typecheck×3 +
+  build（tsc 产物原子换入）+ smoke 9 条 + 全量 218 文件 / 1005 用例 + desktop 43 条全绿。
+- **内核升级 alpha.29（2026-11-19）**：vendored kernel 升到 `v0.1.0-alpha.29`
+  （R15 遗留清偿轮：M102–M104 + 深度 review 收口，0 P0）。**参考轨迹匹配四档组合子**
+  （`TraceMatch`：strict/unordered/subset/superset，带键多重集合 `name#argsDigest`，
+  对齐 agentevals `TrajectoryMatchEvaluator`；`eval:trace --expected` 接线）、
+  **Multi-CaMeL 双通道子代理契约**（variables 数据信道读取即审计 / 指令信道完整性）、
+  **金丝雀感染曲线**（`eval:propagation` 逐跳双指标 + CFI 衰减对照）——均为内核/评测/
+  安全内部面，应用消费面零变化（19 域「无变化」、公共根导出面 60/60；`./eval` 子路径
+  新增 TraceMatch + 4 类型）；本仓 `kernel:check` 九条复绿（284 源文件 / 290 处包导入 /
+  原生内核实载）。版本历史见 [vendor/README.md](vendor/README.md)，契约见
+  [KERNEL-CONTRACT.md](docs/KERNEL-CONTRACT.md)。
+- **Vite 8 / Rolldown 迁移（2026-11-19）**：vite ^6.4.5→**^8.3.8**（esbuild/Rollup →
+  Oxc/Rolldown）、@vitejs/plugin-react ^4.7.0→**^6.3.0**、esbuild ^0.25.12→**^0.28.2**
+  （vite 8 peerOptional）。vite.config 换面：`rollupOptions`→`rolldownOptions`、
+  `manualChunks` 函数→`advancedChunks.groups`（**Vite 8 下 manualChunks 函数返回值被
+  静默丢弃**——不迁移分包即无声失效；原函数两规则殊途同归收敛为 vendor-react /
+  vendor-antd 两条分组，katex/markdown-it/highlight.js 负向排除随 entry）、
+  `minify:'esbuild'`+`esbuild.keepNames`→oxc 缺省 + `rolldownOptions.output.keepNames`
+  （错误边界组件栈依赖）。两处判据随合法压缩产物形态放宽：CSS hex 3/6 位通用归一
+  （Rolldown 把 `#0000ff` 缩成 `#00f`，语义等价）、keepNames 锚点双形态兼容（esbuild
+  `__name()` 包装 vs Rolldown 具名函数表达式）。门禁：全量 verify **EXIT=0**（218 文件 /
+  1004 用例 + CSP 哈希门禁 + smoke + desktop 43 条）+ 压测五场景全绿。
+  账本见 [deps-upgrade-2026-11-18.md](docs/design/deps-upgrade-2026-11-18.md) 追加批次。
+- **内核升级 alpha.28（2026-11-18）**：vendored kernel 升到 `v0.1.0-alpha.28`
+  （R14：M99–M101 + 深度 review 收口，0 P0）。**CapFlow 确认门**（`require-approval`
+  从枚举预留落地为真确认门：三态裁决 + 真实 target 单一真源 + per-call 确认不缓存 +
+  fail-closed `CAPFLOW_APPROVAL_DENIED`）、**污点跨委托传播**（执法面闭合进子代理树，
+  Multi-CaMeL boundary laundering 的执法面防御）、**确定性轨迹评测器**（`eval:trace`：
+  `TraceFold` + 调用指纹循环检测等规则四件套，零凭据零模型调用）——均为内核/安全/评测
+  内部面，应用消费面零变化（19 域「无变化」、公共根导出面 60/60）；本仓 `kernel:check`
+  九条复绿（284 源文件 / 290 处包导入 / 原生内核实载）。路径上先并入了同日 alpha.27
+  （R13：统一工具结果预算读数 / tail 侧确定性整形 / MCP 工具指纹 JCS 化 / 区分性检索
+  对照池）。版本历史见 [vendor/README.md](vendor/README.md)，契约见
+  [KERNEL-CONTRACT.md](docs/KERNEL-CONTRACT.md)。
+- **依赖安全升级批次（2026-11-18）**：`npm audit` 10 项（2 critical / 4 high）清至
+  仅剩开发面 picomatch 链（上游无修复版待发）。**katex ^0.16.47→^0.19.1**（运行时原型
+  污染绕过信任限制，用户可见面修复）；**vitest ^2.1.9→^5.1.0**（tinypool RCE critical ×2
+  + mocker 路径穿越/代码注入 + ReDoS 链，本仓使用面与破坏面零交集——无 workspace/
+  coverage/bench/sequential/vi.mock 跨用例状态）；markdown-it ^14.3.3→**^15.0.3**
+  （CommonMark 一致性修复，自带类型故删 @types/markdown-it）；croner ^10.0.1→**^11.0.1**
+  （OCPS 1.4 + DST 对齐 Vixie）；antd 6.6.8→**6.7.1**；jose/openid-client/playwright-core/
+  axe-core/user-event 补丁位跟进；桌面 electron 44.7.0→**45.3.4**（Chromium 156 / Node 24.22；
+  沙箱 preload 收紧与本仓 preload 零交集）。门禁：typecheck×3 + 全量 web 218 文件/1004 用例
+  + desktop 43 判据 + smoke 全过。账本见
+  [deps-upgrade-2026-11-18.md](docs/design/deps-upgrade-2026-11-18.md)（含 Vite 8/TS 7/
+  @types/node 26/esbuild 0.28 的登记不升理由与 Vite 8 独立迁移路径）。
+- **依赖收尾批 + fetchMetrics 分类补齐（2026-11-19）**：vitest 5.1.0→**5.1.1**；
+  jsdom 25.0.1→**29.1.1**（major：CSS 引擎重写/computed-style 变化——全量 jsdom 组件判据
+  复验零破坏）；桌面 esbuild 0.25.12→**0.28.2**（对齐根，desktop:build + 43 判据 ✓）；
+  `fetchMetrics` 补齐 **RpcError 分类**（HTTP 失败 → kind=http-status + status / 拒答 →
+  kind=network，与 rpc() 主路径同口径；**SSE 维持原样**——EventSource 原生重连无错误对象
+  可分类）。账本修正一处：Electron 46 尚未发布（预计 2027-01），45.3.4 即受支持最新线。
+  门禁：全量 verify EXIT=0（218 文件 / 1005 用例 + smoke + desktop）。
+- **错误链路结构化分类（2026-11-18，硬编码清理批次）**：`ApiClient` 引入 `RpcError`
+  （稳定 kind：rpc-error / auth / http-status / bad-json / **network**，携带 HTTP status 与
+  JSON-RPC 协议码）；运行失败建议语改按 **kind / status / code** 分类——后端桥接等待超时
+  （协议码 `-32002`，回合可能仍在后台）与 HTTP ≥500 给「仍在后台」提示；**网络不可达首次
+  有了专属提示**（此前落进误导性的「检查 API Key」）；授权失败指向 token 横幅。判定不再
+  匹配翻译后文案（en 词条变化不再让提示静默失效），`/RPC 超时/` 中文字面量匹配从源码移除。
+  账本见 [hardcode-cleanup-2026-11-18.md](docs/design/hardcode-cleanup-2026-11-18.md)。
+- **i18nCoverage 判据四（2026-11-18）**：web/src 的 JSX 文本节点与展示属性（title /
+  aria-label / placeholder / alt 裸引号值）**零 CJK 直写**——普查为 0，钉住防回归；
+  桌面壳同步新增「ipc.ts / window.ts 剥离注释后零裸字面量」判据。
+- **压测 / 极限探针 + 后端并发锤（2026-11-18，批次 4）**：新增两个零第三方依赖的可复现探针
+  （真 Chrome + CDP + 确定性假后端 / 嵌入 API 起真实宿主），本轮数据：大会话 2000 事件打开
+  ~2s（DOM 3.2k，窗口化有界）；流式 600 delta 543ms 且 longtask **0ms**；轨迹 1500 行首屏
+  ~130ms、分页式全量展开 ~430ms（**轨迹虚拟化据此决策不做**——首屏与内存都已在量级内，
+  探针留仓可复测）；会话列表 800 行 ~1.4s；队列 50 项连续续发 51 轮 7.4s；后端 32 并发
+  640 只读调用 0 错误（p50 87ms / p95 191ms）。账本见
+  [ux-audit-2026-11-17.md](docs/design/ux-audit-2026-11-17.md) 第三批 P1/P2/D1。
+- **i18nCoverage 键表模式判据（2026-11-17，沉淀批次 C 的一次性脚本）**：设置字段 / 快捷键行 /
+  命令面板 buildCommands / 权限档 / 轨迹筛选 chips 等表驱动文案走 `t(var.label)` 查表，
+  en 是否覆盖只能从「表的值」侧比对——新增第三条静态判据：源码里 `label` / `hint` /
+  `name` / `group` 四键的 CJK 值都必须在 en 分片有条目。首跑即抓到命令面板「专注模式」
+  缺 en 词条（en 用户见中文），已补。
+- **内核升级 alpha.26（2026-11-17）**：vendored kernel 升到 `v0.1.0-alpha.26`
+  （R12 两批一并 vend）。alpha.25：缓存命中率三层修复（finalize 兜底请求保留主请求工具前缀 /
+  缓存读数逐步入账，实测旧口径低估 1.99× / gapMs 分因）、内存上界收口（磁盘嵌入镜像
+  256 MiB 预算 / watcher 峰值哨兵）、内部缓存一致性三项、会话级前缀计量器与零凭据稳定性探针；
+  alpha.26：工具暴露稳定杠杆 `OMNI_TOOL_EXPOSURE=monotonic`（显式第三模式，缺省仍 `plan`；
+  A/B 实测 tools 前缀复用 0.8197→1，窗口退出不再灾难性重写）与三轮 review 收口。
+  均为内核内部面，应用消费面零变化（19 域再生成「无变化」、公共根导出面 60/60）；
+  本仓 `kernel:check` 九条复绿（284 源文件 / 290 处包导入 / 原生内核实载）。
+  版本历史见 [vendor/README.md](vendor/README.md)，契约见 [KERNEL-CONTRACT.md](docs/KERNEL-CONTRACT.md)。
+- **粘性与美观第二批（2026-11-17，接全面 review，账本见
+  [ux-audit-2026-11-17.md](docs/design/ux-audit-2026-11-17.md) 第二批）**：
+  ① **消息引用追问**：任意一条 user / assistant 消息一键以引用块填回输入框（复用
+  composerSeed 通道零新 RPC，4000 字符截断）；② **轨迹导出 Markdown**：跟随当前筛选
+  按轮分节导出，下载链路与会话导出共用；③ **轨迹「回到当前轮」**锚点；
+  ④ **上下文余量预测**：「按近 N 轮增速，大约还能再撑 M 轮」（压缩骤降不参与中位数，
+  数据不足不渲染——预测是参考，宁缺毋滥）；⑤ **厂商卡「本地 / 云端」微标签**
+  （回环 + 私有网段 + 内网主机名判定）；⑥ 左栏空态一行化、宽度滑块「已应用」反馈。
+- **全面 review 打磨批次（2026-11-17，四路源码普查 → 五批还原，账本见
+  [ux-audit-2026-11-17.md](docs/design/ux-audit-2026-11-17.md)）**。新增能力：
+  ① **输入草稿按会话保留**（此前切会话串稿、刷新即丢；localStorage 兜底 + 32 条上限 +
+  换会话回填不抢焦点）；② **输入历史**（空输入框 ↑ 调上一条，↓ 越过最新归还原稿）；
+  ③ **用户消息一键复制**（`useCopyFeedback` 收编为公共 hook）；④ **上下文主动预警**
+  （容量坞 ≥80% 转琥珀 + 展开态「去压缩」直达控制室）；⑤ **后台会话完成站内提醒**
+  （运行态下降沿 toast，与失败提示对称）；⑥ **「?」快捷键速查浮层**（数据与设置页同源）；
+  ⑦ **多会话并行聚合徽标**（页脚「N 在跑」）。
+- **上下文注记卡（2026-11-16，用户截图反馈）**：对话流里的 `system` 中继内容不再按纯文本
+  平铺。① **压缩游标**：header 尾巴的 `evidence=<base64url>` 让 Web 侧旧正则失配，整条事件
+  回落到 `— 全文 —`，几 KB 证据 + 数千字摘要糊满一屏；现在证据是可选字段（坏证据只丢证据、
+  保留游标），并解出「审计齐全度 / 触发预算」两枚 chip；摘要展开是**分节 Markdown**
+  （`【标签】` 升为小节标题并加发丝线，围栏代码原样保留）。② **工作流记忆召回**：单行
+  `→ shell … → read_file …` 收成「N 步 · 仅作参考」折叠卡，展开是逐条编号步骤（工具名 dim、
+  目标等宽），不再让用户读一串箭头。③ **其余长注记**：超过 240 字 / 4 行的旁白统一收成同款卡，
+  标题取行首 `【标签】`（如「长期记忆 · 开工前对齐」）。默认全部收起（一行摘要 + 元信息），
+  展开正文在卡内滚动（≤min(56vh,460px)）、收起即卸载 DOM；卡头是 `button`
+  （`aria-expanded`、空格可开合、焦点环内缩）。判据 `web/test/systemNote.test.ts`（10 条：
+  归类/分节/摘要/证据坏掉/阈值边界）、`web/test/systemNoteCard.test.ts`（真浏览器：默认收起、
+  展开分节、证据不上屏、键盘开合、双主题截图）。
+- **内核升级 alpha.24（2026-11-16）**：vendored kernel 升到 `v0.1.0-alpha.24`
+  （alpha.23 R9/R10 + alpha.24 R11，含长任务端到端评测、请求哈希回溯、引用检查、
+  压缩长段落保真、checkpoint 文件态恢复与回滚原子性）。这些能力均在内核/评测/回滚内部面，
+  应用消费面零变化（19 域、公共根导出 60/60）；本仓完成 vendor 重建、tarball integrity、
+  `kernel:check`（284 源文件 / 290 导入 / 原生实载）与文档账实闭环，并重打桌面安装包。
+  版本历史见 [vendor/README.md](vendor/README.md)，契约见 [KERNEL-CONTRACT.md](docs/KERNEL-CONTRACT.md)。
+- **厂商编辑「可用模型」空白修复（2026-11-15，用户截图反馈）**：探测成功但手选模型
+  残留空串/已下线模型时，antd Select 拿不到匹配项显示为空白；现在统一回退到「当前
+  清单内的当前模型 → 清单首项」，并同步修正启用请求使用的模型，避免启用一个不存在的
+  模型。判据 `web/test/providerEditor.test.tsx`（2 条：展示回退 + `selectedModelFor`）。
+- **回合结果卡自动剔除「写过又删除」的临时文件（2026-11-15，用户截图反馈）**：
+  结果卡挂载时通过新增的 `fs.exists` 只读 RPC 核对本轮 **created** 行；文件已不存在
+  （临时脚本/探针在回合内自删）即自动从卡里摘掉，不再需要用户逐行点击才发现。
+  查询失败 fail-open（保留行，绝不误删真实交付物）；`fs.exists` 走
+  `SafeFs.safeStat`，越界/目录/不存在一律 false。判据
+  `web/test/turnSummaryFilter.test.tsx`（2 条）、`tests/workspaceTreeExists.test.ts`。
+- **体验打磨第二批（2026-11-15，基于全量 UX 审计）**：
+  ① **配置可读性**：设置下拉显示名表（`openai`→「OpenAI 兼容」、`policy`→「策略拦截」、
+  `max`→「最高」…，机读值不变），未设置项回显已知出厂值「未设置（默认：JSONL/策略拦截…）」；
+  ② **轨迹检索**：读/写/命令/搜索/失败/进行中筛选 chips + 文本搜索 + 轮次分隔，过滤算术下沉
+  `TraceFilter`（`web/test/traceFilter.test.ts` 4 条）；
+  ③ **设置搜索/跳转**：左栏字段级搜索（索引与 `SETTINGS_FIELDS` 同源），选中后切分栏、滚到行并高亮；
+  ④ **键盘可达**：会话时间分组头改 `button`（`aria-expanded`）、事件卡新增 `ev-open` 详情按钮、
+  移动端顶栏新增设置入口；⑤ **保存反馈**：保存成功后字段行级「已保存」徽标；
+  ⑥ 模型芯片 `title` 改为完整「模型 · 厂商」；⑦ **桌面标题条去重**：不再重复品牌/项目名，
+  只保留图标化快速提问与窗口控制（品牌在左栏、项目在页头/左右栏已各有一处）；
+  ⑧ **轨迹长列表上限**：超过 300 行先渲染 300 行，剩余「显示剩余 N 条」手动展开
+  （`traceLimit.test.tsx`）。
+  判据：`settingsPane`（显示名/默认值）、`configWiring`（savedField）、`traceFilter`、`uxPolish`。
+- **聊天流收纳审计与未知事件（2026-11-15，用户截图反馈）**：每轮 `audit` 事件不再逐条
+  渲染成 JSON 卡，统一收进末尾**一条默认折叠**的「审计记录 × N」摘要（展开看逐条
+  heartbeat/approval/decision 负载）；未知事件兜底也从常开 JSON 改为默认折叠。
+  判据 `web/test/auditFold.test.ts`（3 条：单块聚合/默认收起/负载保留）。
+- **轨迹视图版式与对话同轴（2026-11-15，用户截图反馈）**：`.trace` 内层新增
+  `.trace-inner`，与 `.stream-inner` 共用 800px 居中正文列（专注模式 920px），外层内边距
+  对齐 `.stream` 的 22/28/10——此前轨迹贴中栏左缘、状态/时间被甩到极右，与下方对话卡
+  形成两条错位内容轴。同时状态徽标定宽居中、时间列等宽右对齐。判据
+  `web/test/traceLayout.test.ts`（5 条，含「只改 CSS 不包容器 = 假对齐」与窄窗同步）。
+- **内核升级 alpha.22 + 深度适配三项（2026-11-15）**：vendored kernel 升到
+  `v0.1.0-alpha.22`（alpha.20 收尾基线 + alpha.21 三项 + 信任闸分类修复并入）。三项能力落地：
+  ① **缓存与防火墙**：`FileConfig` 新增 `toolCache`/`capflow` 文件面（内核），设置页运行时栏新增
+  「缓存与防火墙」卡（读缓存开关/条目上限、能力防火墙 off/shadow/enforce、策略文件选择），
+  段名进 `PERSISTABLE_KEYS`/`SECTION_REPLACE_KEYS`；
+  另：设置保存后 `capflow` 与上下文三段经 `liveRuntimeConfig` 覆盖启动快照，**下一回合生效**
+  （`toolCache` 在装配期包裹工具端口，只能重启生效，hint 已写明）；
+  ② **编队实时子会话**：内核 `SubagentTree` 共享父子树（编排器在子代理启动时写 `父→子` 与
+  `callId→子`），serve 组合根在 `buildConfig` **之前**创建并注入，`fleet.list` 运行中车道
+  立刻带出 `childSessionId`（不必等 `tool_result`）；
+  ③ **压缩证据**：内核把 `stateAudit`/`signals` 以 ` evidence=<base64url-json>` 随
+  `OMNI_COMPACTION_V1` 游标持久化（旧游标兼容、坏证据 fail-soft），上下文面板显示
+  「审计通过/有缺失」与触发信号，未记录审计仍如实告警。
+  内核侧 `v0.1.0-alpha.21` tag 含 11 条新判据（压缩证据 4 / 父子树 3 / 配置段 4）；
+  本仓验证：`kernel:check` 九条（284 源文件 / 290 导入）、typecheck×3、
+  web 212 文件 / 972 用例、build/build:web、smoke 9 条、desktop 41 条全过。
+- **修复上下文三段配置通道断链（2026-11-15）**：alpha.19 批次里 `retrievalContext`/`semanticRecall`/
+  `contextPolicy` 能经设置页落盘，但 `ArgParser.configDefaults` → `CliArgs` → `CliConfigSections`
+  → `ConfigFactory.build` 从未映射 ⇒ CLI/serve 启动时内核收到 undefined、行为静默回落到 off。
+  现已全链透传并以 `tests/configSectionWiring.test.ts` 钉住（I5a 同型判据）。
+- **上下文工作室补内核上下文策略（2026-11-15）**：`context.studio` 增 `kernel` 字段
+  （`KernelContextViewBuilder`：检索供给 mode/改写/精排/预算、语义召回 requested/active/degraded、
+  降档两级、缓存守卫下限），与 `kernel.health` 的 context 分区**同一读模型**（`semanticRecallRequested`
+  收敛到一处）。控制室「上下文」新增「内核上下文策略」卡：BM25 单步预算、改写/精排、
+  语义召回（请求了但嵌入不在位 = 「降档运行」而不是「未启用」）、降档阶梯、缓存守卫（下限 +
+  当前命中率）。内容口径修正：context studio / extensions / proof / fleet 里过时的
+  「alpha.16」事实改为当前内核事实（含「SubagentOrchestrator 已导出、编队接线待排期」）。
+  设计审计与对齐矩阵见 [kernel-ui-alignment/README.md](docs/design/kernel-ui-alignment/README.md)。
+  判据 `tests/kernelContextView.test.ts`（默认全关/配置映射/降档）、`tests/controlContext.test.ts`
+  （快照带出生效值）、`web/test/contextMode.test.ts`（三态渲染与徽标）。
+- **内核健康桥 `kernel.health`（2026-11-15）**：`observability` 域新增 1 个只读 RPC（108 → 109），
+  把本进程可观测的运行态聚合成七分区健康报告（`receipts/telemetry/budget/sessions/plugins/
+  sandbox/context`，词表与内核哨兵一致：`ok/degraded/absent`，absent ≠ degraded）。诊断面板
+  新增「内核健康（哨兵桥）」一屏：分区状态、问题码与 absent 原因逐条可见；未装配分区显示
+  「未配置」而不是「正常」。实现 `services/kernelHealthBridge.ts` + `AgentRuntimeHost`
+  只读探针（沙箱名/嵌入端口/预算读数），单探针抛错只降级该分区（`HEALTH_SECTION_FAILED`）。
+  判据 `tests/kernelHealthBridge.test.ts`（七分区/越预算/语义召回降档/fail-soft）与
+  `web/test/diagnosticsTab.test.ts`（⑥⑦）。
+- **设置页 alpha.19 上下文三段入口（2026-11-15）**：运行时栏新增「上下文与检索」卡——
+  `retrievalContext`（mode/rewriter/rerank/maxSnippets/maxTokens）、`semanticRecall.mode`、
+  `contextPolicy`（降档两级 + 缓存命中率下限）共 9 行；三个段名进 `config.update` 白名单，
+  服务端对 `SECTION_REPLACE_KEYS` **按段替换**（深合并无法删除嵌套键）。设置页字段模型新增
+  `path` + `fieldId`（同段多行），数字留空=删除叶键、删空整段=显式清除。判据
+  `settingsPane`（fieldId 全集/NUMBER_RANGES 对齐）、`configWiring`（⑬–⑯ 完整段提交/清空/
+  越界）、`serverConfigStorePersist`（段替换往返/非法拒绝）、`settingsPersistKeys`（段校验器）。
+- **决策账本 v1（2026-11-11）**：控制台「数据与统计 / 审计之后」新增 1 个面板——
+  执行前决策、审批、授权、双链（原始 audit + AAT）与共形证据一屏可读；支持复核抽屉、
+  AAT + `.sha256` 导出与用户级审计开关。新增 `decision.session/detail/export/configure`
+  4 个 RPC（104 → 108），后端 `services/decision/*`，前端 React 19 + antd 6 面板
+  `DecisionTab`（390 宽单栏、无横向滚动；preview axe 0 violations）。设计与验收见
+  [decision-ledger/README.md](docs/design/decision-ledger/README.md)。
+- **右栏「工作台概览」首页（2026-11-10）**：没有打开文件 / 网页时，右栏不再留白，只放三块：
+  项目名与路径（分支 / 未提交变更数作为一行轻量元信息）、本会话一句话摘要（回合 / 工具 /
+  文件 / 上下文 / 有效时长）、前 4 条工作区变更 + 一个「全部变更」。长会话首屏只加载尾部
+  事件时，回合数与时长以服务端旁路摘要为准，避免「0 回合」与左栏「2 回合」自相矛盾；文件数
+  会补上成功写文件工具的产物。上下文百分比直接读内核 `model` 事件最近一次 `payload.context`，
+  不额外轮询。
+  同一轮收敛掉了首页里的重复入口：「新建任务 / 命令面板 / 设置」由左栏与快捷键承担，
+  「继续最近」由左栏会话列表承担，连接 / 模型状态由页脚承担，上下文明细由左栏容量图表承担，
+  都不在右栏再放第二遍。
+- **桌面端全局「快速提问」**：主进程注册 `Ctrl/Cmd+Shift+Space`，任意应用中按下即唤起窗口并把
+  焦点送进输入框；托盘与应用「文件」菜单新增入口，无边框标题条显示品牌 / 当前项目并提供
+  常驻按钮；设置 → 桌面显示该快捷键。旧 preload 不订阅该事件也照常工作（纯增量）。
+- **命令面板两个会话实用命令**：`导出会话 Markdown`（当前已加载事件 → 本地 `.md`，更早历史
+  未加载时在文稿开头标注）与 `复制会话链接`（不含一次性 token，同机同浏览器可直接打开）。
+  对应模型 `SessionTranscript` / `SessionBrief` 均为零 React 纯逻辑，新增判据覆盖。
+- **输入区空态快捷键提示**：四条示例下方补 `Ctrl/Cmd K`（命令面板）、`@`（引用文件）、
+  `/`（调用技能）三枚键帽，不增加常驻说明文字。
+
 - **Windows 一键入口**：仓库根新增 `start.cmd`（构建后端 + 前端 → 起 serve → 自动打开带 token 的工作台；
   `start.cmd mock` 走零凭据 mock，`start.cmd desktop` 启动 Electron 桌面应用）与 `package-desktop.cmd`
   （构建 → stage → NSIS 安装包，产物在 `desktop/release/`）。两者是 `npm start` / `npm run desktop:dist`
   的薄包装，缺依赖时自动 `npm ci`，失败时停在窗口里保留错误。
 
 ### Fixed（修复）
+- **桌面壳硬编码中文绕过 i18n（2026-11-18，硬编码清理批次）**：目录选择框标题（en 用户
+  看到中文「选择工作区」→ `dialog.pickWorkspace` 双语键）；切换工作区时守卫错误直弹
+  中文句子（`assertDirectory` 抛稳定码 `WorkspaceGuardError`，对话框按
+  `dialog.workspaceNotFound` / `dialog.workspaceNotDirectory` 本地化模板呈现）；启动页
+  兜底文案复写副本删除（引用消息表单一真源）。
+- **打开「正在运行」的会话后停止按钮失灵、可并出幽灵第二回合（2026-11-17 全面 review）**：
+  busy 来自磁盘态而 `inFlight=false`，`stop()` 直接 return、`send()` 落进空闲分支直接 runRound。
+  现在 `stop()` 在远端忙碌时降级收口（清 UI + 定向 abortTurn）、发送按聊天模式分流不并发，
+  服务端收尾后 busy 自动解除并接队列续发。判据 `web/test/remoteTurnStop.test.ts` +
+  `chatModeRouting` 远端回合两条。
+- **六个右栏面板取数无竞态守卫（2026-11-17 全面 review）**：TraceTab 快速切会话时旧会话的
+  迟到响应覆盖新会话数据（跨会话串数据）；useProof 双流共用 seq 可把骨架屏永久卡死。
+  统一收编 `useSessionResource`（seq 守卫 + 失败保留旧数据 + loading 只在无数据时为 true，
+  周期刷新不再把面板闪回骨架屏）。
+- **设置「需重启」标记在英文界面失效（2026-11-17 i18n 收口）**：判定用的是 t() 翻译后的
+  中文子串 `includes('重启')`——字段新增结构化 `needRestart` 标记，渲染层不再猜文案。
+- **决策详情解释段 / 掉线授权横幅 / 会话导出文稿整段裸中文（2026-11-17 i18n 收口）**：
+  37 处真硬编码过 t()；en 词条同步补齐，并清理 85 个无引用孤儿词条（脚本机械比对 +
+  i18nCoverage 把关）。
+- **任一右栏面板渲染抛错把整个工作台换成 crash 屏（2026-11-17 全面 review）**：
+  RenderErrorBoundary 从根级一处下沉到按面板包裹（key=activePane，爆炸半径收敛到单面板）；
+  另补全局 unhandledrejection 兜底（记日志 + 节流 toast）与 `--model-router` 非法 JSON 的
+  可读报错。
+- **安装版「本地 Harness 未能启动」（2026-11-14 用户报障）**：只重打 NSIS 的
+  `npm run installer` 复用了 6 天前的 `release/win-unpacked`，安装包外观是新的、侧车却是旧
+  `dist`（缺「PS7 终端启动时 DPAPI 凭据解密失败」修复，kernel 仍是 alpha.15），装完启动即退出。
+  现在 `stage` 写入 `BUILD_INFO.json`（版本/kernel/产物哈希），`pack`/`dist`/`installer` 三处
+  都用它把安装目录与**当前工作树**逐字节比对，旧载荷直接拒绝出包；启动失败对话框同时带上
+  侧车最近 20 行输出（不再只有「超时/退出码」），日志新增 `harness start failed after <ms>`；
+  就绪超时默认 30s → 60s（安装后首次启动实测 33.6s：新 exe 被 Defender 扫描 + 维护巡检）。
+  回归判据 `desktop/scripts/test.mjs` 的 `PackagedPayloadCheck` / `HarnessStartFailure` 用例。
+- **任务栏图标显示 Electron 默认原子而非 Ω（2026-11-14 用户报障）**：Windows 按
+  AppUserModelID 匹配开始菜单快捷方式取图标；机器上残留了一枚测试用的 `Electron.lnk`
+  （指向开发 `electron.exe`，却是产品 AUMID），任务栏因此显示 Electron 默认图标。已清理该
+  快捷方式并重启 Explorer；安装器新增 `customInstall` 的 `SHChangeNotify`，升级替换 exe 后
+  主动刷新图标缓存。排障步骤见 `desktop/README.md` §10.1。
 - **没有 API Key 时桌面端直接进不去（侧车启动即退出，2026-11-08 用户报障）**：`serve` 的模型
   装配在「配置了需要 Key 的厂商、但 Key 缺失」时直接抛错，侧车在就绪前退出 ⇒ 主进程弹
   「Harness 启动失败」并 `app.quit()`，用户连「设置 → 模型接入」都进不去（启动被配置反向卡死）。
@@ -50,7 +642,66 @@
   `sidecar`/`url` 现场；`OMNI_SMOKE` 下缺 `--workspace` 直接退出码 2 并说明原因，不再弹框空转。
   回归判据 `desktop/scripts/test.mjs` 增 1 条（34 → 35 条）。
 
+- **性能与窄屏收口（2026-11-17 全面 review）**：流式会话的 hljs 高亮按代码内容缓存（闭合围栏
+  不可变，重渲染直接命中——分块缓存因破坏 markdown-it 跨空行块结构被否决，决策记录见审计
+  文档）；antd Theme 按 (theme, scheme) memo（此前每条 SSE patch 都重建 ThemeConfig）；对话
+  流/轨迹/思考轨迹/待办坞的每帧 O(n) 派生全部 memo 化；会话卡片视图补分页；虚拟化窗口高度
+  计算从每帧 3×O(blocks) 全扫收成单次扫描。窄屏（≤480px）四组件收口：容量坞柱阵、计划条
+  标题省略、队列列表高度、输入区隐藏语音按钮。
+
+- **UI 圆角感（2026-11-13）**：圆角阶梯整体提一档——`--r-xs/sm/md/lg` 6/8/10/14 →
+  8/10/12/18（`--r-xl` 18 → 22），theme.css 明暗别名同步；antd 控件经
+  `css-var-*` 作用域属性双写跟随同一阶梯（流内与 portal 弹层一致，药丸/圆点不变）；
+  fp-shell / 崩溃面板 / 自写模态等 16px 残项对齐 token。纸与墨观感不变，控件更柔和。
 ### Changed（变更）
+- **内核升级到 `0.1.0-alpha.19`（2026-11-14）**：vendored tarball 重建自内核 tag
+  `v0.1.0-alpha.19`（内核 M55–M76：哨兵/缓存/成本信封/审计时间线/CapFlow/检索供给与语义召回/
+  上下文策略/缓存读数联动/改写/精排/注入面 enforce/VectorStorePort/eval:inject/路由质量对照/
+  SSE-Web 示例/残余台账）。`kernel:surface` 19 域零变化；`kernel:check` 九条复绿
+  （282 源文件 / 288 处包导入 / 原生内核实载），typecheck×3、web 198 文件 / 905 用例、
+  build/build:web、smoke 8 条、desktop 38 条全部通过；`package-lock.json` integrity 与
+  tarball 逐字节一致。
+- **UI 打磨：焦点环统一与弹窗头部材质（2026-11-13）**：工作台/控制台全界面真机巡检后收两处瑕疵——
+  ① antd 6 的 genFocusStyle 给按钮/菜单项 3px 主色淡化环，与原生控件的双环
+  （2px brand + offset 2 + --ring 外晕）同屏观感分裂，统一到双环；② `.ant-modal-header`
+  自带实底，在磨砂弹窗上显出一条亮度不同的头带，改透明继承容器半透 blur。
+- **磨砂材质补齐到 antd 基座 + 文案配置化收尾（2026-11-13）**：把 2026-10-31 的 iOS 磨砂口径
+  补到 antd 控件与浮层——default 按钮 = 半透明磨砂填充（无边框、无 blur），Modal / Select
+  下拉 / Popover / Dropdown / 命令面板 / 文件选择卡 = 半透 panel + backdrop blur；卡片仍是纸面。
+  附 token 级降级：`prefers-reduced-transparency` 全部回实色并关 blur（含 antd 遮罩模糊），
+  不支持 backdrop-filter 的引擎关 blur 保留填充。顺带修正三处 antd 6 之后的死选择器
+  （`.ant-modal-content`→`.ant-modal-container` 等，命令面板/文件选择卡的透明覆盖由此恢复生效）
+  与 `.stream-jump-bottom` 的嵌套 blur() 笔误。文案配置化：`useProof` 导出前置提示与
+  GraphTab 示例提示词改走 i18n（新增 5 条 en 词条）。
+- **控制台 UI 统一迁到 antd 控件基座（2026-11-12）**：工作台控制台全量换 antd（`antd/es/*`
+  子路径导入）——设置原语（Select/Input/Switch/Segmented）、面板表格与表单、control 三模式
+  （Tabs/Collapse/Row/Col/Segmented）、收尾候选面（ToolsTab 行 → Button+Badge 并补
+  `toolsTab` 判据；ChangesPatchView hunk/行内评论按钮；RollbackTab 检查点条目按钮）。
+  行为、文案、i18n、无障碍判据与信息架构不变：kit `PanelSection` 补回 region+h3 地标语义、
+  设置卡标题保持真 h2（字号继承卡头，视觉不变）、控制室 tablist 经命名 region 恢复可访问名、
+  车道重复选中恢复 no-op；测试锚点 className（hunk-btn/cp-main/tool-item 等）全部保留。
+  被替代的自写控件样式已清（csl-select/input/switch 皮肤、行/钮表面），容器节奏层
+  （面板根 gap、列表卡壳、空态卡面）经真机取证后恢复；浅/深色真机渲染逐面核对。
+- **antd 分块合并（2026-11-11）**：删除异步 `panel-antd` 拆块，所有 antd / rc-component 收进
+  单一 `vendor-antd`。原拆法在真机 E2E 中触发 `panel-antd → vendor-antd → panel-antd` 循环
+  块，页面启动即 `ReferenceError: Cannot access 'Sr' before initialization`；合并后
+  `DecisionTab` 30 KB gzip 9.5 KB、e2e 恢复绿。`vendorFreePipeline` 判据同步改为
+  「panel-antd 必须为 0、Table 指纹在 vendor-antd」。
+- **内核同步至 0.1.0-alpha.17（2026-11-11）**：内核仓把 27 条复核闭环（P0 3 / P1 6 / P2 16 / P3 2）
+  打成 `v0.1.0-alpha.17` 并 tag；`vendor/omniharness-kernel-0.1.0-alpha.17.tgz` 重建自该 tag
+  （tarball integrity 同步进 lock）。含 MCP Host/Origin 来源校验、工作区信任闸分类补齐、
+  回滚后审计链自愈、会话隔离（审批观察者 / turn-diff）、取消边界、补丁行尾继承、晋升台账
+  seq 连续性等；端口签名变化见内核 CHANGELOG「Changed」。本仓 `kernel:surface` 19 域零变化，
+  `kernel:check` / 三份 typecheck / build 全绿。同步产出并实现新功能
+  [决策账本](docs/design/decision-ledger/README.md)（v1：1 面板 / 4 RPC）。
+- **同一面板去重（2026-11-10 第二轮）**：左栏「任务列表」头移除第二个「+ 添加项目」按钮，
+  添加项目只保留项目切换器下拉里的唯一入口；会话行高 34 → 38px、纵向内边距 7 → 9px，
+  组头也放宽 2px，长列表不再一行挨一行。
+- **中等宽度不再三栏硬塞（2026-11-10）**：没有显式右栏偏好时，视口 <1180px 自动收起右栏
+  （用户手动展开过则尊重选择，`RightPanePreference` 纯逻辑判据覆盖）；≤880px 的左右抽屉不再
+  被 42vw / 34vw 的中窗规则压到 130–164px，恢复 `84% / max 340px` 的可读宽度。
+- **工具错误摘要去掉 2px 左缘色条**：改为极淡的整块 error 底色 + 小圆角，避免生成式 UI 的
+  「卡片单侧粗色条」痕迹。
 - **品牌标识与桌面图标统一为白底版**（2026-11-08 用户口径「一起换统一下」）：新增固定 token
   `--brand-tile` / `--brand-tile-rim` / `--brand-tile-ink`（白底 + 靛墨 Ω + 淡靛描边，不随主题/方案
   变化），左栏品牌芯片、工作台状态条紧凑标识、站点 favicon、桌面启动页 `.mark` 全部改用同一配色。
@@ -224,3 +875,8 @@
 
 - 从上游 OmniHarness@0.4.0 切出独立应用仓（后端宿主 + React 工作台 + Electron 桌面端）。
 - 完成内核包迁移（M2）：消费 vendored `@omniharness/kernel@0.1.0-alpha.4`，删除 1163 个内嵌内核文件。
+
+
+
+
+

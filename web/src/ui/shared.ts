@@ -1,6 +1,6 @@
 // 组件层共享的 UI 状态类型（与后端协议无关，仅描述前端渲染所需的结构）。
 
-import type { GraphRunState, ThreadEvent } from '../types/models.ts';
+import type { ToastKind } from '../core/ToastService.ts';
 
 export interface ToolItem {
   callId: string;
@@ -66,7 +66,6 @@ export interface BrowserView {
   error: string;
 }
 
-export type ToastKind = 'ok' | 'err' | 'info';
 
 export interface ToastState {
   message: string;
@@ -93,4 +92,3 @@ export interface ComposerSeed {
   nonce: number;
 }
 
-export type { GraphRunState, ThreadEvent };

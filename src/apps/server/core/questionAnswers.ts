@@ -1,7 +1,9 @@
+import { AppText } from '../../i18n/AppText.ts';
+import { RuntimeConfig } from '../../config/RuntimeConfig.ts';
 import type { AskAnswer, AskQuestion } from '../../../host/kernel/contracts.ts';
 
 /** 单题自由输入上限（字符）：上行通道是外部输入，超长文本不进模型上下文。 */
-const MAX_CUSTOM_CHARS = 4000;
+const MAX_CUSTOM_CHARS = RuntimeConfig.server.questionMaxCustomChars;
 
 /** 答案解析结果：成功给同序答案；失败给一句可读拒因（**不静默兜底**）。 */
 export type ParsedQuestionAnswers =
@@ -28,7 +30,7 @@ export class QuestionAnswers {
    */
   public static parse(raw: unknown, questions: readonly AskQuestion[]): ParsedQuestionAnswers {
     if (!Array.isArray(raw)) {
-      return { ok: false, error: 'answers 必须是数组' };
+      return { ok: false, error: AppText.t('answers 必须是数组') };
     }
     const byId = new Map<string, { selected: string[]; custom: string }>();
     for (const item of raw) {
@@ -53,12 +55,12 @@ export class QuestionAnswers {
     byId: Map<string, { selected: string[]; custom: string }>,
   ): string | undefined {
     if (typeof item !== 'object' || item === null) {
-      return 'answers 的每一项必须是对象';
+      return AppText.t('answers 的每一项必须是对象');
     }
     const record = item as Record<string, unknown>;
     const id = record['id'];
     if (typeof id !== 'string' || id === '') {
-      return 'answers 的每一项必须有非空 id';
+      return AppText.t('answers 的每一项必须有非空 id');
     }
     const question = questions.find((candidate) => candidate.id === id);
     if (question === undefined) {

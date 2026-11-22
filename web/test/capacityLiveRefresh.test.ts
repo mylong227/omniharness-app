@@ -65,6 +65,6 @@ test('③ 链路：小图表 → hook；输入区 / 控制台 / 路由不再有�
   assert.doesNotMatch(panels, /key: 'capacity'/, 'PanelRegistry 不得再登记容量面板');
   const consoleReg = srcOf('ui/models/ConsoleRegistry.ts');
   assert.doesNotMatch(consoleReg, /'capacity'/, '控制台导航不得再出现容量页');
-  const router = srcOf('core/Router.ts');
+  const router = srcOf('ui/models/Router.ts');
   assert.doesNotMatch(router, /'capacity'/, 'Router 不得再把 capacity 当合法 pane');
 });

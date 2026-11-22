@@ -1,10 +1,11 @@
+import { AppText } from '../../i18n/AppText.ts';
 import { LocalDay } from '../../../host/kernel/util.ts';
 import { QuotaPlans, type QuotaPlan } from './quotaPlans.ts';
 import type { QuotaStore } from './quotaStore.ts';
 import type { SessionArchive } from './session/sessionArchive.ts';
 
 /** 单个模型的当日配额行。 */
-export interface QuotaModelRow {
+interface QuotaModelRow {
   /** 模型名（用量归组键，未知模型为 `unknown`）。 */
   readonly name: string;
   /** 当日已用 token 数。 */
@@ -146,7 +147,7 @@ export class QuotaService {
     if (params.dailyTokens !== undefined) {
       const daily = params.dailyTokens;
       if (!Number.isFinite(daily) || daily <= 0) {
-        throw new Error('日预算必须是正数（tokens/天）');
+        throw new Error(AppText.t('日预算必须是正数（tokens/天）'));
       }
       this.deps.store.write({ dailyTokens: daily });
     }

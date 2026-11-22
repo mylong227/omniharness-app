@@ -10,6 +10,7 @@ import type { DesktopLocale } from './DesktopI18n.ts';
 export type DesktopMessageKey =
   | 'menu.file'
   | 'menu.openWorkspace'
+  | 'menu.quickCapture'
   | 'menu.newWindow'
   | 'menu.restartHarness'
   | 'menu.checkUpdates'
@@ -22,6 +23,7 @@ export type DesktopMessageKey =
   | 'menu.help'
   | 'menu.repository'
   | 'tray.show'
+  | 'tray.quickCapture'
   | 'tray.newWindow'
   | 'tray.openWorkspace'
   | 'tray.recent'
@@ -41,6 +43,7 @@ export type DesktopMessageKey =
   | 'dialog.noWorkspace'
   | 'dialog.harnessStartTitle'
   | 'dialog.harnessStartMessage'
+  | 'dialog.harnessOutput'
   | 'dialog.crashTitle'
   | 'dialog.crashMessage'
   | 'dialog.uiGoneTitle'
@@ -50,6 +53,9 @@ export type DesktopMessageKey =
   | 'dialog.diagnosticsMessage'
   | 'dialog.workspaceOpenFailed'
   | 'dialog.invalidWorkspace'
+  | 'dialog.workspaceNotFound'
+  | 'dialog.workspaceNotDirectory'
+  | 'dialog.pickWorkspace'
   | 'dialog.switchFailedTitle'
   | 'dialog.switchFailedMessage'
   | 'dialog.restartFailedTitle'
@@ -70,12 +76,30 @@ export type DesktopMessageKey =
   | 'dialog.updateFailedMessage'
   | 'dialog.updateLatestTitle'
   | 'dialog.updateLatestMessage'
-  | 'window.starting';
+  | 'window.starting'
+  // 配置加载器告警（2026-11-20 遗留 #4 收口：码与 DesktopConfigLoader.CONFIG_WARNING_CODES
+  // 一一对应，判据钉齐全；插值参数见各码的 issue.params）。
+  | 'config.fileMissing'
+  | 'config.notObject'
+  | 'config.badJson'
+  | 'config.expectObject'
+  | 'config.expectNumber'
+  | 'config.clamped'
+  | 'config.expectBoolean'
+  | 'config.badShape'
+  | 'config.expectEnum'
+  | 'config.loopbackOnly'
+  | 'config.expectStringArray'
+  | 'config.dropItem'
+  | 'config.dropToken'
+  | 'config.unknownPermission'
+  | 'config.expectObjectFallback';
 
 /** 中文（默认）。 */
 const ZH: Record<DesktopMessageKey, string> = {
   'menu.file': '文件',
   'menu.openWorkspace': '打开工作区…',
+  'menu.quickCapture': '快速提问',
   'menu.newWindow': '新建窗口',
   'menu.restartHarness': '重启 Harness',
   'menu.checkUpdates': '检查更新',
@@ -88,6 +112,7 @@ const ZH: Record<DesktopMessageKey, string> = {
   'menu.help': '帮助',
   'menu.repository': 'OmniHarness on GitHub',
   'tray.show': '显示 OmniHarness',
+  'tray.quickCapture': '快速提问（全局）',
   'tray.newWindow': '新建窗口',
   'tray.openWorkspace': '打开工作区…',
   'tray.recent': '最近工作区',
@@ -107,6 +132,7 @@ const ZH: Record<DesktopMessageKey, string> = {
   'dialog.noWorkspace': '未选择工作区，应用将退出。',
   'dialog.harnessStartTitle': 'Harness 启动失败',
   'dialog.harnessStartMessage': '本地 Harness 未能启动',
+  'dialog.harnessOutput': 'Harness 最近输出',
   'dialog.crashTitle': 'Harness 已退出',
   'dialog.crashMessage': '本地 Harness 意外退出',
   'dialog.uiGoneTitle': '界面进程异常',
@@ -116,6 +142,9 @@ const ZH: Record<DesktopMessageKey, string> = {
   'dialog.diagnosticsMessage': '可复制以下内容用于排障：',
   'dialog.workspaceOpenFailed': '打开工作区失败',
   'dialog.invalidWorkspace': '工作区无效',
+  'dialog.workspaceNotFound': '工作区不存在：{path}',
+  'dialog.workspaceNotDirectory': '不是目录：{path}',
+  'dialog.pickWorkspace': '选择工作区',
   'dialog.switchFailedTitle': '切换工作区失败',
   'dialog.switchFailedMessage': '无法启动新工作区的 Harness',
   'dialog.restartFailedTitle': '重启失败',
@@ -138,12 +167,29 @@ const ZH: Record<DesktopMessageKey, string> = {
   'dialog.updateLatestTitle': '检查更新',
   'dialog.updateLatestMessage': '当前已是最新版本',
   'window.starting': '正在启动本地 Harness…',
+  // 配置加载器告警（DesktopConfigLoader 的 issue → 呈现层渲染）
+  'config.fileMissing': '{file}: 文件不存在，已忽略',
+  'config.notObject': '{file}: 顶层必须是对象，已忽略',
+  'config.badJson': '{file}: {message}',
+  'config.expectObject': '{path}: 应为对象，已忽略',
+  'config.expectNumber': '{path}: 应为数字，实际 {actual}，回落 {fallback}',
+  'config.clamped': '{path}: 越界 {actual}，夹取为 {clamped}（允许 {min}–{max}）',
+  'config.expectBoolean': '{path}: 应为布尔，实际 {actual}，回落 {fallback}',
+  'config.badShape': '{path}: 形状非法，回落 {fallback}',
+  'config.expectEnum': '{path}: 应为 {allowed} 之一，实际 {actual}，回落 {fallback}',
+  'config.loopbackOnly': '{path}: 只允许 127.0.0.1（serve 固定绑回环；当前不支持 --host）',
+  'config.expectStringArray': '{path}: 应为字符串数组，回落默认值',
+  'config.dropItem': '{path}: 忽略非字符串项 {item}',
+  'config.dropToken': '{path}: 忽略含 ; 或换行的 token {item}',
+  'config.unknownPermission': '{path}: 未知权限 {item}，已剔除',
+  'config.expectObjectFallback': '{path}: 应为对象，回落默认值',
 };
 
 /** 英文。 */
 const EN: Record<DesktopMessageKey, string> = {
   'menu.file': 'File',
   'menu.openWorkspace': 'Open Workspace…',
+  'menu.quickCapture': 'Quick Capture',
   'menu.newWindow': 'New Window',
   'menu.restartHarness': 'Restart Harness',
   'menu.checkUpdates': 'Check for Updates',
@@ -156,6 +202,7 @@ const EN: Record<DesktopMessageKey, string> = {
   'menu.help': 'Help',
   'menu.repository': 'OmniHarness on GitHub',
   'tray.show': 'Show OmniHarness',
+  'tray.quickCapture': 'Quick Capture (global)',
   'tray.newWindow': 'New Window',
   'tray.openWorkspace': 'Open Workspace…',
   'tray.recent': 'Recent Workspaces',
@@ -175,6 +222,7 @@ const EN: Record<DesktopMessageKey, string> = {
   'dialog.noWorkspace': 'No workspace selected. The app will exit.',
   'dialog.harnessStartTitle': 'Harness failed to start',
   'dialog.harnessStartMessage': 'The local Harness could not start.',
+  'dialog.harnessOutput': 'Recent Harness output',
   'dialog.crashTitle': 'Harness exited',
   'dialog.crashMessage': 'The local Harness exited unexpectedly.',
   'dialog.uiGoneTitle': 'Workbench UI crash',
@@ -185,6 +233,9 @@ const EN: Record<DesktopMessageKey, string> = {
   'dialog.diagnosticsMessage': 'Copy the following for troubleshooting:',
   'dialog.workspaceOpenFailed': 'Failed to open workspace',
   'dialog.invalidWorkspace': 'Invalid workspace',
+  'dialog.workspaceNotFound': 'Workspace does not exist: {path}',
+  'dialog.workspaceNotDirectory': 'Not a directory: {path}',
+  'dialog.pickWorkspace': 'Select Workspace',
   'dialog.switchFailedTitle': 'Failed to switch workspace',
   'dialog.switchFailedMessage': 'Could not start the Harness for the new workspace.',
   'dialog.restartFailedTitle': 'Restart failed',
@@ -207,6 +258,22 @@ const EN: Record<DesktopMessageKey, string> = {
   'dialog.updateLatestTitle': 'Check for Updates',
   'dialog.updateLatestMessage': 'You are on the latest version.',
   'window.starting': 'Starting the local Harness…',
+  // Config-loader warnings (issue code → rendered here)
+  'config.fileMissing': '{file}: file not found, ignored',
+  'config.notObject': '{file}: top level must be an object, ignored',
+  'config.badJson': '{file}: {message}',
+  'config.expectObject': '{path}: expected an object, ignored',
+  'config.expectNumber': '{path}: expected a number, got {actual}, using {fallback}',
+  'config.clamped': '{path}: out of range {actual}, clamped to {clamped} (allowed {min}–{max})',
+  'config.expectBoolean': '{path}: expected a boolean, got {actual}, using {fallback}',
+  'config.badShape': '{path}: invalid shape, using {fallback}',
+  'config.expectEnum': '{path}: expected one of {allowed}, got {actual}, using {fallback}',
+  'config.loopbackOnly': '{path}: only 127.0.0.1 is allowed (serve binds loopback; --host not supported)',
+  'config.expectStringArray': '{path}: expected a string array, using defaults',
+  'config.dropItem': '{path}: dropped non-string item {item}',
+  'config.dropToken': '{path}: dropped token with ; or newline {item}',
+  'config.unknownPermission': '{path}: unknown permission {item}, removed',
+  'config.expectObjectFallback': '{path}: expected an object, using defaults',
 };
 
 /** 全部语言包。 */

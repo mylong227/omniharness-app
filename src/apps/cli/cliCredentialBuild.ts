@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * CliCredentialBuild —— ExecCli 命令族继承链的**新根基类**（god-class 拆分 · 第 0/6 层，2026-10-11）。
  *
@@ -17,7 +18,7 @@ import { VaultKeyDefaults } from './vaultKeyDefaults.ts';
 import type { VaultPort } from '../../host/kernel/contracts.ts';
 
 /** 凭据水合所需的最小参数集（原属 cliBuildConfig，随方法一并外移）。 */
-export interface CredentialHydrationArgs {
+interface CredentialHydrationArgs {
   /** 是否开启凭据水合（`--vault-hydrate`）。 */
   readonly vaultHydrate?: boolean | undefined;
   /** 要水合的凭据名（缺省用内建默认集）。 */
@@ -53,7 +54,7 @@ export class CliCredentialBuild {
   protected async buildServeVault(args: CredentialHydrationArgs): Promise<VaultPort | undefined> {
     if (VaultKeyDefaults.disabledByEnv()) {
       process.stderr.write(
-        'ℹ️ 凭据保险库已按 OMNIHARNESS_VAULT=0 关闭（Web 端会如实显示未接线，且不会创建密钥文件）\n',
+        AppText.t('ℹ️ 凭据保险库已按 OMNIHARNESS_VAULT=0 关闭（Web 端会如实显示未接线，且不会创建密钥文件）\n'),
       );
       return undefined;
     }
@@ -91,7 +92,7 @@ export class CliCredentialBuild {
     }
     if (VaultKeyDefaults.disabledByEnv()) {
       process.stderr.write(
-        'ℹ️ --vault-hydrate 已按 OMNIHARNESS_VAULT=0 跳过（该开关关闭了整个凭据保险库）\n',
+        AppText.t('ℹ️ --vault-hydrate 已按 OMNIHARNESS_VAULT=0 跳过（该开关关闭了整个凭据保险库）\n'),
       );
       return [];
     }
@@ -111,7 +112,7 @@ export class CliCredentialBuild {
       // fail-closed 不变，但把密码学真相翻成人话：换主密钥后旧密文本就不可读，宁可报错也不冒充"没存过"。
       const detail = error instanceof Error ? error.message : String(error);
       throw new Error(
-        `--vault-hydrate 读取凭据失败（在此停住，不静默降级为"凭据不存在"）：主密钥来自` +
+        AppText.t(`--vault-hydrate 读取凭据失败（在此停住，不静默降级为"凭据不存在"）：主密钥来自`) +
           `${VaultKeyDefaults.describeSource(args.vaultKeyFile)}；换了密钥来源后，` +
           `先前用别的密钥写下的密文必然解不开（GCM 认证失败）。原始错误：${detail}`,
       );

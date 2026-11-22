@@ -2,8 +2,6 @@
 export const EN_STREAM: Record<string, string> = {
   // StreamView.tsx
   '工具结果（独立事件）': 'Tool result (standalone event)',
-  '— 上下文已压缩 · 游标 upTo={upTo} · 摘要约 {n} 字 · 点击查看 —':
-    '— Context compacted · cursor upTo={upTo} · summary ~{n} chars · click to view —',
   '进行中…': 'Running…',
   '加载更早的消息': 'Load earlier messages',
   '对话事件流': 'Conversation event stream',
@@ -31,6 +29,20 @@ export const EN_STREAM: Record<string, string> = {
   '约 {n} 字': '~{n} chars',
   '收起 ▴': 'Collapse ▴',
   '展开全文 ▾': 'Expand full text ▾',
+
+  // models/SystemNote.ts + ContextBriefingCard.tsx（上下文注记卡：压缩游标 / 工作流记忆 / 长注记）
+  '上下文已压缩': 'Context compacted',
+  '工作流记忆参考': 'Workflow memory hint',
+  '系统注记': 'System note',
+  '游标 {n}': 'cursor {n}',
+  '摘要约 {n} 字': 'summary ~{n} chars',
+  '仅作参考': 'reference only',
+  '展开': 'Expand',
+  '展开 ▾': 'Expand ▾',
+  '审计 ✓ 文件 {f} · 命令 {c} · 待办 {o}': 'audit ✓ files {f} · commands {c} · todos {o}',
+  '审计缺 {n} 项': 'audit missing {n} items',
+  '触发预算 {p}% · {n} 轮': 'trigger budget {p}% · {n} turns',
+  '压缩证据无法解码': 'compaction evidence undecodable',
 
   // ThinkingTrail.tsx
   '思考轨迹': 'Thinking trail',
@@ -64,7 +76,6 @@ export const EN_STREAM: Record<string, string> = {
   '已工作': 'Working for',
   '查看当前动作': 'Show current action',
   '收起当前动作': 'Hide current action',
-  '正在思考（已约 {n} 字）': 'Thinking (~{n} chars so far)',
   '{h}小时{m}分{s}秒': '{h}h {m}m {s}s',
   '{m}分{s}秒': '{m}m {s}s',
   '{s}秒': '{s}s',
@@ -81,8 +92,6 @@ export const EN_STREAM: Record<string, string> = {
   '{n} 字': '{n} chars',
   '收起': 'Collapse',
   '点击查看思考内容': 'Click to view reasoning',
-  '思考过程 · {dur} · {n} 字': 'Reasoning · {dur} · {n} chars',
-  '思考过程 · {n} 字': 'Reasoning · {n} chars',
 
   // StreamingAssistantCard.tsx
   '助手正在生成回复': 'Assistant is generating a reply',
@@ -96,7 +105,6 @@ export const EN_STREAM: Record<string, string> = {
   '收起详情': 'Hide details',
   '点击查看调用详情': 'Click to view call details',
   '等待结果…': 'Waiting for result…',
-  '在右侧钻取面板查看原始事件': 'View raw event in drill-down panel',
   '在钻取面板查看原始事件': 'View raw event in drill-down panel',
   '⤢ 在钻取面板查看': '⤢ View in drill-down panel',
 
@@ -109,7 +117,6 @@ export const EN_STREAM: Record<string, string> = {
   '修改 {m} 个文件': 'Modified {m} files',
   '收起结果': 'Collapse result',
   '展开结果': 'Expand result',
-  '查看差异': 'View diff',
   '差异': 'Diff',
   '收起差异': 'Hide diff',
   '图片': 'Image',
@@ -147,8 +154,6 @@ export const EN_STREAM: Record<string, string> = {
   '生成草图': 'Generate sketch',
   '委派子任务 {task}': 'Delegate subtask {task}',
   '委派子任务': 'Delegate subtask',
-  '{name}（{summary}）': '{name} ({summary})',
-  '调用 {name}': 'Call {name}',
   // textUtils.ts — 工具名 → 中文动作（轨迹 / 步骤行不再露接口名）
   '运行代码': 'Run code',
   '检索记忆': 'Search memory',
@@ -169,27 +174,20 @@ export const EN_STREAM: Record<string, string> = {
   '评估策略': 'Evaluate policy',
   '查看身份': 'View identity',
   '匹配文件': 'Match files',
-  '管理后台作业': 'Manage jobs',
   '后台作业': 'Background jobs',
-  '打开终端': 'Open terminal',
   '交互终端': 'Interactive terminal',
   '自主目标': 'Run goal',
-  '运行工作流': 'Run workflow',
   '运行流程': 'Run workflow',
-  '跨代理委派': 'Delegate to agent',
   '代理委派': 'Delegate to agent',
   '候选补丁': 'Patch candidates',
   '代码导航': 'Go to definition',
   '查找引用': 'Find references',
   '查看提示': 'Hover info',
-  '语言服务状态': 'LSP status',
   '语言服务': 'LSP',
   '代码诊断': 'Diagnostics',
   '文档符号': 'Document symbols',
   '代码动作': 'Code actions',
-  '工作区符号': 'Workspace symbols',
   '符号检索': 'Symbol search',
-  '查看能力元数据': 'Capability metadata',
   '能力信息': 'Capability info',
   '读取待办': 'Read todos',
   '工具注册表': 'Tool registry',
@@ -221,4 +219,11 @@ export const EN_STREAM: Record<string, string> = {
   '{n} 分钟前': '{n} minutes ago',
   '{n} 小时前': '{n} hours ago',
   '{n} 天前': '{n} days ago',
+  // —— 消息引用追问（2026-11-17 粘性批次）——
+  '引用追问': 'Quote & follow up',
+  '引用追问：把这条消息填回输入框，补一句继续问':
+    'Quote & follow up: put this message back into the composer and add a question',
+  '引用追问：把这条回复填回输入框，补一句继续问':
+    'Quote & follow up: put this reply back into the composer and add a question',
+  '这条消息没有可引用的正文': 'This message has no quotable content',
 };

@@ -20,7 +20,7 @@ import * as React from 'react';
 import Tabs from 'antd/es/tabs';
 import type { TabsProps } from 'antd';
 import { FileKindClassifier } from '../models/FileKindClassifier.ts';
-import { icon } from '../models/Icon.ts';
+import { icon } from '../kit/Icon.tsx';
 import type { BrowserView, FileView } from '../shared.ts';
 import { t } from '../i18n/i18n.ts';
 
@@ -43,6 +43,11 @@ export interface RightPanelProps {
   style?: Record<string, string> | undefined;
   /** 文件内容节点（FileTab）。 */
   children?: React.ReactNode;
+  /**
+   * 没有打开任何文件 / 网页时显示的首页（工作台概览）。
+   * 缺省时不渲染（保持旧调用方「无标签即空白」的行为）。
+   */
+  home?: React.ReactNode;
   /**
    * 网页标签状态（缺省 = 没有网页标签；旧调用方/判据不必补这个 prop）。
    * `open` 控制标签是否存在，`active` 控制当前显示网页还是文件。
@@ -309,7 +314,7 @@ function FilePane(props: {
  * @param ctx 快照（tabs / 标题表 / 浏览器态 / 回调）。
  * @returns 无
  */
-export function tabKeyNav(
+function tabKeyNav(
   e: React.KeyboardEvent,
   ctx: {
   readonly tabs: readonly HTMLElement[];
@@ -361,6 +366,7 @@ export function RightPanel(props: RightPanelProps): ReactElement {
     onCloseFile,
     style,
     children,
+    home,
     browser,
     browserContent,
     onOpenBrowser,
@@ -414,20 +420,24 @@ export function RightPanel(props: RightPanelProps): ReactElement {
       ref={rootRef}
       onKeyDown={onKeyDown}
     >
-      <TabBar
-        openFiles={openFiles}
-        browserOpen={browserOpen}
-        browserActive={browserActive}
-        activeFile={activeFile}
-        tabCount={tabCount}
-        onShowFile={onShowFile}
-        onCloseFile={onCloseFile}
-        {...(onShowBrowser !== undefined ? { onShowBrowser } : {})}
-        {...(onCloseBrowser !== undefined ? { onCloseBrowser } : {})}
-        {...(onOpenBrowser !== undefined ? { onOpenBrowser } : {})}
-        paneContent={paneContent}
-        browserContent={browserContent ?? null}
-      />
+      {tabCount === 0 && home !== undefined ? (
+        <div className="rv-home">{home}</div>
+      ) : (
+        <TabBar
+          openFiles={openFiles}
+          browserOpen={browserOpen}
+          browserActive={browserActive}
+          activeFile={activeFile}
+          tabCount={tabCount}
+          onShowFile={onShowFile}
+          onCloseFile={onCloseFile}
+          {...(onShowBrowser !== undefined ? { onShowBrowser } : {})}
+          {...(onCloseBrowser !== undefined ? { onCloseBrowser } : {})}
+          {...(onOpenBrowser !== undefined ? { onOpenBrowser } : {})}
+          paneContent={paneContent}
+          browserContent={browserContent ?? null}
+        />
+      )}
     </div>
   );
 }

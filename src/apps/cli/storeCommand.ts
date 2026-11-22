@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * kv / vault 子命令（StoreCommand）——本地键值存储与凭据保险库。
  *
@@ -18,10 +19,10 @@ import { KvStoreFactory, type KvHandle } from './kvStoreFactory.ts';
 
 /** kv 用法提示。 */
 const KV_USAGE =
-  '用法: omniharness kv get|set|del|list [--key K] [--value V] [--prefix P] [--kv-file PATH]\n';
+  AppText.t('用法: omniharness kv get|set|del|list [--key K] [--value V] [--prefix P] [--kv-file PATH]\n');
 /** vault 用法提示。 */
 const VAULT_USAGE =
-  '用法: omniharness vault get|set|del|list [--name N] [--value V] [--vault-backend crypto|env] [--kv-adapter memory|json-file|sqlite] [--kv-file PATH] [--vault-key-file PATH]\n';
+  AppText.t('用法: omniharness vault get|set|del|list [--name N] [--value V] [--vault-backend crypto|env] [--kv-adapter memory|json-file|sqlite] [--kv-file PATH] [--vault-key-file PATH]\n');
 
 export class StoreCommand {
   /** KV 后端工厂（kv 与 vault 共用）。 */
@@ -128,7 +129,7 @@ export class StoreCommand {
   private async kvGet(kv: KvHandle, reader: CliArgReader): Promise<number> {
     const key = reader.value('--key') ?? reader.at(1);
     if (key === undefined) {
-      throw new Error('kv get 需要 --key KEY');
+      throw new Error(AppText.t('kv get 需要 --key KEY'));
     }
     const value = await kv.get(key);
     if (value === undefined) {
@@ -149,7 +150,7 @@ export class StoreCommand {
     const key = reader.value('--key') ?? reader.at(1);
     const value = reader.value('--value') ?? reader.at(2);
     if (key === undefined || value === undefined) {
-      throw new Error('kv set 需要 --key KEY --value VALUE');
+      throw new Error(AppText.t('kv set 需要 --key KEY --value VALUE'));
     }
     await kv.set(key, value);
     process.stdout.write(`已写入 ${key}\n`);
@@ -165,7 +166,7 @@ export class StoreCommand {
   private async kvDel(kv: KvHandle, reader: CliArgReader): Promise<number> {
     const key = reader.value('--key') ?? reader.at(1);
     if (key === undefined) {
-      throw new Error('kv del 需要 --key KEY');
+      throw new Error(AppText.t('kv del 需要 --key KEY'));
     }
     const removed = await kv.delete(key);
     process.stdout.write(removed ? `已删除 ${key}\n` : `(不存在: ${key})\n`);
@@ -182,7 +183,7 @@ export class StoreCommand {
     const prefix = reader.value('--prefix') ?? '';
     const entries = await kv.list(prefix);
     if (entries.length === 0) {
-      process.stdout.write('(空)\n');
+      process.stdout.write(AppText.t('(空)\n'));
       return 0;
     }
     for (const entry of entries) {
@@ -200,7 +201,7 @@ export class StoreCommand {
   private async vaultGet(vault: VaultPort, reader: CliArgReader): Promise<number> {
     const name = reader.value('--name') ?? reader.at(1);
     if (name === undefined) {
-      throw new Error('vault get 需要 --name NAME');
+      throw new Error(AppText.t('vault get 需要 --name NAME'));
     }
     const value = await vault.getSecret(name);
     if (value === undefined) {
@@ -221,7 +222,7 @@ export class StoreCommand {
     const name = reader.value('--name') ?? reader.at(1);
     const value = reader.value('--value') ?? reader.at(2);
     if (name === undefined || value === undefined) {
-      throw new Error('vault set 需要 --name NAME --value VALUE');
+      throw new Error(AppText.t('vault set 需要 --name NAME --value VALUE'));
     }
     await vault.setSecret(name, value);
     process.stdout.write(`已写入凭据 ${name}\n`);
@@ -237,7 +238,7 @@ export class StoreCommand {
   private async vaultDel(vault: VaultPort, reader: CliArgReader): Promise<number> {
     const name = reader.value('--name') ?? reader.at(1);
     if (name === undefined) {
-      throw new Error('vault del 需要 --name NAME');
+      throw new Error(AppText.t('vault del 需要 --name NAME'));
     }
     const removed = await vault.deleteSecret(name);
     process.stdout.write(removed ? `已删除凭据 ${name}\n` : `(不存在: ${name})\n`);
@@ -252,7 +253,7 @@ export class StoreCommand {
   private async vaultList(vault: VaultPort): Promise<number> {
     const names = await vault.listSecrets();
     if (names.length === 0) {
-      process.stdout.write('(空)\n');
+      process.stdout.write(AppText.t('(空)\n'));
       return 0;
     }
     for (const name of names) {

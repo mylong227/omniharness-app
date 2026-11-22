@@ -2,7 +2,7 @@
 // 工作台控制台外壳：导航规模 / 焦点落点 / 选择条目 / 设置页与面板页的分派 / Esc 关闭。
 //
 // 这些行为是 2026-10-26 合并两个模态后新增的**唯一入口**逻辑：注册表本身有纯数据判据
-// （consoleRegistry），这里补「接线」——左栏没有搜索框、点条目真的回调、面板内容真的注入。
+// （consoleRegistry），这里补「接线」——左栏搜索/点条目真的回调、面板内容真的注入。
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import * as React from 'react';
@@ -55,20 +55,20 @@ async function renderConsole(active: string, picked: string[], closed: () => voi
   });
 }
 
-test('控制台：左栏没有搜索框，打开时焦点落在当前导航项', async () => {
+test('控制台：左栏设置搜索可用，打开时焦点落在当前导航项', async () => {
   // 2026-10-29：用户按截图要求删除「外观」页签（内容并入常规）⇒ 导航 24 → 23 项。
+  // 2026-11-10：控制室进入「Agent 能力」组首位 ⇒ 导航 23 → 24 项。
+  // 2026-11-11：决策账本进入「数据与统计」组 ⇒ 导航 24 → 25 项。
   const ui = await renderConsole('model', [], () => {});
   try {
     await waitFor(() => {
-      if (ui.container.querySelectorAll('.sp-nav-item').length !== 23) {
-        throw new Error('左导航没有渲染 23 项');
+      if (ui.container.querySelectorAll('.sp-nav-item').length !== 25) {
+        throw new Error('左导航没有渲染 25 项');
       }
     });
-    assert.strictEqual(
-      ui.container.querySelector('input[type="search"]'),
-      null,
-      '用户要求去掉搜索框：左栏不得再出现 search 输入',
-    );
+    const search = ui.container.querySelector('input[type="search"]');
+    assert.ok(search !== null, '2026-11-15 起左栏提供设置字段搜索');
+    assert.strictEqual(search?.getAttribute('aria-label'), '搜索设置项', '搜索框必须有可读名称');
     const current = ui.container.querySelector('[data-pane="model"]');
     // 换 antd Menu 后这些仍是**组件自己**保证的契约（antd 只给 selectedKeys 的视觉态，
     // 不替你标 aria-current，也不替你写 title）。

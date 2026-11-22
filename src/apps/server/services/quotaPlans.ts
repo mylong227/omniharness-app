@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 /**
  * 配额档位：**由当前模型自动识别**（2026-10-17 起）。
  *
@@ -36,13 +37,13 @@ export interface QuotaPlan {
 }
 
 /** 缺省档位 id：模型未知 / 未接入 / 本地模型都落这一档。 */
-export const QUOTA_DEFAULT_ID = 'free';
+const QUOTA_DEFAULT_ID = 'free';
 
 /** 档位表：**顺序即从宽到紧**（首个匹配命中的即最终档位）。 */
 const PLANS: readonly QuotaPlan[] = [
-  { id: 'pro', label: '专业', multiplier: 3, upgraded: true },
-  { id: 'plus', label: '升级', multiplier: 1.5, upgraded: true },
-  { id: 'free', label: '免费', multiplier: 1, upgraded: false },
+  { id: 'pro', label: AppText.t('专业'), multiplier: 3, upgraded: true },
+  { id: 'plus', label: AppText.t('升级'), multiplier: 1.5, upgraded: true },
+  { id: 'free', label: AppText.t('免费'), multiplier: 1, upgraded: false },
 ];
 
 /** 档位 id → 档位（未知 id 回退 free）。 */
@@ -65,13 +66,13 @@ const LIGHT_RULES: readonly PlanRule[] = [
   {
     re: /(?:^|[^a-z])(mini|nano|micro|tiny|small|lite|flash|air|turbo|fast|instant)(?:[^a-z]|$)/i,
     id: 'free',
-    why: '名字里带轻量词（mini/nano/flash/lite/small/turbo…）⇒ 单次调用成本最低的那一档',
+    why: AppText.t('名字里带轻量词（mini/nano/flash/lite/small/turbo…）⇒ 单次调用成本最低的那一档'),
   },
   {
     // 本地/自托管：Ollama / llama.cpp / vLLM 之类，额度不该由本地预算卡住。
     re: /(?:^|[^a-z])(local|ollama|llama|llamacpp|vllm|qwen|phi|gemma|mistral-7b|yi-)/i,
     id: 'free',
-    why: '本地/自托管模型，不产生厂商账单 ⇒ 不受本地日预算倍率约束',
+    why: AppText.t('本地/自托管模型，不产生厂商账单 ⇒ 不受本地日预算倍率约束'),
   },
 ];
 
@@ -81,28 +82,28 @@ const PRO_RULES: readonly PlanRule[] = [
     // OpenAI o 系列推理模型（o1 / o3 / o4 及其 mini 已被上面的轻量规则拦下）。
     re: /(?:^|[^a-z])o[1-9](?:[^a-z]|$)/i,
     id: 'pro',
-    why: 'OpenAI o 系列（推理模型）按最高档计——它们的单次 token 消耗显著高于同代 chat 模型',
+    why: AppText.t('OpenAI o 系列（推理模型）按最高档计——它们的单次 token 消耗显著高于同代 chat 模型'),
   },
   {
     re: /(?:^|[^a-z])(opus|sonnet-4|claude-4|gpt-5|gpt-4\.5|o3-pro)(?:[^a-z]|$)/i,
     id: 'pro',
-    why: '旗舰命名（opus / sonnet-4 / claude-4 / gpt-5）',
+    why: AppText.t('旗舰命名（opus / sonnet-4 / claude-4 / gpt-5）'),
   },
   {
     re: /(?:^|[^a-z])(4o|4\.1)(?:[^a-z]|$)/i,
     id: 'pro',
-    why: 'GPT-4o / GPT-4.1 这一代旗舰 chat 模型',
+    why: AppText.t('GPT-4o / GPT-4.1 这一代旗舰 chat 模型'),
   },
   {
     // 显式 pro / max / ultra / 不支持 mini 后缀的旗舰（deepseek-v4-pro、gemini-2.5-pro）。
     re: /(?:^|[^a-z])(pro|max|ultra|plus|premium|xhigh)(?:[^a-z]|$)/i,
     id: 'pro',
-    why: '名字里带 pro/max/ultra/premium ⇒ 厂商自己标注的顶配档',
+    why: AppText.t('名字里带 pro/max/ultra/premium ⇒ 厂商自己标注的顶配档'),
   },
   {
     re: /(?:^|[^a-z])(deepseek-reasoner|deepseek-v[0-9]+-pro|r1)(?:[^a-z]|$)/i,
     id: 'pro',
-    why: '推理型主力模型（deepseek-reasoner / R1 / v<N>-pro）',
+    why: AppText.t('推理型主力模型（deepseek-reasoner / R1 / v<N>-pro）'),
   },
 ];
 
@@ -111,7 +112,7 @@ const PLUS_RULES: readonly PlanRule[] = [
   {
     re: /(?:^|[^a-z])(chat|general|standard|base|v[0-9]+)(?:[^a-z]|$)/i,
     id: 'plus',
-    why: '通用主力命名（chat / standard / base / v<N>）——既非轻量也非旗舰，按中间档',
+    why: AppText.t('通用主力命名（chat / standard / base / v<N>）——既非轻量也非旗舰，按中间档'),
   },
 ];
 

@@ -172,6 +172,8 @@ export interface DesktopAppConfig {
   readonly repositoryUrl: string;
   /** 桌面壳语言：`system` 跟随系统，或固定 `zh-CN`/`en-US`。 */
   readonly language: 'system' | 'zh-CN' | 'en-US';
+  /** 全局「快速提问」快捷键（Electron accelerator 形态；至少一个修饰键 + 主键）。 */
+  readonly quickCaptureShortcut: string;
 }
 
 /** 桌面壳完整配置。 */
@@ -190,12 +192,40 @@ export interface DesktopConfig {
   readonly tray: DesktopTrayConfig;
 }
 
-/** 加载结果：生效配置 + 可诊断告警 + 实际读到的文件。 */
+/** 配置告警码（与 messages.ts 的 `config.*` 键一一对应，判据钉齐全）。 */
+export type ConfigWarningCode =
+  | 'fileMissing'
+  | 'notObject'
+  | 'badJson'
+  | 'expectObject'
+  | 'expectNumber'
+  | 'clamped'
+  | 'expectBoolean'
+  | 'badShape'
+  | 'expectEnum'
+  | 'loopbackOnly'
+  | 'expectStringArray'
+  | 'dropItem'
+  | 'dropToken'
+  | 'unknownPermission'
+  | 'expectObjectFallback';
+
+/** 结构化配置告警：呈现层（日志/诊断）按 code 查 DesktopI18n 渲染，文案单一真源。 */
+export interface ConfigIssue {
+  /** 配置路径（字段级如 `harness.host`；文件级为文件绝对路径）。 */
+  readonly path: string;
+  /** 告警码（`config.<code>` 即 messages 键）。 */
+  readonly code: ConfigWarningCode;
+  /** 插值参数（全部字符串化，供 t() 占位符替换）。 */
+  readonly params: Readonly<Record<string, string>>;
+}
+
+/** 加载结果：生效配置 + 结构化告警 + 实际读到的文件。 */
 export interface LoadedDesktopConfig {
   /** 合并、校验后的配置。 */
   readonly config: DesktopConfig;
   /** 非致命告警（缺文件不告警；非法值/坏 JSON 会告警）。 */
-  readonly warnings: readonly string[];
+  readonly issues: readonly ConfigIssue[];
   /** 实际读取的配置文件（按优先级从低到高）。 */
   readonly sources: readonly string[];
 }

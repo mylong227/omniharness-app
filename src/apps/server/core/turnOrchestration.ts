@@ -1,9 +1,12 @@
+import { AppText } from '../../i18n/AppText.ts';
+import { RuntimeConfig } from '../../config/RuntimeConfig.ts';
 import type { ImageContent, FileAttachment } from '../../../host/kernel/contracts.ts';
 import { Id } from '../../../host/kernel/util.ts';
 import { log } from '../../../host/kernel/util.ts';
 import { InterjectionClassifier } from '../../../host/kernel/core.ts';
 import type { SessionRewindOutcome } from '../services/session/sessionRewindService.ts';
 import { ThreadPage } from '../services/session/threadPage.ts';
+import { cachedEventsOf, invalidateEventsCache } from '../services/session/sessionEventsCache.ts';
 import type { ServerServices } from './serverServices.ts';
 
 /**
@@ -69,8 +72,13 @@ export class TurnOrchestration {
     return this.threadResult(result);
   }
 
+  /** threads.get 无 limit 参数时的缺省页大小（2026-11-20 兼容洞闭合：不再无界返回全部）。 */
+  private static readonly DEFAULT_PAGE_LIMIT = RuntimeConfig.server.defaultPageLimit;
+
   /**
-   * 获取线程事件（threads.get）：默认返回全部；可选 `limit`/`before` 分页（S2，2026-10-25）。
+   * 获取线程事件（threads.get）：可选 `limit`/`before` 分页（S2，2026-10-25）；
+   * 无 limit 时缺省封顶 500（2026-11-20 闭合「无 limit 返回全部」的兼容洞——
+   * 大会话全量序列化是 O(N) IO+传输，前端分页本来就以 300 为页）。
    * @param params `{ threadId, limit?, before? }` — 目标线程与可选分页
    * @returns `{ threadId, items, hasMore?, oldestId?, error? }`
    */
@@ -79,7 +87,7 @@ export class TurnOrchestration {
     // 2026-10-21 修：`replay` 会把整段历史**逐条广播给所有客户端**（同文件 `trace.read`
     // 早已改为纯读）。打开一个会话却让别的窗口收到它的历史，是跨会话串流 + O(N) 广播。
     // 这里只读（在跑会话读内存、否则读存档），响应里已带 items，无需广播。
-    const events = await this.s.runtime.agent().eventsOf(threadId);
+    const events = await cachedEventsOf(threadId, () => this.s.runtime.agent().eventsOf(threadId));
     const rawLimit = params['limit'];
     const numericLimit =
       typeof rawLimit === 'number'
@@ -87,11 +95,11 @@ export class TurnOrchestration {
         : typeof rawLimit === 'string' && rawLimit.trim() !== ''
           ? Number(rawLimit)
           : Number.NaN;
-    const limit = Number.isFinite(numericLimit) && numericLimit > 0 ? numericLimit : undefined;
+    const limit =
+      Number.isFinite(numericLimit) && numericLimit > 0
+        ? numericLimit
+        : TurnOrchestration.DEFAULT_PAGE_LIMIT;
     const before = typeof params['before'] === 'string' ? params['before'] : undefined;
-    if (limit === undefined) {
-      return { threadId, items: events, hasMore: false };
-    }
     const page = ThreadPage.slice(events, limit, before);
     return {
       threadId,
@@ -155,6 +163,8 @@ export class TurnOrchestration {
       return this.threadResult(result);
     } finally {
       this.s.activeTurns.delete(threadId);
+      // B1：回合结束事件流落盘——读档缓存失效（下次翻页读新流）。
+      invalidateEventsCache(threadId);
     }
   }
 
@@ -173,7 +183,7 @@ export class TurnOrchestration {
     const files = params['files'] as readonly FileAttachment[] | undefined;
     const hasAttachments = (images?.length ?? 0) + (files?.length ?? 0) > 0;
     if (threadId === '' || (text.trim() === '' && !hasAttachments)) {
-      return { ok: false, error: 'threadId 与 text（或附件）都必填' };
+      return { ok: false, error: AppText.t('threadId 与 text（或附件）都必填') };
     }
     const agent = this.s.runtime.agent();
     if (!agent.runningSessionIds().includes(threadId)) {
@@ -204,7 +214,7 @@ export class TurnOrchestration {
     const files = params['files'] as readonly FileAttachment[] | undefined;
     const hasAttachments = (images?.length ?? 0) + (files?.length ?? 0) > 0;
     if (threadId === '' || (prompt.trim() === '' && !hasAttachments)) {
-      return { ok: false, error: 'threadId 与 prompt（或附件）都必填' };
+      return { ok: false, error: AppText.t('threadId 与 prompt（或附件）都必填') };
     }
     const agent = this.s.runtime.agent();
     if (!agent.runningSessionIds().includes(threadId)) {
@@ -225,7 +235,7 @@ export class TurnOrchestration {
       };
     }
     const queued = agent.steering.enqueue(threadId, {
-      text: prompt.trim() === '' ? '（用户补充了附件，请结合附件继续）' : prompt,
+      text: prompt.trim() === '' ? AppText.t('（用户补充了附件，请结合附件继续）') : prompt,
       images,
       files,
     });

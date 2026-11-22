@@ -7,14 +7,14 @@
 // 代理到后端。生产态（`npm run web:build`）：Vite 默认单 bundle（带 hash）→ `web/dist/assets/`。
 // 两条路径共用同一份 `web/index.html` 作为入口。
 //
-// 开发回路地址（端口/主机/origin）唯一事实源是 `scripts/devConfig.mjs`：
+// 开发回路地址（端口/主机/origin）唯一事实源是 `scripts/devConfig.ts`：
 // `OMNI_BACKEND_PORT` / `OMNI_UI_PORT`|`OMNI_FRONTEND_PORT` / `OMNI_DEV_HOST` 可覆盖。
 // 后端不在本机/默认端口时，用 `OMNI_BACKEND_ORIGIN` 直接给整条 origin（优先级最高）。
 
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
-import { resolveDevAddress } from './scripts/devConfig.mjs';
+import { resolveDevAddress } from './scripts/devConfig.ts';
 
 const dev = resolveDevAddress();
 
@@ -34,61 +34,44 @@ export default defineConfig({
     // 报错上报方持有 map 时才可用；换来压榨后可诊断性。
     sourcemap: 'hidden',
     target: 'es2020',
-    // `keepNames`：保留函数/类名，错误边界才能显示组件栈（如 `SessionPanel`）。
-    minify: 'esbuild',
+    // minify 缺省即 oxc（Vite 8 起 esbuild 退役为可选回退）；keepNames 经
+    // rolldownOptions.output.keepNames 保留——错误边界才能显示组件栈（如 `SessionPanel`）。
     // 单 bundle 实测约 1030 KB（react + markdown-it + katex + highlight + 应用码），
     // 1200 KB = 实测 + 约 15% 余量；越过它说明依赖膨胀，值得有人看一眼。
     chunkSizeWarningLimit: 1200,
     /**
-     * vendor 分块（沿用上游 W4 口径）：
+     * vendor 分块（2026-11-11 收敛；2026-11-18 Vite 8 迁移为 advancedChunks 分组）：
      *
-     *   · 默认：react 基座 → `vendor-react`；其余 npm 依赖 → `vendor-antd`（构造上完备，
-     *     避免第三方跟随包随导入方漂进面板块，产生 panel→vendor→panel 循环块）；
-     *   · 例外：面板级 antd 组件族与其同族 @rc-component 实现 → `panel-antd`
-     *     （可预测命名的异步共享块，只被异步面板可达 ⇒ 不进首屏）；
-     *   · 例外：katex / markdown-it / highlight.js 随 entry（历史口径，按 entry 桶记账预算）。
+     *   · react 基座 → `vendor-react`；
+     *   · 其余 npm 依赖 → `vendor-antd`（构造上完备，避免第三方跟随包随导入方漂进面板块；
+     *     katex / markdown-it / highlight.js 负向排除随 entry——历史口径，按 entry 桶记账预算）。
      *
-     * denylist 的准入纪律：一个族只有当「没有任何 vendor 侧（壳层/静态文件）可达的模块
-     * 导入它」时才能进 denylist——漏了只会落 vendor（闸红），错加了会让它落 entry。
+     * 历史 esbuild/Rollup 口径曾把 antd 组件族再细拆：2026-11-11 实测产生
+     * `panel-antd → vendor-antd → panel-antd` 循环块，在真机 E2E 中触发
+     * `ReferenceError: Cannot access 'Sr' before initialization`（整页未挂载）；antd 组件族
+     * 与 rc-component 内部互相引用，不能按组件名硬切，故两规则殊途同归合并为一条兜底。
+     * **为什么必须用分组而不是 manualChunks 函数**：Vite 8 下 manualChunks 的返回值被
+     * **静默丢弃**（不报错、分包无声失效），advancedChunks.groups 是唯一受支持形态。
+     * 若未来要恢复异步块，必须先消除跨块反向边再拆。
      */
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        manualChunks(id: string) {
-          if (/[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id))
-            return 'vendor-react';
-          // 跨族共享的小件先行回收进 vendor（顺序在 denylist 之前）。
-          if (
-            /[\\/]node_modules[\\/](?:antd[\\/](?:es|lib)[\\/](?:.*[\\/]style[\\/]|form[\\/](?:context|validateMessagesContext)\.js|tooltip[\\/]UniqueProvider[\\/]|table[\\/]TableMeasureRowContext\.js|(?:pagination|calendar|date-picker|time-picker)[\\/]locale[\\/]|locale[\\/])|@rc-component[\\/](?:picker|pagination)[\\/](?:es|lib)[\\/]locale[\\/])/.test(
-              id,
-            )
-          )
-            return 'vendor-antd';
-          // 面板级 antd 组件族 → 统一进可预测命名的异步共享块 panel-antd。
-          if (
-            /[\\/]node_modules[\\/]antd[\\/]es[\\/](alert|auto-complete|calendar|cascader|checkbox|date-picker|descriptions|dropdown|form|grid|row|col|image|input|input-number|layout|list|mentions|menu|pagination|popconfirm|popover|progress|qr-code|qrcode|radio|rate|result|segmented|select|slider|spin|statistic|steps|switch|table|time-picker|timeline|tooltip|tour|transfer|tree-select|upload)[\\/]/.test(
-              id,
-            )
-          )
-            return 'panel-antd';
-          // 同族 @rc-component 内部实现跟组件族一起走 panel-antd。
-          if (
-            /[\\/]node_modules[\\/]@rc-component[\\/](cascader|image|input|input-number|listy|mentions|mini-decimal|pagination|picker|progress|segmented|select|slider|steps|switch|table|tooltip|tour|tree-select|upload)[\\/]/.test(
-              id,
-            )
-          )
-            return 'panel-antd';
-          // 历史口径三库随 entry。
-          if (/[\\/]node_modules[\\/](katex|markdown-it|highlight\.js)[\\/]/.test(id))
-            return undefined;
-          // 其余一切 npm 依赖一律 vendor（构造上完备，见上方纪律）。
-          if (/[\\/]node_modules[\\/]/.test(id)) return 'vendor-antd';
-          return undefined;
+        keepNames: true,
+        advancedChunks: {
+          groups: [
+            {
+              name: 'vendor-react',
+              test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/,
+              priority: 10,
+            },
+            {
+              name: 'vendor-antd',
+              test: /[\\/]node_modules[\\/](?!(?:katex|markdown-it|highlight\.js)[\\/])/,
+            },
+          ],
         },
       },
     },
-  },
-  esbuild: {
-    keepNames: true,
   },
   server: {
     port: dev.uiPort,

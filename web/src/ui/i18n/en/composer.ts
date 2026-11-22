@@ -12,10 +12,6 @@ export const EN_COMPOSER: Record<string, string> = {
     'Task input: type a task, Enter to send, Shift+Enter for a new line, @ to reference files, / to pick a skill',
   '发消息或创建任务，/ 调用技能，@ 文件或对话':
     'Send a message or create a task, / for skills, @ for files or threads',
-  '继续输入以排队后续修改': 'Keep typing to queue follow-up changes',
-  '粘贴 / 拖拽 / 选择文件（项目内文件夹选择器风格）':
-    'Paste / drag / pick files (project folder picker style)',
-  '附加图片、视频或文件': 'Attach images, videos, or files',
   '停止语音输入': 'Stop voice input',
   '语音输入（中文）': 'Voice input (Chinese)',
   '开始语音输入': 'Start voice input',
@@ -116,6 +112,12 @@ export const EN_COMPOSER: Record<string, string> = {
   // controllers/ComposerController.ts
   '。服务端等待超时，回合可能仍在后台继续；可稍候重新打开该会话查看结果，或点「停止」后再发一次。':
     '. The server timed out; the turn may still be running in the background. Reopen this thread later to check the result, or press "Stop" and send again.',
+  '。服务端不可达：请确认本地服务正在运行（或检查网络/代理设置），恢复后重新发送即可。':
+    '. The server is unreachable: confirm the local service is running (or check your network/proxy settings), then send again.',
+  '。请求未满足服务端要求（属调用参数问题）：请按上方错误信息修正后重试，无需切换模型或检查 Key。':
+    '. The request did not meet server requirements (a call-parameter issue): fix per the error above and retry — no need to switch models or check the API key.',
+  '。请按页面顶部的授权提示，用服务端打印的带 token 地址重新打开后再试。':
+    '. Follow the authorization banner at the top of the page and reopen with the tokened URL printed by the server.',
   '。': '.',
   '。可尝试切换模型或检查 API Key。': '. Try switching models or checking the API key.',
   '未知错误': 'Unknown error',
@@ -124,7 +126,6 @@ export const EN_COMPOSER: Record<string, string> = {
   '已中止（用户中断）。': 'Aborted (interrupted by user).',
   '正在生成，请先停止后再重生成': 'Still generating; stop the current turn before regenerating',
   '正在生成，请先停止': 'Still generating; stop the current turn first',
-  '正在收尾上一回合，请稍候': 'The previous turn is still winding down; please wait',
   '没有可重生成的用户消息': 'No user message to regenerate',
   '重生成失败（服务端未回退）：{reason}': 'Regeneration failed (server did not rewind): {reason}',
   '未知原因': 'unknown reason',
@@ -154,8 +155,11 @@ export const EN_COMPOSER: Record<string, string> = {
   界面: 'Interface',
   其他: 'Other',
   '刷新会话列表': 'Refresh session list',
+  '导出会话 Markdown': 'Export session as Markdown',
+  '复制会话链接': 'Copy session link',
   '打开设置': 'Open settings',
   '切换浅色 / 深色主题': 'Toggle light / dark theme',
   '切换会话面板': 'Toggle session panel',
   '切换工具面板': 'Toggle tools panel',
+  '专注模式': 'Focus mode',
 };

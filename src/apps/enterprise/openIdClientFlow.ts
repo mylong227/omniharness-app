@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * `openid-client`（v6）的 OIDC 流程端口适配（Wave A.5 · 第四项依赖准入）。
  *
@@ -108,7 +109,7 @@ export class OpenIdClientFlow implements OidcFlowPort {
       typeof meta.authorization_endpoint !== 'string' ||
       typeof meta.token_endpoint !== 'string'
     ) {
-      throw new Error('OIDC discovery 缺少必需端点 authorization_endpoint / token_endpoint');
+      throw new Error(AppText.t('OIDC discovery 缺少必需端点 authorization_endpoint / token_endpoint'));
     }
     this.configurations.set(this.keyOf(config), configuration);
     return {
@@ -158,7 +159,7 @@ export class OpenIdClientFlow implements OidcFlowPort {
       meta.issuer !== discovery.issuer ||
       meta.authorization_endpoint !== discovery.authorization_endpoint
     ) {
-      throw new Error('OIDC discovery 文档与已装配配置不一致（issuer/authorization_endpoint）');
+      throw new Error(AppText.t('OIDC discovery 文档与已装配配置不一致（issuer/authorization_endpoint）'));
     }
     const url = buildAuthorizationUrl(configuration, {
       ...(config.redirectUri !== undefined ? { redirect_uri: config.redirectUri } : {}),
@@ -198,17 +199,17 @@ export class OpenIdClientFlow implements OidcFlowPort {
       configuration = this.configurations.get(this.keyOf(config));
     }
     if (configuration === undefined) {
-      throw new Error('OIDC Configuration 未就绪（discovery 失败或被并发清空）');
+      throw new Error(AppText.t('OIDC Configuration 未就绪（discovery 失败或被并发清空）'));
     }
     const meta = configuration.serverMetadata();
     // 端口契约：换码以传入 discovery 的 token_endpoint 为准。第三方实现用已装配的
     // Configuration，故先交叉校验，避免调用方拿到另一份 discovery 时静默换到别的端点。
     if (meta.issuer !== discovery.issuer || meta.token_endpoint !== discovery.token_endpoint) {
-      throw new Error('OIDC discovery 文档与已装配配置不一致（issuer/token_endpoint）');
+      throw new Error(AppText.t('OIDC discovery 文档与已装配配置不一致（issuer/token_endpoint）'));
     }
     const redirectUri = params.redirectUri ?? config.redirectUri;
     if (redirectUri === undefined) {
-      throw new Error('OIDC 换码需要 redirect_uri（config 或 params 至少提供一处）');
+      throw new Error(AppText.t('OIDC 换码需要 redirect_uri（config 或 params 至少提供一处）'));
     }
     const currentUrl = new URL(redirectUri);
     currentUrl.searchParams.set('code', params.code);
@@ -227,7 +228,7 @@ export class OpenIdClientFlow implements OidcFlowPort {
       );
       if (typeof tokens.access_token !== 'string' || tokens.access_token === '') {
         // 端口契约：缺 access_token 属协议错误，必须抛错（与自研实现同一裁决面）。
-        throw new Error('OIDC token 响应缺少 access_token');
+        throw new Error(AppText.t('OIDC token 响应缺少 access_token'));
       }
       // RFC 6749 §4.2.2：token_type 大小写不敏感，规范形为 'Bearer'（openid-client 会归一成小写）。
       const tokenType = typeof tokens.token_type === 'string' ? tokens.token_type : '';
@@ -252,7 +253,7 @@ export class OpenIdClientFlow implements OidcFlowPort {
   private requireConfiguration(config: OidcProviderConfig): Configuration {
     const configuration = this.configurations.get(this.keyOf(config));
     if (configuration === undefined) {
-      throw new Error('OpenIdClientFlow：须先调用 discovery(config) 再构造授权 URL');
+      throw new Error(AppText.t('OpenIdClientFlow：须先调用 discovery(config) 再构造授权 URL'));
     }
     return configuration;
   }

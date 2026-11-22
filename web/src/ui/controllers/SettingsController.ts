@@ -102,7 +102,7 @@ export class SettingsController {
    */
   public setLocale(l: Locale): void {
     this.deps.layout.setLocale(l);
-    this.deps.api.updateConfig({ locale: l }).catch(() => {
+    this.deps.api.config.updateConfig({ locale: l }).catch(() => {
       /* 静默：语言已生效，持久化失败不打断用户 */
     });
   }

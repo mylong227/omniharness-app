@@ -8,7 +8,7 @@
 
 import * as React from 'react';
 import { renderMarkdown } from '../../format.ts';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import { LongContentCollapser } from '../../models/LongContentCollapser.ts';
 import { NumberFormatter } from '../../models/NumberFormatter.ts';
 import { t } from '../../i18n/i18n.ts';

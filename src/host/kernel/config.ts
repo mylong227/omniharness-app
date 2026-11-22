@@ -15,7 +15,7 @@ export { ConfigFile, configFile } from '@omniharness/kernel/kernel/config/config
 export type { FileConfig, FileMcpServer, LayeredOptions, ModelRouterConfig, PermissionRuleConfig, PermissionRuleDecision, SsrfPolicyConfig, WorkspaceTrustOptions } from '@omniharness/kernel/kernel/config/configFile.js';
 export { DefaultPromptFragments } from '@omniharness/kernel/kernel/config/defaultPromptFragments.js';
 export { ProfileLoader } from '@omniharness/kernel/kernel/config/profileLoader.js';
-export { PROVIDER_PRESETS, providerPresets } from '@omniharness/kernel/kernel/config/providerPresets.js';
+export { providerPresets } from '@omniharness/kernel/kernel/config/providerPresets.js';
 export type { ProviderPreset } from '@omniharness/kernel/kernel/config/providerPresets.js';
 export { WorkspaceTrust } from '@omniharness/kernel/kernel/config/workspaceTrust.js';
 export { ConfigRebase } from '@omniharness/kernel/kernel/config/configRebase.js';

@@ -1,9 +1,9 @@
-import type { GraphSummary } from '../../../host/extensions/kernel/autonomy/graphStore.ts';
-import type { PluginManifest } from '../../../host/kernel/plugin.js';
+import type { GraphSummary } from '../../../host/kernel/autonomy.ts';
+import type { PluginManifest } from '../../../host/kernel/plugin.ts';
 import { BUILTIN_AGENT_PERSONAS } from '../../../host/extensions/kernel/subagent/agentPersonas.ts';
 
 /** 智能体目录条目的来源类型。 */
-export type AgentKind = 'builtin' | 'graph' | 'plugin';
+type AgentKind = 'builtin' | 'graph' | 'plugin';
 
 /** 智能体目录条目（UI「+ → 智能体」列表项，选中后由前端合成回合指令）。 */
 export interface AgentCatalogEntry {

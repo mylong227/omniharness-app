@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import { existsSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { SafeFs } from './safeFs.ts';
@@ -37,9 +38,25 @@ export class WorkspaceTree {
     const maxDepth = typeof params['depth'] === 'number' ? params['depth'] : 2;
     const root = resolve(base, requested);
     if (!root.startsWith(base)) {
-      throw new Error('路径越界工作区');
+      throw new Error(AppText.t('路径越界工作区'));
     }
     return { root, tree: this.scan(root, maxDepth, 0) };
+  }
+
+  /**
+   * 判断工作区内某个路径当前是否是存在的普通文件（只读、无副作用）。
+   *
+   * 用途：回合结果卡的 artifact-only 行来自写工具回执；若文件在本轮后续被删除
+   * （临时脚本/探针），回执仍会把它算成「新建」。这里给 UI 一个不打开文件就能核对
+   * 是否仍存在的最小读接口。
+   * @param params `{ path: string }`（工作区相对路径）
+   * @returns `{ exists: boolean }`；越界/目录/不存在均为 false（fail-closed）
+   */
+  public exists(params: Record<string, unknown>): unknown {
+    const rel = typeof params['path'] === 'string' ? params['path'] : '';
+    if (rel === '') return { exists: false };
+    const r = SafeFs.safeStat(this.workspaceRoot(), rel);
+    return { exists: r.ok && r.isFile };
   }
 
   /**

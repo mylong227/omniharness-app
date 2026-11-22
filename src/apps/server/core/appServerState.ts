@@ -5,19 +5,21 @@ import { BUILTIN_APPROVAL_RULES } from '../../../host/kernel/adapters-approval.t
 
 import type { SkillRegistry } from '../../../host/kernel/platform.ts';
 import type { ServerAutomations } from '../services/serverAutomations.ts';
-import type { PluginRegistry } from '../../../host/kernel/plugin.js';
+import type { PluginRegistry } from '../../../host/kernel/plugin.ts';
 import type { Transport } from '../../../host/kernel/runtime.ts';
 import type { Metrics } from '../services/metrics.ts';
 import type { AuditSink } from '../services/auditSink.ts';
 import type { DoctorOptions, DoctorReport } from '../../../host/extensions/contracts/ports/observability/doctorReport.ts';
 import type { VaultPort } from '../../../host/kernel/contracts.ts';
 import type { GraphNodeStatus } from '../../../host/kernel/autonomy.ts';
-import type { ResolvedConfig } from '../../../host/kernel/contracts.ts';
+import type { ResolvedConfig, SubagentTreePort } from '../../../host/kernel/contracts.ts';
 import type { ServerEventBridge } from './serverEventBridge.ts';
 
 /** AppServer 选项。 */
 export interface AppServerOptions {
   readonly config: ResolvedConfig;
+  /** 界面语言（服务端用户可见文案的语言；缺省 zh）。 */
+  readonly locale?: 'zh' | 'en' | undefined;
   readonly transport: Transport;
   readonly skills?: SkillRegistry | undefined;
   /** 自动化任务存储（缺省不启用调度；CLI serve 注入用户级文件）。 */
@@ -56,7 +58,11 @@ export interface AppServerOptions {
    * 缺省 undefined：测试/嵌入方不注入时，无 UI 覆盖即沿用 config.approvals 端口。
    */
   readonly startupApproval?: string | undefined;
-  /** 持久化目标配置文件路径（项目级 omniharness.json；缺省时按工作区推断并创建）。 */
+  /**
+   * 项目级配置读取路径（`--config` 显式指定或启动时向上查找结果；缺省时由配置存储按工作区推断）。
+   *
+   * 只读：写路径恒为用户级 `omniharness.json`（见 `ServerConfigStore.persist`）。
+   */
   readonly configPath?: string | undefined;
   /**
    * 启动时选中的配置 profile（`--profile`）。
@@ -67,6 +73,12 @@ export interface AppServerOptions {
   readonly profile?: string | undefined;
   /** 工作区根（检查点文件快照还原用；缺省回退 process.cwd()）。 */
   readonly workspaceRoot?: string | undefined;
+  /**
+   * 子代理父子树（alpha.21）：必须与 `ConfigFactory.build` 期注入的是**同一实例**
+   * （内核编排器在构造 subagent 工具时捕获它）；serve 组合根在 buildConfig 前创建并透传。
+   * 缺省 = 服务端自建（嵌入/单测无编队需求时零影响）。
+   */
+  readonly subagentTree?: SubagentTreePort | undefined;
   /**
    * 是否允许模型目录覆盖启动模型（读落盘 omniharness.json / UI 覆盖 / 环境凭据构造真适配器）。
    * 缺省 true（serve 模式依赖此行为热切换真模型）；嵌入方与单测注入 mock 模型时
@@ -129,38 +141,6 @@ export const RULES_DEFAULT: ApprovalPort = new RuleApproval({
   defaultDecision: 'allow',
 });
 
-/**
- * config.update 允许持久化到配置文件的字段。
- * 写路径**恒为用户级** ~/.omniharness/omniharness.json（2026-10-13 用户口径："都固定保存到该目录下"
- * ——曾因落项目级、重启换工作区而「设置被重置」），与手改用户级文件等价；
- * config.get 回传对 apiKey/providerKeys 一律打码——凭据原文永不返回 UI，防泄露。
- * workspace/mcpServers 仍不由此通道写入（防篡改工作区与 MCP 面）。
- */
-export const PERSISTABLE_KEYS: readonly string[] = [
-  'modelAdapter',
-  'model',
-  'baseUrl',
-  'apiKey',
-  'providerKeys',
-  'storageAdapter',
-  'storageDir',
-  'approval',
-  'reasoning',
-  'sandbox',
-  'escalation',
-  'elevatedSandbox',
-  'maxSteps',
-  // A2：参数级权限规则（permission.rules / defaultDecision）。与手改 omniharness.json 等价，
-  // 经 configFile.save → normalizeConfig 严格校验落盘；规则只能收紧（deny）或改默认裁决，
-  // 不放宽 sandbox / approval 轴，故纳管风险与既有的 approval/sandbox 同量级。
-  'permission',
-  // 界面语言（Web UI 设置「外观」栏）：经 config.update 落用户级 omniharness.json，
-  // 枚举校验（zh/en）见 configError.ts 的 ENUM_VALUES.locale。
-  'locale',
-  // 聊天模式（Web UI 设置「常规」栏，2026-10-31）：queue=任务中发送排队 / steer=插话。
-  // 枚举校验（queue/steer）见 configError.ts 的 ENUM_VALUES.chatMode。
-  'chatMode',
-];
 
 /** 图运行中单节点状态。 */
 interface GraphRunNodeState {

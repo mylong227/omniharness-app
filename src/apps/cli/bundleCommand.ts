@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * bundle 子命令（BundleCommand）——把命名插件集打成自包含发布单元 `.ohb`，或还原。
  *
@@ -11,33 +12,33 @@
 
 import { join } from 'node:path';
 import { OmniHome } from '../../host/kernel/util.ts';
-import { PluginProfileStore } from '../../host/kernel/plugin.js';
+import { PluginProfileStore } from '../../host/kernel/plugin.ts';
 import { FeatureEntitlements } from '../license/featureEntitlements.ts';
 import type { EntitlementPort } from './../../host/contracts/ports/license/entitlement.ts';
-import { PluginBundler } from '../../host/kernel/plugin.js';
-import { PrivateSkillSource } from '../../host/kernel/plugin.js';
-import { BundleCodec } from '../../host/kernel/plugin.js';
-import { PackGrader } from '../../host/kernel/plugin.js';
+import { PluginBundler } from '../../host/kernel/plugin.ts';
+import { PrivateSkillSource } from '../../host/kernel/plugin.ts';
+import { BundleCodec } from '../../host/kernel/plugin.ts';
+import { PackGrader } from '../../host/kernel/plugin.ts';
 import { IsolationLadderFactory } from '../../host/kernel/adapters-sandbox.ts';
 import { ArgParser } from './argParser.ts';
 import { CliArgReader } from './cliArgReader.ts';
-import type { PackCapability } from '../../host/kernel/plugin.js';
-import type { SandboxLegVerdict } from '../../host/kernel/plugin.js';
+import type { PackCapability } from '../../host/kernel/plugin.ts';
+import type { SandboxLegVerdict } from '../../host/kernel/plugin.ts';
 import type { PluginRegistryFactory } from './pluginCommand.ts';
 
 /** bundle 用法提示。 */
 const USAGE =
-  '用法: omniharness bundle pack <profileName> [--key-file K] [--out-dir D] [--dir P] | bundle unpack <path.ohb> [--key-file K] [--dir P] | bundle source list|sync --source DIR --trust KEY [--loose]\n';
+  AppText.t('用法: omniharness bundle pack <profileName> [--key-file K] [--out-dir D] [--dir P] | bundle unpack <path.ohb> [--key-file K] [--dir P] | bundle source list|sync --source DIR --trust KEY [--loose]\n');
 
 /** `bundle source` 用法提示（G2 私有技能源）。 */
 /** `bundle grade` 用法提示（H1 分级）。 */
 const GRADE_USAGE =
-  '用法: omniharness bundle grade <path.ohb> [--declare process,fs-write] [--sandbox-level LEVEL]\n' +
-  '说明: 产出 A/B/C 评级（评级即门禁输出）；C ⇒ 退出码 1（不可安装）。\n';
+  AppText.t('用法: omniharness bundle grade <path.ohb> [--declare process,fs-write] [--sandbox-level LEVEL]\n') +
+  AppText.t('说明: 产出 A/B/C 评级（评级即门禁输出）；C ⇒ 退出码 1（不可安装）。\n');
 
 const SOURCE_USAGE =
-  '用法: omniharness bundle source list|sync --source DIR --trust <ssh-ed25519 …> [--trust …] [--loose]\n' +
-  '说明: 缺省严格档——无 Ed25519 签名的包一律拒；--loose 才收无签名包（标注 community）。\n';
+  AppText.t('用法: omniharness bundle source list|sync --source DIR --trust <ssh-ed25519 …> [--trust …] [--loose]\n') +
+  AppText.t('说明: 缺省严格档——无 Ed25519 签名的包一律拒；--loose 才收无签名包（标注 community）。\n');
 
 export class BundleCommand {
   /** 注入的注册表工厂（打包时用于解析插件源）。 */
@@ -106,7 +107,7 @@ export class BundleCommand {
     const sandbox = await this.sandboxLeg(path, read.files, reader.value('--sandbox-level'));
     const report = PackGrader.grade({ files: read.files, declared, sandbox });
     process.stdout.write(
-      `评级 ${report.rating}（${report.installable ? '可安装' : '不可安装'}）｜ ${path}\n`,
+      `评级 ${report.rating}（${report.installable ? AppText.t('可安装') : AppText.t('不可安装')}）｜ ${path}\n`,
     );
     for (const reason of report.reasons) process.stdout.write(`  · ${reason}\n`);
     process.stdout.write(
@@ -138,7 +139,7 @@ export class BundleCommand {
       .filter((name) => /(^|\/)index\.(js|mjs|cjs)$/i.test(name))
       .sort((a, b) => a.split('/').length - b.split('/').length || (a < b ? -1 : 1))[0];
     if (entryPath === undefined) {
-      return { ran: false, reason: '包内无 index.js 入口，无法在沙箱中执行（H1 要求可运行验证）' };
+      return { ran: false, reason: AppText.t('包内无 index.js 入口，无法在沙箱中执行（H1 要求可运行验证）') };
     }
     const entry = files.get(entryPath) ?? '';
     const ladder = IsolationLadderFactory.builtin();
@@ -152,7 +153,7 @@ export class BundleCommand {
     // （缺省 `vm`），更严档不可达时如实回落到 `in-process`——报告里的 `level` 是**实际生效**档位。
     // 不做"请求 os-sandbox 然后静默降档"：那会让报告声称跑在更强隔离里（阶梯本身也拒这种放松）。
     const candidates = level !== undefined ? [level, 'in-process'] : ['vm', 'in-process'];
-    let lastReason = '未尝试任何档位';
+    let lastReason = AppText.t('未尝试任何档位');
     for (const candidate of candidates) {
       try {
         const result = await ladder.run({
@@ -231,7 +232,7 @@ export class BundleCommand {
     if (!entitlement.allowed) {
       process.stdout.write(
         `私有技能源不可用（${entitlement.code}）：${entitlement.reason}\n` +
-          '说明: 该能力属 Team 档；未持授权时请改用本地目录直接安装（核心功能不受影响）。\n',
+          AppText.t('说明: 该能力属 Team 档；未持授权时请改用本地目录直接安装（核心功能不受影响）。\n'),
       );
       return 1;
     }
@@ -259,7 +260,7 @@ export class BundleCommand {
         );
       }
       process.stdout.write(
-        `源 ${sourceDir}：${String(entries.length)} 个包，放行 ${String(entries.filter((e) => e.accepted).length)} 个（档位：${strict ? '严格' : '宽松'}）\n`,
+        `源 ${sourceDir}：${String(entries.length)} 个包，放行 ${String(entries.filter((e) => e.accepted).length)} 个（档位：${strict ? AppText.t('严格') : AppText.t('宽松')}）\n`,
       );
       return entries.every((e) => e.accepted) ? 0 : 1;
     }
@@ -272,7 +273,7 @@ export class BundleCommand {
         `被拒 ${String(report.refused.length)} 个：${report.refused.join(', ')}\n`,
       );
       for (const entry of report.entries.filter((e) => !e.accepted)) {
-        process.stderr.write(`  - ${entry.name}：${entry.reason ?? '未说明'}\n`);
+        process.stderr.write(`  - ${entry.name}：${entry.reason ?? AppText.t('未说明')}\n`);
       }
       return 1;
     }
@@ -296,7 +297,7 @@ export class BundleCommand {
     const name = reader.at(1);
     if (name === undefined) {
       process.stdout.write(
-        '用法: omniharness bundle pack <profileName> [--key-file K] [--out-dir D] [--dir P]\n',
+        AppText.t('用法: omniharness bundle pack <profileName> [--key-file K] [--out-dir D] [--dir P]\n'),
       );
       return 2;
     }
@@ -319,7 +320,7 @@ export class BundleCommand {
         ...(outDir !== undefined ? { outDir } : {}),
       });
       process.stdout.write(
-        `已打包 bundle: ${result.path}（${result.manifest.plugins.length} 插件${result.manifest.signature !== undefined ? '，已签名' : ''}）\n`,
+        `已打包 bundle: ${result.path}（${result.manifest.plugins.length} 插件${result.manifest.signature !== undefined ? AppText.t('，已签名') : ''}）\n`,
       );
       return 0;
     } catch (error) {
@@ -338,7 +339,7 @@ export class BundleCommand {
   private async unpack(reader: CliArgReader, wsRoot: string, pluginsDir: string): Promise<number> {
     const path = reader.at(1);
     if (path === undefined) {
-      process.stdout.write('用法: omniharness bundle unpack <path.ohb> [--key-file K] [--dir P]\n');
+      process.stdout.write(AppText.t('用法: omniharness bundle unpack <path.ohb> [--key-file K] [--dir P]\n'));
       return 2;
     }
     const keyFile = reader.value('--key-file');

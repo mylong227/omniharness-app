@@ -1,3 +1,4 @@
+import { flatApiStub } from './rtlHarness.ts';
 // 会话回退（时间旅行）门禁：确认 → 服务端 threads.rewind → 重新加载 → 回填输入框。
 //
 // 这条能力是内核 append-only 事件流的用户面：必须走服务端真回退，不能只截视图；
@@ -46,7 +47,7 @@ function makeEnv(
     getState: () => state,
   };
   const services = {
-    api: {
+    api: flatApiStub({
       createCheckpoint: async (threadId: string, label: string) => {
         calls.checkpoints.push([threadId, label]);
         if (checkpoint === 'fail') throw new Error('snapshot failed');
@@ -59,7 +60,7 @@ function makeEnv(
         calls.rewind.push([threadId, eventId]);
         return rewind;
       },
-    },
+    }),
     toast: (message: string) => calls.toasts.push(message),
     dialogSvc: {
       confirm: async (message: string) => {

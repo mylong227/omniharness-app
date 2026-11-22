@@ -1,14 +1,6 @@
 import type { SessionEvent } from '../../../host/kernel/contracts.ts';
 import { QuantileSketch } from '../../../host/kernel/util.ts';
 
-/** 单指标对象（Prometheus 文本用）。 */
-export interface MetricLine {
-  readonly name: string;
-  readonly help: string;
-  readonly type: 'counter' | 'gauge' | 'summary' | 'histogram';
-  readonly value: string;
-}
-
 /** 指标快照。 */
 export interface MetricsSnapshot {
   readonly eventsByType: Record<string, number>;
@@ -23,7 +15,7 @@ export interface MetricsSnapshot {
 }
 
 /** 回合耗时统计。 */
-export interface TurnStats {
+interface TurnStats {
   readonly count: number;
   readonly sumMs: number;
   readonly minMs: number;

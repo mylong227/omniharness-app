@@ -1,7 +1,8 @@
-import { PluginLoader } from '../../../host/kernel/plugin.js';
-import { PluginProfileStore, type PluginProfile } from '../../../host/kernel/plugin.js';
-import { PluginBundler } from '../../../host/kernel/plugin.js';
-import type { PluginRegistry } from '../../../host/kernel/plugin.js';
+import { AppText } from '../../i18n/AppText.ts';
+import { PluginLoader } from '../../../host/kernel/plugin.ts';
+import { PluginProfileStore, type PluginProfile } from '../../../host/kernel/plugin.ts';
+import { PluginBundler } from '../../../host/kernel/plugin.ts';
+import type { PluginRegistry } from '../../../host/kernel/plugin.ts';
 import type { ServerModule } from '../core/serverModule.ts';
 import type { ServerServices } from '../core/serverServices.ts';
 
@@ -37,14 +38,14 @@ function registerProfileHandlers(
   ctx.rpc('profile.save', async (params) => {
     const profile = params['profile'] as PluginProfile | undefined;
     if (profile === undefined || typeof profile.name !== 'string') {
-      throw new Error('profile.save 需要 profile.name');
+      throw new Error(AppText.t('profile.save 需要 profile.name'));
     }
     return { id: storeOf().save(profile) };
   });
   ctx.rpc('profile.delete', async (params) => {
     const id = params['id'];
     if (typeof id !== 'string' || id.length === 0) {
-      throw new Error('profile.delete 需要 id');
+      throw new Error(AppText.t('profile.delete 需要 id'));
     }
     return { ok: storeOf().delete(id) };
   });
@@ -58,7 +59,7 @@ function registerProfileHandlers(
     const manager = s.pluginManager;
     const pluginsDir = s.pluginsDir;
     if (registry === undefined || manager === undefined || pluginsDir === undefined) {
-      throw new Error('插件系统未初始化（serve 需注入 registry/pluginsDir）');
+      throw new Error(AppText.t('插件系统未初始化（serve 需注入 registry/pluginsDir）'));
     }
     // 解析 profile：优先 store 内按 id，其次内联 profile 对象
     let profile: PluginProfile | undefined;
@@ -73,7 +74,7 @@ function registerProfileHandlers(
       profile = params['profile'] as PluginProfile;
     }
     if (profile === undefined) {
-      throw new Error('profile.apply 需要有效的 id 或内联 profile');
+      throw new Error(AppText.t('profile.apply 需要有效的 id 或内联 profile'));
     }
     const result = await PluginProfileStore.applyProfile(manager, pluginsDir, registry, profile, {
       onInstall: (name) => ctx.notify('profile.event', { type: 'install', name }),
@@ -101,7 +102,7 @@ function registerBundleHandlers(
     const registry = s.options.registry;
     const pluginsDir = s.pluginsDir;
     if (registry === undefined || pluginsDir === undefined) {
-      throw new Error('插件系统未初始化（serve 需注入 registry/pluginsDir）');
+      throw new Error(AppText.t('插件系统未初始化（serve 需注入 registry/pluginsDir）'));
     }
     // 解析 profile：store 内按 id，或内联 profile 对象
     let profile: PluginProfile | undefined;
@@ -116,7 +117,7 @@ function registerBundleHandlers(
       profile = params['profile'] as PluginProfile;
     }
     if (profile === undefined) {
-      throw new Error('bundle.pack 需要有效的 id 或内联 profile');
+      throw new Error(AppText.t('bundle.pack 需要有效的 id 或内联 profile'));
     }
     const keyFile = typeof params['keyFile'] === 'string' ? params['keyFile'] : undefined;
     const result = await PluginBundler.packBundle({
@@ -132,10 +133,10 @@ function registerBundleHandlers(
     const zipPath = params['zipPath'];
     const pluginsDir = s.pluginsDir;
     if (typeof zipPath !== 'string' || zipPath.length === 0) {
-      throw new Error('bundle.unpack 需要 zipPath');
+      throw new Error(AppText.t('bundle.unpack 需要 zipPath'));
     }
     if (pluginsDir === undefined) {
-      throw new Error('插件系统未初始化（serve 需注入 pluginsDir）');
+      throw new Error(AppText.t('插件系统未初始化（serve 需注入 pluginsDir）'));
     }
     const keyFile = typeof params['keyFile'] === 'string' ? params['keyFile'] : undefined;
     const result = await PluginBundler.unpackBundle({
@@ -185,21 +186,21 @@ function registerMarketHandlers(
   ctx.rpc('plugins.install', (params) => {
     const name = params['name'];
     if (typeof name !== 'string' || name.length === 0) {
-      throw new Error('plugins.install 需要 name');
+      throw new Error(AppText.t('plugins.install 需要 name'));
     }
     return registry.install(name);
   });
   ctx.rpc('plugins.remove', (params) => {
     const name = params['name'];
     if (typeof name !== 'string' || name.length === 0) {
-      throw new Error('plugins.remove 需要 name');
+      throw new Error(AppText.t('plugins.remove 需要 name'));
     }
     return registry.remove(name).then(() => ({ ok: true, name }));
   });
   ctx.rpc('plugins.reload', async () => {
     await s.plugins.ensure();
     if (s.pluginManager === undefined || s.pluginsDir === undefined) {
-      return { ok: false, reason: '插件目录未配置' };
+      return { ok: false, reason: AppText.t('插件目录未配置') };
     }
     const loaded = await PluginLoader.loadInstalledPlugins(
       s.pluginManager,

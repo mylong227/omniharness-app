@@ -1,9 +1,12 @@
+import { RuntimeConfig } from '../../config/RuntimeConfig.ts';
+import { AppText } from '../../i18n/AppText.ts';
 import { jsonRpc, type RpcMessage, type RpcRequest } from '../../../host/kernel/runtime.ts';
 import type { Transport } from '../../../host/kernel/runtime.ts';
 import { type WsConnection } from '../../../host/kernel/runtime.ts';
 import { SseFanout } from './sseFanout.ts';
 import { EnterpriseAuth } from '../../enterprise/index.ts';
 import { PendingRequests } from '../../../host/kernel/util.ts';
+import { rpcErrorCodeFor } from '../core/rpcErrorCodes.ts';
 
 /**
  * 「全部客户端断开」宽限期解析：显式入参 > env `OMNI_CLIENTS_GONE_GRACE_MS` > 缺省 10s；
@@ -47,7 +50,7 @@ export class HttpBridgeTransport implements Transport {
    *
    * **长任务 RPC 不适用本预算**，见 {@link HttpBridgeTransport.LONG_REQUEST_TIMEOUT_MS}。
    */
-  public static readonly REQUEST_TIMEOUT_MS = 60_000;
+  public static readonly REQUEST_TIMEOUT_MS = RuntimeConfig.server.httpRequestTimeoutMs;
 
   /**
    * **长任务** RPC 的等待上限（毫秒）：30 分钟。
@@ -62,7 +65,7 @@ export class HttpBridgeTransport implements Transport {
    * 仍**保留上限**（不是无限等）：S15 的「挂起可收敛为一条可解释错误」性质不放弃，只是把预算放到
    * 长任务的量级。真正需要更长时可走 `turns.abort` 主动收尾，而不是让连接永久悬挂。
    */
-  public static readonly LONG_REQUEST_TIMEOUT_MS = 30 * 60_000;
+  public static readonly LONG_REQUEST_TIMEOUT_MS = RuntimeConfig.server.httpLongRequestTimeoutMs;
 
   /** 走**长预算**的 RPC 方法（同步等待 agent / 编排跑完的那些）。 */
   private static readonly LONG_RUNNING_METHODS: ReadonlySet<string> = new Set([
@@ -217,7 +220,7 @@ export class HttpBridgeTransport implements Transport {
   public async handlePost(body: string, authHeader?: string): Promise<RpcMessage> {
     const message = jsonRpc.parse(body);
     if (message === undefined || !jsonRpc.isRequest(message)) {
-      return jsonRpc.errorResponse(-1, -32700, '无效请求');
+      return jsonRpc.errorResponse(-1, -32700, AppText.t('无效请求'));
     }
     if (this.auth !== undefined) {
       const subject = await this.auth.authenticate(authHeader);
@@ -225,7 +228,7 @@ export class HttpBridgeTransport implements Transport {
         return jsonRpc.errorResponse(
           message.id,
           -32001,
-          '未认证或令牌无效（需 Authorization: Bearer <token>）',
+          AppText.t('未认证或令牌无效（需 Authorization: Bearer <token>）'),
         );
       }
     }
@@ -245,12 +248,13 @@ export class HttpBridgeTransport implements Transport {
   }
 
   /**
-   * 把失败原因映射为 JSON-RPC 错误码（纯函数，便于单测）。
+   * 把失败原因映射为 JSON-RPC 错误码（纯函数；分类真源在 `core/rpcErrorCodes.ts`——
+   * WS 与 HTTP 两条路径同源消费，2026-11-19 遗留清偿：调用方参数问题改判 -32602）。
    * @param text 失败原因文本。
-   * @returns `-32002`（等待超时，客户端应提示「可继续等待/中止」）或 `-32000`（其它服务端错误）。
+   * @returns `-32002`（等待超时）/ `-32602`（调用方参数问题）/ `-32000`（其它服务端错误）。
    */
   public static errorCodeFor(text: string): number {
-    return text.startsWith('RPC 超时') ? -32002 : -32000;
+    return rpcErrorCodeFor(text);
   }
 
   /**
@@ -273,7 +277,7 @@ export class HttpBridgeTransport implements Transport {
                   jsonRpc.errorResponse(
                     message.id,
                     -32001,
-                    '未认证或令牌无效（需 Authorization: Bearer <token>）',
+                    AppText.t('未认证或令牌无效（需 Authorization: Bearer <token>）'),
                   ),
                 ),
               );

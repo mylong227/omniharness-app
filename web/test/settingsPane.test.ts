@@ -10,9 +10,52 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 
-const { SETTINGS_FIELDS, SETTINGS_TABS, CATALOG_KEYS, SettingsModel } = await import(
-  '../src/ui/models/SettingsModel.ts'
-);
+const {
+  SETTINGS_FIELDS,
+  SETTINGS_TABS,
+  CATALOG_KEYS,
+  SettingsModel,
+  NUMBER_RANGES,
+  fieldId,
+  OPTION_LABELS,
+  DEFAULT_LABELS,
+  optionLabelOf,
+  defaultLabelOf,
+} = await import('../src/ui/models/SettingsModel.ts');
+
+test('每个下拉字段都有显示名表，且机读值不被改掉（2026-11-15 配置可读性）', () => {
+  for (const f of SETTINGS_FIELDS) {
+    if (f.kind !== 'select') continue;
+    const id = fieldId(f);
+    const labels = OPTION_LABELS[id];
+    assert.ok(labels !== undefined, `下拉 ${id} 缺 OPTION_LABELS`);
+    for (const option of f.options ?? []) {
+      assert.ok(
+        Object.prototype.hasOwnProperty.call(labels, option),
+        `下拉 ${id} 的取值 ${option} 缺显示名`,
+      );
+      assert.equal(optionLabelOf(f, option), labels[option], '显示名查询必须与表一致');
+    }
+  }
+});
+
+test('未设置时的生效值只登记已知出厂默认（沙箱/存储/审批等）', () => {
+  const field = (key: string) => SETTINGS_FIELDS.find((f) => f.key === key)!;
+  assert.equal(defaultLabelOf(field('storageAdapter')), 'JSONL');
+  assert.equal(defaultLabelOf(field('sandbox')), '策略拦截');
+  assert.equal(defaultLabelOf(field('approval')), '按规则');
+  assert.equal(defaultLabelOf(field('escalation')), '拒绝提权');
+  assert.equal(DEFAULT_LABELS['modelAdapter'], undefined, '适配器默认随启动参数，不能硬编码');
+});
+
+test('枚举显示名会翻译常见机读值（面板截图里的 openai / policy / max）', () => {
+  const byId = (id: string) => SETTINGS_FIELDS.find((f) => fieldId(f) === id)!;
+  assert.equal(optionLabelOf(byId('modelAdapter'), 'openai'), 'OpenAI 兼容');
+  assert.equal(optionLabelOf(byId('sandbox'), 'policy'), '策略拦截');
+  assert.equal(optionLabelOf(byId('reasoning'), 'max'), '最高');
+  assert.equal(optionLabelOf(byId('capflow.mode'), 'shadow'), '只留证（放行）');
+  assert.equal(optionLabelOf(byId('modelAdapter'), 'unknown'), 'unknown', '未登记回退机读值');
+});
 
 test('每个字段都归属一个已声明的分栏（不留孤儿字段）', () => {
   const keys = new Set(SETTINGS_TABS.map((t) => t.key));
@@ -36,12 +79,12 @@ test('每个分栏要么有声明字段，要么是「自定义渲染」分栏�
   }
 });
 
-test('同一个配置键只出现在一个字段里（否则两处编辑会互相覆盖）', () => {
+test('同一个字段 id 只出现一次（同一结构段可拆多行，但路径不得重复）', () => {
   const seen = new Map();
   for (const f of SETTINGS_FIELDS) {
-    const k = String(f.key);
-    assert.ok(!seen.has(k), `配置键 ${k} 被声明了两次（字段会互相打架）`);
-    seen.set(k, f);
+    const id = fieldId(f);
+    assert.ok(!seen.has(id), `字段 ${id} 被声明了两次（字段会互相打架）`);
+    seen.set(id, f);
   }
 });
 
@@ -98,8 +141,101 @@ test('valueOf 对未加载快照返回空串（不在 UI 上抛出 undefined）'
     toast: () => {},
   });
   for (const f of SETTINGS_FIELDS) {
-    assert.strictEqual(model.valueOf(f.key), '', `未加载时 ${String(f.key)} 应为空串`);
+    assert.strictEqual(model.valueOf(f), '', `未加载时 ${fieldId(f)} 应为空串`);
   }
   assert.strictEqual(model.boolOf('autoApprove'), false, '未加载时开关应为 false');
   model.dispose();
+});
+
+test('设置页字段全集 === 内核可 UI 化标量键清单（settings-completion §1，防未来漂移）', async () => {
+  // 2026-11-20 批次五 5.4：手维 EXPECTED 清单（第二份镜像，与目录/内核规格三处互不核对）
+  // 改为**内核差集断言**——每个字段的 key 必须落在内核 configFieldSpecs 的四类标量集或
+  // 结构化段白名单里（机器核对），web-only 键显式列出。内核加键/改形状这里自动红。
+  const { createRequire } = await import('node:module');
+  const { dirname, join } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const req = createRequire(import.meta.url);
+  const specs = req(
+    join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'node_modules', '@omniharness', 'kernel', 'dist', 'kernel', 'config', 'configFieldSpecs.js'),
+  );
+  // 结构化段白名单（有专门校验器/按段提交，不走标量白名单；与 tests/settingsPersistKeys
+  // 的登记名单保持同步——判据互相兜底）。
+  const STRUCTURED = new Set([
+    'retrievalContext', 'semanticRecall', 'contextPolicy', 'toolCache', 'capflow',
+    'modelRouter', 'skills', 'evolutionRlvr', 'decisionEngine', 'calibratedAutonomy', 'rbac',
+  ]);
+  const WEB_ONLY = new Set([
+    'autoApprove', // web 运行态开关（不落盘）
+    'longTermMemoryKeyFile', // 路径语义键：内核特殊路径面（settingsPersistKeys 同名单）
+  ]);
+  for (const f of SETTINGS_FIELDS) {
+    const key = String(f.key);
+    const known =
+      key in specs.ENUM_VALUES ||
+      specs.STRING_FIELDS.has(key) ||
+      specs.NUMBER_FIELDS.has(key) ||
+      specs.BOOLEAN_FIELDS.has(key) ||
+      STRUCTURED.has(key) ||
+      WEB_ONLY.has(key);
+    assert.ok(known, `设置字段 ${key} 不是内核已登记键（也不在结构化段/web-only 名单）——内核加键或改形状时核对`);
+  }
+  // 唯一性护栏保留：fieldId 全集不得有重复（同段多行靠 path 区分）。
+  const declared = SETTINGS_FIELDS.map((f) => fieldId(f)).sort();
+  assert.equal(new Set(declared).size, declared.length, 'fieldId 出现重复');
+});
+
+test('枚举 options 与内核 ENUM_VALUES 完全一致（2026-11-14 修漂移：llamacpp/gemini/deny/guardian/plan）', async () => {
+  // 单一真源在内核 configFieldSpecs.ENUM_VALUES；前端 options 只是它的渲染镜像。
+  // 包 exports 不放行该子路径 → 用文件路径直取（内核 vendored dist，位置固定）。
+  const { createRequire } = await import('node:module');
+  const { dirname, join } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const req = createRequire(import.meta.url);
+  const specs = req(
+    join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'node_modules', '@omniharness', 'kernel', 'dist', 'kernel', 'config', 'configFieldSpecs.js'),
+  );
+  for (const f of SETTINGS_FIELDS) {
+    if (f.kind !== 'select') continue;
+    const kernel = specs.ENUM_VALUES[String(f.key)];
+    if (kernel === undefined) continue; // 非内核枚举键（无此约束）跳过
+    assert.deepEqual(
+      [...(f.options ?? [])].sort(),
+      [...kernel].sort(),
+      '字段 ' + String(f.key) + ' 的 options 与内核 ENUM_VALUES 漂移',
+    );
+  }
+});
+
+test('number 字段全部登记了前端范围校验（与 NUMBER_RANGES 真表对齐，防漏网放行）', () => {
+  // NUMBER_RANGES 是 saveField 的校验表（模块导出）；漏登记的 number 字段会走
+  // "保守放行"分支把糊涂值发给服务端——这里把字段集与表键集直接对齐。
+  // 结构化段字段用 fieldId 当表键（同一段可有多行数字）。
+  const fields = SETTINGS_FIELDS.filter((f) => f.kind === 'number').map(fieldId).sort();
+  const ranges = Object.keys(NUMBER_RANGES).sort();
+  assert.deepEqual(fields, ranges, 'number 字段与 NUMBER_RANGES 登记表漂移');
+});
+
+test('上下文与检索卡：alpha.19 三段共 9 行齐全（漏一行 = 该配置项在 UI 上不存在）', () => {
+  const ids = SETTINGS_FIELDS.filter((f) => f.tab === 'runtime' && f.group === 'context').map(fieldId);
+  assert.deepEqual(ids, [
+    'retrievalContext.mode',
+    'retrievalContext.rewriter',
+    'retrievalContext.rerank',
+    'retrievalContext.maxSnippets',
+    'retrievalContext.maxTokens',
+    'semanticRecall.mode',
+    'contextPolicy.degradeLadder.shapersAggressive',
+    'contextPolicy.degradeLadder.compactionForce',
+    'contextPolicy.cacheGuard.hitRateFloor',
+  ]);
+});
+
+test('runtime 栏字段必须声明 group（六卡全靠 fieldsOfGroup 过滤，无 group 会被静默吞掉）', () => {
+  for (const f of SETTINGS_FIELDS) {
+    if (f.tab !== 'runtime') continue;
+    assert.ok(
+      typeof f.group === 'string' && f.group !== '',
+      'runtime 字段 ' + fieldId(f) + ' 缺 group（SettingsRuntimePane 渲染不到它）',
+    );
+  }
 });

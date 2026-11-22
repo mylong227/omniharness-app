@@ -1,8 +1,9 @@
+import { AppText } from '../../i18n/AppText.ts';
 import { existsSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { configFile, type FileConfig } from '../../../host/kernel/config.ts';
 import { ConfigError } from '../../../host/kernel/config.ts';
-import { PERSISTABLE_KEYS } from '../core/appServerState.ts';
+import { PERSISTABLE_KEYS, SECTION_REPLACE_KEYS } from './configPersistKeys.ts';
 import { ProviderPresets, type ProviderPreset } from './providerPresets.ts';
 import { UserLevelConfigStore } from './userLevelConfigStore.ts';
 
@@ -10,7 +11,12 @@ import { UserLevelConfigStore } from './userLevelConfigStore.ts';
 export interface ServerConfigStoreDeps {
   /** 启动时传入的可读配置摘要（字符串标识）。 */
   readonly displayConfig: Record<string, string>;
-  /** 持久化目标路径（undefined 时按工作区推断并创建项目 omniharness.json）。 */
+  /**
+   * 项目级配置路径（`--config` 显式指定或启动时向上查找结果）。
+   *
+   * 注意语义：这里只是**读取**入口；文件不存在时视为「无项目层」而不是显式 `--config` 写错
+   * （见 {@link fileConfig} 的 M53 说明）。写路径恒为用户级（见 {@link persist}）。
+   */
   readonly configPath?: string | undefined;
   /** 启动时选中的配置 profile（与 serve 启动路径同一份指纹；缺省不叠加 profile）。 */
   readonly profile?: string | undefined;
@@ -135,16 +141,22 @@ export class ServerConfigStore {
    * @returns 合并后的文件级配置。
    */
   public fileConfig(): FileConfig {
+    // 2026-11-14（M53 fail-closed 对接）：`configFilePath()` 可能只是「按工作区推断」的目标路径；
+    // 项目级文件不存在时必须当作「无项目层」交给内核继续，而不是当显式 `--config` 报错
+    //（否则只有用户级配置的机器上 `config.get` 直接失败、setup 全红）。
+    const projectPath = this.configFilePath();
     const layered = configFile.loadLayered({
       workspace: this.workspace(),
-      configPath: this.configFilePath(),
+      ...(existsSync(projectPath) ? { configPath: projectPath } : {}),
       ...(this.deps.profile !== undefined ? { profile: this.deps.profile } : {}),
       ...(this.deps.userHomedir !== undefined ? { userHomedir: this.deps.userHomedir } : {}),
       // RPC 面与启动路径同一条信任边界：未信任工作区的 approval/sandbox/baseUrl/mcpServers
       // 不能因为「UI 读了一次配置」就重新出现。
       trust: { grant: false },
     });
-    return ConfigError.mergeConfigs(layered, this.overrides);
+    const merged = ConfigError.mergeConfigs(layered, this.overrides);
+    this.replaceSections(merged, this.overrides);
+    return merged;
   }
 
   /**
@@ -205,6 +217,9 @@ export class ServerConfigStore {
       for (const key of cleared) {
         delete (next as Record<string, unknown>)[key];
       }
+      // 结构化段按段替换（见 SECTION_REPLACE_KEYS）：深合并会保留旧嵌套键，
+      // 使「清空 cacheGuard.hitRateFloor」这类操作静默失效。
+      this.replaceSections(next, patch as Partial<FileConfig>);
       this.overrides = next;
       this.clearedKeys = cleared;
       try {
@@ -215,6 +230,7 @@ export class ServerConfigStore {
         throw error;
       }
       this.clearedKeys = [];
+      AppText.setLocale(next.locale ?? 'zh');
     }
     this.deps.onChanged();
     return { ok: true, saved: this.path, autoApprove: this.auto };
@@ -228,11 +244,11 @@ export class ServerConfigStore {
   public requireDirectory(raw: unknown): string {
     const candidate = typeof raw === 'string' ? raw.trim() : '';
     if (candidate === '') {
-      throw new Error('路径不能为空');
+      throw new Error(AppText.t('路径不能为空'));
     }
     const root = resolve(candidate);
     if (!existsSync(root) || !statSync(root).isDirectory()) {
-      throw new Error('目录不存在或不是文件夹: ' + root);
+      throw new Error(AppText.t('目录不存在或不是文件夹: ') + root);
     }
     return root;
   }
@@ -307,10 +323,30 @@ export class ServerConfigStore {
     for (const key of this.clearedKeys) {
       if (!UserLevelConfigStore.SECRET_KEYS.includes(key)) delete merged[key];
     }
+    this.replaceSections(merged, this.overrides);
     configFile.save(path, merged as Partial<FileConfig>);
     this.path = path;
     this.userLevel.persistLocalState(this.overrides, this.clearedKeys);
     this.userLevel.persistSecrets(this.overrides, this.clearedKeys);
+  }
+
+  /**
+   * 用来源层的整段值覆盖目标层里的结构化段（`SECTION_REPLACE_KEYS`）。
+   *
+   * `ConfigError.mergeConfigs` 对普通对象递归合并：来源段缺某个嵌套键时，目标层里的旧值
+   * 会被保留——「清空一个嵌套项」因此无法表达。UI 提交的段恒为**完整段**（由当前配置
+   * 合并而来），所以这里按段整体覆盖；来源层没有该段时不动目标（未编辑的段保持原样）。
+   * @param target 待覆盖的合并结果（原地修改）
+   * @param source 本次编辑来源（UI 补丁 / 覆盖态）
+   * @returns 无返回值
+   */
+  private replaceSections(target: FileConfig, source: Partial<FileConfig>): void {
+    const whole = target as Record<string, unknown>;
+    const layer = source as Record<string, unknown>;
+    for (const key of SECTION_REPLACE_KEYS) {
+      const value = layer[key];
+      if (value !== undefined) whole[key] = value;
+    }
   }
 
   /**

@@ -6,18 +6,21 @@
 //
 // 函数组件范式：列表 / 加载态 / 错误 / 名称草稿 / 忙态各一个 useState；
 // 原 componentDidMount + componentDidUpdate 的「会话切换即重拉」合为一个依赖 sessionId 的 effect。
-// 命名与时间戳格式化继续复用 models/checkpoint 的零 React 类；分组/相对时间见 models/CheckpointTimeline。
+// 命名与时间戳格式化继续复用 models/Checkpoint 的零 React 类；分组/相对时间见 models/CheckpointTimeline。
 
 import * as React from 'react';
 import { useApp } from '../../context.ts';
+import { useSessionResource } from '../../hooks/useSessionResource.ts';
 // 领域模型下沉到 models/（零 React 依赖，可单测）；此处 re-export 保持调用方 import 路径不变。
-import { CheckpointNamer } from '../../models/checkpoint.ts';
+import { CheckpointNamer } from '../../models/Checkpoint.ts';
 import { CheckpointTimeline } from '../../models/CheckpointTimeline.ts';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import { emptyNote, emptyState } from '../../format.ts';
-import type { CheckpointMeta } from '../../models/checkpoint.ts';
+import type { CheckpointMeta } from '../../models/Checkpoint.ts';
 import type { TimelineDay, TimelineEntry } from '../../models/CheckpointTimeline.ts';
 import { t } from '../../i18n/i18n.ts';
+import Input from 'antd/es/input';
+import Button from 'antd/es/button';
 
 export type { CheckpointMeta, TimelineEntry, TimelineDay };
 
@@ -54,7 +57,9 @@ function renderEntry(
   const snap = e.hasSnapshot ? t('含文件快照') : t('仅对话');
   return (
     <div key={e.meta.label} className={'cp-item' + (e.latest ? ' latest' : '')} role="listitem">
-      <button
+      <Button
+        type="text"
+        block
         className="cp-main"
         disabled={busy}
         aria-current={e.latest ? 'true' : undefined}
@@ -74,7 +79,7 @@ function renderEntry(
           <span className="cp-time">{e.relative}</span>
           {e.latest ? <span className="cp-latest">{t('当前最新')}</span> : null}
         </span>
-      </button>
+      </Button>
     </div>
   );
 }
@@ -121,20 +126,19 @@ function RollbackForm(props: {
 }): ReactElement {
   return (
     <div className="file-actions">
-      <input
-        className="cmdk-input"
+      <Input
         style={INPUT_STYLE}
         placeholder={t('检查点名称（留空自动生成）')}
         aria-label={t('检查点名称')}
         value={props.label}
-        onInput={(e: React.SyntheticEvent) => props.onLabel((e.target as HTMLInputElement).value)}
+        onChange={(e) => props.onLabel(e.target.value)}
       />
-      <button className="btn primary" disabled={props.busy} onClick={props.onCreate}>
+      <Button type="primary" disabled={props.busy} onClick={props.onCreate}>
         {t('⎘ 创建检查点')}
-      </button>
-      <button className="btn" onClick={props.onRefresh}>
+      </Button>
+      <Button onClick={props.onRefresh}>
         {t('↻ 刷新')}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -196,38 +200,37 @@ function useRollback(
   create: () => Promise<void>;
   rollback: (target?: string) => Promise<void>;
 } {
-  const { api, toast, dialog, sessionTick } = useApp();
-  const [list, setList] = React.useState<CheckpointMeta[]>([]);
-  const [loading, setLoading] = React.useState<boolean>(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const { api, toast, dialog } = useApp();
   const [label, setLabel] = React.useState<string>('');
   const [busy, setBusy] = React.useState<boolean>(false);
-  const refresh = async (sid: string | null): Promise<void> => {
-    if (!sid) {
-      setList([]);
-      setError(null);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const r = await api.listCheckpoints(sid);
-      setList(r.checkpoints ?? []);
-      setLoading(false);
-    } catch (e) {
-      setError((e as Error).message);
-      setLoading(false);
-    }
-  };
-  React.useEffect(() => {
-    void refresh(sessionId);
-  }, [sessionId, sessionTick]);
+  // 列表装载（2026-11-21 批次六 A1 收编 useSessionResource）：enabled=有会话、
+  // followTick=true、失败保留旧数据 + loading 只在首帧（旧实现每次刷新闪回「读取中…」）。
+  const load = React.useCallback(
+    async (): Promise<CheckpointMeta[]> => {
+      if (sessionId === null) return [];
+      const r = await api.sessions.listCheckpoints(sessionId);
+      return r.checkpoints ?? [];
+    },
+    [api, sessionId],
+  );
+  const { data, loading, error, refresh: refreshResource } = useSessionResource({
+    enabled: sessionId !== null,
+    load,
+    followTick: true,
+  });
+  const refresh = React.useCallback(
+    async (sid: string | null): Promise<void> => {
+      if (sid === null) return;
+      await refreshResource();
+    },
+    [refreshResource],
+  );
   const create = async (): Promise<void> => {
     if (!sessionId) return;
     const name = CheckpointNamer.resolve(label);
     setBusy(true);
     try {
-      const r = await api.createCheckpoint(sessionId, name);
+      const r = await api.sessions.createCheckpoint(sessionId, name);
       toast(t('已创建检查点：{label}', { label: r.checkpoint.label }), 'ok');
       setLabel('');
       await refresh(sessionId);
@@ -250,7 +253,7 @@ function useRollback(
     if (!ok) return;
     setBusy(true);
     try {
-      const r = await api.rollbackCheckpoint(sessionId, target);
+      const r = await api.sessions.rollbackCheckpoint(sessionId, target);
       toast(t('已回滚到：{label}', { label: r.checkpoint.label }), 'ok');
       onRolledBack(sessionId);
       await refresh(sessionId);
@@ -260,7 +263,7 @@ function useRollback(
       setBusy(false);
     }
   };
-  return { list, loading, error, label, setLabel, busy, refresh, create, rollback };
+  return { list: data ?? [], loading, error, label, setLabel, busy, refresh, create, rollback };
 }
 
 /**

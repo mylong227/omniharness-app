@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { createInterface } from 'node:readline';
 import type { DesktopLogger } from './logger.ts';
 import type { DesktopHarnessConfig } from './config.ts';
+import { HarnessStartFailure } from './app/HarnessStartFailure.ts';
 import type { ReadyInfo } from './lib/ready.ts';
 import { assertReadyz, waitForExit, waitForReadyFile } from './lib/ready.ts';
 
@@ -74,10 +75,14 @@ export function buildHarnessEnv(
 
 /** Harness 侧车管理器。 */
 export class HarnessSupervisor extends EventEmitter {
+  /** 侧车输出保留行数（启动失败时随异常带出去）。 */
+  private static readonly OUTPUT_HISTORY = 200;
   private child: ChildProcessWithoutNullStreams | undefined;
   private state: HarnessState = 'idle';
   private handle: HarnessHandle | undefined;
   private readyPath: string | undefined;
+  /** 本次启动以来的侧车输出（有界，够排障即可，不无限涨内存）。 */
+  private readonly output: string[] = [];
 
   /**
    * @param options 启动参数。
@@ -114,6 +119,7 @@ export class HarnessSupervisor extends EventEmitter {
     }
 
     this.state = 'starting';
+    this.output.length = 0;
     const token = randomBytes(this.options.config.tokenBytes).toString('hex');
     mkdirSync(this.options.runDir, { recursive: true });
     const readyPath = join(
@@ -136,6 +142,7 @@ export class HarnessSupervisor extends EventEmitter {
       'main',
       `spawn harness: ${this.options.node} ${this.options.entry} (workspace=${this.options.workspace})`,
     );
+    const startedAt = Date.now();
     const child = spawn(
       this.options.node,
       [this.options.entry, 'serve', '--port', '0', '--workspace', this.options.workspace],
@@ -194,16 +201,23 @@ export class HarnessSupervisor extends EventEmitter {
       });
       this.handle = { host: ready.host, port: ready.port, token, workspace: ready.workspace };
       this.state = 'ready';
-      this.options.logger.write('main', `harness ready on ${ready.host}:${String(ready.port)}`);
-      return this.handle;
-    } catch (error) {
       this.options.logger.write(
         'main',
-        `harness start failed: ${error instanceof Error ? error.message : String(error)}`,
+        `harness ready on ${ready.host}:${String(ready.port)} (${String(Date.now() - startedAt)}ms)`,
+      );
+      return this.handle;
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      // 失败原因 + 最近输出一起写日志（harness 日志里也有逐行原文，这里给主日志一个锚点）。
+      this.options.logger.write(
+        'main',
+        `harness start failed after ${String(Date.now() - startedAt)}ms: ${reason}`,
       );
       this.state = 'crashed';
       await this.stop().catch(() => undefined);
-      throw error;
+      // 对话框只显示「超时/退出码」时用户无法自查；带上侧车最后几行输出（已脱敏的是日志，
+      // 这里保留原文，仅供本机排障，不写回日志以免重复）。
+      throw new HarnessStartFailure(reason, this.recentOutput(20));
     }
   }
 
@@ -251,9 +265,35 @@ export class HarnessSupervisor extends EventEmitter {
    */
   private pipe(child: ChildProcessWithoutNullStreams): void {
     const stdout = createInterface({ input: child.stdout, crlfDelay: Infinity });
-    stdout.on('line', (line) => this.options.logger.write('harness', line));
+    stdout.on('line', (line) => {
+      this.record(line);
+      this.options.logger.write('harness', line);
+    });
     const stderr = createInterface({ input: child.stderr, crlfDelay: Infinity });
-    stderr.on('line', (line) => this.options.logger.write('harness', line));
+    stderr.on('line', (line) => {
+      this.record(line);
+      this.options.logger.write('harness', line);
+    });
+  }
+
+  /**
+   * 记录一行侧车输出（有界：只留最近 `OUTPUT_HISTORY` 行）。
+   * @param line 输出行。
+   * @returns 无返回值。
+   */
+  private record(line: string): void {
+    this.output.push(line);
+    if (this.output.length > HarnessSupervisor.OUTPUT_HISTORY) this.output.shift();
+  }
+
+  /**
+   * 取最近若干行侧车输出（按发生顺序）。
+   * @param limit 行数上限。
+   * @returns 只读行数组；limit 非正时为空。
+   */
+  private recentOutput(limit: number): readonly string[] {
+    const count = Math.max(0, Math.floor(limit));
+    return count === 0 ? [] : this.output.slice(-count);
   }
 
   /**

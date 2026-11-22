@@ -21,6 +21,7 @@ export function workspaceModule(): ServerModule {
       );
       ctx.rpc('fs.list', (params) => Promise.resolve(s.workspaceTree.list(params)));
       ctx.rpc('fs.read', (params) => Promise.resolve(s.workspaceTree.readFile(params)));
+      ctx.rpc('fs.exists', (params) => Promise.resolve(s.workspaceTree.exists(params)));
       ctx.rpc('changes.list', (params) => Promise.resolve(s.workspaceChanges.list(params)));
       ctx.rpc('fs.browse', (params) => s.fsExplorer.browse(params));
       ctx.rpc('fs.mkdir', (params) => s.fsExplorer.mkdir(params));

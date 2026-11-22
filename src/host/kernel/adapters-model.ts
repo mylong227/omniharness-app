@@ -20,4 +20,4 @@ export { ResponsesModel } from '@omniharness/kernel/kernel/adapters/model/respon
 export type { ResponsesConfig } from '@omniharness/kernel/kernel/adapters/model/responsesModel.js';
 export { DEFAULT_RETRY_POLICY, RetryingModel } from '@omniharness/kernel/kernel/adapters/model/retryingModel.js';
 export type { DelayFn, RetryPolicy } from '@omniharness/kernel/kernel/adapters/model/retryingModel.js';
-export { DEFAULT_FALLBACK_PRICE, DEFAULT_ROUTE_PRICING, RoutePricing } from '@omniharness/kernel/kernel/adapters/model/routePricing.js';
+export { DEFAULT_FALLBACK_PRICE, DEFAULT_ROUTE_PRICING, RoutePricing, UNPRICED_DEFAULT_FAMILIES } from '@omniharness/kernel/kernel/adapters/model/routePricing.js';

@@ -1,3 +1,5 @@
+import { RuntimeConfig } from '../config/RuntimeConfig.ts';
+import { AppText } from '../i18n/AppText.ts';
 /**
  * `IdTokenVerifierPort` 的 `jose` 实现（Wave A.5 · 依赖准入第二项）。
  *
@@ -52,7 +54,7 @@ const MAX_TOKEN_BYTES = 16 * 1024;
 const DEFAULT_CLOCK_TOLERANCE_SEC = 30;
 
 /** 缺省 JWKS 获取超时（毫秒）。 */
-const DEFAULT_TIMEOUT_MS = 5_000;
+const DEFAULT_TIMEOUT_MS = RuntimeConfig.server.enterpriseTimeoutMs;
 
 /** JWKS 缓存冷却（毫秒）：未知 kid 触发的重取不得被高频请求放大。 */
 const JWKS_COOLDOWN_MS = 30_000;
@@ -140,7 +142,7 @@ export class JoseIdTokenVerifier implements IdTokenVerifierPort {
    * @returns 拒因；通过时 undefined
    */
   private static checkSize(token: string): string | undefined {
-    if (token.trim() === '') return 'id_token 为空';
+    if (token.trim() === '') return AppText.t('id_token 为空');
     if (Buffer.byteLength(token, 'utf8') > MAX_TOKEN_BYTES) {
       return `id_token 超过体积上限（${String(MAX_TOKEN_BYTES)} 字节）`;
     }
@@ -157,12 +159,12 @@ export class JoseIdTokenVerifier implements IdTokenVerifierPort {
     try {
       url = new URL(jwksUrl);
     } catch {
-      return `JWKS 端点不是合法 URL`;
+      return AppText.t(`JWKS 端点不是合法 URL`);
     }
     const localhost =
       url.hostname === '127.0.0.1' || url.hostname === 'localhost' || url.hostname === '[::1]';
     if (url.protocol !== 'https:' && !(url.protocol === 'http:' && localhost)) {
-      return `JWKS 端点必须为 https（本地环回例外）`;
+      return AppText.t(`JWKS 端点必须为 https（本地环回例外）`);
     }
     return undefined;
   }

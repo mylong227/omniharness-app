@@ -180,16 +180,16 @@ function RuleActions(props: {
 }): ReactElement {
   return (
     <div className="pane-actions">
-      <button type="button" className="btn" onClick={props.onAdd}>
+      <Button onClick={props.onAdd}>
         {t('新增规则')}
-      </button>
+      </Button>
       <span className="flex-spacer"></span>
-      <button type="button" className="btn" onClick={props.onReload}>
+      <Button onClick={props.onReload}>
         {t('重新载入')}
-      </button>
-      <button type="button" className="btn primary" disabled={!props.dirty} onClick={props.onSave}>
+      </Button>
+      <Button type="primary" disabled={!props.dirty} onClick={props.onSave}>
         {t('保存')}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -241,7 +241,7 @@ export function PermissionTab(): ReactElement {
     setLoading(true);
     setError(null);
     try {
-      const config = await api.getConfig();
+      const config = await api.config.getConfig();
       const current = rulesOf(config);
       setRules(current);
       setSaved(current);
@@ -263,7 +263,7 @@ export function PermissionTab(): ReactElement {
     setError(null);
     setNotice(null);
     try {
-      await api.updateConfig({ permission: { rules: toWireRules(rules) } });
+      await api.config.updateConfig({ permission: { rules: toWireRules(rules) } });
       setSaved(rules);
       setNotice(t('已保存（服务端已校验并落盘）'));
     } catch (e) {

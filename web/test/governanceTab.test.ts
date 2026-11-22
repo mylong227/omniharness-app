@@ -23,7 +23,7 @@ import type { FacadeNode } from './domFacade.ts';
 
 const { GovernanceTab } = await import('../src/ui/components/tabs/GovernanceTab.tsx');
 const { ConsoleView } = await import('../src/ui/components/console/ConsoleView.tsx');
-const { parseHash, isValidPane } = await import('../src/core/Router.ts');
+const { parseHash, isValidPane } = await import('../src/ui/models/Router.ts');
 
 /**
  * 深度收集满足谓词的节点。
@@ -78,7 +78,7 @@ function viewWithOneFailure() {
  * 渲染治理面板并等一次 `governance.history` 取数落地。
  *
  * 迁移说明（2026-10-18）：旧写法用 hook 槽位直接摆"已取到的数据"。真实 React 下改成
- * **让组件真的去取**——槽位 0 变成 `api.governanceHistory()` 的返回值，槽位 1（错误）
+ * **让组件真的去取**——槽位 0 变成 `api.governance.governanceHistory()` 的返回值，槽位 1（错误）
  * 变成一次抛错，于是判据不但复现同一场景，还顺带覆盖了真实取数/错误路径。
  * （2026-11-01：组件从直发 `api.rpc` 改走 ApiClient 封装，mock key 随之换成方法名。）
  *
@@ -123,7 +123,8 @@ test('F2 面板：逐行复核可见（✓/✗ 与原因）+ 汇总 + 回滚锚�
   // DOM 语义：外观节点不搬事件处理器（见 domFacade 的边界），改用真实 button 元素计数。
   const buttons = byTag(tree, 'button');
   assert.strictEqual(buttons.length, 1, '面板只应有"刷新"一个按钮（不得提供"点一下就回滚"）');
-  assert.match(allText(buttons[0]!), /刷新/);
+  // antd Button 在无 ThemeProvider 的测试里给两字中文插空格（`刷 新`）：去掉空白再比。
+  assert.match(allText(buttons[0]!).replace(/\s/g, ''), /刷新/);
 });
 
 test('F2 面板：台账读不出来 ⇒ 显示原因（**不是**空列表）', async () => {
@@ -174,10 +175,10 @@ test('F2 注册：governance 出现在控制台左导航，Router 认可该 pane
     },
   });
   const items = collect(ui.node, (node) => String(node.props.className).includes('sp-nav-item'));
-  // 23 = 6 个设置页（2026-10-29 起「外观」并入「常规」）+ 17 个功能面板
-  //（PANELS 19 项去掉「文件」与并入权限页的「权限」）。
+  // 25 = 6 个设置页（2026-10-29 起「外观」并入「常规」）+ 19 个功能面板
+  //（PANELS 21 项去掉「文件」与并入权限页的「权限」；2026-11-11 增加决策账本）。
   // 数字跟着注册表走：改注册表就该同步改这里，而不是让判据只覆盖一部分。
-  assert.strictEqual(items.length, 23, '控制台左导航列出 23 项（设置 + 功能面板）');
+  assert.strictEqual(items.length, 25, '控制台左导航列出 25 项（设置 + 功能面板）');
   assert.ok(!items.some((item) => allText(item) === '文件'), '文件不应出现在控制台里');
   assert.ok(items.some((item) => allText(item) === '治理'), '治理面板必须可从控制台一步到达');
   assert.ok(items.some((item) => allText(item) === '常规'), '设置页必须与功能面板同一份导航');

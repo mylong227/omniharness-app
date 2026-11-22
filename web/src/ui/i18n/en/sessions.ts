@@ -18,7 +18,6 @@ export const EN_SESSIONS: Record<string, string> = {
   '自动化（当前页）': 'Automations (current page)',
   '插件市场': 'Plugin marketplace',
   '插件市场（当前页）': 'Plugin marketplace (current page)',
-  '插件（当前页）': 'Plugins (current page)',
   '插件': 'Plugins',
   '任务列表': 'Task list',
   '选择项目': 'Select a project',
@@ -30,7 +29,6 @@ export const EN_SESSIONS: Record<string, string> = {
   '当前只显示**本项目**的会话（点击看全部项目）': 'Showing sessions from **this project** only (click to show all projects)',
   '切换为只看本项目': 'Show this project only',
   '切换为看全部项目': 'Show all projects',
-  '添加项目': 'Add project',
   '搜索会话…': 'Search sessions…',
   '文件': 'Files',
   '打开': 'Open',
@@ -110,17 +108,18 @@ export const EN_SESSIONS: Record<string, string> = {
   '已连接': 'Connected',
   '重连中': 'Reconnecting',
   '断开': 'Disconnected',
+  // 多会话聚合徽标 + 后台完成提醒（2026-11-17 全面 review）
+  '{n} 个会话正在运行': '{n} session(s) running',
+  '{n} 在跑': '{n} running',
+  '后台会话已完成本轮任务': 'A background session finished its turn',
+  '「{label}」已完成本轮任务': '"{label}" finished its turn',
   '设置': 'Settings',
   '打开设置': 'Open settings',
   '切换主题': 'Toggle theme',
   '切换浅色 / 深色主题': 'Toggle light / dark theme',
   // SidebarHeader
-  '命令面板（Ctrl/Cmd+P）': 'Command palette (Ctrl/Cmd+P)',
   '打开命令面板': 'Open command palette',
-  '展开侧栏（[）': 'Expand sidebar ([)',
-  '收起侧栏（[）': 'Collapse sidebar ([)',
   '展开侧栏': 'Expand sidebar',
-  '收起侧栏': 'Collapse sidebar',
   // ChatHeader
   '对话': 'Chat',
   '轨迹': 'Trace',
@@ -176,4 +175,6 @@ export const EN_SESSIONS: Record<string, string> = {
   '在工作区里搜索所有 TODO 注释，按文件分组列出（文件路径 + 行号 + 原文），不要修改任何文件。': 'Search the workspace for all TODO comments and list them grouped by file (path + line number + text) without modifying any files.',
   '写个小程序': 'Write a small program',
   '在工作区新建 examples/hello.js，内容是打印当前时间，然后运行它并贴出输出。': 'Create examples/hello.js in the workspace that prints the current time, then run it and show the output.',
+  // —— 左栏空态一行化（2026-11-17 美化批次）——
+  '暂无会话——新建任务后显示在这里。': 'No sessions yet — new tasks will appear here.',
 };

@@ -175,6 +175,16 @@
   background:var(--panel-2); overflow:hidden; }
 .cap-dock-track-fill { display:block; height:100%; background:var(--accent); border-radius:999px;
   transition:width .45s var(--ease-out); }
+/* 上下文接近上限（≥80%，2026-11-17 粘性批次）：占比与进度线转琥珀——主动预警，不打扰但看得见。 */
+.cap-dock--warn .cap-dock-pct { color:var(--warn); }
+.cap-dock--warn .cap-dock-track-fill { background:var(--warn); }
+.cap-dock--warn .cap-eq-bar { background:var(--warn); }
+/* 展开态预警行：一句话 + 「去压缩」出口（琥珀淡底 + 同色描边，仍属信号不铺满）。 */
+.cap-warn-row { display:flex; align-items:center; gap:10px; justify-content:space-between;
+  margin-top:8px; padding:6px 8px; border:1px solid color-mix(in srgb, var(--warn) 35%, transparent);
+  border-radius:var(--r-sm); background:color-mix(in srgb, var(--warn) 9%, transparent); }
+.cap-warn-text { font-size:11.5px; line-height:1.5; color:var(--dim); }
+.cap-warn-row .ghost { flex:none; font-size:11.5px; }
 @keyframes cap-eq {
   0%, 100% { transform:scaleY(0.78); }
   50% { transform:scaleY(1); }
@@ -246,15 +256,19 @@
 .approval-change-perm .link:hover { text-decoration:underline; }
 
 /* ---- FolderPicker / FilePicker：内嵌文件夹与文件选择器（2026-10-29 浮层换 antd Modal） ---- */
-/* dialog 本体透明；卡片外观在 .fp-shell，尺寸由 Modal 的 width 决定。 */
+/* dialog 本体透明；卡片外观在 .fp-shell，尺寸由 Modal 的 width 决定。
+   antd 6 起可视面板是 .ant-modal-container（.ant-modal-content 已不存在，2026-11-12 修正）。 */
 .ant-modal.fp-modal { border: 0; background: transparent; box-shadow: none; padding-bottom: 0; }
-.fp-modal .ant-modal-content { padding: 0; background: transparent; box-shadow: none; border-radius: 0; }
+.fp-modal .ant-modal-container.ant-modal-container { padding: 0; background: transparent; box-shadow: none; border-radius: 0; }
 .fp-shell {
   display: flex; flex-direction: column;
   max-height: min(78vh, 720px);
-  background: var(--panel);
+  /* 磨砂浮层（2026-11-12）：与其他浮层同材质（半透 panel + blur），见 antd.css 缝合层。 */
+  background: var(--frost-fill);
+  backdrop-filter: var(--frost-blur);
+  -webkit-backdrop-filter: var(--frost-blur);
   border: 1px solid var(--border-strong);
-  border-radius: 16px;
+  border-radius: var(--r-xl);
   box-shadow: var(--shadow-2);
   overflow: hidden;
 }
@@ -351,11 +365,7 @@
 /* ===== 内联 diff 审查：hunk 级 stage/revert + 行内评论 ===== */
 .review { display: flex; flex-direction: column; gap: 8px; }
 .file-actions, .hunk-actions { display: inline-flex; gap: 6px; align-items: center; }
-.hunk-btn { cursor: pointer;
-  border: 1px solid var(--border-soft); background: transparent; color: var(--text);
-}
-.hunk-btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--err) 16%, transparent); border-color: var(--err); }
-.hunk-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+/* hunk/文件级 stage/丢弃按钮已迁 antd Button（danger 走 antd 语义），表面样式不再自持。 */
 .hunk-head {
   display: flex; justify-content: space-between; align-items: center;
 }
@@ -366,9 +376,9 @@
 .diff-row .diff-no { width: 34px; flex: none; text-align: right; color: var(--dim); opacity: 0.6; user-select: none; }
 .diff-row .diff-sign { width: 12px; flex: none; user-select: none; }
 .diff-row .diff-text { white-space: pre-wrap; word-break: break-all; flex: 1; }
+/* 行内评论入口（antd Button type="text"）：只保留定位与悬停显形。 */
 .line-cmt {
-  position: absolute; right: 4px; top: 1px; opacity: 0; cursor: pointer;
-  border: none; background: transparent; font-size: 12px; line-height: 1.4;
+  position: absolute; right: 4px; top: 1px; opacity: 0;
 }
 .diff-row:hover .line-cmt { opacity: 1; }
 .diff-comment {
@@ -488,8 +498,9 @@ select:focus-visible,
 .cp-day { display: flex; flex-direction: column; gap: 4px; }
 .cp-day-head { display: flex; align-items: center; justify-content: space-between; text-transform: uppercase; padding: 2px 2px 0; }
 .cp-item { border: 1px solid var(--border-soft); overflow: hidden; }
-.cp-main { width: 100%; text-align: left; background: transparent; border: none; cursor: pointer; color: var(--text); display: flex; flex-direction: column; gap: 3px; }
-.cp-main:disabled { opacity: .6; cursor: default; }
+/* 检查点条目按钮已迁 antd Button type="text" + block：这里只保两行纵排布局，
+   并压过 antd 单类的高度/换行约束（双类特异性，cssinjs 注入顺序无关）。 */
+.cp-item .cp-main { height: auto; white-space: normal; text-align: left; display: flex; flex-direction: column; gap: 3px; }
 .cp-label { font-family: var(--mono); overflow-wrap: anywhere; }
 .cp-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 11px; color: var(--dim); }
 .cp-badge { flex: none; }
@@ -535,8 +546,10 @@ select:focus-visible,
 .usage-table { max-width: 100%; }
 .step-row { min-width: 0; }
 .step-row input, .step-row textarea { min-width: 0; }
-/* 中窗（≤1280px）：右栏/左栏按视口比例封顶，优先保中栏可读宽度。 */
-@media (max-width: 1280px) {
+/* 中窗（≤1280px 且 ≥881px）：右栏/左栏按视口比例封顶，优先保中栏可读宽度。
+   2026-11-10：排除窄窗抽屉档——≤880px 时 layout.css 已把两栏切成 84vw / 340px 抽屉，
+   这里再用 42vw / 34vw 会把抽屉压到 130–164px（移动端右侧首页只剩半屏可见）。 */
+@media (min-width: 881px) and (max-width: 1280px) {
   .col.right { max-width: 42vw; }
   .col.left { max-width: 34vw; }
   /* F8 窄栏重排（2026-10-11，看板 §8.5「未修两条」之一）：
@@ -596,3 +609,34 @@ select:focus-visible,
 }
 .crash-retry:hover, .crash-reload:hover, .crash-copy:hover { background: var(--hover, var(--panel-2)); }
 
+
+/* 控制室 · 六类构成条（antd 没有按比例堆叠的分段条，这一处按数据图形自绘）。
+   2026-11-11 控制台 antd 化：卡片/按钮/折叠/输入/状态徽标全走 antd，这里只留图形。 */
+.control-usage { display: flex; height: 14px; border-radius: 7px; overflow: hidden; border: 1px solid var(--border-soft); background: var(--panel-2); }
+.control-usage__seg { min-width: 2px; }
+.control-usage__seg--systemPrompt { background: var(--accent-line); }
+.control-usage__seg--messages { background: color-mix(in srgb, var(--accent-line) 55%, var(--panel)); }
+.control-usage__seg--tools { background: color-mix(in srgb, var(--ok) 55%, var(--panel)); }
+.control-usage__seg--todos { background: color-mix(in srgb, var(--warn) 55%, var(--panel)); }
+.control-usage__seg--skills { background: color-mix(in srgb, var(--dim) 45%, var(--panel)); }
+.control-usage__seg--other, .control-usage__seg--memory { background: var(--panel-2); }
+/* 机器产物（压缩摘要 / 补丁正文）：等宽 + 代码底，可滚动。 */
+.control-summary {
+  margin: 0; white-space: pre-wrap; font: 11.5px/1.6 var(--mono); color: var(--dim);
+  background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: 8px; padding: 10px 12px;
+  max-height: 220px; overflow: auto;
+}
+.control-patch__body {
+  margin: 0; max-height: 360px; overflow: auto; white-space: pre;
+  font: 11.5px/1.6 var(--mono); color: var(--text);
+  background: var(--panel); border: 1px solid var(--border-soft); border-radius: 8px; padding: 10px 12px;
+}
+
+/* ---- 容量坞窄屏收口（2026-11-17 全面 review：390 宽下 66px 柱阵 + 百分比会挤满整行）---- */
+@media (max-width: 480px) {
+  .cap-dock-wrap { padding: 4px 8px 0; }
+  .cap-dock-chart { width: 44px; height: 22px; gap: 2px; }
+  .cap-eq-bar { width: 6px; }
+  .cap-dock-pct { font-size: 11.5px; }
+  .cap-dock-label { letter-spacing: 0.04em; }
+}

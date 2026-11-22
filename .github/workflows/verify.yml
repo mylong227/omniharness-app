@@ -30,7 +30,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22.14'
+          node-version: '22.18'
           cache: npm
 
       - name: 安装依赖（含 vendored 内核 tarball + 桌面 Electron 依赖）
@@ -71,7 +71,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22.14'
+          node-version: '22.18'
           cache: npm
 
       - name: 安装依赖（含 vendored 内核 tarball + desktop）
@@ -106,7 +106,7 @@ jobs:
           $ws = Join-Path $env:RUNNER_TEMP 'omni-smoke-ws'
           New-Item -ItemType Directory -Force -Path $ws | Out-Null
           Push-Location desktop
-          node scripts/smoke.mjs --workspace $ws
+          node scripts/smoke.mts --workspace $ws
           $code = $LASTEXITCODE
           Pop-Location
           exit $code

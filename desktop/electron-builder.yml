@@ -40,6 +40,7 @@ protocols:
     schemes:
       - omniharness
 win:
+  # 应用与安装包共用的多尺寸品牌图标（16–256 每档单独渲染，见 static/icon.svg）。
   icon: static/icon.ico
   target:
     - target: nsis
@@ -47,14 +48,31 @@ win:
         - x64
 nsis:
   oneClick: false
+  # 单用户桌面应用：数据在 %APPDATA%，没有服务/驱动，默认只写当前用户目录。
+  # 「为谁安装」页因此对全新安装是多余的 —— installer.nsh 会把它去掉（无 UAC）；
+  # 机器上已有「所有用户」安装时仍保留该页，让老用户原地升级而不是装出第二份；
+  # 升级那个安装需要提权，所以 allowElevation 保持默认开启（不写就是 true）。
   perMachine: false
   allowToChangeInstallationDirectory: true
+  # 向导外观（2026-11-14 重做）：品牌侧栏/页眉 + 欢迎/完成/卸载页文案，
+  # 页面钩子在 installer/installer.nsh；图片是按目标像素出的 BMP
+  # （侧栏 164×314、页眉 150×57，NSIS 只认 24 位 BMP）。
+  include: installer/installer.nsh
+  installerIcon: static/icon.ico
+  uninstallerIcon: static/icon.ico
+  installerSidebar: installer/installerSidebar.bmp
+  uninstallerSidebar: installer/uninstallerSidebar.bmp
+  installerHeader: installer/installerHeader.bmp
+  # 只编中英两种语言（NSIS 按系统 UI 语言自动选，未命中回落第一项）。
+  installerLanguages:
+    - en_US
+    - zh_CN
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  deleteAppDataOnUninstall: false
   runAfterFinish: true
+  deleteAppDataOnUninstall: false
 publish:
   - provider: github
     owner: mylong227
-    repo: OmniHarness
+    repo: omniharness-app
     releaseType: draft

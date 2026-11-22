@@ -1,3 +1,4 @@
+import { UI_TUNABLES } from '../config/RuntimeConfig.ts';
 // 成熟依赖加持的 Markdown 渲染器（回复模式 / 会话模式核心展示层）。
 //
 // 设计取舍（回应「不要求无第三方依赖，善用成熟知识代替从零造轮子」）：
@@ -31,55 +32,65 @@
 // 公式在库到位前先渲染成**占位元素**（`<span class="md-math" data-tex="…">`，内容是转义后的
 // TeX 源码，读起来像等宽文本），库到位后由 `upgradeMathInDocument()` 原地替换成排版结果。
 // 这样：① 消息流不会被异步加载阻塞；② 无公式的会话永不下载 KaTeX；③ 渲染顺序不变。
-import markdownit from 'markdown-it';
-// highlight.js 用 **core + 显式注册的语言子集**（2026-10-18 起，18 种）：
+// highlight.js 用 **core + 显式注册的语言子集**（2026-10-18 起，18 种）——
+// **2026-11-21 批次六 B2 起 core/语言改为惰性动态 import**（见下方 ensureMarkdownLibs）：
+// markdown-it + hljs + 18 语言此前静态打进入口块（index 实测 550KB 的大头之一）；
+// renderMarkdown 已有 `markdownLibsReady()` 分支（legacy 手写实现回落），惰性化后
+// 未就绪窗口内走 legacy、就绪后新渲染走 full——本地服务下 chunk 加载远快于首条
+// 消息到达，混渲窗口接近于零。数学公式不受影响（KaTeX 占位+升级模式早已独立）。
 //
 //   · `lib/common` 是 36 种语言的打包入口，实测 **291 KB 原始 / 94 KB gzip**；
 //     全量入口更大（+800 KB），而代理产出的代码其实集中在下面这 18 种里。
 //   · 未注册的语言**不会报错**：`getLanguage()` 返回 undefined ⇒ 回落到 `highlightAuto()`
 //     （自动识别只在已注册集合里挑，所以冷门语言会退化成"不精确但不坏"的着色）。
-//   · 加一门语言的成本约 5–25 KB 原始（gzip 2–8 KB）：在下方 import 一行 + `registerLanguage` 一行。
+//   · 加一门语言的成本约 5–25 KB 原始（gzip 2–8 KB）：在 ensureMarkdownLibs 内加一行。
 //     2026-10-18 刻意**没有**注册 csharp / kotlin / php / ruby：四门合计约 61 KB 原始，
-//     而本仓产出的上下文里它们极少出现；需要时按上面两行加回即可（判据会随语言表同步）。
+//     而本仓产出的上下文里它们极少出现；需要时按上面加回即可（判据会随语言表同步）。
 //   · 判据：`web/test/vendorAndTypeSource.test.ts` 断言"core + 注册表"，并检查关键语言在列。
-import hljs from 'highlight.js/lib/core';
-import bash from 'highlight.js/lib/languages/bash';
-import c from 'highlight.js/lib/languages/c';
-import cpp from 'highlight.js/lib/languages/cpp';
-import css from 'highlight.js/lib/languages/css';
-import diff from 'highlight.js/lib/languages/diff';
-import go from 'highlight.js/lib/languages/go';
-import ini from 'highlight.js/lib/languages/ini';
-import java from 'highlight.js/lib/languages/java';
-import javascript from 'highlight.js/lib/languages/javascript';
-import json from 'highlight.js/lib/languages/json';
-import markdown from 'highlight.js/lib/languages/markdown';
-import python from 'highlight.js/lib/languages/python';
-import rust from 'highlight.js/lib/languages/rust';
-import shell from 'highlight.js/lib/languages/shell';
-import sql from 'highlight.js/lib/languages/sql';
-import typescript from 'highlight.js/lib/languages/typescript';
-import xml from 'highlight.js/lib/languages/xml';
-import yaml from 'highlight.js/lib/languages/yaml';
 
-hljs.registerLanguage('bash', bash);
-hljs.registerLanguage('c', c);
-hljs.registerLanguage('cpp', cpp);
-hljs.registerLanguage('css', css);
-hljs.registerLanguage('diff', diff);
-hljs.registerLanguage('go', go);
-hljs.registerLanguage('ini', ini);
-hljs.registerLanguage('java', java);
-hljs.registerLanguage('javascript', javascript);
-hljs.registerLanguage('json', json);
-hljs.registerLanguage('markdown', markdown);
-hljs.registerLanguage('python', python);
-hljs.registerLanguage('rust', rust);
-hljs.registerLanguage('shell', shell);
-hljs.registerLanguage('sql', sql);
-hljs.registerLanguage('typescript', typescript);
-hljs.registerLanguage('xml', xml);
-hljs.registerLanguage('yaml', yaml);
+/** 18 种语言的静态动态-import 装载器（Vite 静态可分析，逐语言独立 chunk）。 */
+const HLJS_LANGUAGE_LOADERS: readonly { readonly name: string; readonly load: () => Promise<{ default: unknown }> }[] = [
+  { name: 'bash', load: () => import('highlight.js/lib/languages/bash') },
+  { name: 'c', load: () => import('highlight.js/lib/languages/c') },
+  { name: 'cpp', load: () => import('highlight.js/lib/languages/cpp') },
+  { name: 'css', load: () => import('highlight.js/lib/languages/css') },
+  { name: 'diff', load: () => import('highlight.js/lib/languages/diff') },
+  { name: 'go', load: () => import('highlight.js/lib/languages/go') },
+  { name: 'ini', load: () => import('highlight.js/lib/languages/ini') },
+  { name: 'java', load: () => import('highlight.js/lib/languages/java') },
+  { name: 'javascript', load: () => import('highlight.js/lib/languages/javascript') },
+  { name: 'json', load: () => import('highlight.js/lib/languages/json') },
+  { name: 'markdown', load: () => import('highlight.js/lib/languages/markdown') },
+  { name: 'python', load: () => import('highlight.js/lib/languages/python') },
+  { name: 'rust', load: () => import('highlight.js/lib/languages/rust') },
+  { name: 'shell', load: () => import('highlight.js/lib/languages/shell') },
+  { name: 'sql', load: () => import('highlight.js/lib/languages/sql') },
+  { name: 'typescript', load: () => import('highlight.js/lib/languages/typescript') },
+  { name: 'xml', load: () => import('highlight.js/lib/languages/xml') },
+  { name: 'yaml', load: () => import('highlight.js/lib/languages/yaml') },
+];
+
+/**
+ * 惰性装载 markdown-it + highlight.js core + 18 语言并注册（2026-11-21 B2）。
+ * 幂等：已装载直接返回。调用点 = AppController.mount（应用启动预热）；
+ * 未就绪窗口内 renderMarkdown 走 legacy 回落（format.ts 分支已存在）。
+ * @returns 装载完成（Vite 拆独立异步 chunk）
+ */
+export async function ensureMarkdownLibs(): Promise<void> {
+  if (libs.markdownit !== undefined && libs.hljs !== undefined) return;
+  const [markdownitMod, hljsMod, ...languages] = await Promise.all([
+    import('markdown-it'),
+    import('highlight.js/lib/core'),
+    ...HLJS_LANGUAGE_LOADERS.map((loader) => loader.load()),
+  ]);
+  libs.markdownit = markdownitMod.default as unknown as MarkdownItFactory;
+  const core = hljsMod.default;
+  languages.forEach((lang, index) => {
+    const name = HLJS_LANGUAGE_LOADERS[index]?.name ?? '';
+    core.registerLanguage(name, lang.default as Parameters<typeof core.registerLanguage>[1]);
+  });
+  libs.hljs = core as unknown as HljsApi;
+}
 
 import * as React from 'react';
 import { ClipboardCopier } from './models/ClipboardCopier.ts';
@@ -146,19 +157,24 @@ interface KatexApi {
   renderToString(tex: string, options?: Record<string, unknown>): string;
 }
 
-interface HljsApi {
-  getLanguage(name: string): unknown;
-  highlight(code: string, options: { language: string; ignoreIllegals?: boolean }): { value: string };
-  highlightAuto(code: string): { value: string };
-}
-
 /** markdown-it 构造器签名（npm 包默认导出即工厂函数）。 */
 type MarkdownItFactory = (options?: Record<string, unknown>) => MarkdownItInstance;
 
-/** 三个依赖的绑定（markdown-it / highlight.js 静态；KaTeX 见下方懒加载状态）。 */
-const libs = {
-  markdownit: markdownit as unknown as MarkdownItFactory,
-  hljs: hljs as unknown as HljsApi,
+/** highlight.js 最小接口（本仓消费面：registerLanguage / getLanguage / highlight / highlightAuto）。 */
+interface HljsApi {
+  registerLanguage(name: string, fn: unknown): void;
+  getLanguage(name: string): unknown;
+  highlight(code: string, options: { language?: string; ignoreIllegals?: boolean }): { value: string };
+  highlightAuto(code: string): { value: string };
+}
+
+/** 三个依赖的绑定（2026-11-21 B2 起由 ensureMarkdownLibs 惰性装载；KaTeX 见下方懒加载状态）。 */
+const libs: {
+  markdownit: MarkdownItFactory | undefined;
+  hljs: HljsApi | undefined;
+} = {
+  markdownit: undefined,
+  hljs: undefined,
 };
 
 /**
@@ -284,11 +300,15 @@ let mdCache: MarkdownItInstance | null = null;
  *
  * 上限：64 条 / 8M 字符；只缓存 ≤64KB 的文本（更大的渲染本来就低频，避免缓存常驻）。
  */
-const HTML_CACHE_MAX_ENTRIES = 64;
-const HTML_CACHE_MAX_CHARS = 8 * 1024 * 1024;
-const HTML_CACHE_MAX_TEXT = 64 * 1024;
+const HTML_CACHE_MAX_ENTRIES = UI_TUNABLES.markdownCacheEntries;
+const HTML_CACHE_MAX_CHARS = UI_TUNABLES.markdownCacheChars;
+const HTML_CACHE_MAX_TEXT = UI_TUNABLES.markdownCacheTextChars;
 const htmlCache = new Map<string, string>();
 let htmlCacheChars = 0;
+
+/** hljs 高亮结果缓存：键 = lang + '\u0000' + 代码原文（流式期闭合围栏内容不可变，见 highlight 实现）。 */
+const HIGHLIGHT_CACHE_MAX = UI_TUNABLES.highlightCacheEntries;
+const highlightCache = new Map<string, string>();
 
 /**
  * 读缓存（命中刷新 LRU 顺序）。
@@ -334,22 +354,37 @@ function writeHtmlCache(key: string, html: string): void {
  */
 function getMd(): MarkdownItInstance {
   if (mdCache !== null) return mdCache;
-  const md = libs.markdownit();
+  // 调用前置条件：markdownLibsReady() 为真（markdownRender 分支保证）——未就绪到不了这里。
+  const markdownitFactory = libs.markdownit;
+  const hljsApi = libs.hljs;
+  if (markdownitFactory === undefined || hljsApi === undefined) {
+    throw new Error('markdown libs not ready');
+  }
+  const md = markdownitFactory();
 
   // 代码高亮：优先按语言高亮，未知语言走自动识别。输出受信任（hljs 先转义后加色）。
   md.set({
     highlight: (str: string, lang: string): string => {
+      // 高亮结果缓存（2026-11-17 性能批次）：流式会话的 markdown 渲染以 ~80ms 节流频率重跑整段
+      // 已闭合前缀，而**已闭合围栏的代码内容不可变**——hljs 高亮是管线里最贵的一步，按
+      // (lang, code) 内容缓存后重复渲染直接命中，结构解析照旧（零正确性风险）。
+      const cacheKey = lang + '\u0000' + str;
+      const hit = highlightCache.get(cacheKey);
+      if (hit !== undefined) return hit;
       const esc = (s: string): string => md.utils.escapeHtml(s);
+      let out: string;
       try {
-        if (lang && hljs.getLanguage(lang)) {
-          const out = hljs.highlight(str, { language: lang, ignoreIllegals: true }).value;
-          return '<pre class="hljs"><code>' + out + '</code></pre>';
+        if (lang && hljsApi.getLanguage(lang)) {
+          out = '<pre class="hljs"><code>' + hljsApi.highlight(str, { language: lang, ignoreIllegals: true }).value + '</code></pre>';
+        } else {
+          out = '<pre class="hljs"><code>' + hljsApi.highlightAuto(str).value + '</code></pre>';
         }
-        const auto = hljs.highlightAuto(str).value;
-        return '<pre class="hljs"><code>' + auto + '</code></pre>';
       } catch {
-        return '<pre class="hljs"><code>' + esc(str) + '</code></pre>';
+        out = '<pre class="hljs"><code>' + esc(str) + '</code></pre>';
       }
+      if (highlightCache.size >= HIGHLIGHT_CACHE_MAX) highlightCache.clear();
+      highlightCache.set(cacheKey, out);
+      return out;
     },
   });
 

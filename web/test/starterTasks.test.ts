@@ -111,10 +111,11 @@ test('④ 接线：点击是「填进输入框」（seedDraft），不是直接�
     !/onSend\s*\(/.test(view),
     '示例按钮不得直接 onSend：第一次点按钮就花钱，对客户是惊吓不是引导',
   );
-  // 图标必须在 Icon.ts 里登记过（未登记的图标会渲染成空白格）
-  const icons = readFileSync(join(WEB_ROOT, 'src', 'ui', 'models', 'Icon.ts'), 'utf8');
+  // 图标必须在 Icon 登记表里登记过（未登记的图标会渲染成空白格）。
+  // 2026-11-21 W7a：Icon 已从 models 层迁到 ui/kit/Icon.tsx（models 层唯一 JSX 越界清偿）。
+  const icons = readFileSync(join(WEB_ROOT, 'src', 'ui', 'kit', 'Icon.tsx'), 'utf8');
   for (const t of StarterTasks.list()) {
-    assert.match(icons, new RegExp(`^\\s{2}'?${t.icon}'?:\\s*\\{`, 'm'), `图标「${t.icon}」未在 Icon.ts 登记`);
+    assert.match(icons, new RegExp(`^\\s{2}'?${t.icon}'?:\\s*\\{`, 'm'), `图标「${t.icon}」未登记`);
   }
 });
 

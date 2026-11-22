@@ -12,13 +12,13 @@ import { WorkspacePath } from '../models/WorkspacePath.ts';
 import type { FsNode } from '../../types/models.ts';
 import type { SessionEntry } from '../shared.ts';
 import { emptyState } from '../format.ts';
-import { icon } from '../models/Icon.ts';
+import { icon } from '../kit/Icon.tsx';
 import { timeAgo } from '../textUtils.ts';
 import { SessionRowMeta } from '../models/SessionRowMeta.ts';
 import { t } from '../i18n/i18n.ts';
 
 /** 每组默认展示条数。 */
-export const PAGE = 10;
+const PAGE = 10;
 
 /**
  * 会话行的键盘模型（2026-10-29 W3，键盘扫描补项）。
@@ -34,7 +34,7 @@ export const PAGE = 10;
  * @param ctx 行上下文（取 onSelect / onContextMenu）
  * @returns 无
  */
-export function onSessionRowKeyDown(
+function onSessionRowKeyDown(
   e: React.KeyboardEvent<Element>,
   id: string,
   ctx: { onSelect: (id: string) => void; onContextMenu?: (id: string, x: number, y: number) => void },
@@ -106,7 +106,7 @@ export interface ListCtx extends RowCtx {
  * @param query 搜索关键字（trim 后）
  * @returns 过滤后的会话列表（空关键字返回原列表副本）
  */
-export function filterSessions(items: readonly SessionEntry[], query: string): SessionEntry[] {
+function filterSessions(items: readonly SessionEntry[], query: string): SessionEntry[] {
   const q = query.trim().toLowerCase();
   if (q === '') return items.slice();
   return items.filter((s) => {
@@ -271,7 +271,7 @@ function SessionActions(props: { s: SessionEntry; ctx: RowCtx }): ReactElement {
  * @param ctx 行内交互上下文
  * @returns 渲染节点
  */
-export function renderSessionBody(s: SessionEntry, ctx: RowCtx): ReactElement {
+function renderSessionBody(s: SessionEntry, ctx: RowCtx): ReactElement {
   if (ctx.renamingId === s.id) return <SessionRename s={s} ctx={ctx} />;
   if (ctx.confirmDeleteId === s.id) return <SessionConfirm s={s} ctx={ctx} />;
   return (
@@ -300,7 +300,7 @@ export function renderSessionBody(s: SessionEntry, ctx: RowCtx): ReactElement {
  * @param now 参照时刻（毫秒）
  * @returns 时间节点；不可得时为 null
  */
-export function renderSessionTime(s: SessionEntry, now: number): ReactElement | null {
+function renderSessionTime(s: SessionEntry, now: number): ReactElement | null {
   const when = SessionRowMeta.inlineTime(s, now);
   if (when === '') return null;
   // 文本同时进 aria-label：读屏用户与"悬停不方便"的场景拿得到同一信息。
@@ -312,6 +312,21 @@ export function renderSessionTime(s: SessionEntry, now: number): ReactElement | 
 }
 
 /**
+ * 左栏空态一行化（2026-11-17 美化批次，ux-audit P2）：中栏已有完整主空态（等待任务 +
+ * 示例任务 + 快捷键提示），左栏再挂一张大插画就是同一句话说三遍。这里收成一行状态
+ * （role=status，读屏可直达），三种视图（卡片 / 分组 / 时间分组）共用同一文案。
+ * @returns 一行空态节点
+ */
+function sessionEmpty(): ReactElement {
+  return (
+    <div className="session-empty" role="status">
+      {icon('inbox', { size: 14 })}
+      <span>{t('暂无会话——新建任务后显示在这里。')}</span>
+    </div>
+  );
+}
+
+/**
  * 并行任务卡视图：running 徽章来自服务端 activeTurns 真实运行态（非前端猜测）。
  * @param ctx 列表上下文
  * @param now 参照时刻（毫秒；单测注入以获得确定性）
@@ -319,19 +334,23 @@ export function renderSessionTime(s: SessionEntry, now: number): ReactElement | 
  */
 export function renderCardsView(ctx: ListCtx, now: number = Date.now()): ReactElement {
   const pinned = ctx.pinnedIds;
+  // filterSessions 只算一次（2026-11-17 性能批次）：此前置顶排序路径连调三遍 O(sessions×query)。
+  const filtered = filterSessions(ctx.sessions, ctx.query);
   // 卡片视图同样让置顶排最前（稳定排序：置顶集合内保持原顺序，其余不变）。
   const all = pinned === undefined
-    ? filterSessions(ctx.sessions, ctx.query)
-    : [
-        ...filterSessions(ctx.sessions, ctx.query).filter((x) => pinned.has(x.id)),
-        ...filterSessions(ctx.sessions, ctx.query).filter((x) => !pinned.has(x.id)),
-      ];
+    ? filtered
+    : [...filtered.filter((x) => pinned.has(x.id)), ...filtered.filter((x) => !pinned.has(x.id))];
   if (all.length === 0) {
-    return emptyState(icon('inbox', { size: 20 }), t('暂无会话'), t('新建会话后，任务卡会显示在这里。'));
+    return sessionEmpty();
   }
+  // 与分组视图同一分页口径：先渲染 PAGE 张，其余「显示全部」（limits 单源，见 ListCtx）。
+  const limitKey = 'cards';
+  const limit = ctx.limits[limitKey] ?? PAGE;
+  const shown = all.slice(0, limit);
+  const rest = all.length - shown.length;
   return (
     <div className="session-cards">
-      {all.map((s) => (
+      {shown.map((s) => (
         <div
           key={s.id}
           className={
@@ -391,6 +410,11 @@ export function renderCardsView(ctx: ListCtx, now: number = Date.now()): ReactEl
           </div>
         </div>
       ))}
+      {rest > 0 ? (
+        <button className="ws-more" onClick={() => ctx.onShowAll(limitKey, all.length)}>
+          {t('显示全部 {n} 条', { n: all.length })}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -403,7 +427,7 @@ export function renderCardsView(ctx: ListCtx, now: number = Date.now()): ReactEl
 export function renderGroupsView(ctx: ListCtx, now: number = Date.now()): ReactElement {
   const all = filterSessions(ctx.sessions, ctx.query);
   if (all.length === 0) {
-    return emptyState(icon('inbox', { size: 20 }), t('暂无会话'), t('新建会话后，历史对话会显示在这里，随时可回看。'));
+    return sessionEmpty();
   }
   return (
     <>
@@ -418,16 +442,18 @@ export function renderGroupsView(ctx: ListCtx, now: number = Date.now()): ReactE
         const rest = g.items.length - shown.length;
         return (
           <div className="ws-group" key={g.key}>
-            <div
+            <button
+              type="button"
               className="ws-head"
               title={g.key === '__early__' ? t('升级前的历史会话未记录所属项目') : g.key}
+              aria-expanded={!isCollapsed}
               onClick={() => ctx.onToggleGroup(g.key, isCollapsed)}
             >
               <span className="ws-caret">{isCollapsed ? '▸' : '▾'}</span>
               <span>{icon(g.key === WorkspacePath.normalize(ctx.wsPath) ? 'check' : g.key === PINNED_KEY ? 'pin' : 'folder', { size: 12 })}</span>
               <span className="ws-name">{t(g.name)}</span>
               <span className="ws-count">{g.items.length}</span>
-            </div>
+            </button>
             {isCollapsed ? null : (
               <div className="ws-list">
                 {shown.map((s) => (
@@ -491,7 +517,7 @@ export function renderGroupsView(ctx: ListCtx, now: number = Date.now()): ReactE
 export function renderTimeGroupsView(ctx: ListCtx, now: number = Date.now()): ReactElement {
   const all = filterSessions(ctx.sessions, ctx.query);
   if (all.length === 0) {
-    return emptyState(icon('inbox', { size: 20 }), t('暂无会话'), t('新建会话后，历史对话会显示在这里，随时可回看。'));
+    return sessionEmpty();
   }
   return (
     <>
@@ -503,11 +529,16 @@ export function renderTimeGroupsView(ctx: ListCtx, now: number = Date.now()): Re
         const rest = g.items.length - shown.length;
         return (
           <div className="ws-group" key={key}>
-            <div className="ws-head" onClick={() => ctx.onToggleGroup(key, isCollapsed)}>
+            <button
+              type="button"
+              className="ws-head"
+              aria-expanded={!isCollapsed}
+              onClick={() => ctx.onToggleGroup(key, isCollapsed)}
+            >
               <span className="ws-caret">{isCollapsed ? '▸' : '▾'}</span>
               <span className="ws-name">{t(g.name)}</span>
               <span className="ws-count">{g.items.length}</span>
-            </div>
+            </button>
             {isCollapsed ? null : (
               <div className="ws-list">
                 {shown.map((s) => (

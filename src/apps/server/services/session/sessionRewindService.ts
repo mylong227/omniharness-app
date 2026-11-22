@@ -1,3 +1,4 @@
+import { AppText } from '../../../i18n/AppText.ts';
 ﻿/**
  * 会话回退服务：把持久化事件流截断到指定事件（**重生成的服务端真回退**）。
  *
@@ -10,6 +11,7 @@
  * - 有回合在跑 ⇒ 拒绝（避免「回合写盘」与「回退写盘」互相覆盖）；
  * - 无需截断（keepEventId 已是末条）⇒ 不写盘，如实回报 `dropped: 0`。
  */
+import { invalidateEventsCache } from './sessionEventsCache.ts';
 import type { SessionEvent } from '../../../../host/kernel/contracts.ts';
 
 /** 回退依赖（注入以避免直接持有存储/运行时）。 */
@@ -48,13 +50,13 @@ export class SessionRewindService {
    */
   public async rewind(sessionId: string, keepEventId: string): Promise<SessionRewindOutcome> {
     if (sessionId.trim() === '') {
-      return { ok: false, error: '缺少 sessionId' };
+      return { ok: false, error: AppText.t('缺少 sessionId') };
     }
     if (keepEventId.trim() === '') {
-      return { ok: false, error: '缺少 keepEventId' };
+      return { ok: false, error: AppText.t('缺少 keepEventId') };
     }
     if (this.deps.isRunning(sessionId)) {
-      return { ok: false, error: '该会话有回合正在运行：请先中止再回退' };
+      return { ok: false, error: AppText.t('该会话有回合正在运行：请先中止再回退') };
     }
     const events = await this.deps.events(sessionId);
     if (events.length === 0) {
@@ -70,6 +72,8 @@ export class SessionRewindService {
       return { ok: true, kept: kept.length, dropped: 0 };
     }
     await this.deps.save(sessionId, kept);
+    // B1：事件流被截断写回——读档缓存失效（下翻页必须读到新流）。
+    invalidateEventsCache(sessionId);
     return { ok: true, kept: kept.length, dropped };
   }
 }

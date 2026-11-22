@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * cliBuildConfig.ts —— ExecCli 的配置装配簇（god-class 拆分 · 第 1/6 层）。
  *
@@ -26,7 +27,7 @@ import { CliSubsystemSections } from './cliSubsystemSections.ts';
 import { DefaultPromptFragments } from '../../host/kernel/config.ts';
 
 import { ConsoleLiveView } from '../../host/kernel/adapters-misc.ts';
-import { PluginRegistry } from '../../host/kernel/plugin.js';
+import { PluginRegistry } from '../../host/kernel/plugin.ts';
 import { AuditSink } from '../server/services/auditSink.ts';
 import {
   NetworkEgressGuard,
@@ -35,7 +36,7 @@ import {
 import { SsrfPolicy } from '../../host/kernel/security.ts';
 import { endpointDefaults, type ResolvedAdapterDefaults } from '../../host/kernel/util.ts';
 import { WorkerRegistry } from '../../host/kernel/platform.ts';
-import { ExternalCliWorker } from '../../host/extensions/kernel/worker/externalCliWorker.ts';
+import { ExternalCliWorker } from '../../host/kernel/worker.ts';
 import { RegistryToolPort } from '../../host/kernel/adapters-tool.ts';
 import { McpGateway } from '../../host/kernel/protocols.ts';
 import { McpServerCommand } from '../../host/extensions/protocols/mcp/mcpServerCommand.ts';
@@ -82,9 +83,7 @@ import { UnconfiguredModel } from './unconfiguredModel.ts';
  * 只声明水合真正读的字段，不依赖整个 {@link CliArgs}：既让 `CliArgs` 可直接传入（结构兼容），
  * 也让调用点与单测无需伪造二十余个必填字段。
  */
-// 2026-10-11：CredentialHydrationArgs 随凭据构造方法一并外移到 CliCredentialBuild 层，
 // 此处再导出以维持既有调用点（含判据里的 ProbeBuildConfig）零改动。
-export type { CredentialHydrationArgs } from './cliCredentialBuild.ts';
 
 /**
  * 出站守卫选项：白名单 + 配置化 SSRF 策略表（缺省回落内置默认档；非法条目在配置加载期已被拒）。
@@ -256,11 +255,16 @@ export class CliBuildConfig extends CliCredentialBuild {
       readonly events?: EventPort;
       /** 常驻服务专用：缺 Key 时用占位模型继续启动（见 {@link BuildModelOptions}）。 */
       readonly allowUnconfiguredModel?: boolean;
+      /**
+       * 子代理父子树（alpha.21）：必须在 `ConfigFactory.build` **之前**注入——
+       * 内核在构造 subagent 工具时把编排器与树绑定；构建后再塞进 ResolvedConfig 无效。
+       */
+      readonly subagentTree?: import('../../host/kernel/contracts.ts').SubagentTreePort;
     } = {},
   ): Promise<ResolvedConfig> {
     if (args.native && !new NativeKernel().available()) {
       process.stderr.write(
-        '⚠️ --native 已请求但原生内核不可用（原生内核随包预编译；本仓无 native:build 脚本），已回退 TS 路径\n',
+        AppText.t('⚠️ --native 已请求但原生内核不可用（原生内核随包预编译；本仓无 native:build 脚本），已回退 TS 路径\n'),
       );
     }
     // F3：凭据水合必须早于 buildModel——模型适配器与模型路由都在构造期直接读 process.env。
@@ -268,6 +272,14 @@ export class CliBuildConfig extends CliCredentialBuild {
     const model = this.buildModel(args, {
       allowUnconfigured: overrides.allowUnconfiguredModel === true,
     });
+    // 三个相互独立的装配分支并行（2026-11-20 批次四 4.7）：各自是磁盘 IO（自定义工具目录
+    // 扫描 / 存档目录就绪）与模型路由文件读取——串行时每个都挡 readyz。hydrateCredentials
+    // 必须先于 buildModel（env 读取顺序），但这三支与两者无序。
+    const [storage, extraTools, modelRouter] = await Promise.all([
+      this.buildStorage(args),
+      this.loadCustomTools(args.toolFiles),
+      this.resolveModelRouter(args),
+    ]);
     const { ConfigFactory } = await import('../../host/kernel/config.ts');
     const config = ConfigFactory.build({
       workspaceRoot: args.workspace,
@@ -275,6 +287,7 @@ export class CliBuildConfig extends CliCredentialBuild {
       // `userResponder`（`registerAgentTools`），所以必须在**这里**注入；漏了它，Web 端就只剩
       // 「只读提问卡」，用户看得见问题却没有提交入口（2026-10-08 用户报障）。
       ...(overrides.userResponder !== undefined ? { userResponder: overrides.userResponder } : {}),
+      ...(overrides.subagentTree !== undefined ? { subagentTree: overrides.subagentTree } : {}),
       ssrfPolicy: args.ssrfPolicy, // 配置文件 → CLI → 组合根；不在此透传则 A2A 拿不到策略表
       // 0 = 不限（缺省）。这个默认值历史上被抬过两次（16→32→48）来救「探索烧满、写入没跑」，
       // 但根因是**拿步数当终止条件**；现改为按任务完成/预算/行为护栏终止（2026-10-15）。
@@ -302,13 +315,13 @@ export class CliBuildConfig extends CliCredentialBuild {
         return skills.length > 0 ? { skills } : {};
       })(),
       model,
-      storage: await this.buildStorage(args),
+      storage,
       approvals: this.buildApproval(args, model),
       sandbox: this.buildSandbox(args),
       escalation: this.buildEscalation(args),
       elevatedSandbox: this.buildElevatedSandbox(args),
       events: CliEventPort.of(args, overrides.events),
-      extraTools: await this.loadCustomTools(args.toolFiles),
+      extraTools,
       compactionMaxTokens:
         args.compactionMax ??
         (args.contextWindow !== undefined ? Math.floor(args.contextWindow * 0.75) : undefined),
@@ -317,12 +330,13 @@ export class CliBuildConfig extends CliCredentialBuild {
         workers: this.buildWorkers(args),
         lspServer: this.parseLsp(args.lsp),
       }),
-      modelRouter: await this.resolveModelRouter(args),
+      modelRouter,
       // 系统提示：编码 Agent 取向（详见 DefaultPromptFragments 的类注释——原文案禁止连续探索、
       // 禁止跑 build/tsc，与「改代码」这一主场景直接冲突）。
       fragments: DefaultPromptFragments.codingAgent(),
     });
     await this.bridgeMcpServers(args, config);
+    AppText.setLocale(process.env.OMNI_LOCALE === 'en' ? 'en' : 'zh');
     return config;
   }
 
@@ -377,7 +391,7 @@ export class CliBuildConfig extends CliCredentialBuild {
     }
     const tools = config.tools;
     if (!(tools instanceof RegistryToolPort)) {
-      process.stderr.write('MCP 桥接需 RegistryToolPort 型工具端口，已跳过\n');
+      process.stderr.write(AppText.t('MCP 桥接需 RegistryToolPort 型工具端口，已跳过\n'));
       return;
     }
     const { SdkPreferredMcpConnector } =
@@ -433,7 +447,7 @@ export class CliBuildConfig extends CliCredentialBuild {
       modelAdapterRegistry.get(args.modelAdapter) ?? modelAdapterRegistry.get(MOCK_ADAPTER_ID);
     if (spec === undefined) {
       // 注册表恒含 mock（见 modelAdapterRegistry 的表）；走到这里说明表被改坏 ⇒ fail-closed。
-      throw new Error('模型适配器注册表缺少 mock 适配器');
+      throw new Error(AppText.t('模型适配器注册表缺少 mock 适配器'));
     }
     if (spec.defaultsId === undefined) {
       return spec.create({ baseUrl: '', model: args.model }); // mock：无端点、无凭据
@@ -568,8 +582,8 @@ export class CliBuildConfig extends CliCredentialBuild {
     if (!SandboxManager.isExecutionUnwired(profile)) return;
     throw new Error(
       `拒绝以 sandbox=${profile} 启动：该 OS 级后端目前只做裁决、执行包装尚未接线，` +
-        '命令不会真正进入 bwrap/landlock/seatbelt/unshare。请改用 policy/restricted，' +
-        '或等待执行包装接线后再启用。',
+        AppText.t('命令不会真正进入 bwrap/landlock/seatbelt/unshare。请改用 policy/restricted，') +
+        AppText.t('或等待执行包装接线后再启用。'),
     );
   }
 

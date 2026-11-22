@@ -6,21 +6,25 @@ import { AutoStartService } from './autoStart.ts';
 import { DesktopStateStore } from './desktopState.ts';
 import { HarnessSupervisor, type HarnessHandle } from './harnessSupervisor.ts';
 import { assertDirectory, openLogDirectory, pickDirectory, registerIpc } from './ipc.ts';
+import { WorkspaceGuardError } from './ipcGuards.ts';
 import { harnessEntry, logDir, modelDir, nodeBinary, runDir, vectorDir } from './lib/paths.ts';
 import { parseLaunchArgs } from './lib/args.ts';
 import { loadDesktopConfig, type DesktopConfig } from './config.ts';
 import { DesktopDialogs } from './app/DesktopDialogs.ts';
 import { DeepLinkRouter } from './app/DeepLinkRouter.ts';
 import { HarnessRestartPolicy } from './app/HarnessRestartPolicy.ts';
+import { HarnessStartFailure } from './app/HarnessStartFailure.ts';
 import { SecondaryWindows } from './app/SecondaryWindows.ts';
 import { SmokeHarness, type SmokeReport } from './app/SmokeHarness.ts';
 import { StartupMarker } from './app/StartupMarker.ts';
 import { WindowLifecycle } from './app/WindowLifecycle.ts';
 import { DesktopI18n } from './i18n/DesktopI18n.ts';
+import type { DesktopMessageKey } from './i18n/messages.ts';
 import { DesktopLogger } from './logger.ts';
 import { installMenu, refreshMenu } from './menu.ts';
 import { NotificationService } from './notifications.ts';
-import { installGlobalGuards, installSessionSecurity, setHarnessOrigin } from './security.ts';
+import { attachHarness } from './app/HarnessAttach.ts';
+import { installGlobalGuards } from './security.ts';
 import { TrayService } from './tray.ts';
 import { UpdateService } from './updateService.ts';
 import { createMainWindow, loadHarness } from './window.ts';
@@ -126,6 +130,27 @@ function openNewWindow(): void {
   secondary.open(handle);
 }
 
+/**
+ * 全局「快速提问」：显示并聚焦主窗口，然后通知渲染层把焦点送进输入框。
+ *
+ * 窗口可能还在加载首屏（从托盘重建 / 冷启动后立刻按下快捷键）：此时等
+ * `did-finish-load` 再发事件，否则 UI 的订阅尚未建立，按键看起来「没反应」。
+ * @returns 无返回值。
+ */
+function quickCapture(): void {
+  windows.show();
+  const target = context?.window ?? null;
+  if (target === null || target.isDestroyed()) return;
+  const send = (): void => {
+    if (!target.isDestroyed()) target.webContents.send('omni:quickCapture');
+  };
+  if (target.webContents.isLoadingMainFrame()) {
+    target.webContents.once('did-finish-load', send);
+    return;
+  }
+  send();
+}
+
 /** 启动应用。 */
 function run(): void {
   app.setAppUserModelId(config.app.appId);
@@ -137,10 +162,8 @@ function run(): void {
       // 超时也要给出「卡在哪」：CI 上看不到窗口，没有这行就只能猜（2026-11-10 实测）。
       const win = context?.window ?? null;
       const url =
-        win === null || win.isDestroyed()
-          ? '(无窗口)'
-          : win.webContents.getURL().replace(/([?&])token=[^&]*/g, '$1token=***');
-      const sidecar = context?.supervisor?.getState() ?? '(未创建)';
+        win === null || win.isDestroyed() ? '(no window)' : DesktopLogger.redact(win.webContents.getURL());
+      const sidecar = context?.supervisor?.getState() ?? '(not created)';
       process.stdout.write(
         `[omni-smoke] TIMEOUT: ${Math.round(smokeTimeoutMs / 1000)}s 内未得出结论` +
           `（sidecar=${sidecar} url=${url}）\n`,
@@ -218,10 +241,16 @@ async function bootstrap(): Promise<void> {
   const logger = new DesktopLogger(logDir(app.getPath('userData'), config.logging.dirName), {
     ringLines: config.logging.ringLines,
   });
-  for (const warning of loadedConfig.warnings) logger.write('main', `config: ${warning}`);
+  const i18n = new DesktopI18n(DesktopI18n.resolve(config.app.language, app.getLocale()));
+  // 结构化告警经 i18n 渲染（2026-11-20 遗留 #4 收口）：码与 messages.ts 的 config.* 键
+  // 一一对应（判据钉齐全，见 test.mts「配置告警 code 与文案键一一对应」）；码拼接在此是
+  // 安全的——ConfigWarningCode 联合就是该键表的后缀面。
+  for (const issue of loadedConfig.issues) {
+    const key = `config.${issue.code}` as DesktopMessageKey;
+    logger.write('main', `config: ${i18n.t(key, { path: issue.path, ...issue.params })}`);
+  }
   const startup = new StartupMarker(logger);
   startup.mark('config.loaded');
-  const i18n = new DesktopI18n(DesktopI18n.resolve(config.app.language, app.getLocale()));
   const dialogs = new DesktopDialogs(i18n);
   logger.write('main', `desktop language=${i18n.locale} (setting=${config.app.language})`);
   const state = new DesktopStateStore(app.getPath('userData'), {
@@ -231,12 +260,18 @@ async function bootstrap(): Promise<void> {
     closeToTray: config.state.defaultCloseToTray,
     openAtLogin: config.state.defaultOpenAtLogin,
   });
+  // B3 语言收敛：web 设置跟随记录（desktopState.locale）优先于 system 解析——
+  // 用户在 web 改过语言后，重启的壳层也跟随；config.app.language 显式值仍最高。
+  const savedLocale = state.get().locale;
+  if (savedLocale !== undefined && config.app.language === 'system') {
+    i18n.setLocale(savedLocale);
+  }
   const launch = parseLaunchArgs(process.argv, config.app.protocol);
   const linkedWorkspace =
     launch.deepLink !== null
       ? DeepLinkRouter.workspaceOf(launch.deepLink, config.app.protocol)
       : null;
-  const initial = await resolveWorkspace(launch.workspace ?? linkedWorkspace, state);
+  const initial = await resolveWorkspace(launch.workspace ?? linkedWorkspace, state, i18n);
   if (initial === null) {
     logger.write('main', 'no workspace selected; quit');
     app.quit();
@@ -287,40 +322,60 @@ async function bootstrap(): Promise<void> {
     dialogs,
   };
   windows.attach(window);
-  const tray = new TrayService(
+  // 共享动作单源（2026-11-20 抽取）：Tray/Menu/IPC 三方各取子集——新增动作只改这里，
+  // 消除「托盘有菜单没有」的三处同步漂移面。
+  const appActions = {
+    openWorkspace: () => {
+      void chooseWorkspace();
+    },
+    newWindow: openNewWindow,
+    quickCapture,
+    openLogs: () => {
+      void openLogs();
+    },
+    restartHarness: () => {
+      void restartHarness();
+    },
+    checkForUpdates: () => {
+      void checkForUpdates();
+    },
+    diagnostics: () => {
+      void showDiagnostics();
+    },
+    closeToTray: () => context?.state.get().closeToTray === true,
+    setCloseToTray: (enabled: boolean) => windows.setCloseToTray(enabled),
+    openAtLogin: () => context?.state.get().openAtLogin === true,
+    setOpenAtLogin: (enabled: boolean) => windows.setOpenAtLogin(enabled),
+    quit: () => app.quit(),
+    // B3 语言收敛（2026-11-21）：web 设置改语言 → IPC → 持久化 + i18n 运行时切换 +
+    // 菜单重建 + 托盘重建（标签随新语言再生）。desktopState.locale 让下次启动也跟随。
+    setLocale: (locale: 'zh-CN' | 'en-US') => {
+      if (context === null) return;
+      state.setLocale(locale);
+      i18n.setLocale(locale);
+      refreshMenu();
+      trayService.destroy();
+      context.tray = trayService.create() ? trayService : null;
+    },
+  };
+  const trayService = new TrayService(
     join(__dirname, 'icon.png'),
     {
-      show: () => windows.show(),
-      newWindow: openNewWindow,
-      openWorkspace: () => {
-        void chooseWorkspace();
+      ...appActions,
+      // 托盘的键名是 checkUpdates（menu/IPC 是 checkForUpdates）——同一动作两个键名。
+      checkUpdates: () => {
+        void checkForUpdates();
       },
+      show: () => windows.show(),
       recentWorkspaces: () => (context?.state.get().recentWorkspaces ?? []).slice(0, 5),
       openRecent: (path) => {
         void switchWorkspace(path);
       },
-      restartHarness: () => {
-        void restartHarness();
-      },
-      openLogs: () => {
-        void openLogs();
-      },
-      checkUpdates: () => {
-        void checkForUpdates();
-      },
-      diagnostics: () => {
-        void showDiagnostics();
-      },
-      setCloseToTray: (enabled) => windows.setCloseToTray(enabled),
-      setOpenAtLogin: (enabled) => windows.setOpenAtLogin(enabled),
-      quit: () => app.quit(),
-      closeToTray: () => context?.state.get().closeToTray === true,
-      openAtLogin: () => context?.state.get().openAtLogin === true,
     },
     config.tray,
     i18n,
   );
-  context.tray = tray.create() ? tray : null;
+  context.tray = trayService.create() ? trayService : null;
   if (config.window.showShortcut !== '') {
     try {
       const ok = globalShortcut.register(config.window.showShortcut, () => windows.show());
@@ -337,31 +392,33 @@ async function bootstrap(): Promise<void> {
       );
     }
   }
+  // 快速提问是独立快捷键：注册失败只记日志，用户仍可从托盘/菜单进入。
+  try {
+    // 全局「快速提问」（2026-11-10 桌面体验）：任何应用里按下都唤起工作台并聚焦输入框。
+    // 快捷键走 desktop.config 的 app.quickCaptureShortcut（2026-11-20 配置化集中）——
+    // 与 `showShortcut`（只显示窗口）分工明确：前者是「随手记一句」，后者是「回到应用」。
+    const ok = globalShortcut.register(config.app.quickCaptureShortcut, () => quickCapture());
+    logger.write(
+      'main',
+      ok
+        ? `quick capture registered: ${config.app.quickCaptureShortcut}`
+        : `quick capture unavailable: ${config.app.quickCaptureShortcut}`,
+    );
+  } catch (error) {
+    logger.write(
+      'main',
+      `quick capture failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
   if (launch.hidden && context.tray === null) window.show();
   AutoStartService.apply(state.get().openAtLogin === true);
   updates.initialize();
   bindCrashHandler(supervisor);
   installMenu({
-    openWorkspace: () => {
-      void chooseWorkspace();
-    },
-    newWindow: openNewWindow,
-    openLogs: () => {
-      void openLogs();
-    },
-    restartHarness: () => {
-      void restartHarness();
-    },
-    checkForUpdates: () => {
-      void checkForUpdates();
-    },
-    closeToTray: () => context?.state.get().closeToTray === true,
-    setCloseToTray: (enabled) => windows.setCloseToTray(enabled),
-    openAtLogin: () => context?.state.get().openAtLogin === true,
-    setOpenAtLogin: (enabled) => windows.setOpenAtLogin(enabled),
-    quit: () => app.quit(),
+    ...appActions,
     isPackaged: app.isPackaged,
     repositoryUrl: config.app.repositoryUrl,
+    quickCaptureAccelerator: config.app.quickCaptureShortcut,
     i18n,
   });
   registerIpc({
@@ -371,18 +428,16 @@ async function bootstrap(): Promise<void> {
     isTrustedContents: (contents) => secondary.owns(contents),
     workspace: () => context?.workspace ?? initial,
     language: () => context?.i18n.locale ?? i18n.locale,
+    ...appActions,
+    // IPC 侧三个动作要 Promise 形态（直接引用异步原函数，覆盖 spread 进来的 void 包装）。
+    openLogs,
+    restartHarness,
+    checkForUpdates,
     showDiagnostics: () => {
       void showDiagnostics();
     },
-    closeToTray: () => context?.state.get().closeToTray === true,
-    setCloseToTray: (enabled) => windows.setCloseToTray(enabled),
-    openAtLogin: () => context?.state.get().openAtLogin === true,
-    setOpenAtLogin: (enabled) => windows.setOpenAtLogin(enabled),
-    openLogs,
-    restartHarness,
     revealPath,
     notify: (input) => context?.notifications.show(input) === true,
-    checkForUpdates,
     downloadUpdate: () => context?.updates.download() ?? Promise.resolve(),
     installUpdate: () => context?.updates.install() ?? Promise.resolve(),
     updateStatus: () => context?.updates.current() ?? { state: 'idle' },
@@ -398,13 +453,8 @@ async function bootstrap(): Promise<void> {
     const handle = await supervisor.start();
     context.handle = handle;
     startup.mark('harness.ready');
-    setHarnessOrigin(handle.port, handle.host);
-    installSessionSecurity(session.defaultSession, handle.port, {
-      ...config.security,
-      host: handle.host,
-    });
+    attachHarness({ session: session.defaultSession, security: config.security, handle, window, secondary });
     state.rememberWorkspace(initial);
-    loadHarness(window, handle);
     startup.mark('ui.loading');
     logger.write('main', `UI loaded for workspace ${initial}`);
     if (launch.deepLink !== null) deepLinks.setPending(launch.deepLink);
@@ -414,9 +464,13 @@ async function bootstrap(): Promise<void> {
       if (process.env['OMNI_SMOKE'] === '1') void runSmoke(launch.hidden);
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    logger.write('main', `harness start failed: ${message}`);
-    await dialogs.harnessStartFailed(window, message, logger.directory());
+    // 详情里带上侧车最近输出：只报「超时/退出码」等于让用户去猜（2026-11-14 用户报障）。
+    // 复用日志脱敏（Token / Bearer / sk- 前缀），对话框内容可能被用户贴进 issue。
+    const detail = DesktopLogger.redact(
+      HarnessStartFailure.describe(error, i18n.t('dialog.harnessOutput')),
+    );
+    logger.write('main', `harness start failed: ${HarnessStartFailure.reasonOf(error)}`);
+    await dialogs.harnessStartFailed(window, detail, logger.directory());
     app.quit();
   }
 }
@@ -425,11 +479,13 @@ async function bootstrap(): Promise<void> {
  * 解析初始工作区：显式参数 > 上次工作区 > 原生选择框。
  * @param explicit 命令行 `--workspace`。
  * @param state 偏好。
+ * @param i18n 桌面文案（目录选择框标题等用户可见面）。
  * @returns 工作区绝对路径；取消为 null。
  */
 async function resolveWorkspace(
   explicit: string | null,
   state: DesktopStateStore,
+  i18n: DesktopI18n,
 ): Promise<string | null> {
   if (explicit !== null) {
     if (!existsSync(explicit) || !statSync(explicit).isDirectory()) {
@@ -445,20 +501,22 @@ async function resolveWorkspace(
     // 无人值守冒烟：原生目录选择框没人点，会一直挂到超时闸才退出（2026-11-10 CI 实测）。
     // 与其挂 300s 再报「TIMEOUT」，不如当场说清楚缺什么。
     process.stderr.write(
-      '[omni-smoke] 缺少 --workspace：无人值守冒烟不弹目录选择框，请显式传工作区目录\n',
+      '[omni-smoke] missing --workspace: unattended smoke does not open a directory picker; pass the workspace directory explicitly\n',
     );
     app.exit(2);
     return null;
   }
-  return pickWorkspace();
+  return pickWorkspace(i18n);
 }
 
 /**
- * 弹出目录选择框。
+ * 弹出目录选择框（标题走 `dialog.pickWorkspace` 消息键、跟随桌面语言——此前 ipc.ts
+ * 里硬编码中文标题，en 用户看到中文框题，2026-11-18 硬编码清理批次收口）。
+ * @param i18n 桌面文案。
  * @returns 选中路径或 null。
  */
-async function pickWorkspace(): Promise<string | null> {
-  return pickDirectory(app.getPath('documents'));
+async function pickWorkspace(i18n: DesktopI18n): Promise<string | null> {
+  return pickDirectory(app.getPath('documents'), i18n.t('dialog.pickWorkspace'));
 }
 
 /**
@@ -483,11 +541,12 @@ function createSupervisor(workspace: string, logger: DesktopLogger): HarnessSupe
 
 /** 菜单/IPC：选择并切换工作区。 */
 async function chooseWorkspace(): Promise<void> {
+  const ctx = context;
   try {
-    const picked = await pickWorkspace();
+    // context 未就绪时（理论不可达，防御性兜底）用缺省中文——正常路径 i18n 恒在位。
+    const picked = await pickWorkspace(ctx?.i18n ?? new DesktopI18n('zh-CN'));
     if (picked !== null) await switchWorkspace(picked);
   } catch (error) {
-    const ctx = context;
     ctx?.logger.write('main', `choose workspace failed: ${String(error)}`);
     if (ctx !== null) {
       await ctx.dialogs.workspaceOpenFailed(error instanceof Error ? error.message : String(error));
@@ -507,7 +566,13 @@ async function switchWorkspace(path: string): Promise<void> {
   try {
     absolute = assertDirectory(path);
   } catch (error) {
-    await ctx.dialogs.invalidWorkspace(error instanceof Error ? error.message : String(error));
+    // 守卫错误（not-exists / not-directory）按稳定码走本地化模板——en 用户不再看到中文句子；
+    // 其余错误（理论不可达）保留原样呈现。
+    if (error instanceof WorkspaceGuardError) {
+      await ctx.dialogs.invalidWorkspaceGuarded(error.code, error.path);
+    } else {
+      await ctx.dialogs.invalidWorkspace(error instanceof Error ? error.message : String(error));
+    }
     return;
   }
   if (absolute === ctx.workspace) return;
@@ -520,21 +585,19 @@ async function switchWorkspace(path: string): Promise<void> {
     const handle = await next.start();
     ctx.handle = handle;
     ctx.workspace = absolute;
-    setHarnessOrigin(handle.port, handle.host);
-    installSessionSecurity(session.defaultSession, handle.port, {
-      ...config.security,
-      host: handle.host,
-    });
+    attachHarness({ session: session.defaultSession, security: config.security, handle, window: ctx.window, secondary });
     ctx.state.rememberWorkspace(absolute);
-    if (ctx.window !== null) loadHarness(ctx.window, handle);
-    secondary.reloadAll(handle);
   } catch (error) {
     // 旧 supervisor 已在上文 stop ⇒ ctx.handle 此刻指向一个**已死**的端口/令牌；
     // 不清空的话，托盘/菜单/新窗口路径仍会拿它去 loadHarness（连接拒答/401，2026-11-06 审计 P2）。
     ctx.handle = null;
-    const message = error instanceof Error ? error.message : String(error);
+    const message = HarnessStartFailure.reasonOf(error);
     ctx.logger.write('main', `switch workspace failed: ${message}`);
-    await ctx.dialogs.switchFailed(message);
+    await ctx.dialogs.switchFailed(
+      DesktopLogger.redact(
+        HarnessStartFailure.describe(error, ctx.i18n.t('dialog.harnessOutput')),
+      ),
+    );
   }
 }
 
@@ -551,19 +614,17 @@ async function restartHarness(): Promise<void> {
     const handle = await ctx.supervisor?.start();
     if (handle === undefined) throw new Error('supervisor unavailable');
     ctx.handle = handle;
-    setHarnessOrigin(handle.port, handle.host);
-    installSessionSecurity(session.defaultSession, handle.port, {
-      ...config.security,
-      host: handle.host,
-    });
-    if (ctx.window !== null) loadHarness(ctx.window, handle);
-    secondary.reloadAll(handle);
+    attachHarness({ session: session.defaultSession, security: config.security, handle, window: ctx.window, secondary });
   } catch (error) {
     // 同 switchWorkspace：旧实例已停，悬挂的 handle 必须清空（2026-11-06 审计 P2）。
     ctx.handle = null;
-    const message = error instanceof Error ? error.message : String(error);
+    const message = HarnessStartFailure.reasonOf(error);
     ctx.logger.write('main', `restart failed: ${message}`);
-    await ctx.dialogs.restartFailed(message);
+    await ctx.dialogs.restartFailed(
+      DesktopLogger.redact(
+        HarnessStartFailure.describe(error, ctx.i18n.t('dialog.harnessOutput')),
+      ),
+    );
   }
 }
 
@@ -608,6 +669,7 @@ async function showDiagnostics(): Promise<void> {
     }`,
     `logs: ${ctx.logger.directory()}`,
     `config: ${loadedConfig.sources.length > 0 ? loadedConfig.sources.join(' -> ') : 'builtin defaults'}`,
+    `config issues: ${loadedConfig.issues.length}`,
   ].join('\n');
   await ctx.dialogs.diagnostics(detail);
 }
@@ -716,8 +778,9 @@ async function runSmoke(hiddenLaunch: boolean): Promise<void> {
     harnessState: ctx?.supervisor?.getState() ?? null,
     harnessEndpoint: handle !== null ? `${handle.host}:${String(handle.port)}` : null,
     // 令牌打码（2026-11-06 审计 P1）：loadedUrl 是带 `?token=` 的地址，报告 JSON 号称
-    // 「可贴回 issue」——不脱敏等于鼓励把访问令牌贴进公共 issue。服务端日志都打码，桌面不能更松。
-    loadedUrl: alive ? window.webContents.getURL().replace(/([?&])token=[^&]*/g, '$1token=***') : null,
+    // 「可贴回 issue」——不脱敏等于鼓励把访问令牌贴进公共 issue。2026-11-20 统一走
+    // DesktopLogger.redact 单一真源（此前本文件自持一份弱变体正则，口径可漂移）。
+    loadedUrl: alive ? DesktopLogger.redact(window.webContents.getURL()) : null,
     dom,
     trayCreated: ctx?.tray !== null,
     notificationsSupported: Notification.isSupported(),

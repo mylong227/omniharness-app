@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * cliServerCmds.ts —— ExecCli 命令簇（god-class 拆分 · 第 2/6 层）。
  *
@@ -13,7 +14,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { OmniHome } from '../../host/kernel/util.ts';
 import { BuiltinDefaults } from '../../host/kernel/util.ts';
-import { MaintenanceRunner } from '../../host/extensions/kernel/util/maintenanceRunner.ts';
+import { MaintenanceRunner } from '../../host/kernel/maintenance.ts';
 import { HttpBridgeTransport } from '../server/transport/httpServer.ts';
 import type { HttpServer } from '../server/transport/httpServer.ts';
 import { ServerAuthGuard } from '../server/transport/serverAuthGuard.ts';
@@ -25,7 +26,7 @@ import type { AppServer } from '../server/core/appServer.ts';
 import type { ServerEventBridge } from '../server/core/serverEventBridge.ts';
 import type { AppServerOptions } from '../server/core/appServerState.ts';
 import { DoctorRunner } from './doctorRunner.ts';
-import { ServeInstance } from './serveInstance.ts';
+import { ServeInstance } from '../../host/kernel/maintenance.ts';
 import { ServeShutdown } from './serveShutdown.ts';
 import { ServeAnnounce } from './serveAnnounce.ts';
 import { ServeReadyFile } from './serveReadyFile.ts';
@@ -38,7 +39,7 @@ import type { FileConfig } from '../../host/kernel/config.ts';
 import { ServeTrust } from './serveTrust.ts';
 import { CompositeLiveView, ConsoleLiveView } from '../../host/kernel/adapters-misc.ts';
 import { WebLiveView } from '../../host/extensions/kernel/adapters/live/webLiveView.ts';
-import { PluginProfileStore } from '../../host/kernel/plugin.js';
+import { PluginProfileStore } from '../../host/kernel/plugin.ts';
 import { ArgParser } from './argParser.ts';
 import type { CliArgs } from './argParser.ts';
 import type { ResolvedConfig } from '../../host/kernel/contracts.ts';
@@ -75,6 +76,7 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
     const { AppServer } = await import('../server/core/appServer.ts');
     const app = new AppServer({
       config,
+      locale: process.env.OMNI_LOCALE === 'en' ? 'en' : 'zh',
       transport,
       pluginsDir,
       workspaceRoot: process.cwd(),
@@ -240,7 +242,7 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
     const jwksUri = this.flagValue(serveArgs, '--oidc-jwks-uri');
     if (issuer === undefined || clientId === undefined || jwksUri === undefined) {
       process.stderr.write(
-        '[auth] --auth-required 需同时提供 --oidc-issuer / --oidc-client-id / --oidc-jwks-uri（真实 IdP 的 jwks_uri 端点）\n',
+        AppText.t('[auth] --auth-required 需同时提供 --oidc-issuer / --oidc-client-id / --oidc-jwks-uri（真实 IdP 的 jwks_uri 端点）\n'),
       );
       return 2;
     }
@@ -288,19 +290,24 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
     metrics: Metrics;
     events: ServerEventBridge;
     config: ResolvedConfig;
+    subagentTree: import('../../host/kernel/contracts.ts').SubagentTreePort;
   }> {
     const bridge = new HttpBridgeTransport(auth);
     const metrics = new Metrics();
     const { ServerEventBridge } = await import('../server/core/serverEventBridge.ts');
     const events = new ServerEventBridge({ transport: bridge, metrics, audit });
+    // 父子树必须在 buildConfig 之前创建：内核在构造 subagent 工具时就绑定它。
+    const { SubagentTree } = await import('../../host/kernel/core.ts');
+    const subagentTree = new SubagentTree();
     const config = await this.buildConfig(args, {
       userResponder: events.questionPort(),
       events: events.eventPort(),
       // 常驻服务（桌面端侧车的唯一入口）必须能在「尚未配置 API Key」时正常起来：
       // 否则侧车就绪前退出 ⇒ 主进程弹启动失败并退出，用户连设置页都进不去（2026-11-08 用户报障）。
       allowUnconfiguredModel: true,
+      subagentTree,
     });
-    return { bridge, metrics, events, config };
+    return { bridge, metrics, events, config, subagentTree };
   }
   /**
    * 按命名插件集 profile 收敛运行时插件集（serve 启动后的一步；G-E 5.1）。
@@ -421,7 +428,7 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
       }
       const audit = this.createAudit(serveArgs);
       const upstream = await this.buildServeUpstream(args, auth, audit);
-      const { bridge, metrics, events, config } = upstream;
+      const { bridge, metrics, events, config, subagentTree } = upstream;
       const displayConfig = CliServerCmds.displayConfigOf(loadedFile, args, wsRoot);
       const pluginsDir = this.flagValue(serveArgs, '--dir') ?? join(OmniHome.dir(), 'plugins');
       // #B3 web：serve 模式下，把工具参数增量实时广播给 Web UI（WebLiveView 经 bridge 推送），
@@ -441,6 +448,8 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
           metrics,
           audit,
           displayConfig,
+          subagentTree,
+          locale: loadedFile.locale ?? 'zh',
         }),
       );
       // 启动优化（D1，2026-10-25）：插件加载 + Profile 应用不再挡在 HTTP listen 之前，
@@ -486,17 +495,20 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
       // 本提示只针对「项目级」缺省——别再把它指给 init（那永远消不掉这条提示，2026-11-06 审计）。
       process.stderr.write(
         `[omniharness] 未在 ${wsRoot} 找到项目级 omniharness.json；` +
-          '将只用用户级（~/.omniharness/omniharness.json）与内置默认。\n',
+          AppText.t('将只用用户级（~/.omniharness/omniharness.json）与内置默认。\n'),
       );
       process.stderr.write(
-        '              需要项目级差异化配置时，复制 omniharness.json.example 到本目录改名即可。\n',
+        AppText.t('              需要项目级差异化配置时，复制 omniharness.json.example 到本目录改名即可。\n'),
       );
     }
     const configPath = foundConfig ?? join(wsRoot, configFile.FILE_NAME);
     const serveTrust = ServeTrust.create(serveArgs);
+    // 2026-11-14（M53 对接）：传给 loadLayered 的必须是**用户显式**的 `--config`。
+    // 下面的 configPath 是给配置存储的项目级**读取**路径（可能只是「按工作区推断」的值，
+    // 文件不存在时存储层按无项目层处理）；把它当显式路径传进来会让合法启动 fail-closed。
     const loadedFile = CliServerCmds.loadServeConfig(
       wsRoot,
-      configPath,
+      foundConfig,
       this.flagValue(serveArgs, '--profile'),
       undefined,
       serveTrust.options,
@@ -533,12 +545,18 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
     readonly metrics: Metrics;
     readonly audit: AuditSink | undefined;
     readonly displayConfig: Record<string, string>;
+    /** 界面语言（用户级配置的 locale；缺省 zh）。 */
+    readonly locale: 'zh' | 'en';
+    /** 子代理父子树（alpha.21）：与 buildConfig 期注入的是同一实例。 */
+    readonly subagentTree: import('../../host/kernel/contracts.ts').SubagentTreePort;
   }): Promise<AppServerOptions> {
     const { args, serveArgs, wsRoot, configPath, pluginsDir } = deps;
     const serveProfile = this.flagValue(serveArgs, '--profile');
     return {
       config: deps.config,
+      locale: deps.locale,
       transport: deps.bridge,
+      subagentTree: deps.subagentTree,
       // 复用同一份上行桥：`question.respond` 的处理器挂在同一个实例上，否则（各自新建）
       // 客户端作答会送到一张**没有登记过请求**的挂起表里，答案静默丢失。
       eventBridge: deps.events,
@@ -675,12 +693,14 @@ export class CliServerCmds extends CliIdentityDaemonCmds {
         );
       }
     }
-    // 启动 + 周期维护巡检（2026-10-26，磁盘爆炸收口）：编排与播报都在 MaintenanceRunner.startup。
-    MaintenanceRunner.startup(process.stderr, config.limits?.maintenance);
     const binding = await this.startHttpServer(server, port, serveArgs.includes('--take-port'));
     if (binding.ok !== true) {
       return binding.code;
     }
+    // 启动 + 周期维护巡检（2026-10-26，磁盘爆炸收口；编排与播报都在
+    // MaintenanceRunner.startup）。2026-11-20 批次四 4.7：挪到 listen 之后——startup 是
+    // 同步清扫（readdir/unlink/read），挡 readyz 数百 ms；巡检是 best-effort，晚一拍无碍。
+    MaintenanceRunner.startup(process.stderr, config.limits?.maintenance);
     const announced = ServeAnnounce.announce(
       app,
       serveHost,

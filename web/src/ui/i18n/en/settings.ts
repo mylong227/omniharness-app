@@ -1,49 +1,117 @@
-// en 词条分片：设置页（SettingsSurface、ProviderCard、SettingsModel；旧的 SettingsModal 已于 2026-10-28 删除）。键 = 中文原文（与 t() 的键逐字一致，含 {name} 占位符）。
+// en 词条分片：设置页（SettingsSurface、ProviderTile/ProviderEditor、SettingsModel）。键 = 中文原文（与 t() 的键逐字一致，含 {name} 占位符）。
 export const EN_SETTINGS: Record<string, string> = {
   // 「常规」页的界面偏好（2026-10-29 起外观页并入常规：语言 + 主题 + 两栏宽度同屏）
   主题: 'Theme',
   深色: 'Dark',
   浅色: 'Light',
   跟随系统: 'Follow system',
-  '界面跟随系统的浅色 / 深色设置，系统切换时自动跟随。当前：':
-    'Follows the system light/dark setting and updates live. Now: ',
   '已锁定为': 'Locked to ',
-  '；选「跟随系统」可重新交给系统决定。':
-    '. Choose “Follow system” to hand the decision back to the system.',
-  '两套主题共用同一组 token（黑/白/灰），只交换明度方向；切换后立即生效并记住选择。':
-    'Both themes share one token set (black/white/gray) with inverted lightness direction; changes apply instantly and are remembered.',
   语言: 'Language',
   中文: '中文',
   English: 'English',
-  '界面文案即时切换并记住选择。': 'UI text switches instantly and your choice is remembered.',
 
   // 顶部与导航
   设置: 'Settings',
+  '搜索设置项…': 'Search settings…',
+  搜索设置项: 'Search settings',
+  设置搜索结果: 'Settings search results',
+  没有匹配的设置项: 'No matching setting',
   '关闭设置': 'Close settings',
   '关闭（Esc）': 'Close (Esc)',
   设置分栏: 'Settings sections',
   模型: 'Model',
   '厂商接入、API Key、默认模型与自定义端点': 'Providers, API keys, default model and custom endpoint',
   运行时: 'Runtime',
-  '适配器、工作区与沙箱执行环境': 'Adapter, workspace and sandbox execution environment',
+  '适配器、沙箱、存储、步数与成本预算、模型熔断、上下文与检索、缓存与防火墙、长期记忆、专家能力':
+    'Adapter, sandbox, storage, per-turn steps & cost budget, model circuit breaker, context & retrieval, cache & firewall, long-term memory, expert capabilities',
+  // 缓存与防火墙（alpha.21）
+  缓存与防火墙: 'Cache & firewall',
+  '确定性读缓存与能力数据流防火墙；缺省全关，开启后按段生效。':
+    'Deterministic read cache and capability data-flow firewall; both off by default, applied per section when enabled.',
+  读缓存: 'Read cache',
+  '白名单纯读工具按（工具 + 入参 + 工作区写代次）记忆命中；任何写提交全量失效；缺省关，切换在重启后生效':
+    'Read-only whitelisted tools are memoized by (tool + args + workspace write generation); any write invalidates all; off by default, toggling applies after restart',
+  缓存条目上限: 'Cache entry limit',
+  'LRU 上限（正整数）；到达上限淘汰最旧条目':
+    'LRU cap (positive integer); the oldest entry is evicted at the cap',
+  能力防火墙: 'Capability firewall',
+  'off=不跑 / shadow=留证放行 / enforce=命中即拒绝（外部与注入内容 → 写类工具）':
+    'off = disabled / shadow = log and allow / enforce = deny on match (external & injected content → mutating tools)',
+  防火墙策略文件: 'Firewall policy file',
+  '留空 = 随包默认策略': 'Leave empty for the bundled default policy',
+  '自定义 JSON 策略文件；不合 Schema 时启动即拒绝（fail-closed）':
+    'Custom JSON policy file; an invalid schema rejects at startup (fail-closed)',
+  // 下拉显示名（optionLabels / DEFAULT_LABELS；机读值不变）
+  'Mock（测试）': 'Mock (test)',
+  'OpenAI 兼容': 'OpenAI compatible',
+  'OpenAI Responses': 'OpenAI Responses',
+  'Google Gemini': 'Google Gemini',
+  完全放行: 'Passthrough',
+  策略拦截: 'Policy',
+  严格限制: 'Restricted',
+  'Windows 原生隔离': 'Windows native',
+  Landlock: 'Landlock',
+  Seatbelt: 'Seatbelt',
+  容器: 'Container',
+  '内存（重启丢）': 'Memory (lost on restart)',
+  中止回合: 'Abort turn',
+  仅提示: 'Warn only',
+  全部放行: 'Allow all',
+  全部拒绝: 'Deny all',
+  按规则: 'By rules',
+  守护裁决: 'Guardian verdict',
+  每次询问: 'Ask every time',
+  只读规划: 'Read-only plan',
+  拒绝提权: 'Deny escalation',
+  询问: 'Ask',
+  自动提权: 'Auto escalate',
+  无: 'None',
+  最低: 'Minimal',
+  低: 'Low',
+  中: 'Medium',
+  高: 'High',
+  极高: 'XHigh',
+  最高: 'Max',
+  'BM25 检索': 'BM25 retrieval',
+  开启: 'On',
+  '只留证（放行）': 'Log only (allow)',
+  '生效（拒绝）': 'Enforce (deny)',
+  '未设置（默认：{value}）': 'Not set (default: {value})',
+  需重启: 'Restart required',
+  桌面桥: 'Desktop bridge',
   权限: 'Permissions',
-  '审批模式、升级策略与免确认开关': 'Approval mode, escalation policy and confirmation toggle',
   外观: 'Appearance',
-  '主题与界面密度': 'Theme and UI density',
   配置集: 'Profiles',
-  '切换配置集、查看当前生效插件': 'Switch profiles and view active plugins',
 
   // 「模型」栏
   厂商接入: 'Providers',
   '{done}/{total} 已配置 Key': '{done}/{total} keys configured',
-  '保存 Key → 检测（真实请求厂商端点）→ 启用。凭据由服务端打码存储，界面不回显原文。':
-    'Save key → probe (a real request to the provider endpoint) → enable. Credentials are stored masked on the server and never shown in the UI.',
   '读取厂商目录…': 'Loading provider catalog…',
   '读取厂商目录失败：{msg}': 'Failed to load provider catalog: {msg}',
   '厂商目录为空：defaults/providers.json 可能缺失或不可读。':
     'Provider catalog is empty: defaults/providers.json may be missing or unreadable.',
   '读取配置失败：{msg}': 'Failed to load settings: {msg}',
   已配置: 'Configured',
+  未配置: 'Not configured',  消息: 'Messages',
+  'MCP 工具': 'MCP tools',
+  '系统工具': 'System tools',
+  '系统提示词': 'System prompt',
+  技能: 'Skills',
+  其他: 'Other',
+  '免费档': 'Free plan',
+  '升级档': 'Plus plan',
+  '专业档': 'Pro plan',
+  探索者: 'Explorer',
+  审查者: 'Reviewer',
+  规划者: 'Planner',
+  '文档撰写者': 'Documentation writer',
+  '先摸清代码与数据全貌，再下结论': 'Survey the code and data before drawing conclusions',
+  '找缺陷、找回归风险，不给风格意见': 'Find defects and regression risks; no style opinions',
+  '产出可执行方案与验收标准': 'Produce an executable plan with acceptance criteria',
+  '把实现整理成可读的文档与示例': 'Turn the implementation into readable docs and examples',  控制室: 'Control room',
+  决策账本: 'Decision ledger',
+  '编队 / 上下文 / 凭证：一屏掌控当前运行': 'Fleet / context / proof: run everything from one screen',
+  '执行前决策、审批、授权与共形证据：回答「为什么允许」': 'Pre-run decisions, approvals, licenses and verifiable evidence: answer why it was allowed',
   当前: 'Active',
   '默认模型与端点': 'Default model & endpoint',
   '默认模型': 'Default model',
@@ -55,7 +123,6 @@ export const EN_SETTINGS: Record<string, string> = {
   '模型适配器': 'Model adapter',
   '切换适配器会同时刷新可用模型清单': 'Switching the adapter also refreshes the available model list',
   沙箱: 'Sandbox',
-  '命令执行环境的隔离方式': 'Isolation mode for command execution',
   'policy/restricted 只做进程内策略；windows-native 在 Windows 提供原生写隔离（需 omni-cli）；读/网络真隔离用 wsl-bwrap 或 container（需 Docker/Podman）':
     'policy/restricted are in-process only; windows-native provides native Windows write isolation (requires omni-cli); use wsl-bwrap or container (requires Docker/Podman) for real read/network isolation',
 
@@ -63,8 +130,6 @@ export const EN_SETTINGS: Record<string, string> = {
   '适配器与执行环境': 'Adapter & execution environment',
   工作区: 'Workspace',
   当前工作区: 'Current workspace',
-  '工作区由启动参数或用户级配置决定（`--workspace` / `~/.omniharness/omniharness.json`），界面内不提供切换——改它等于换一整个项目上下文。':
-    'The workspace is set by launch args or user-level config (`--workspace` / `~/.omniharness/omniharness.json`); it cannot be switched here — changing it means a whole new project context.',
 
   // 「权限」栏
   审批: 'Approval',
@@ -76,24 +141,17 @@ export const EN_SETTINGS: Record<string, string> = {
   '开启后不再弹出审批确认；危险操作仍受沙箱与规则约束':
     'No more approval prompts when on; dangerous operations are still constrained by the sandbox and rules',
   '参数级规则': 'Per-command rules',
-  '上面三档是**全局默认**；要按命令/参数逐个放行或拦截（例如只允许 `git status`），在「权限」面板里编辑规则表。':
-    'The three options above are **global defaults**; to allow or block specific commands/args (e.g. only `git status`), edit the rule table in the "Permissions" panel.',
-  '打开权限规则面板': 'Open permission rules panel',
 
   // 「配置集」栏
-  '配置集（Profile）': 'Profiles',
   应用配置集: 'Apply profile',
-  '选择并应用…': 'Select and apply…',
-  '应用后立即生效，当前生效插件见下': 'Takes effect immediately; active plugins shown below',
   当前生效插件: 'Active plugins',
   '（默认）': '(default)',
-  '新建 / 删除 / 打包配置集在「配置集」面板里完成。': 'Create / delete / export profiles in the "Profiles" panel.',
   '打开配置集面板': 'Open profiles panel',
   '已应用配置集': 'Profile applied',
   '应用配置集失败：{msg}': 'Failed to apply profile: {msg}',
   '、': ', ',
 
-  // 厂商卡片（ProviderCard）
+  // 厂商卡（ProviderTile/ProviderEditor）
   '● 当前使用': '● In use',
   '已保存 {key}，输入新值覆盖': 'Saved {key}; enter a new value to replace it',
   '输入 API Key': 'Enter API key',
@@ -133,8 +191,6 @@ export const EN_SETTINGS: Record<string, string> = {
   '长任务在后台继续运行；托盘菜单可随时恢复窗口。':
     'Long tasks keep running in the background; restore the window from the tray menu at any time.',
   开机启动: 'Launch at login',
-  '登录系统后以托盘方式启动（Windows/macOS）。':
-    'Start in the tray after signing in (Windows/macOS).',
   更新: 'Updates',
   '读取中…': 'Loading…',
   当前已是最新版本: 'You are up to date',
@@ -151,4 +207,253 @@ export const EN_SETTINGS: Record<string, string> = {
   打开日志目录: 'Open log directory',
   '查看诊断信息': 'Show diagnostics',
   '重启 Harness': 'Restart Harness',
+  '选择…': 'Browse…',
+  '{name} 选择…': 'Browse for {name}',
+  '选择密钥文件': 'Choose key file',
+  '保存并检测': 'Save & probe',
+  '重新启用（切换模型）': 'Re-enable (switch model)',
+  '当前使用': 'In use',
+  '检测失败': 'Probe failed',
+  'API Key': 'API Key',
+  '厂商列表': 'Providers',
+  '{name}，{status}，打开编辑': '{name}, {status}. Click to edit.',
+  '功能 {feature} 需要 {requiredTier} 档（当前 {tier}）；当前未持有有效授权': 'Feature {feature} requires the {requiredTier} tier (current: {tier}); no active license',
+  '功能 {feature} 需要 {requiredTier} 档；当前未持有有效授权': 'Feature {feature} requires the {requiredTier} tier; no active license',
+  '点厂商卡编辑 Key / 检测 / 启用；凭据由服务端打码存储，界面不回显原文。': 'Click a provider card to edit its key / probe / enable. Keys are stored masked server-side and never shown in full.',
+  未设置: 'Not set',
+
+  // 设置页内核能力补全（2026-11-14，docs/design/settings-completion §3）
+  '默认推理强度': 'Default reasoning effort',
+  '新会话的默认档位；输入区「模型与推理强度」弹窗可按会话覆盖（按模型自适应档位）':
+    'Default level for new sessions; the "Model & reasoning" popover overrides per session (adaptive per model)',
+  '越权动作沙箱': 'Elevated-action sandbox',
+  '提权命令等越权动作被批准时的降级执行档；不得弱于基础沙箱（内核 fail-closed 拒绝更弱的组合）':
+    'Fallback sandbox for approved elevated actions; must not be weaker than the base sandbox (the kernel rejects weaker combos)',
+  存储: 'Storage',
+  '会话与事件的落盘方式与位置；改动在重启后生效。':
+    'How and where sessions and events are persisted; changes apply after restart.',
+  '会话存储': 'Session storage',
+  '会话与事件的落盘方式；切换在重启后生效': 'How sessions and events are persisted; applies after restart',
+  '存储目录': 'Storage directory',
+  '留空 = 内核默认目录': 'Leave empty for the kernel default directory',
+  '会话存档根目录；切换在重启后生效': 'Root directory for session archives; applies after restart',
+  '步数与成本': 'Steps & budget',
+  '限制单回合的执行步数与 token 成本；熔断在模型连续失败时暂停调用。':
+    'Limits per-turn steps and token cost; the circuit breaker pauses a failing model.',
+  '单回合最大步数': 'Max steps per turn',
+  '留空 = 内核默认': 'Leave empty for kernel default',
+  '一次任务内模型最多可连续执行的工具步数；0 为内核语义':
+    'Tool steps a model may take consecutively within one task; 0 has kernel-level meaning',
+  '成本预算（USD）': 'Cost budget (USD)',
+  '留空 = 不设预算': 'Leave empty for no budget',
+  '单任务累计 token 成本的硬上限（美元）；越限行为见下一行':
+    'Hard cap on accumulated token cost per task (USD); behavior on exceed below',
+  '软阈值比例': 'Soft threshold ratio',
+  '0 < r ≤ 1，如 0.8': '0 < r ≤ 1, e.g. 0.8',
+  '达到硬预算的该比例时提前提醒（如 0.8 = 用到 80% 提醒）':
+    'Warn early when the budget reaches this ratio (0.8 = warn at 80%)',
+  '超预算行为': 'On budget exceeded',
+  'fail=中止回合 / warn=仅提示并继续': 'fail = abort the turn / warn = notify and continue',
+  '模型熔断': 'Model circuit breaker',
+  '连续失败达到阈值后暂停调用该模型一段时间，避免对故障端点反复撞墙':
+    'Pause a model after consecutive failures to stop hammering a broken endpoint',
+  '熔断阈值（连续失败次数）': 'Circuit breaker threshold (consecutive failures)',
+  '如 5': 'e.g. 5',
+  '连续失败达到该次数即打开熔断': 'Open the breaker after this many consecutive failures',
+  '熔断打开时长（ms）': 'Circuit breaker open duration (ms)',
+  '如 30000': 'e.g. 30000',
+  '熔断打开后等待多久再放行下一次请求': 'How long to wait before letting the next request through',
+  '长期记忆': 'Long-term memory',
+  '跨会话记忆的加密与治理；未配密钥文件时加密使用派生默认密钥。':
+    'Encryption and governance for cross-session memory; encryption falls back to a derived key without a key file.',
+  '长期记忆加密': 'Memory encryption',
+  '长期记忆落盘前加密；未配密钥文件时使用派生默认密钥':
+    'Encrypt memory before persisting; uses a derived default key without a key file',
+  '长期记忆治理': 'Memory governance',
+  '按保留/清理策略自动整理长期记忆（去重、过期淘汰）':
+    'Maintain long-term memory automatically (dedupe, expiry)',
+  '记忆密钥文件': 'Memory key file',
+  '留空 = 派生默认密钥': 'Leave empty for the derived default key',
+  '加密密钥文件路径（配合「长期记忆加密」使用）': 'Key file path for memory encryption',
+  // 上下文与检索（内核 alpha.19 三段）
+  '上下文与检索': 'Context & retrieval',
+  '推入式检索、语义召回与预算降档阶梯；全部缺省关闭，改动在下一回合生效。':
+    'Push-style retrieval, semantic recall and budget-degrade ladder; all off by default, changes apply next turn.',
+  检索供给: 'Retrieval supply',
+  'bm25=每步按预算把会话历史检索片段推入上下文；缺省 off（显式开启才生效）':
+    'bm25 = push retrieved conversation snippets into context each step within budget; default off (must be enabled explicitly)',
+  查询改写: 'Query rewriting',
+  'model=每步经模型把多轮查询改写为自足查询（补指代/省略）；缺省 off':
+    'model = rewrite multi-turn queries into self-contained ones via the model (resolves references/ellipsis); default off',
+  检索精排: 'Rerank',
+  'model=候选片段经模型语义精排再进预算裁剪；预算降档时自动跳过；缺省 off':
+    'model = semantically rerank candidates before budget trimming; skipped while degraded; default off',
+  单步注入条数: 'Snippets per step',
+  '留空 = 内核默认 4': 'Leave empty for kernel default 4',
+  '每次上下文组装最多注入的片段数（正整数）':
+    'Maximum snippets injected per context assembly (positive integer)',
+  '注入 token 上限': 'Injection token limit',
+  '留空 = 内核默认 600': 'Leave empty for kernel default 600',
+  '单步注入片段的 token 预算上限（正整数）':
+    'Token budget for injected snippets per step (positive integer)',
+  语义召回: 'Semantic recall',
+  'on=装配本地嵌入模型，检索走 BM25 ∪ 语义混合；嵌入不可用时降级为 BM25 并在诊断中如实标注':
+    'on = load the local embedding model and use hybrid BM25 ∪ semantic retrieval; falls back to BM25 and reports it when embeddings are unavailable',
+  降档激进裁剪: 'Aggressive shaping on degrade',
+  '软预算越档时启用旧轮激进裁剪（缺省关 = 维持既有行为）':
+    'Enable aggressive pruning of older turns when the soft budget is exceeded (default off = current behavior)',
+  降档强制压缩: 'Force compaction on degrade',
+  '软预算越档时强制压缩上下文（缺省关 = 维持既有行为）':
+    'Force context compaction when the soft budget is exceeded (default off = current behavior)',
+  缓存命中率下限: 'Cache hit-rate floor',
+  '留空 = 不告警': 'Leave empty to disable alerts',
+  'prompt cache 累计命中率低于该值时告警（0 < r ≤ 1；只告警不阻断）':
+    'Alert when the cumulative prompt-cache hit rate drops below this value (0 < r ≤ 1; alert only, never blocks)',
+  '「{name}」{reason}': '"{name}" {reason}',
+  需为数字: 'must be a number',
+  '取值范围：{range}': 'allowed range: {range}',
+  '≥ 0（0 为内核语义）': '≥ 0 (0 has kernel-level meaning)',
+  '> 0（USD）': '> 0 (USD)',
+  '0 < r ≤ 1': '0 < r ≤ 1',
+  '≥ 1 的整数': 'integer ≥ 1',
+  '≥ 1000 的整数（毫秒）': 'integer ≥ 1000 (ms)',
+  'auto 全自动 / rules 按规则 / ask 每次询问 / plan 只读规划（写类一律拒绝）/ guardian 守护裁决 / deny 全拒':
+    'auto = fully automatic / rules = by rules / ask = confirm each time / plan = read-only planning (writes denied) / guardian = guardian verdict / deny = reject all',
+  // —— 厂商卡归属标签（2026-11-17 美化批次）——
+  '本地': 'Local',
+  '云端': 'Cloud',
+
+  // —— 模型角色路由卡（2026-11-19 内核 #B4 接入）——
+  模型角色路由: 'Model role routing',
+  '按角色给规划、执行、审查、压缩等工作负载分配不同模型；未配置时所有请求走默认模型。':
+    'Assign different models per role — planning, execution, review, compaction…; without it every request uses the default model.',
+  '启用后按角色映射选模型：同一会话里规划要强、执行要稳、压缩要便宜。':
+    'When enabled each role maps to its own model: strong for planning, steady for execution, cheap for compaction.',
+  启用角色路由: 'Enable role routing',
+  停用角色路由: 'Disable role routing',
+  策略: 'Strategy',
+  路由条目: 'Route entries',
+  '模型名 + 底层适配器；角色未映射或非 by-role 策略时用第一个条目。':
+    'Model name + underlying adapter; unmapped roles (and non by-role strategies) use the first entry.',
+  添加条目: 'Add entry',
+  角色映射: 'Role mapping',
+  '仅「按角色」策略消费；留空的角色回退首个条目。':
+    'Only consumed by the by-role strategy; empty roles fall back to the first entry.',
+  留空回退首个条目: 'Empty falls back to the first entry',
+  '{role} 的模型': 'Model for {role}',
+  '条目 {n} 模型名': 'Entry {n} model name',
+  '条目 {n} 适配器': 'Entry {n} adapter',
+  '模型名（如 deepseek-v4-flash）': 'Model name (e.g. deepseek-v4-flash)',
+  保存: 'Save',
+  '至少需要一个路由条目': 'At least one route entry is required',
+  '条目 {n} 缺模型名': 'Entry {n} is missing a model name',
+  '模型名重复：{model}': 'Duplicate model name: {model}',
+  '角色「{role}」映射的模型不在条目里': 'Role "{role}" maps to a model that is not among the entries',
+  '路由条目的凭据取自对应适配器的环境变量（与 CLI 一致），主配置的 API Key 不用于路由条目；定价与上下文上限经配置文件设置。':
+    'Entry credentials come from each adapter’s environment variables (same as the CLI); the configured API key is not used for route entries. Pricing and context limits go through the config file.',
+  // 策略标签与说明（ModelRouterDraft.ROUTER_STRATEGIES 的 label/hint 值）
+  按角色: 'By role',
+  最低成本: 'Least cost',
+  轮询: 'Round robin',
+  按任务: 'By task',
+  按上下文: 'By context',
+  健康回退: 'Health fallback',
+  '自适应（UCB1）': 'Adaptive (UCB1)',
+  '按请求角色查 roles 映射选条目；未映射回退首个条目':
+    'Pick the entry via the per-role mapping; unmapped roles fall back to the first entry',
+  '选累计花费最低的条目（条目需配 pricing，未配则退化为轮询）':
+    'Pick the cheapest accumulated entry (needs per-entry pricing; falls back to round robin)',
+  按顺序轮流使用条目: 'Use entries in turn',
+  '按消息里的任务关键词分派（写/代码 vs 推理/分析）':
+    'Dispatch by task keywords in the message (writing/code vs reasoning/analysis)',
+  '估算请求 token 后装得下的条目里取窗口最小者': 'Estimate tokens, then pick the smallest window that fits',
+  首选条目失败时按序回退到下一个: 'Fall back to the next entry when the preferred one fails',
+  '按成功与延迟自适应学习（多臂老虎机）': 'Learns from success and latency (multi-armed bandit)',
+  // 角色标签与说明（ModelRouterDraft.MODEL_ROLES 的 label/hint 值）
+  执行: 'Executor',
+  规划: 'Planner',
+  审查: 'Reviewer',
+  压缩: 'Compactor',
+  守卫: 'Guardian',
+  目标: 'Goal',
+  子代理: 'Subagent',
+  '工具调用与编码主力，要求稳': 'Tool calls and coding workhorse — favour stability',
+  '任务拆解与方案，要求强': 'Task decomposition and plans — favour capability',
+  '独立复核产出，与执行分离': 'Independently review outputs, separate from execution',
+  '上下文压缩改写，要便宜': 'Context compaction rewrites — favour cost',
+  长期记忆抽取与治理: 'Long-term memory extraction and governance',
+  安全审查与风险判定: 'Security review and risk verdicts',
+  'goal 循环的模型': 'Model for the goal loop',
+  'subagent 派生的模型': 'Model for spawned subagents',
+
+  // —— 专家能力卡（2026-11-20 settings-completion v2：evolutionRlvr/decisionEngine/
+  //    calibratedAutonomy/rbac 四结构段；label/hint/placeholder 值均入此表）——
+  专家能力: 'Expert capabilities',
+  '进化闭环、决策引擎、校准自主性与角色门禁；面向进阶场景，缺省全关，改动重启生效。':
+    'Evolution loop, decision engine, calibrated autonomy and RBAC; advanced scenarios, all off by default, changes need a restart.',
+  '进化闭环（RLVR）': 'Evolution loop (RLVR)',
+  '任务末沉淀候选补丁并用验证命令打分；缺省关闭（零破坏）':
+    'Collect candidate patches at task end and score them with a verify command; off by default (zero behavior change)',
+  任务末自动运行: 'Auto-run at task end',
+  '每任务结束自动跑一轮进化（需先启用闭环）': 'Run one evolution round when a task ends (requires the loop to be enabled)',
+  七环编排内核: 'Seven-ring kernel orchestration',
+  '启用 EvolutionKernel 七环编排与晋升台账（ADR-0008）':
+    'Enable the EvolutionKernel seven-ring orchestration and promotion ledger (ADR-0008)',
+  发现预算上限: 'Discovery budget cap',
+  '单轮候选补丁数上限': 'Max candidate patches per round',
+  每题采样数: 'Samples per prompt',
+  '每 prompt 的采样数': 'Samples taken per prompt',
+  最低保留分: 'Min reward to keep',
+  'RLVR 最低保留阈值（默认 0：仅保留 reward>0 的绿样本）':
+    'Min reward to keep (default 0: keep only green samples with reward>0)',
+  最小增益门禁: 'Min gain gate',
+  '门禁须超过基线的最小增益': 'Minimum gain over baseline required by the gate',
+  验证命令: 'Verify command',
+  '候选代码验证命令；路径语义字段（ledgerDir/repo 等）经配置文件设置':
+    'Command that verifies candidate code; path-like fields (ledgerDir/repo etc.) go through the config file',
+  验证文件扩展名: 'Verify file extension',
+  '验证临时文件扩展名（验证 JS 代码须传 .js）': 'Temp file extension for verification (use .js to verify JS code)',
+  决策引擎模式: 'Decision engine mode',
+  '本地 System-1 高频判断点：off=不装配 / shadow=跑记不改行为 / enforce=生效（库缺省 off；CLI 生产入口缺省 shadow；全程 fail-open）':
+    'Local System-1 fast judgments: off = not assembled / shadow = run & record without changing behavior / enforce = effective (library default off; CLI production default shadow; fail-open throughout)',
+  常驻热进程: 'Warm resident process',
+  '复用常驻热进程；关掉则每次决策单起子进程（单次可达数十秒）':
+    'Reuse a warm resident process; off = spawn a fresh process per decision (can take tens of seconds)',
+  '决策 trace 落盘': 'Persist decision traces',
+  'append-only JSONL，供 RLCD 温度校准；仅 mode≠off 时生效':
+    'Append-only JSONL for RLCD temperature calibration; only when mode≠off',
+  单次决策上限: 'Per-decision timeout',
+  '单发路径单次决策上限（毫秒）': 'Per-decision timeout on the single-shot path (ms)',
+  校准自主性: 'Calibrated autonomy',
+  '校准充分且风险分低于阈值的审批升级直接放行（缺省关闭；分布无关保证见 ConformalRiskCalibrator）':
+    'Auto-approve escalation prompts that are well-calibrated and below the risk budget (off by default; distribution-free guarantees in ConformalRiskCalibrator)',
+  最少校准单元: 'Min calibration units',
+  '每类校准单元不足该数不放权': 'No autonomy until each class has this many calibration units',
+  '只读类风险预算 α': 'Read-only risk budget α',
+  '状态变更类 α': 'State-mutating risk budget α',
+  '提权执行类 α': 'Privileged actuation α',
+  '0<r<1，越小越保守': '0<r<1; smaller is more conservative',
+  '角色门禁（RBAC）': 'Role gate (RBAC)',
+  '按角色表限制工具面；缺省不启用（零行为变更）；角色定义表 roles 经配置文件设置':
+    'Restrict the tool surface by role table; off by default (zero behavior change); the roles table goes through the config file',
+  会话角色: 'Session role',
+  '本次会话身份（运行时状态，与角色定义表分离）': 'This session’s identity (runtime state, separate from the roles table)',
+  // 专家面占位符
+  '默认 12': 'default 12',
+  '默认 8': 'default 8',
+  '默认 0': 'default 0',
+  '默认 0.05': 'default 0.05',
+  '默认 0.02': 'default 0.02',
+  '默认 0.01': 'default 0.01',
+  '默认 .ts': 'default .ts',
+  '默认 120000 毫秒': 'default 120000 ms',
+  '默认 30': 'default 30',
+  '含 %CODE_FILE% 占位符；留空 = 奖励恒 0（安全旁路）': 'contains %CODE_FILE%; empty = reward always 0 (safe bypass)',
+  '留空 = 未指定': 'empty = unspecified',
+
+  // —— 路由卡凭据预检（2026-11-21 P2，model.adapters env 实测）——
+  '条目 {n}（{adapter}）：环境变量 {env} 未检测到——serve 启动将拒绝（fail-closed）':
+    'Entry {n} ({adapter}): env {env} not detected — serve will refuse at startup (fail-closed)',
+  '影子模式（跑记不改行为）': 'Shadow mode (logs only, no behavior change)',
+  '生效': 'active',
 };

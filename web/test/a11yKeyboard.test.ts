@@ -17,7 +17,6 @@ import { allText, byTag, clsOf, facadeOf, walk } from './domFacade.ts';
 import type { Facade, FacadeNode } from './domFacade.ts';
 
 const { RightPanel } = await import('../src/ui/components/RightPanel.tsx');
-const { PanelPicker } = await import('../src/ui/components/PanelPicker.tsx');
 const { SidebarHeader } = await import('../src/ui/components/SidebarHeader.tsx');
 const { SidebarFooter } = await import('../src/ui/components/SidebarFooter.tsx');
 const { ChatHeader } = await import('../src/ui/components/ChatHeader.tsx');
@@ -273,20 +272,28 @@ test('ConsoleSegmented：单选组单一 Tab 落点，方向键切换并环绕',
       onChange: (v: string) => changes.push(v),
     },
   });
-  const radios = (): FacadeNode[] =>
-    collect(facadeOf(ui.container.firstElementChild), (n) => n.props.role === 'radio');
+  // 2026-11-11 迁 antd Segmented：单选组语义由组件给出——整组只有一个 Tab 落点（容器），
+  // 每段是一枚原生 radio（无 role=radio 的手写按钮），箭头由组件处理。
+  const root = ui.container.querySelector('[role="radiogroup"]');
+  assert.ok(root !== null, '必须是 radiogroup');
+  assert.strictEqual(root!.getAttribute('aria-label'), '主题');
+  assert.strictEqual(root!.getAttribute('tabindex'), '0', '整组只有容器一个 Tab 落点');
+  const radios = (): HTMLInputElement[] => [
+    ...ui.container.querySelectorAll<HTMLInputElement>('input[type="radio"]'),
+  ];
   assert.strictEqual(radios().length, 3);
-  assert.strictEqual(radios()[1]!.props.tabIndex, '0', '当前项是唯一 Tab 落点');
-  assert.strictEqual(radios()[0]!.props.tabIndex, '-1');
+  assert.deepStrictEqual(
+    radios().map((i) => i.checked),
+    [false, true, false],
+    '当前项是唯一选中',
+  );
 
-  fireEvent.keyDown(radios()[1]!.el, { key: 'ArrowRight' });
+  // 箭头键挂在每个选项上（rc-segmented 的 handleKeyDown 是 item 级），不是在 radiogroup 容器上。
+  const items = [...ui.container.querySelectorAll('.ant-segmented-item')];
+  assert.strictEqual(items.length, 3);
+  const checkedInput = items[1]!.querySelector('input') as HTMLInputElement;
+  fireEvent.keyDown(checkedInput, { key: 'ArrowRight' });
   assert.deepStrictEqual(changes, ['light'], '方向键必须切到下一段');
-  assert.strictEqual(document.activeElement, radios()[2]!.el, '焦点必须跟着走');
-
-  fireEvent.keyDown(radios()[2]!.el, { key: 'ArrowRight' });
-  assert.deepStrictEqual(changes, ['light', 'system'], '末段向右必须环绕到首段');
-  fireEvent.keyDown(radios()[0]!.el, { key: 'End' });
-  assert.deepStrictEqual(changes, ['light', 'system', 'light'], 'End 必须到末段');
 });
 
 test('侧栏品牌行不再有命令/收起按钮（2026-10-26 用户要求）', () => {
@@ -295,7 +302,7 @@ test('侧栏品牌行不再有命令/收起按钮（2026-10-26 用户要求）',
 });
 
 test('侧栏壳组件：纯图标按钮都有 aria-label（不能只靠 title/emoji）', () => {
-  // 2026-10-07 壳层重构：NavRail / TopBar 收编为 SidebarHeader / SidebarFooter / PanelPicker。
+  // 2026-10-07 壳层重构：NavRail / TopBar 收编为 SidebarHeader / SidebarFooter（PanelPicker 已下线）。
   const trees = [
     renderFacade(SidebarFooter, {
       props: {
@@ -303,7 +310,6 @@ test('侧栏壳组件：纯图标按钮都有 aria-label（不能只靠 title/em
         onOpenSettings: () => {},
       },
     }).node,
-    renderFacade(PanelPicker, { props: { onOpen: () => {} } }).node,
     renderFacade(ChatHeader, {
       props: {
         title: 't',
@@ -394,6 +400,7 @@ test('SearchResults：listbox↔option 成套，aria-selected 唯一，结果条
   const groups = SearchHitGrouper.group(
     [{ kind: 'file', id: 'src/app.ts', label: 'app.ts', hint: 'src' }],
     [{ kind: 'chat', id: 's-1', label: 'app 图标', hint: '' }],
+    [],
     'app',
   );
   const { node } = renderFacade(SearchResults, {
@@ -502,7 +509,6 @@ test('汇总：跨组件渲染树的可访问性属性计数达到下限', () =>
         onOpenSettings: () => {},
       },
     }).node,
-    renderFacade(PanelPicker, { props: { activePane: 'tools', onPick: () => {} } }).node,
     renderFacade(ChatHeader, {
       props: {
         title: 't',
@@ -527,7 +533,7 @@ test('汇总：跨组件渲染树的可访问性属性计数达到下限', () =>
     nodes: all.length,
   };
   // 数字同时打印进输出，作为「实测覆盖率」证据留在日志里。
-  process.stdout.write('a11y 计数（5 棵渲染树）:' + JSON.stringify(numbered) + '\n');
+  process.stdout.write('a11y 计数（4 棵渲染树）:' + JSON.stringify(numbered) + '\n');
   // 2026-10-07 壳层重构后：右栏标签条 = 已打开文件（不再是常驻 12 项）；
   // 2026-10-19：功能面板改到设置式模态，右栏只剩文件标签 ⇒ 计数再收窄。
   // 属性「逐个显式给出」的契约由上面各用例分别钉住。

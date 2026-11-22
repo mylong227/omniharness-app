@@ -1,3 +1,5 @@
+import { AppText } from '../../../i18n/AppText.ts';
+import { RuntimeConfig } from '../../../config/RuntimeConfig.ts';
 /**
  * 只读 trace 自省服务（SessionTraceService）——把「读 trace」接进真实生产路径。
  *
@@ -65,9 +67,9 @@ export class SessionTraceService {
   /** 缓存会话上限（超出按插入序淘汰最旧一个）。 */
   private static readonly MAX_SESSIONS = 16;
   /** 单次读取条数上限（防止消费方一次拉爆内存）。 */
-  private static readonly MAX_LIMIT = 500;
+  private static readonly MAX_LIMIT = RuntimeConfig.server.traceMaxLimit;
   /** 单次读取默认条数（与端口默认一致）。 */
-  private static readonly DEFAULT_LIMIT = 20;
+  private static readonly DEFAULT_LIMIT = RuntimeConfig.server.traceDefaultLimit;
   /** 事件源。 */
   private readonly events: SessionTraceEvents;
   /** 会话存在性判定（真判定；缺省恒真）。 */
@@ -130,7 +132,7 @@ export class SessionTraceService {
   public read(request: TraceReadRequest): TraceReadResult {
     const session = request.session;
     if (session.trim() === '') {
-      return { session, entries: [], count: 0, error: 'trace.read 需要非空 sessionId' };
+      return { session, entries: [], count: 0, error: AppText.t('trace.read 需要非空 sessionId') };
     }
     const reader = this.readers.get(session);
     if (reader === undefined) {

@@ -164,11 +164,9 @@ function probeExpr() {
        都可能留在原地变成不可读（session-label 就是这么被抓到的）。这里把每个反白块
        连同它的典型后代造出来，逐个报告 前景/背景 是否同色。 */
     const inverted = [
-      ['rail-btn active', '.rail', '<button class="rail-btn active"><span class="rail-icon">x</span></button>'],
       ['cmdk-item active', '.cmdk', '<div class="cmdk-item active"><span class="cmdk-item-title">标题</span><span class="cmdk-hint">⌘K</span></div>'],
       ['dd-item active', '.dd-menu', '<div class="dd-item active"><span class="dd-ico">i</span>项</div>'],
       ['addmenu-item active', '.addmenu', '<div class="addmenu-item active"><span class="addmenu-item-ico">i</span><span class="addmenu-item-label">标签</span></div>'],
-      ['pp-item active', '.pp-menu', '<button class="pp-item active"><span class="pp-ico">i</span><span class="pp-title">面板</span></button>'],
     ];
     const invertedReport = inverted.map(([name, wrapperCls, html]) => {
       const wrap = document.createElement('div');

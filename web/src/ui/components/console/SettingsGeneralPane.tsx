@@ -11,6 +11,8 @@ import type { ThemePreference } from '../../models/ThemePreference.ts';
 import type { ThemeScheme } from '../../theme/palette.ts';
 import type { ChatMode } from '../../models/ChatModePreference.ts';
 import { ConsoleCard, ConsoleInfoRow, ConsoleRow, ConsoleSegmented } from './ConsoleUI.tsx';
+import Slider from 'antd/es/slider';
+import Button from 'antd/es/button';
 
 /** 主题三态（跟随系统 → 深色 → 浅色）。 */
 const THEME_PREFS: readonly { key: ThemePreference; icon: 'monitor' | 'moon' | 'sun'; label: string }[] =
@@ -152,6 +154,9 @@ function LanguageCard(props: {
 
 /**
  * 两栏宽度卡（会话栏 / 右侧面板）。
+ * 拖动即实时生效（本机偏好）；「已应用」徽标 1.5s 消隐（2026-11-17 美化批次）——
+ * 宽度不经过 SettingsModel（localStorage 偏好，不写服务端配置），flashSaved 不能直接搬，
+ * 这里按同款口径本地管理。
  * @param props 当前宽度与调整回调
  * @returns 宽度设置卡
  */
@@ -161,6 +166,14 @@ function PanelWidthCards(props: {
   onLeftWidthChange: (width: number) => void;
   onRightWidthChange: (width: number) => void;
 }): ReactElement {
+  const [applied, setApplied] = React.useState<'left' | 'right' | null>(null);
+  const timerRef = React.useRef(0);
+  React.useEffect(() => () => window.clearTimeout(timerRef.current), []);
+  const mark = (side: 'left' | 'right'): void => {
+    window.clearTimeout(timerRef.current);
+    setApplied(side);
+    timerRef.current = window.setTimeout(() => setApplied(null), 1500);
+  };
   return (
     <ConsoleCard
       footer={t('这里与拖动分隔条改的是同一份本机偏好；窄屏（≤880px）下两栏是抽屉，宽度不生效。')}
@@ -168,35 +181,39 @@ function PanelWidthCards(props: {
       <ConsoleRow
         label={t('会话栏宽度')}
         hint={t('范围 180–600 px，当前 {width} px', { width: props.leftWidth })}
+        saved={applied === 'left'}
       >
-        <input
-          className="csl-range"
-          type="range"
+        <Slider
           min={180}
           max={600}
           step={4}
-          aria-label={t('会话栏宽度')}
+          ariaLabelForHandle={t('会话栏宽度')}
           value={props.leftWidth}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            props.onLeftWidthChange(Number(e.target.value))
-          }
+          onChange={(value) => {
+            props.onLeftWidthChange(value);
+            mark('left');
+          }}
+          style={{ width: 190 }}
+          tooltip={{ formatter: (value) => `${String(value)} px` }}
         />
       </ConsoleRow>
       <ConsoleRow
         label={t('右侧面板宽度')}
         hint={t('范围 180–760 px，当前 {width} px', { width: props.rightWidth })}
+        saved={applied === 'right'}
       >
-        <input
-          className="csl-range"
-          type="range"
+        <Slider
           min={180}
           max={760}
           step={4}
-          aria-label={t('右侧面板宽度')}
+          ariaLabelForHandle={t('右侧面板宽度')}
           value={props.rightWidth}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            props.onRightWidthChange(Number(e.target.value))
-          }
+          onChange={(value) => {
+            props.onRightWidthChange(value);
+            mark('right');
+          }}
+          style={{ width: 190 }}
+          tooltip={{ formatter: (value) => `${String(value)} px` }}
         />
       </ConsoleRow>
     </ConsoleCard>
@@ -247,9 +264,9 @@ function ShortcutsLinkCard(props: { onNavigate: (key: string) => void }): ReactE
   return (
     <ConsoleCard>
       <ConsoleRow label={t('全局快捷键')} hint={t('命令面板、新建会话、左右栏开合、明暗切换。')}>
-        <button className="csl-btn" type="button" onClick={() => props.onNavigate('shortcuts')}>
+        <Button onClick={() => props.onNavigate('shortcuts')}>
           {t('查看全部')}
-        </button>
+        </Button>
       </ConsoleRow>
     </ConsoleCard>
   );

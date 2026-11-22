@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import {
   closeSync,
   existsSync,
@@ -16,6 +17,7 @@ import { log } from '../../../host/kernel/util.ts';
 import { HashChain } from '../../../host/kernel/util.ts';
 
 import type { AuditEvent } from '../../../host/kernel/contracts.ts';
+import { AUDIT_READ_MAX_BYTES } from './appLimits.ts';
 
 export type { AuditEvent } from '../../../host/kernel/contracts.ts';
 
@@ -91,7 +93,7 @@ const SEP = '\u0000';
  * 若整文件读入，超大日志会撑爆内存。超过此上限即只读**末尾** 64 MiB（审计是 append-only、
  * 尾部才是最新且 `verify`/`resume` 真正需要的部分），并丢弃首条可能被截断的半行。
  */
-const MAX_READ_BYTES = 64 * 1024 * 1024;
+const MAX_READ_BYTES = AUDIT_READ_MAX_BYTES;
 
 /**
  * @beta
@@ -336,7 +338,7 @@ export class AuditSink {
       const legacy: AuditChainReport = {
         ok: null,
         count: events.length,
-        reason: '旧格式日志：未启用哈希链，无法校验完整性（非篡改）',
+        reason: AppText.t('旧格式日志：未启用哈希链，无法校验完整性（非篡改）'),
       };
       log.debug('audit.verify.legacy', { count: events.length });
       return legacy;

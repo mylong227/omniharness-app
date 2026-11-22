@@ -14,6 +14,7 @@ import { ContextUsageView } from '../models/ContextUsageView.ts';
 import { QuotaView } from '../models/QuotaView.ts';
 import { emptyNote } from '../format.ts';
 import { t } from '../i18n/i18n.ts';
+import { contextRowLabelOf, quotaPlanLabelOf } from '../models/KernelTextOverrides.ts';
 import { useCapacityReport } from './useCapacityReport.ts';
 import { useApp } from '../context.ts';
 import { usePopoverEffect } from './usePopoverEffect.ts';
@@ -77,6 +78,8 @@ function ContextStack(props: { readonly view: ContextUsageView }): ReactElement 
 interface DockContextSectionProps {
   /** 视图。 */
   readonly view: ContextUsageView;
+  /** 打开「控制室 · 上下文」面板（预警行的出口；上下文缺失时只提示不出口）。 */
+  readonly onOpenContext?: () => void;
 }
 
 /**
@@ -105,13 +108,15 @@ function DockContextSection(props: DockContextSectionProps): ReactElement {
             {view.rows.map((row, index) => (
               <div className="cap-legend-item" key={row.key} title={row.title}>
                 <span className={'cap-dot cap-dot-' + String(index + 1)} aria-hidden="true" />
-                <span className="cap-legend-label">{row.label}</span>
+                <span className="cap-legend-label">{contextRowLabelOf(String(row.key), row.label)}</span>
                 <span className="cap-legend-pct">{row.percentText}</span>
               </div>
             ))}
           </div>
         </>
       )}
+      {/* 主动预警（2026-11-17 粘性批次）：接近上限时只提示 + 给出口，不弹窗不打断。 */}
+      {view.barPercent >= CAP_WARN_PERCENT ? <CompactHint onOpen={props.onOpenContext} /> : null}
       <div className="cap-meta">
         <span>{view.toolSummary}</span>
         <span title={view.cacheDetail}>
@@ -120,6 +125,33 @@ function DockContextSection(props: DockContextSectionProps): ReactElement {
         </span>
       </div>
     </section>
+  );
+}
+
+/** 上下文预警阈值（%）：80 与设置里「触发预算」的量级一致，低于它不打扰。 */
+const CAP_WARN_PERCENT = 80;
+
+/**
+ * 预警行：一句话说明 + 「去压缩」出口（跳控制室 · 上下文）。
+ * @param props 打开上下文面板回调（缺省只提示不出口）
+ * @returns 预警行节点
+ */
+function CompactHint(props: { readonly onOpen?: () => void }): ReactElement {
+  return (
+    <div className="cap-warn-row" role="status">
+      <span className="cap-warn-text">{t('上下文已近上限：任务变长会先撞预算，建议压缩历史。')}</span>
+      {props.onOpen === undefined ? null : (
+        <button
+          className="ghost"
+          type="button"
+          onClick={() => {
+            props.onOpen?.();
+          }}
+        >
+          {t('去压缩')}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -177,7 +209,7 @@ function DockQuotaSection(props: DockQuotaSectionProps): ReactElement {
       )}
       <div className="cap-plan-note">
         <span className="cap-plan-name">
-          {t('档位 {name}', { name: status.plan.label })}
+          {t('档位 {name}', { name: quotaPlanLabelOf(String(status.plan.id), status.plan.label) })}
           {status.plan.multiplier !== 1 ? ` × ${status.plan.multiplier}` : ''}
         </span>
         <span className="cap-plan-why">
@@ -239,7 +271,7 @@ function BudgetEditor(props: BudgetEditorProps): ReactElement {
     }
     setSaving(true);
     try {
-      await api.quotaSet({ dailyTokens: Math.floor(parsed) });
+      await api.observability.quotaSet({ dailyTokens: Math.floor(parsed) });
       props.onSaved();
       toast(t('已更新今日预算'), 'ok');
     } catch (e) {
@@ -284,6 +316,7 @@ interface DockBodyProps {
  */
 function DockBody(props: DockBodyProps): ReactElement {
   const { usage, quota, loading, error, reload } = props.state;
+  const { openContextPane } = useApp();
   const view = ContextUsageView.isReport(usage) ? new ContextUsageView(usage) : undefined;
   // 形状守卫：旧服务端没有 quota.get 时 RPC 回落成 `{}`，直接 new QuotaView 会抛错。
   const quotaStatus =
@@ -307,7 +340,10 @@ function DockBody(props: DockBodyProps): ReactElement {
         </div>
       )}
       {view !== undefined ? (
-        <DockContextSection view={view} />
+        <DockContextSection
+          view={view}
+          {...(openContextPane !== undefined ? { onOpenContext: openContextPane } : {})}
+        />
       ) : (
         <div className="cap-dock-sec">
           {loading
@@ -331,6 +367,9 @@ export function CapacityDock(): ReactElement {
   const state = useCapacityReport(open);
   const view = ContextUsageView.isReport(state.usage) ? new ContextUsageView(state.usage) : undefined;
   usePopoverEffect(open, () => setOpen(false), POPOVER_ID);
+  // 主动预警（2026-11-17 粘性批次）：≥80% 收起态即变色（琥珀），标题直说「接近上限」——
+  // 用户不必点开浮层才知道该压缩了。
+  const warn = (view?.barPercent ?? 0) >= CAP_WARN_PERCENT;
 
   return (
     <div
@@ -341,16 +380,18 @@ export function CapacityDock(): ReactElement {
     >
       {open ? <DockBody state={state} /> : null}
       <button
-        className="cap-dock"
+        className={'cap-dock' + (warn ? ' cap-dock--warn' : '')}
         type="button"
         aria-haspopup="dialog"
         aria-expanded={open ? 'true' : 'false'}
         aria-label={
           view !== undefined
-            ? t('上下文 {pct}，点击查看详情', { pct: view.percentLabel })
+            ? warn
+              ? t('上下文 {pct}，接近上限——点击查看构成并压缩', { pct: view.percentLabel })
+              : t('上下文 {pct}，点击查看详情', { pct: view.percentLabel })
             : t('上下文，点击查看详情')
         }
-        title={t('上下文容量')}
+        title={warn ? t('上下文接近上限：建议压缩历史') : t('上下文容量')}
         onClick={(e: React.MouseEvent) => {
           e.stopPropagation();
           setOpen((prev) => !prev);

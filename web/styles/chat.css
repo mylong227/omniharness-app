@@ -86,6 +86,35 @@ pre.json { border:1px solid var(--border-soft); padding:8px 10px; margin-top:7px
 .doc-fold--open .doc-fold__preview { max-height:none; overflow:visible; }
 .doc-fold--open .doc-fold__preview::after { content:none; }
 
+/* 事件详情入口（2026-11-15）：鼠标点卡片是捷径；这枚按钮给键盘/读屏用户一个真实落点。 */
+.ev.clickable { position: relative; }
+.ev-open {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--border-soft);
+  border-radius: 7px;
+  background: var(--panel);
+  color: var(--dim);
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.12s ease;
+}
+.ev:hover .ev-open,
+.ev:focus-within .ev-open,
+.ev-open:focus-visible {
+  opacity: 1;
+}
+.ev-open:hover { color: var(--text); border-color: var(--border-strong); }
+@media (hover: none) {
+  .ev-open { opacity: 0.7; }
+}
+
 /* ---- 压缩游标事件收纳（2026-10-13）：摘要默认一行，点击展开全文 ---- */
 .sysnote-fold { text-align:center; color:var(--dim); font-size:12px; }
 .sysnote-fold__summary { cursor:pointer; list-style:none; padding:4px; }
@@ -96,6 +125,269 @@ pre.json { border:1px solid var(--border-soft); padding:8px 10px; margin-top:7px
   background:var(--panel); border:1px dashed var(--border-soft); border-radius:8px;
   padding:8px 12px; max-height:280px; overflow:auto; color:var(--dim);
 }
+/* ---- 上下文注记卡（2026-11-16）：压缩游标 / 工作流记忆 / 长系统注记 ----
+   折叠态 = 一行简报（图标 + 标题 + 元信息 + 展开），展开态 = 证据 chip + 排好版的正文。
+   表面用 panel（比对话底亮一档）+ 发丝线：它是一段「被引用的上下文」，不是又一条聊天消息。
+   正文给高度上限 + 独立滚动：摘要动辄数万字，展开不该把整轮结论顶出几屏。
+   身份色温（2026-11-16 美化）：--note-tint 按种类取语义 token（压缩=墨 / 记忆=雾蓝 /
+   其余=中性灰），图标与分节锚点共用这一个信号源——两类卡扫一眼就能分清，
+   而文字本身保持中性（信号不铺满，遵守语义色纪律）。
+   左侧 3px 色轨已撤（2026-11-18 用户反馈）：高亮弧在圆角下读成一枚「括号」，喧宾夺主；
+   底框也随之调浅一档（发丝线降到 60% 不透明度）——注记卡只做安静的底，不抢对话的视线。 */
+.ctx-note {
+  --note-tint: var(--faint);
+  border: 1px solid color-mix(in srgb, var(--hairline) 60%, transparent);
+  border-radius: var(--r-md);
+  background: var(--panel);
+  overflow: hidden;
+}
+.ctx-note--compaction { --note-tint: var(--accent); }
+.ctx-note--memory { --note-tint: var(--info); }
+.ctx-note__head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  /* 右侧留出外层事件钻取按钮（.ev-open，24px）的位置：它 hover / 聚焦时浮在卡片右上角，
+     不留位就会压住「展开 / 收起」。 */
+  padding: 7px 38px 7px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ctx-note__head:hover { background: var(--hover); }
+.ctx-note__row { display: flex; align-items: center; gap: var(--sp-2); width: 100%; min-height: 20px; }
+.ctx-note__ico {
+  display: inline-flex;
+  flex: none;
+  color: color-mix(in srgb, var(--note-tint) 72%, var(--dim));
+  transition: color var(--dur-1) var(--ease);
+}
+.ctx-note__head:hover .ctx-note__ico,
+.ctx-note__head:focus-visible .ctx-note__ico { color: var(--note-tint); }
+.ctx-note__title { flex: none; font-size: var(--fs-ui); font-weight: 600; color: var(--text); }
+.ctx-note__meta {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.ctx-note__toggle {
+  margin-left: auto;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--fs-micro);
+  color: var(--dim);
+}
+.ctx-note__chev {
+  display: inline-flex;
+  transition: transform 0.18s var(--ease-out);
+}
+.ctx-note--open .ctx-note__chev { transform: rotate(180deg); }
+.ctx-note__head:hover .ctx-note__toggle,
+.ctx-note__head:focus-visible .ctx-note__toggle { color: var(--text); }
+/* 焦点环内缩：卡片有 overflow:hidden，外扩环会被裁掉（键盘用户就看不到落点了）。 */
+.ctx-note__head:focus-visible { outline-offset: -2px; }
+/* 摘要行与标题左缘对齐（图标 14px + gap 8px）。 */
+.ctx-note__excerpt {
+  display: block;
+  padding-left: 22px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-xs);
+  color: var(--dim);
+}
+.ctx-note__body {
+  border-top: 1px solid var(--hairline);
+  padding: 10px 12px 12px;
+  max-height: min(56vh, 460px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  /* 每次展开都是新挂载：入场轻微下沉淡入（160ms），收起即卸载故无需出场动画。 */
+  animation: ctx-note-open 0.16s var(--ease-out);
+}
+@keyframes ctx-note-open {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+.ctx-note__chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+.ctx-note__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  color: var(--dim);
+}
+/* 语义色点：文字保持中性，色温只走这颗 6px 圆点（审计齐全=绿、缺项=琥珀、
+   预算=雾蓝、证据坏=茜红）。 */
+.ctx-note__chip::before {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--chip-dot, transparent);
+}
+.ctx-note__chip--ok { --chip-dot: var(--ok); }
+.ctx-note__chip--warn { --chip-dot: var(--warn); }
+.ctx-note__chip--err { --chip-dot: var(--err); }
+.ctx-note__chip--info { --chip-dot: var(--info); }
+.ctx-note__text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: var(--fs-sm);
+  line-height: 1.7;
+  color: var(--dim);
+}
+/* 压缩摘要是 Markdown 文档：标题压到与正文同一尺度；`####` 是 `【…】` 分节标签。 */
+.ctx-note__doc { font-size: var(--fs-sm); line-height: 1.72; }
+.ctx-note__doc .md-content { font-size: inherit; line-height: inherit; }
+.ctx-note__doc .md-content h1,
+.ctx-note__doc .md-content h2 { font-size: var(--fs-ui); font-weight: 600; color: var(--text); }
+.ctx-note__doc .md-content h3 { font-size: var(--fs-sm); font-weight: 600; color: var(--text); }
+.ctx-note__doc .md-content h4 {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+/* 分节标题的锚点：标题文字前一枚 10×2 的色温短划（--note-tint），
+   长文档里扫读时先撞到颜色再撞到字——段落边界不用逐字找。 */
+.ctx-note__doc .md-content h4::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 2px;
+  border-radius: 1px;
+  margin-right: 8px;
+  vertical-align: middle;
+  background: color-mix(in srgb, var(--note-tint) 70%, transparent);
+}
+/* 分节之间拉一条发丝线：这是长文档里唯一真的需要"断开"的地方（否则一整段灰字没有段落边界）。 */
+.ctx-note__doc .md-content h1:not(:first-child),
+.ctx-note__doc .md-content h2:not(:first-child),
+.ctx-note__doc .md-content h3:not(:first-child),
+.ctx-note__doc .md-content h4:not(:first-child) {
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--hairline);
+}
+.ctx-note__doc .md-content p,
+.ctx-note__doc .md-content li { color: var(--dim); }
+.ctx-note__doc .md-content > *:first-child { margin-top: 0; }
+/* 工作流记忆步骤：编号在左、命令在右；工具名 dim、目标 text（机器产物一律等宽）。 */
+.ctx-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: ctx-step;
+}
+.ctx-step {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: var(--sp-2);
+  align-items: baseline;
+  padding: 3px 0;
+  counter-increment: ctx-step;
+}
+.ctx-step::before {
+  content: counter(ctx-step, decimal-leading-zero);
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.ctx-step__cmd {
+  font-family: var(--mono);
+  font-size: var(--fs-list);
+  line-height: 1.6;
+  color: var(--text);
+  word-break: break-word;
+}
+.ctx-step__verb { color: var(--dim); }
+.ctx-step__target { margin-left: var(--sp-2); }
+/* 窄窗：元信息（游标 / 字数）让位给标题与开合入口——被截成「摘要约 138…」比不显示更难看。 */
+@media (max-width: 560px) {
+  .ctx-note__meta { display: none; }
+}
+/* 减动效：入场动画与 chevron 旋转都停（色轨 / 色点是静态信号，保留）。 */
+@media (prefers-reduced-motion: reduce) {
+  .ctx-note__body { animation: none; }
+  .ctx-note__chev { transition: none; }
+}
+
+/* ---- 审计记录收纳（2026-11-15）：每轮一条默认收起的摘要，展开才看逐条 JSON ---- */
+.audit-fold {
+  margin: 2px 0;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: var(--panel);
+}
+.audit-fold__summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 11.5px;
+  color: var(--dim);
+}
+.audit-fold__summary::-webkit-details-marker { display: none; }
+.audit-fold__summary:hover { color: var(--text); }
+.audit-fold__icon { display: inline-flex; }
+.audit-fold__kinds {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  opacity: 0.85;
+}
+.audit-fold__hint { margin-left: auto; flex: none; font-size: 10.5px; opacity: 0.7; }
+.audit-fold__body {
+  border-top: 1px solid var(--border-soft);
+  padding: 8px 10px;
+  max-height: min(40vh, 360px);
+  overflow: auto;
+}
+.audit-record + .audit-record {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-soft);
+}
+.audit-record__head { display: flex; gap: 8px; font-size: 10.5px; color: var(--dim); }
+.audit-record__kind { font-family: var(--mono); }
+.audit-record__json {
+  margin: 4px 0 0;
+  font-size: 10.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--text);
+}
+.unknown-fold__json { margin: 0; font-size: 10.5px; white-space: pre-wrap; word-break: break-all; }
 .todo-item { display:flex; gap:8px; align-items:center; }
 .todo-dot { border-radius:50%; background:var(--dim); }
 .diff { font-family:var(--mono); overflow:auto; max-height:320px; }

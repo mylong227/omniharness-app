@@ -17,8 +17,9 @@ export interface SearchResultsProps {
   selectedIndex: number;
   /** 当前关键字（用于高亮与截断）。 */
   query: string;
-  /** 是否正在等待远端响应。 */
   loading: boolean;
+  /** 内容命中是否触达扫描上限（渲染「结果已截断」标注）。 */
+  messagesTruncated: boolean;
   /** 选中某条命中（点击 / Enter 共用）。 */
   onPick: (hit: SearchHit) => void;
 }
@@ -50,7 +51,7 @@ function highlight(text: string, query: string): ReactNode[] {
  * @returns 结果节点；无关键字时为 null
  */
 export function SearchResults(props: SearchResultsProps): ReactElement | null {
-  const { groups, selectedIndex, query, loading, onPick } = props;
+  const { groups, selectedIndex, query, loading, messagesTruncated, onPick } = props;
   if (query.trim() === '') return null;
   const flat = SearchHitGrouper.flat(groups);
   const total = flat.length;
@@ -68,13 +69,16 @@ export function SearchResults(props: SearchResultsProps): ReactElement | null {
         className="sr-options"
         id={SEARCH_LIST_ID}
         role="listbox"
-        aria-label={t('会话与文件搜索结果')}
+        aria-label={t('会话、内容与文件搜索结果')}
       >
         {groups.map((g) => (
           <div className="sr-group" key={g.kind} role="group" aria-label={g.title}>
             <div className="sr-group-title">
               {g.title}
               <span className="sr-count">{g.items.length}</span>
+              {g.kind === 'chat-text' && messagesTruncated === true ? (
+                <span className="sr-truncated">{t('结果已截断（按最近会话优先扫描）')}</span>
+              ) : null}
             </div>
             {g.items.map((hit) => {
               const i = flat.findIndex((h) => h.kind === hit.kind && h.id === hit.id);
@@ -93,9 +97,18 @@ export function SearchResults(props: SearchResultsProps): ReactElement | null {
                   }}
                 >
                   <span className="sr-label">{highlight(hit.label, query)}</span>
-                  <span className="sr-hint">
-                    {highlight(SearchHitGrouper.snippet(hit.hint, query, 40), query)}
-                  </span>
+                  {hit.kind === 'chat-text' ? (
+                    <span className="sr-hint">
+                      {highlight(hit.hint, query)}
+                      {hit.matchCount !== undefined && hit.matchCount > 1 ? (
+                        <span className="sr-count">{t('{n} 处', { n: hit.matchCount })}</span>
+                      ) : null}
+                    </span>
+                  ) : (
+                    <span className="sr-hint">
+                      {highlight(SearchHitGrouper.snippet(hit.hint, query, 40), query)}
+                    </span>
+                  )}
                 </div>
               );
             })}

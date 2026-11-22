@@ -1,5 +1,5 @@
 import type { HttpServer } from '../server/transport/httpServer.ts';
-import { ServeInstance } from './serveInstance.ts';
+import { ServeInstance } from '../../host/kernel/maintenance.ts';
 import { ServeControl } from './serveControl.ts';
 
 /**

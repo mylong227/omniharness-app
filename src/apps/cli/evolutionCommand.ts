@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 ﻿/**
  * evolution 子命令（S7）：`omniharness evolution status|cycle|rollback`。
  *
@@ -38,13 +39,13 @@ const DEFAULT_LEDGER_DIR = join('.omniharness', 'evolution');
 
 /** 用法提示。 */
 const USAGE =
-  '用法: omniharness evolution status [--workspace DIR] [--dir REL] [--json]\n' +
+  AppText.t('用法: omniharness evolution status [--workspace DIR] [--dir REL] [--json]\n') +
   '      omniharness evolution history [--workspace DIR] [--dir REL] [--json]\n' +
-  '      omniharness evolution cycle --yes [其他 CLI 旗标…]\n' +
+  AppText.t('      omniharness evolution cycle --yes [其他 CLI 旗标…]\n') +
   '      omniharness evolution lineage [--skill A --skill B] [--pack NAME] [--out FILE] [--sign-key FILE] [--json]\n' +
   '      omniharness evolution lineage --verify FILE [--trust <ssh-ed25519 …>] [--json]\n' +
   '      omniharness evolution rollback --seq N --yes [--out FILE] [--workspace DIR] [--dir REL]\n' +
-  '说明: status/history/lineage 只读；cycle / rollback 会改动状态，必须显式 --yes。\n';
+  AppText.t('说明: status/history/lineage 只读；cycle / rollback 会改动状态，必须显式 --yes。\n');
 
 /**
  * cycle 执行钩子：由命令链接入（需要配置装载 + 运行时装配能力）。
@@ -141,7 +142,7 @@ export class EvolutionCommand {
       return 0;
     }
     process.stdout.write(
-      `进化系谱证书：${certificate.pack.name}（${String(certificate.assets.length)} 项资产，链${certificate.chain.verified ? '可信' : '**不可信**'}）\n`,
+      `进化系谱证书：${certificate.pack.name}（${String(certificate.assets.length)} 项资产，链${certificate.chain.verified ? AppText.t('可信') : AppText.t('**不可信**')}）\n`,
     );
     for (const asset of certificate.assets) {
       const mark = asset.origin === 'ledger-promotion' ? '✓' : '?';
@@ -154,7 +155,7 @@ export class EvolutionCommand {
         process.stdout.write(`      · ${asset.unprovenReason}\n`);
     }
     process.stdout.write(
-      `  签名：${certificate.issuer === undefined ? '未签名（哈希链部分仍可独立复核）' : `已签名 ${certificate.issuer.publicKeySsh.slice(0, 32)}…`}\n` +
+      `  签名：${certificate.issuer === undefined ? AppText.t('未签名（哈希链部分仍可独立复核）') : `已签名 ${certificate.issuer.publicKeySsh.slice(0, 32)}…`}\n` +
         `${out === undefined ? '' : `  已写入：${out}\n`}`,
     );
     return 0;
@@ -181,12 +182,12 @@ export class EvolutionCommand {
       process.stdout.write(`${JSON.stringify(verdict, null, 2)}\n`);
     } else {
       process.stdout.write(
-        `复核 ${path}：${verdict.ok ? '合格' : '**不合格**'}\n` +
-          `  签名：${verdict.signatureChecked ? '已验签' : trusted.length === 0 ? '未检查（未给 --trust）' : '未签名'}\n`,
+        `复核 ${path}：${verdict.ok ? AppText.t('合格') : AppText.t('**不合格**')}\n` +
+          `  签名：${verdict.signatureChecked ? AppText.t('已验签') : trusted.length === 0 ? AppText.t('未检查（未给 --trust）') : AppText.t('未签名')}\n`,
       );
       for (const asset of verdict.assets) {
         process.stdout.write(
-          `  ${asset.origin === 'ledger-promotion' ? '✓' : '?'} ${asset.name}（${asset.origin}，重算${asset.recomputed ? '通过' : '未通过'}）\n`,
+          `  ${asset.origin === 'ledger-promotion' ? '✓' : '?'} ${asset.name}（${asset.origin}，重算${asset.recomputed ? AppText.t('通过') : AppText.t('未通过')}）\n`,
         );
       }
       for (const problem of verdict.problems) process.stdout.write(`  ✗ ${problem}\n`);
@@ -243,7 +244,7 @@ export class EvolutionCommand {
         `进化台账：${summary.dir}\n` +
           `  验签：${report.ok ? 'ok' : `红（seq=${summary.brokenAt ?? '?'}：${summary.reason ?? ''}）`}\n` +
           `  条目：${summary.entries}（snapshot ${summary.snapshots} ｜ promote ${summary.promotions} ｜ rollback ${summary.rollbacks}）\n` +
-          `  最近快照 seq：${summary.latestSnapshotSeq ?? '（无）'}\n`,
+          `  最近快照 seq：${summary.latestSnapshotSeq ?? AppText.t('（无）')}\n`,
       );
     }
     return Promise.resolve(report.ok ? 0 : 1);
@@ -281,13 +282,13 @@ export class EvolutionCommand {
           row.name === undefined
             ? ''
             : ` ${row.name}${row.source === undefined ? '' : ` ← ${row.source}`}`;
-        const flag = row.verified ? '✓' : `✗（${row.reason ?? '复核失败'}）`;
+        const flag = row.verified ? '✓' : `✗（${row.reason ?? AppText.t('复核失败')}）`;
         process.stdout.write(`  #${String(row.seq)} ${row.action}${who} ${flag}\n`);
       }
       process.stdout.write(
         `可回滚快照：${
           view.rollbackTargets.length === 0
-            ? '（无）'
+            ? AppText.t('（无）')
             : view.rollbackTargets
                 .map((t) => `#${String(t.seq)}(${String(t.skillCount)} 技能)`)
                 .join(' ｜ ')
@@ -308,12 +309,12 @@ export class EvolutionCommand {
     const json = reader.has('--json');
     if (!reader.has('--yes')) {
       process.stderr.write(
-        'evolution cycle 会改动状态（台账写入 + 技能表晋升），必须显式加 --yes。\n',
+        AppText.t('evolution cycle 会改动状态（台账写入 + 技能表晋升），必须显式加 --yes。\n'),
       );
       return 2;
     }
     if (this.cycleRunner === undefined) {
-      process.stderr.write('evolution cycle 未接线（缺少运行时装配钩子）。\n');
+      process.stderr.write(AppText.t('evolution cycle 未接线（缺少运行时装配钩子）。\n'));
       process.stdout.write(USAGE);
       return 2;
     }
@@ -347,7 +348,7 @@ export class EvolutionCommand {
     const dir = this.ledgerDir(reader);
     const ledger = new HashChainPromotionLedger({ dir });
     if (!ledger.verify().ok) {
-      process.stderr.write('台账链不完整（断链/被篡改）：fail-closed 拒绝回滚。\n');
+      process.stderr.write(AppText.t('台账链不完整（断链/被篡改）：fail-closed 拒绝回滚。\n'));
       return Promise.resolve(1);
     }
     const plan = EvolutionCommand.restorePlanOf(ledger, seq);
@@ -363,9 +364,9 @@ export class EvolutionCommand {
     } else {
       process.stdout.write(
         `已回滚到快照 seq=${plan.seq}：还原 ${plan.skills.length} 条技能 → ${out}\n` +
-          '  用 `omniharness --skills ' +
+          AppText.t('  用 `omniharness --skills ') +
           out +
-          ' …` 把它接回下一次会话。\n',
+          AppText.t(' …` 把它接回下一次会话。\n'),
       );
     }
     return Promise.resolve(0);

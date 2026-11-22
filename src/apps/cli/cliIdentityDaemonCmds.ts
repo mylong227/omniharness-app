@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * CliIdentityDaemonCmds —— ExecCli 命令族继承链的**身份 / 后台服务层**（god-class 拆分 · 2026-10-11）。
  *
@@ -31,7 +32,7 @@ export class CliIdentityDaemonCmds extends CliBuildConfig {
     const sub = args[0];
     if (sub !== 'generate' && sub !== 'show' && sub !== 'sign' && sub !== 'verify') {
       process.stdout.write(
-        '用法: omniharness identity <generate|show|sign|verify> [--private-key PKCS8_B64] [--runtime-id ID] [--payload STR] [--signature B64]\n',
+        AppText.t('用法: omniharness identity <generate|show|sign|verify> [--private-key PKCS8_B64] [--runtime-id ID] [--payload STR] [--signature B64]\n'),
       );
       return 2;
     }
@@ -52,7 +53,7 @@ export class CliIdentityDaemonCmds extends CliBuildConfig {
         : undefined);
     if (identity === undefined) {
       process.stdout.write(
-        'identity 未配置：用 --private-key PKCS8_B64 指定密钥，或在配置中声明 agentIdentity\n',
+        AppText.t('identity 未配置：用 --private-key PKCS8_B64 指定密钥，或在配置中声明 agentIdentity\n'),
       );
       return 1;
     }
@@ -83,12 +84,12 @@ export class CliIdentityDaemonCmds extends CliBuildConfig {
     const sub = daemonArgs[0];
     if (sub === 'stop') {
       const ok = controller.stop();
-      process.stdout.write(ok ? 'daemon 已停止\n' : 'daemon 未运行\n');
+      process.stdout.write(ok ? AppText.t('daemon 已停止\n') : AppText.t('daemon 未运行\n'));
       return 0;
     }
     if (sub === 'status') {
       const st = controller.status();
-      process.stdout.write(st.running ? `daemon 运行中 (pid ${st.pid})\n` : 'daemon 未运行\n');
+      process.stdout.write(st.running ? `daemon 运行中 (pid ${st.pid})\n` : AppText.t('daemon 未运行\n'));
       return 0;
     }
     // 默认 start：解析 --port 与透传给 serve 的参数。
@@ -110,7 +111,7 @@ export class CliIdentityDaemonCmds extends CliBuildConfig {
     if (existing.running && existing.pid !== undefined) {
       process.stdout.write(
         `daemon 已在运行 (pid ${existing.pid})。访问令牌在它**当时启动**的输出里；` +
-          '如已丢失，先 `omniharness daemon stop` 再 start（或启动前预设 OMNI_SERVE_TOKEN 固定令牌）。\n',
+          AppText.t('如已丢失，先 `omniharness daemon stop` 再 start（或启动前预设 OMNI_SERVE_TOKEN 固定令牌）。\n'),
       );
       return 0;
     }
@@ -123,7 +124,7 @@ export class CliIdentityDaemonCmds extends CliBuildConfig {
     // **间歇性拒连**（本仓 httpServer 判据踩过同一个坑：看着能用、偶发连不上，最难查的一类）。
     process.stdout.write(
       `daemon 已启动 (pid ${pid})，UI: http://${ServerAuthGuard.DEFAULT_HOST}:${port}/?token=${token}\n` +
-        '（令牌已固定为本次生成的值；停止后再启动会生成新令牌，旧 URL 失效）\n',
+        AppText.t('（令牌已固定为本次生成的值；停止后再启动会生成新令牌，旧 URL 失效）\n'),
     );
     return 0;
   }
@@ -142,7 +143,7 @@ export class CliIdentityDaemonCmds extends CliBuildConfig {
    * （`execCli.loadDefaults`），于是同一个仓库里「一次性运行用真模型、Web UI 用 mock」这种自相矛盾
    * 的表现会长期无人发现。回归见 `上游判据 serveConfigLayering.test.ts（本仓未随迁）`。
    * @param wsRoot 工作区根（项目级配置从这里向上查找）。
-   * @param configPath 项目级配置路径（`--config` 显式指定或 `find` 结果）。
+   * @param configPath 项目级配置路径（`--config` 显式指定或 `find` 结果；无项目级配置时**必须**为 undefined）。
    * @param profile `--profile` 指定的配置 profile 名（缺省 undefined＝不叠加 profile 层）。
    * @param userHomedir 用户级配置的家目录（缺省 `os.homedir()`；测试隔离注入用）。
    * @param trust 工作区信任选项（生产入口必传；缺省保持既有合并语义）。
@@ -150,14 +151,16 @@ export class CliIdentityDaemonCmds extends CliBuildConfig {
    */
   public static loadServeConfig(
     wsRoot: string,
-    configPath: string,
+    configPath?: string,
     profile?: string,
     userHomedir?: string,
     trust?: WorkspaceTrustOptions,
   ): FileConfig {
     return configFile.loadLayered({
       workspace: wsRoot,
-      configPath,
+      // 2026-11-14（M53 fail-closed 对接）：只有**显式 --config** 才把路径交给内核；
+      // 向上查找的结果可能本来就为空，传 undefined 让内核保留「缺失继续」的语义。
+      ...(configPath !== undefined ? { configPath } : {}),
       ...(profile !== undefined ? { profile } : {}),
       ...(userHomedir !== undefined ? { userHomedir } : {}),
       ...(trust !== undefined ? { trust } : {}),

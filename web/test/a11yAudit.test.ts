@@ -95,16 +95,31 @@ test('axe WCAG 2.1 A/AA：两套主题 × 空态/工作台控制台，无 seriou
 
     /** 收集两套主题 × 两个状态的扫描结果。 */
     const seen: { label: string; result: AxeResult }[] = [];
+    // 主题必须走**产品自己的开关**（设置 → 主题模式）：antd 的面板/文字颜色来自 React 主题状态，
+    // 只改 <html data-theme> 会让 antd 停在上一套，出现「浅纸面 + 深色字」这种产品里不可达的组合
+    // （2026-11-11 迁移到 antd 后实测：1.04:1）。
+    const openSettings = `(function(){var b=document.querySelector('.side-foot .iconbtn[aria-label="打开设置"]'); if(b) b.click(); return !!b;})()`;
+    const closeSettings = `(function(){document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})); return true;})()`;
     for (const theme of ['dark', 'light'] as const) {
-      seen.push({ label: `${theme} / 空态`, result: await scan(page.cdp, theme) });
-    }
-    // 打开设置模态（含表单控件 / dialog / 分栏导航），两种主题各扫一次。
-    await page.cdp.evaluate(
-      `(function(){var b=document.querySelector('.side-foot .iconbtn[aria-label="打开设置"]'); if(b) b.click(); return !!b;})()`,
-    );
-    await page.cdp.waitFor("!!document.querySelector('.sp')", 5000);
-    for (const theme of ['dark', 'light'] as const) {
+      await page.cdp.evaluate(openSettings);
+      await page.cdp.waitFor("!!document.querySelector('.sp')", 5000);
+      const label = theme === 'dark' ? '深色' : '浅色';
+      const switched = await page.cdp.evaluate(`(function(){
+        var seg = document.querySelector('.ant-segmented[aria-label="主题"]');
+        if (!seg) return false;
+        var hit = [].slice.call(seg.querySelectorAll('.ant-segmented-item')).filter(function(b){
+          return (b.textContent || '').trim() === '${label}';
+        })[0];
+        if (!hit) return false;
+        hit.click();
+        return true;
+      })()`);
+      assert.strictEqual(switched, true, `设置里没有「主题模式」控件，无法切到 ${theme}`);
+      await new Promise((r) => setTimeout(r, 250));
       seen.push({ label: `${theme} / 设置模态`, result: await scan(page.cdp, theme) });
+      await page.cdp.evaluate(closeSettings);
+      await new Promise((r) => setTimeout(r, 250));
+      seen.push({ label: `${theme} / 空态`, result: await scan(page.cdp, theme) });
     }
 
     for (const s of seen) {

@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * serve 的工作区解析：**显式 --workspace > 本机固定项目 > 启动目录**（2026-10-06 用户口径）。
  *
@@ -102,13 +103,13 @@ export class ServeWorkspace {
   public static describeRootSource(source: 'flag' | 'local' | 'local-missing' | 'cwd'): string {
     switch (source) {
       case 'flag':
-        return '来自 --workspace';
+        return AppText.t('来自 --workspace');
       case 'local':
-        return '来自本机固定项目（~/.omniharness/omniharness.json 的 workspace；用 --workspace 可覆盖）';
+        return AppText.t('来自本机固定项目（~/.omniharness/omniharness.json 的 workspace；用 --workspace 可覆盖）');
       case 'local-missing':
-        return '本机固定项目的路径已不存在 ⇒ 回落启动目录（请用 --workspace 指定，或在 UI 里切换项目）';
+        return AppText.t('本机固定项目的路径已不存在 ⇒ 回落启动目录（请用 --workspace 指定，或在 UI 里切换项目）');
       default:
-        return '来自启动目录';
+        return AppText.t('来自启动目录');
     }
   }
 

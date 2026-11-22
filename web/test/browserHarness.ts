@@ -14,7 +14,7 @@ import { dirname, extname, join, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer as createNetServer } from 'node:net';
 // 回环主机走开发回路唯一事实源（vite 代理 / 就绪探针同源）。
-import { resolveDevAddress } from '../../scripts/devConfig.mjs';
+import { resolveDevAddress } from '../../scripts/devConfig.ts';
 
 /** 测试夹具监听/连接的回环主机。 */
 const DEV_HOST = resolveDevAddress().host;
@@ -140,7 +140,7 @@ function injectedBody() {
     '  var SOURCES = []; window.__SOURCES__ = SOURCES;',
     '  var json = function(o){ return { ok:true, status:200, json:function(){ return Promise.resolve(o); }, text:function(){ return Promise.resolve(JSON.stringify(o)); } }; };',
     '  var results = {',
-    "    'model.catalog': { providers: [], active: { id:'mock', label:'Mock 厂商', defaultModel:'mock-e2e', model:'mock-e2e', models:['mock-e2e'], reasoningEffort:['low','medium','high'] } },",
+    "    'model.catalog': { providers: [], active: { id:'mock', label:'Mock 厂商', defaultModel:'mock-e2e', model:'mock-e2e', models:['mock-e2e'], reasoningEffort:['low','medium','high'], effortsByModel:{'mock-e2e':['low','medium','high']} } },",
     // 夹具自洽性（2026-10-17 修）：`reasoning` 必须**属于**上面的 reasoningEffort，
     // 否则模型弹窗的进度条会把"当前值"当一个不属于该模型的档位追加在末尾，
     // 截图里读起来就是"弱 / 强 / 中"这种乱序（不是渲染 bug，是夹具自相矛盾）。
@@ -149,6 +149,9 @@ function injectedBody() {
     "    'sessions.list': { dir:'', sessions: [] },",
     "    'workspace.list': { current:'', workspaces: [] },",
     "    'fs.list': { tree: [] },",
+    // 回合结果卡挂载时会核对 created 行是否仍存在；夹具里的文件都是"假写入"，
+    // 默认视为存在，否则所有结果卡用例都会被自动过滤成空卡。
+    "    'fs.exists': { exists: true },",
     "    'approval.tiers': { tiers: [] },",
     "    'changes.list': { files: [] },",
     "    'usage.stats': { source:'live', dir:'', byModel:{}, total:{calls:0,prompt:0,completion:0,total:0}, sessions:[] },",

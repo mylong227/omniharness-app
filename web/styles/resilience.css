@@ -1,4 +1,4 @@
-﻿/* =========================================================================
+/* =========================================================================
    OmniHarness Web UI — 错误边界 / 崩溃面板 + 无障碍与降级
    ---------------------------------------------------------------------
    来源：CSS 按功能拆分（2026-10-16）。本段原属 polish.css §8 + §9，行序未动，
@@ -9,7 +9,7 @@
    8. 错误边界 / 崩溃面板（深色下原本与普通卡片难以区分）
    ========================================================================= */
 .crash-panel {
-  border-radius: 16px;
+  border-radius: var(--r-xl);
   border-color: color-mix(in srgb, var(--err) 44%, var(--border-soft));
   background: var(--bg-elev);
   box-shadow: var(--shadow-2);
@@ -62,6 +62,10 @@
   .stream {
     padding: 14px 12px 4px;
   }
+  /* 轨迹与对话同轴：窄窗下内边距必须一起回收，否则两条内容轴又差 16px。 */
+  .trace {
+    padding: 14px 12px 4px;
+  }
   .composer {
     margin: 0 10px 10px;
   }
@@ -72,6 +76,9 @@
 }
 @media (max-width: 640px) {
   .stream-inner {
+    max-width: 100%;
+  }
+  .trace-inner {
     max-width: 100%;
   }
   .modal,

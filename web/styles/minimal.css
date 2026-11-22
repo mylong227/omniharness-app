@@ -39,11 +39,11 @@
    半径随容器层级递增：层级才读得出来；散落的 5/7/9/11/16 一律归一。
    ========================================================================= */
 :root {
-  --r-xs: 6px;
-  --r-sm: 8px;
-  --r-md: 10px;
-  --r-lg: 14px;
-  --r-xl: 18px;
+  --r-xs: 8px;
+  --r-sm: 10px;
+  --r-md: 12px;
+  --r-lg: 18px;
+  --r-xl: 22px;
   --radius: 10px;
   --radius-sm: 8px;
   --radius-lg: 14px;
@@ -194,16 +194,85 @@
   animation: brand-sheen 8.4s ease-in-out infinite;
   pointer-events: none;
 }
-.brand-mark--compact {
+.brand-mark--spin {
   --bm-w: 20px;
   --bm-h: 20px;
-  border-radius: 7px / 5px;
-  font-size: 11px;
-  animation: brand-work 1.7s ease-in-out infinite;
+  border-radius: var(--r-sm);
+  font-size: 10px;
+  overflow: visible;
 }
+/* 月弧（2026-11-14 三轮收敛，用户口径「简洁好看」）：细底环 + 圆头亮弧匀速旋转，
+   Ω 居中静置。环收回芯片内；色随主题 accent-2（独立蓝青色组已退役）。
+   周长 2π×10≈62.8：亮弧 dasharray「17 45.8」≈ 27% 弧长。 */
+.brand-mark--spin .bm-arc {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  animation: bm-arc-spin 1.6s linear infinite;
+}
+.brand-mark--spin .bm-arc-track {
+  fill: none;
+  stroke: color-mix(in srgb, var(--accent-2) 30%, transparent);
+  stroke-width: 2.2;
+}
+.brand-mark--spin .bm-arc-lead {
+  fill: none;
+  stroke: var(--accent-2);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-dasharray: 17 45.8;
+}
+
+/* 裸字版（思考轨迹行内）：同套月弧坐在透明底上，尺寸收小。 */
+.brand-mark--spin.brand-mark--bare {
+  --bm-w: 15px;
+  --bm-h: 15px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 8px;
+}
+.brand-mark--spin.brand-mark--bare .bm-arc-track {
+  stroke: color-mix(in srgb, var(--accent-2) 24%, transparent);
+  stroke-width: 2.6;
+}
+.brand-mark--spin.brand-mark--bare .bm-arc-lead {
+  stroke-width: 2.6;
+}
+@keyframes bm-arc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* 星云晕：居中径向雾（2D，不随环倾斜），叠在环后撑出空间深度 */
+
+/* 交叉背环：与主环面正交的细淡环，转出陀螺仪式的轨道立体感（静态，不旋转） */
+
+/* 倾斜轨道容器：rotateX 把环面压成吸积盘的透视椭圆；preserve-3d 让面内旋转保持 3D */
+
+/* 旋转面：实线外环（带辉光）+ 虚线内环 + 星尘，整体绕面内 Z 轴匀速转 */
+
+/* 主环：SVG 矢量描边（border 在 3D 光栅化下碎段）；辉光 drop-shadow 跟随描边 */
+
+/* 盘面第二层：细淡青线（层次，非虚线——碎段是乱杂感主因） */
+
+/* 星尘：暖白光点，随面转 = 轨道运动；错拍闪烁 */
+
+/* 裸字版（思考轨迹行内）：同套星环坐在透明底上，尺寸收小、色随 accent-2 */
+
+
 .brand-mark--compact::after {
   content: none;
 }
+
+
+
+
+
+
+
+
 @keyframes brand-breathe {
   0%,
   100% {
@@ -228,17 +297,11 @@
     opacity: 0;
   }
 }
-@keyframes brand-work {
-  0%,
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent);
-  }
-  50% {
-    transform: scale(1.08);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
-  }
-}
+
+
+
+
+
 /* 字标：Omni 为主标题，HARNESS 同行后置的小号大写副标（2026-10-20 用户：
    「与标题一排放后面水平居中」——同一行、在主标题之后、垂直居中）。
    扫光仍只作用于主标题 Omni；副标只靠 3% 文本色淡底做极轻的分区。 */
@@ -336,10 +399,12 @@
 @media (prefers-reduced-motion: reduce) {
   .brand-mark,
   .brand-mark::after,
+  .brand-mark--spin .bm-arc,
   .side-wordmark-text,
   .side-wordmark-sheen {
     animation: none;
   }
+  /* 扫光是纯装饰：减动效时收起；星环保留静态倾斜形态（Ω 居中静置） */
   .side-wordmark-sheen {
     opacity: 0;
   }
@@ -589,14 +654,18 @@
 .task-card,
 .side-item,
 .session-search,
-.chat-tab,
-.pp-item {
+.chat-tab {
   border-radius: var(--r-sm);
 }
 .session {
-  padding: 7px 10px;
-  min-height: 34px;
-  gap: 2px;
+  /* 2026-11-14 第三轮（用户截图：会话每一条太挤）：行高 38→42、纵向 9→10；
+     第四轮（用户反馈「太开了」）：行高回调到 40；
+     第五轮（用户：「间隙间距小一点」）：行距交给 .ws-list 的 2px gap 独占；
+     第六轮（用户红框标注行间空带仍太宽）：行高 40→32、纵向 10→6——
+     行距只剩 2px gap，空带由「行盒 + 行内留白」决定，故必须收行内留白。 */
+  padding: 6px 12px;
+  min-height: 32px;
+  gap: 4px;
 }
 .session:hover,
 .task-card:hover {
@@ -958,17 +1027,7 @@
 .tt-dots i:nth-child(3) {
   animation-delay: 0.4s;
 }
-/* 运行中的环：描边环 + 两段高亮弧，转起来就是「还在想」。 */
-.tt-spinner {
-  display: inline-block;
-  width: 13px;
-  height: 13px;
-  border: 1.6px solid color-mix(in srgb, var(--accent-2) 22%, transparent);
-  border-top-color: var(--accent-2);
-  border-right-color: color-mix(in srgb, var(--accent-2) 60%, transparent);
-  border-radius: 50%;
-  animation: tt-spin 0.8s linear infinite;
-}
+/* 运行中状态图标 = .brand-mark--bare（旋转虚线环 + Ω），见 BrandMark.tsx。 */
 /* 轨迹筛选：长回合里把「思考 / 说明 / 工具 / 失败」分开看。
    只在步骤足够多时出现；失败片是红色信号，不是装饰。 */
 .tt-filterbar {
@@ -1156,11 +1215,6 @@
     background: transparent;
   }
 }
-@keyframes tt-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 @keyframes tt-dot {
   0%,
   100% {
@@ -1172,15 +1226,11 @@
     transform: translateY(-2px);
   }
 }
-/* 减少动态效果：停掉循环动画，但保留「运行中」的可读信号（实心色环 + 圆点）。 */
+/* 减少动态效果：停掉循环动画，但保留「运行中」的可读信号（静态 Ω + 圆点）。 */
 @media (prefers-reduced-motion: reduce) {
-  .tt-spinner,
   .tt-dots i,
   .thinking-trail.cluster-fresh .tt-head {
     animation: none !important;
-  }
-  .tt-spinner {
-    border-color: var(--accent-2);
   }
 }
 .tc-running {
@@ -2502,7 +2552,6 @@
    于是「＋」自己被画成了带投影的面板（真机截图发现）。 */
 .dd-menu,
 .cmdk,
-.pp-menu,
 .ws-switch-menu,
 .addmenu-pop,
 .modal,
@@ -2520,7 +2569,6 @@
   -webkit-backdrop-filter: var(--frost-blur);
 }
 .dd-menu,
-.pp-menu,
 .ws-switch-menu,
 .addmenu-pop,
 .row-menu,
@@ -2529,7 +2577,6 @@
   padding: 5px;
 }
 .dd-item,
-.pp-item,
 .ws-switch-menu button,
 .row-menu button,
 .cmdk-item,
@@ -2540,7 +2587,6 @@
   border: 1px solid transparent;
 }
 .dd-item:hover,
-.pp-item:hover,
 .ws-switch-menu button:hover,
 .row-menu button:hover,
 .cmdk-item:hover,
@@ -2551,7 +2597,6 @@
 /* 菜单/列表里的「当前项」：极淡墨底 + 左缘墨标 + 标题加粗。
    不用整块实心墨：`.dd-item` 是 340px 宽、两行文字的容器，刷成墨块会压掉描述文字。
 
-   例外：「全部面板」菜单（`.pp-item`）**不标当前项**（2026-10-18 用户反馈）。
    右栏标签条本来就显示当前面板名，菜单第一行再叠淡墨底 + 左缘墨标，在深色主题里看起来
    像"输入框/选中框"（用户原话「不要这种前面这个中选择样式」）⇒ 这个菜单只区分 hover。 */
 .dd-item.active,
@@ -2791,7 +2836,6 @@ button:active,
 .new-chat:active,
 .side-item:active,
 .session-act:active,
-.pp-item:active,
 .chat-tab:active {
   transform: none;
   opacity: 0.86;
@@ -3083,6 +3127,73 @@ button:active,
   line-height: 1.65;
   overflow-wrap: anywhere;
 }
+
+.sp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+.sp-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.sp-tile:hover {
+  background: var(--accent-soft);
+}
+.sp-tile.on {
+  border-color: var(--accent-line);
+}
+.sp-tile-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-sm);
+  background: var(--brand);
+  color: var(--brand-on);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+.sp-tile-name {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.sp-tile-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--fs-xs);
+  color: var(--dim);
+}
+.sp-tile-status.ok {
+  color: var(--text);
+}
+.sp-tile-status.err {
+  color: var(--err);
+}
+.sp-tile-glyph {
+  font-size: 10px;
+}
+.sp-tile-sub {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-xs);
+  color: var(--dim);
+}
 /* 活动面板：聚合状态/审批/变更/最近事件（Codex 式工作台入口）。 */
 .act {
   display: flex;
@@ -3177,68 +3288,16 @@ button:active,
 .sp-load-error .btn {
   flex: none;
 }
-.sp-input {
-  width: 100%;
-  background: var(--panel);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--r-sm);
-  color: var(--text);
-  font-size: var(--fs-list);
-  padding: 7px 10px;
-}
-.sp-input:focus {
-  outline: none;
-  border-color: var(--accent-line);
-  box-shadow: var(--ring);
-}
-.sp-input::placeholder {
-  color: var(--faint);
-}
-.sp-card-wrap {
-  overflow: hidden;
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-md);
-}
-.sp-card {
-  border-top: 1px solid var(--hairline);
-  padding: 10px 12px 12px;
-}
+
 /* 当前厂商：只给一层极淡的墨色底（4%）。
    2026-10-18：第一版用了 13%（--accent-soft），整张卡片看起来像被"选中"，过重——
    它只是"当前生效"，不是"你选中了它"，所以底要退到"能感觉出来"为止。 */
-.sp-card.on {
-  background: color-mix(in srgb, var(--accent) 4%, transparent);
-}
-.sp-card-head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.sp-card-name {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
-  font-size: var(--fs-list);
-}
-.sp-tag {
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: var(--fs-micro);
-}
-.sp-card-url {
-  color: var(--faint);
-  font-family: var(--mono);
-  font-size: var(--fs-micro);
-  overflow-wrap: anywhere;
-}
-.sp-card-state {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 6px;
-}
+
+
+
+
+
+
 .sp-dot {
   flex: none;
   width: 8px;
@@ -3256,20 +3315,13 @@ button:active,
   border-color: var(--err);
   box-shadow: inset 0 0 0 2px var(--err);
 }
-.sp-card-statetext {
-  color: var(--dim);
-  font-size: var(--fs-xs);
-}
+
 .sp-row {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
   margin-top: 8px;
-}
-.sp-row .sp-input {
-  flex: 1 1 200px;
-  min-width: 0;
 }
 
 /* =========================================================================
@@ -3540,7 +3592,7 @@ button:hover,
 .mem-imp {
   color: var(--warn);
 }
-.btn-remove:hover {
+.row-menu button.danger {
   border-color: var(--err);
   color: var(--err);
 }
@@ -3739,16 +3791,18 @@ button:hover,
   line-height: 1.65;
   margin: 4px 0 8px;
 }
-/* 列表行：拍平卡片，只留发丝分隔线 */
+/* 列表行：拍平卡片，只留发丝分隔线（tool-item 是 antd text 按钮，表面已透明，只留节奏） */
 .panel-surface .plugin-card,
 .panel-surface .mem-row,
 .panel-surface .cp-item,
-.panel-surface .graph-card,
-.panel-surface .tool-item {
+.panel-surface .graph-card {
   background: transparent;
   border: none;
   border-radius: 0;
   box-shadow: none;
+  padding: 9px 0;
+}
+.panel-surface .tool-item {
   padding: 9px 0;
 }
 .panel-surface .plugin-card + .plugin-card,
@@ -3898,8 +3952,9 @@ button:hover,
    投影：命令面板属于「真的浮起来」的浮层，用 shadow-2（见 §8）。
    ========================================================================= */
 /* 2026-10-29（W2）：浮层改由 antd Modal 承担（遮罩/层级/动画/焦点），
-   `.cmdk` 只负责面板本体。Modal 的 content 要透明无内距，否则会在卡片外多一层白底。 */
-.cmdk-modal .ant-modal-content {
+   `.cmdk` 只负责面板本体。Modal 的可视面板要透明无内距，否则会在卡片外多一层白底。
+   antd 6 起可视面板是 .ant-modal-container（.ant-modal-content 已不存在，2026-11-12 修正）。 */
+.cmdk-modal .ant-modal-container.ant-modal-container {
   padding: 0;
   background: transparent;
   box-shadow: none;
@@ -3918,7 +3973,10 @@ button:hover,
   max-height: min(72vh, 680px);
   overflow: hidden;
   color: var(--text);
-  background: var(--panel);
+  /* 磨砂浮层（2026-11-12）：与其他浮层同材质，见 antd.css 缝合层口径。 */
+  background: var(--frost-fill);
+  backdrop-filter: var(--frost-blur);
+  -webkit-backdrop-filter: var(--frost-blur);
   border: 1px solid var(--border-soft);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-2);
@@ -4302,6 +4360,14 @@ button,
   color: var(--faint);
   border-color: var(--border-soft);
 }
+/* 语义色按钮的禁用态必须压过上面的淡底块（本节晚于 §11 的 `button:disabled`，
+   否则 `.btn.primary:disabled` 仍是 12% 淡底 + 同色文字，读起来完全像可点）。 */
+.btn.primary:disabled {
+  background-color: var(--panel-2);
+  color: var(--faint);
+  border-color: var(--border-soft);
+  opacity: 1;
+}
 .dlg .dlg-confirm.danger {
   background-color: var(--panel-2);
   color: var(--err);
@@ -4434,7 +4500,8 @@ button,
   border-radius: 50%;
   border: 1px solid var(--border-soft);
   background: var(--frost-fill);
-  backdrop-filter: blur(var(--frost-blur-soft));
+  /* --frost-blur-soft 本身是完整 filter 列表（blur+saturation），不能再套一层 blur()。 */
+  backdrop-filter: var(--frost-blur-soft);
   color: var(--text);
   cursor: pointer;
   z-index: 3;
@@ -4444,4 +4511,369 @@ button,
 .stream-jump-bottom:hover {
   background: var(--btn-fill-hover);
   border-color: var(--border);
+}
+
+/* =========================================================================
+   右栏工作台概览（2026-11-10 第二轮收敛）
+   -------------------------------------------------------------------------
+   只有三块：项目 / 本会话一句话 / 工作区变更。新建任务、命令面板、设置、最近会话
+   与上下文图表都各有唯一入口（左栏 / 输入区 / 容量图表），这里不再复制。
+   留白优先：标题下 3px，块间 28px，列表行 11px 纵向。
+   ========================================================================= */
+.rv-home {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: inherit;
+}
+.wb-home {
+  padding: 26px 24px 32px;
+}
+.wb-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.wb-title {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-size: 21px;
+  font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: -0.022em;
+}
+.wb-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 13px;
+  margin-top: 10px;
+}
+.wb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--faint);
+  font-size: 10.5px;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+.wb-chip--branch {
+  font-family: var(--mono);
+}
+.wb-chip--dirty {
+  color: var(--warn);
+}
+.wb-chip--error {
+  color: var(--err);
+}
+.wb-chip--clean {
+  color: var(--ok);
+}
+.wb-session {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 5px 16px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+  color: var(--faint);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.wb-session-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
+}
+.wb-session-item strong {
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.wb-sec {
+  margin-top: 28px;
+  min-width: 0;
+}
+.wb-sec-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.wb-sec-title {
+  margin: 0;
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.wb-sec-action {
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent-2);
+  font-size: 11px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.wb-sec-action:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.wb-list {
+  margin-top: 4px;
+}
+.wb-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 11px 2px;
+  border: 0;
+  border-bottom: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.wb-row:last-child {
+  border-bottom-color: transparent;
+}
+.wb-row:hover {
+  background: var(--hover);
+}
+.wb-row-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.wb-row-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.wb-row-path {
+  font-family: var(--mono);
+  font-size: 11.5px;
+}
+.wb-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--faint);
+  font-size: 10.5px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+.wb-change-badge {
+  flex: none;
+  min-width: 30px;
+  margin-top: 1px;
+  color: var(--faint);
+  font-size: 10px;
+  line-height: 1.6;
+}
+.wb-add {
+  color: var(--add);
+}
+.wb-del {
+  color: var(--del);
+}
+.wb-note {
+  margin: 10px 0 0;
+  color: var(--faint);
+  font-size: 11.5px;
+  line-height: 1.65;
+}
+.wb-note--error {
+  color: var(--err);
+}
+@media (max-width: 520px) {
+  .wb-home {
+    padding: 20px 18px 28px;
+  }
+}
+/* ---- 输入区窄屏收口（2026-11-17 全面 review）：≤480px 隐藏语音按钮、收窄模型入口——
+   控制行两组已允许换行（见上方 composer-bar 注记），这里只压最宽的两块 chrome，
+   防止 390 宽下右组把「发送」挤出屏。 ---- */
+@media (max-width: 480px) {
+  .composer-bar .iconbtn.mic { display: none; }
+  .composer .mp { min-width: 76px; }
+  .chat-queue .cq-list { max-height: 160px; }
+}
+
+/* ---- 厂商卡归属标签（2026-11-17 美化批次）：本地 / 云端微标签——
+   端点长 URL 省略后看不出是本地 Ollama 还是云端 API，触屏又没有 hover。 ---- */
+.sp-tile-scope {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border-soft);
+  color: var(--faint);
+  font-size: 10px;
+  line-height: 16px;
+}
+.sp-tile-scope--local {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 38%, transparent);
+}
+
+/* ---- 上下文余量预测行（2026-11-17 粘性批次）：「按近 N 轮增速，大约还能再撑 M 轮」。
+   一行小字跟在会话摘要下；预测是参考，数据不足时不渲染（宁缺毋滥）。 ---- */
+.wb-forecast {
+  margin: -4px 0 10px;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+/* ---- 记忆时间图（2026-11-20 Memory Atlas v1，只读快照）----
+   纯布局规则；颜色一律语义 token（颜色纪律），被取代卡只做弱化不做删除线。 */
+.mem-atlas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.mem-atlas-count {
+  margin-left: 8px;
+  color: var(--faint);
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.mem-atlas-hint {
+  margin: 4px 0 0;
+  color: var(--faint);
+  font-size: 11px;
+}
+.mt-card {
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  padding: 8px 10px;
+  background: var(--panel);
+}
+.mt-card--stale {
+  opacity: 0.55;
+}
+.mt-card-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.mt-card-triple {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+}
+.mt-card-status {
+  flex: none;
+  font-size: 11px;
+  color: var(--accent);
+}
+.mt-card-status--stale {
+  color: var(--faint);
+}
+.mt-card-text {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mt-card-dates {
+  margin-top: 4px;
+  font-size: 10.5px;
+  font-family: var(--mono);
+  color: var(--faint);
+}
+
+/* ---- 技能实验室编辑面（2026-11-20 Skill Lab v1）----
+   纯布局规则；diff 颜色走语义 token（加=ok 系、删=err 系，非 theme.css 不带色相字面量）。 */
+.skill-src {
+  color: var(--faint);
+  font-size: 11px;
+}
+.skill-src-tag {
+  margin-left: 6px;
+  font-size: 10px;
+}
+.skill-editor {
+  margin-top: 12px;
+}
+.skill-editor .form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.skill-diff {
+  margin-top: 10px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  padding: 8px 10px;
+  background: var(--panel);
+  max-height: 260px;
+  overflow: auto;
+}
+.skill-diff-head {
+  color: var(--faint);
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+.skill-diff-line {
+  display: flex;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.skill-diff-line--add {
+  color: var(--ok);
+}
+.skill-diff-line--del {
+  color: var(--err);
+}
+.skill-diff-sign {
+  flex: none;
+  width: 12px;
+}
+.skill-diff-empty {
+  margin: 8px 0 0;
+  color: var(--faint);
+  font-size: 11px;
+}
+.skill-editor-actions {
+  margin-top: 10px;
 }

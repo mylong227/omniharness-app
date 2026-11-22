@@ -15,184 +15,42 @@
 //   ③ 分栏（TAB）：字段归到哪一屏，负责"去哪找"
 //   一个键只出现在一个字段里；一个字段只属于一个分栏。断言钉在 web/test/settingsPane.test.ts。
 
+// 目录（类型/分栏/字段/标签表）已拆到 ./settings/ 域模块（2026-11-20 目录化，2026-11-21 W2 按栏拆分）——
+// 本文件只保留**读写通道**（SettingsModel 类）。全部目录符号经下方重导出保持既有导入面。
+
 import type { Config } from '../../types/models.ts';
-import type { IconName } from './Icon.ts';
+import { desktopBridge } from '../../core/desktop/DesktopBridge.ts';
 import { t } from '../i18n/i18n.ts';
+import {
+  CATALOG_KEYS,
+  NUMBER_RANGES,
+  SAVED_HINT_MS,
+  fieldId,
+  type SettingsField,
+} from './settings/settingsTypes.ts';
 
-/** 设置分栏 key。 */
-export type SettingsTabKey =
-  | 'general'
-  | 'model'
-  | 'runtime'
-  | 'permission'
-  | 'desktop'
-  | 'shortcuts';
+// 目录符号重导出（既有消费面 settingsFields/ConsoleRegistry/判据等零改动；按域取自拆分模块）。
+export {
+  CATALOG_KEYS,
+  NUMBER_RANGES,
+  SAVED_HINT_MS,
+  fieldId,
+  type SettingsField,
+  type SettingsTabKey,
+} from './settings/settingsTypes.ts';
+export { SETTINGS_TABS } from './settings/settingsTabs.ts';
+export {
+  DEFAULT_LABELS,
+  OPTION_LABELS,
+  defaultLabelOf,
+  optionLabelOf,
+} from './settings/settingsLabels.ts';
+export { SETTINGS_FIELDS } from './settings/settingsFields.ts';
 
-/** 一个分栏。 */
-export interface SettingsTabDef {
-  /** 分栏 key（路由 `#settings=<key>` 与 `openSettings(tab)` 同值）。 */
-  key: SettingsTabKey;
-  /** 分栏标题。 */
-  label: string;
-  /** 一句话说明这一栏管什么（空态/引导用，避免用户靠猜）。 */
-  hint: string;
-  /** 控制台左导航用的线性图标（`models/Icon.ts` 的图标名）。 */
-  icon: IconName;
+/** 普通对象判定（结构化段取值/合并用；数组与 null 不算）。 */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
-
-/**
- * 分栏清单：顺序即设置类页面的默认顺序。
- *
- * 2026-10-26 控制台重构后，设置不再是独立模态的六个分栏，而是「工作台控制台」里的
- * 基础设置组；配置集（profiles）移出设置，回到它自己的完整管理面板（避免"设置里只能
- * 应用、面板里才能增删"的两套入口）。
- */
-export const SETTINGS_TABS: readonly SettingsTabDef[] = [
-  {
-    key: 'general',
-    label: '常规',
-    hint: '界面语言、聊天模式、主题与两栏宽度、工作区与会话范围',
-    icon: 'sliders',
-  },
-  {
-    key: 'model',
-    label: '模型与厂商',
-    hint: '厂商接入、API Key、默认模型与自定义端点',
-    icon: 'package',
-  },
-  {
-    key: 'runtime',
-    label: '运行时',
-    hint: '适配器、工作区与沙箱执行环境',
-    icon: 'command',
-  },
-  {
-    key: 'permission',
-    label: '权限',
-    hint: '审批模式、升级策略与参数级规则',
-    icon: 'shield',
-  },
-  { key: 'desktop', label: '桌面', hint: '托盘、开机启动、更新与诊断', icon: 'monitor' },
-  { key: 'shortcuts', label: '键盘快捷键', hint: '全局快捷键与输入框按键', icon: 'keyboard' },
-];
-
-/** 字段类型。 */
-export type SettingsFieldKind = 'select' | 'text' | 'switch';
-
-/** 一个设置字段（行）。 */
-export interface SettingsField {
-  /** `Config` 的字段名。 */
-  key: keyof Config;
-  /** 所属分栏。 */
-  tab: SettingsTabKey;
-  /** 行标签。 */
-  label: string;
-  /** 控件类型。 */
-  kind: SettingsFieldKind;
-  /** 下拉取值域（kind==='select'）。 */
-  options?: readonly string[];
-  /** 占位提示（kind==='text'）。 */
-  placeholder?: string;
-  /** 一行说明。 */
-  hint?: string;
-  /**
-   * 落盘时把值写成"清除"（服务端约定 `null` = 显式清除）而不是 no-op。
-   * 目前只有 `baseUrl` 需要：留空＝回落厂商默认端点。
-   */
-  clearWhenEmpty?: boolean;
-  /**
-   * [只在服务端配置里出现、但本面板不编辑] 的键（如 providerKeys 由厂商卡片管）不在此声明。
-   * 需要额外输入的字段（如 API Key）用 `custom` 承载，见 MODEL_KEY_FIELDS。
-   */
-}
-
-/**
- * 设置表单全部字段（**单一事实源**）。
- *
- * 顺序 = 分栏内渲染顺序。新增设置项时只改这里 + `SettingsModel` 的读写分支；
- * 不要在组件里另写一份 `<label>` 清单（那正是旧实现漂移的成因）。
- */
-export const SETTINGS_FIELDS: readonly SettingsField[] = [
-  {
-    key: 'model',
-    tab: 'model',
-    label: '默认模型',
-    kind: 'text',
-    placeholder: '如 gpt-4o / deepseek-v4-flash',
-    hint: '留空则用厂商默认模型',
-  },
-  {
-    key: 'baseUrl',
-    tab: 'model',
-    label: '自定义 Base URL',
-    kind: 'text',
-    placeholder: 'OpenAI 兼容端点（留空＝清除覆盖）',
-    hint: '留空即回落厂商默认端点',
-    clearWhenEmpty: true,
-  },
-  {
-    key: 'modelAdapter',
-    tab: 'runtime',
-    label: '模型适配器',
-    kind: 'select',
-    options: ['mock', 'openai', 'anthropic', 'responses'],
-    hint: '切换适配器会同时刷新可用模型清单',
-  },
-  {
-    key: 'sandbox',
-    tab: 'runtime',
-    label: '沙箱',
-    kind: 'select',
-    options: [
-      'passthrough',
-      'policy',
-      'restricted',
-      'windows-native',
-      'wsl-bwrap',
-      'unshare',
-      'bwrap',
-      'landlock',
-      'seatbelt',
-      'container',
-    ],
-    hint: 'policy/restricted 只做进程内策略；windows-native 在 Windows 提供原生写隔离（需 omni-cli）；读/网络真隔离用 wsl-bwrap 或 container（需 Docker/Podman）',
-  },
-  {
-    key: 'approval',
-    tab: 'permission',
-    label: '审批模式',
-    kind: 'select',
-    options: ['auto', 'rules', 'ask'],
-    hint: 'auto 全自动 / rules 按规则 / ask 每次询问',
-  },
-  {
-    key: 'escalation',
-    tab: 'permission',
-    label: '升级审批',
-    kind: 'select',
-    options: ['deny', 'ask', 'auto'],
-    hint: '越权请求（提权/写盘等）的处理方式',
-  },
-  {
-    key: 'autoApprove',
-    tab: 'permission',
-    label: '自动审批（免人工确认）',
-    kind: 'switch',
-    hint: '开启后不再弹出审批确认；危险操作仍受沙箱与规则约束',
-  },
-];
-
-/** 主题取值。 */
-export type ThemeMode = 'dark' | 'light';
-
-/**
- * 改动后需要刷新厂商目录（`model.catalog`）的键：
- * 模型下拉与厂商标题随之刷新，否则 UI 与生效配置会漂移一屏。
- */
-export const CATALOG_KEYS: readonly string[] = ['model', 'modelAdapter'];
-
-/** 已保存提示的自动消隐时长（ms）。 */
-export const SAVED_HINT_MS = 1500;
 
 /** 设置面板渲染所需的快照。 */
 export interface SettingsSnapshot {
@@ -206,6 +64,8 @@ export interface SettingsSnapshot {
   activePlugins: string;
   /** 「已保存」提示文案（空串＝不显示）。 */
   savedHint: string;
+  /** 最近一次保存成功的字段 id（`fieldId`；空串＝无）——行级「已保存」用小徽标。 */
+  savedField: string;
   /** 是否正在保存（用于按钮 disabled 与提示）。 */
   saving: boolean;
   /** 最近一次错误文案（空串＝无）。 */
@@ -260,6 +120,7 @@ export class SettingsModel {
     profiles: [],
     activePlugins: '',
     savedHint: '',
+    savedField: '',
     saving: false,
     error: '',
     loadError: '',
@@ -373,13 +234,18 @@ export class SettingsModel {
    * 失败语义（判据见 configWiring.test.ts 第 4 条）：**只提示错误，不重拉配置**——
    * 失败后重拉会把表单回填成服务端旧值，用户会以为"改动生效了但又变回去了"（假刷新）。
    * @param patch 配置补丁
+   * @param savedField 本次保存对应的字段 id（行级「已保存」徽标用；可缺省）
    * @returns 异步完成
    */
-  public async save(patch: Record<string, unknown>): Promise<void> {
+  public async save(patch: Record<string, unknown>, savedField?: string): Promise<void> {
     this.set({ saving: true, error: '' });
     try {
       await this.deps.updateConfig(patch);
-      this.flashSaved(t('已保存'));
+      // B3 语言收敛：壳层语言跟随 web 设置（桌面桥可用时；浏览器/旧 preload no-op）。
+      if (patch['locale'] === 'zh-CN' || patch['locale'] === 'en-US') {
+        desktopBridge()?.setDesktopLocale?.(patch['locale']);
+      }
+      this.flashSaved(t('已保存'), savedField);
       await this.reload();
       if (Object.keys(patch).some((k) => CATALOG_KEYS.includes(k))) this.deps.refreshModelCatalog?.();
     } catch (e) {
@@ -394,30 +260,188 @@ export class SettingsModel {
   /**
    * 按字段落盘：把"界面里的值"翻成"配置补丁"。
    *
-   * 两处语义要注意：
+   * 四处语义要注意：
+   *   · 声明了 `path` 的字段（结构化段）走 {@link saveSectionField}：提交**完整段**，
+   *     留空 = 删除段内叶键（服务端按段替换）；
    *   · `clearWhenEmpty` 的字段（baseUrl）留空 ⇒ 发 `null`（**显式清除**）而不是 `undefined`
    *     （后者是 no-op，空串会被当成真实端点写坏 URL 拼装）；
-   *   · 文本字段一律 trim；`model` 清空时发 `undefined`（回落厂商默认）。
+   *   · 文本字段一律 trim；`model` 清空时发 `undefined`（回落厂商默认）；
+   *   · number 字段（2026-11-14 设置页补全）留空 = 显式清除覆盖（发 `null`），非空则
+   *     先过 `NUMBER_RANGES` 范围校验——非法值**不发请求**（内核 normalizeConfig 是最终
+   *     裁决，前端先挡明显的输错，避免"保存失败"提示往返一次）。
    * @param field 字段定义
    * @param raw 控件给出的原始值（字符串或布尔）
    * @returns 异步完成
    */
   public async saveField(field: SettingsField, raw: string | boolean): Promise<void> {
+    if (field.path !== undefined) {
+      await this.saveSectionField(field, raw);
+      return;
+    }
+    const id = fieldId(field);
     if (field.kind === 'switch') {
-      await this.save({ [field.key]: raw === true });
+      await this.save({ [field.key]: raw === true }, id);
+      return;
+    }
+    if (field.kind === 'number') {
+      const n = this.numberForSave(field, raw);
+      if (n === 'invalid') return;
+      await this.save({ [field.key]: n === 'empty' ? null : n }, id);
       return;
     }
     const v = String(raw).trim();
     if (field.key === 'baseUrl') {
       this.set({ baseUrl: v });
-      await this.save(v ? { baseUrl: v } : { baseUrl: null });
+      await this.save(v ? { baseUrl: v } : { baseUrl: null }, id);
       return;
     }
     if (field.key === 'model') {
-      await this.save(v ? { model: v } : { model: undefined });
+      await this.save(v ? { model: v } : { model: undefined }, id);
       return;
     }
-    await this.save({ [field.key]: v });
+    // clearWhenEmpty 通用化（2026-11-14 review P1-1）：声明了该标记的文本字段留空 =
+    // 显式清除覆盖（发 null，服务端删除键），而不是把空串原样落盘——内核消费侧
+    // （storageDir/keyFile 等）`??` 不回落空串，空串会让运行时往空路径里撞。
+    if (field.clearWhenEmpty === true) {
+      await this.save(v ? { [field.key]: v } : { [field.key]: null }, id);
+      return;
+    }
+    await this.save({ [field.key]: v }, id);
+  }
+
+  /**
+   * 结构化段字段落盘：把「段内路径 + 新值」并进**完整段**后提交。
+   *
+   * 服务端对 `SECTION_REPLACE_KEYS` 按段替换（深合并无法删除嵌套键），故不能只发被改的叶子；
+   * 留空 = 删除该嵌套键，删空后整段发 `null`（显式清除段）。
+   * @param field 字段定义（`path` 非空）
+   * @param raw 控件给出的原始值
+   * @returns 异步完成
+   */
+  private async saveSectionField(field: SettingsField, raw: string | boolean): Promise<void> {
+    const path = field.path;
+    if (path === undefined) return;
+    let value: unknown;
+    if (field.kind === 'switch') {
+      value = raw === true;
+    } else if (field.kind === 'number') {
+      const n = this.numberForSave(field, raw);
+      if (n === 'invalid') return;
+      value = n === 'empty' ? undefined : n;
+    } else {
+      const v = String(raw).trim();
+      value = v === '' ? undefined : v;
+    }
+    const next = SettingsModel.withPath(this.sectionOf(String(field.key)), path, value);
+    await this.save({ [field.key]: Object.keys(next).length === 0 ? null : next }, fieldId(field));
+  }
+
+  /**
+   * number 输入翻译：数字 / 空（留空）/ invalid（已提示且不得落盘）。
+   * @param field 字段定义
+   * @param raw 控件原始值
+   * @returns 数字、'empty' 或 'invalid'
+   */
+  private numberForSave(field: SettingsField, raw: string | boolean): number | 'empty' | 'invalid' {
+    const v = String(raw).trim();
+    if (v === '') return 'empty';
+    const n = Number(v);
+    const spec = NUMBER_RANGES[fieldId(field)];
+    if (spec === undefined) {
+      // 未登记范围的 number 字段：只要是个有限数就放行（保守，不发糊涂值）。
+      if (!Number.isFinite(n)) {
+        this.failInput(field, t('需为数字'));
+        return 'invalid';
+      }
+      return n;
+    }
+    if (!spec.check(n)) {
+      // desc 必须过 t()：en 用户的提示要整句英文（review P1-3）。
+      this.failInput(field, t('取值范围：{range}', { range: t(spec.desc) }));
+      return 'invalid';
+    }
+    return n;
+  }
+
+  /**
+   * 取当前配置里的结构化段（非对象或缺省时给空对象）。
+   * @param key 段名
+   * @returns 段对象（快照的浅引用，只读消费）
+   */
+  private sectionOf(key: string): Record<string, unknown> {
+    const value = this.snapshot.cfg?.[key];
+    return isPlainObject(value) ? value : {};
+  }
+
+  /**
+   * 在段对象上设置（或删除）一个叶值，并剪掉空父对象。
+   * @param base 当前段（不修改）
+   * @param path 段内路径
+   * @param value 新值；undefined = 删除该叶
+   * @returns 新段对象（删空时为 `{}`）
+   */
+  private static withPath(
+    base: Record<string, unknown>,
+    path: readonly string[],
+    value: unknown,
+  ): Record<string, unknown> {
+    const root: Record<string, unknown> = { ...base };
+    let node = root;
+    for (const key of path.slice(0, -1)) {
+      const child = node[key];
+      const copy: Record<string, unknown> = isPlainObject(child) ? { ...child } : {};
+      node[key] = copy;
+      node = copy;
+    }
+    const leaf = path[path.length - 1];
+    if (leaf === undefined) return root;
+    if (value === undefined) delete node[leaf];
+    else node[leaf] = value;
+    return SettingsModel.pruneEmpty(root);
+  }
+
+  /**
+   * 递归删除空对象：`cacheGuard: {}` 这类残留会让「已关闭」在文件里看起来仍配置着。
+   * @param node 待清理对象（原地修改）
+   * @returns 同一对象
+   */
+  private static pruneEmpty(node: Record<string, unknown>): Record<string, unknown> {
+    for (const [key, value] of Object.entries(node)) {
+      if (!isPlainObject(value)) continue;
+      const pruned = SettingsModel.pruneEmpty({ ...value });
+      if (Object.keys(pruned).length === 0) delete node[key];
+      else node[key] = pruned;
+    }
+    return node;
+  }
+
+  /**
+   * 沿路径读值（中间不是对象时给 undefined，不抛错）。
+   * @param value 起点值
+   * @param path 段内路径
+   * @returns 叶值或 undefined
+   */
+  private static readPath(value: unknown, path: readonly string[]): unknown {
+    let node = value;
+    for (const key of path) {
+      if (!isPlainObject(node)) return undefined;
+      node = node[key];
+    }
+    return node;
+  }
+
+  /**
+   * number 字段的前端校验失败：不落盘，落 error 快照 + toast（与 save 失败同通道）。
+   * @param field 字段
+   * @param reason 范围说明
+   * @returns 无
+   */
+  private failInput(field: SettingsField, reason: string): void {
+    const msg = t('保存失败：{msg}', {
+      msg: t('「{name}」{reason}', { name: t(field.label), reason }),
+    });
+    this.set({ error: msg });
+    this.deps.toast(msg, 'err');
   }
 
   /**
@@ -438,38 +462,50 @@ export class SettingsModel {
 
   /**
    * 取某字段在当前配置里的值（视图回填用；未加载时给空串）。
-   * @param key 配置键
+   *
+   * 同时接受顶层键（既有调用）与字段定义：结构化段字段按 `path` 取叶值，而不是把
+   * 整段对象 `String()` 成 "[object Object]"。
+   * @param target 配置键或字段定义
    * @returns 显示值
    */
-  public valueOf(key: keyof Config): string {
+  public valueOf(target: keyof Config | SettingsField): string {
     const c = this.snapshot.cfg;
     if (c === null) return '';
-    if (key === 'baseUrl') return this.snapshot.baseUrl;
-    const v = c[key];
-    return v === undefined || v === null ? '' : String(v);
+    if (typeof target !== 'object') {
+      if (target === 'baseUrl') return this.snapshot.baseUrl;
+      const value = c[target];
+      return value === undefined || value === null ? '' : String(value);
+    }
+    if (target.path === undefined) return this.valueOf(target.key);
+    const value = SettingsModel.readPath(c[target.key], target.path);
+    return value === undefined || value === null ? '' : String(value);
   }
 
   /**
    * 取某字段的布尔值（switch 用）。
-   * @param key 配置键
+   * @param target 配置键或字段定义
    * @returns 是否开启
    */
-  public boolOf(key: keyof Config): boolean {
-    return this.snapshot.cfg?.[key] === true;
+  public boolOf(target: keyof Config | SettingsField): boolean {
+    const c = this.snapshot.cfg;
+    if (c === null) return false;
+    if (typeof target !== 'object') return c[target] === true;
+    return SettingsModel.readPath(c[target.key], target.path ?? []) === true;
   }
 
   /**
    * 闪现「已保存」并在 SAVED_HINT_MS 后自动消隐（重入时重置计时）。
    * @param text 提示文案
+   * @param field 本次保存的字段 id（行级徽标；可缺省）
    * @returns 无
    */
-  private flashSaved(text: string): void {
+  private flashSaved(text: string, field?: string): void {
     if (this.disposed) return;
-    this.set({ savedHint: text });
+    this.set({ savedHint: text, savedField: field ?? '' });
     if (this.hintTimer !== null) clearTimeout(this.hintTimer);
     this.hintTimer = setTimeout(() => {
       this.hintTimer = null;
-      this.set({ savedHint: '' });
+      this.set({ savedHint: '', savedField: '' });
     }, SAVED_HINT_MS);
   }
 

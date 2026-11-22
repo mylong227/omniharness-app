@@ -1,3 +1,4 @@
+import { AppText } from '../../../../apps/i18n/AppText.ts';
 /**
  * MCP Registry 客户端（2026-10-22，P0-3）。
  *
@@ -28,7 +29,7 @@ export interface McpRegistrySearchOptions {
 }
 
 /** 官方 registry 基址。 */
-export const MCP_REGISTRY_URL = 'https://registry.modelcontextprotocol.io';
+const MCP_REGISTRY_URL = 'https://registry.modelcontextprotocol.io';
 
 /**
  * MCP Registry 只读客户端。
@@ -58,7 +59,7 @@ export class McpRegistryClient {
     }
     const raw = (await response.json()) as unknown;
     if (typeof raw !== 'object' || raw === null) {
-      throw new Error('MCP registry 响应必须是对象');
+      throw new Error(AppText.t('MCP registry 响应必须是对象'));
     }
     const servers = (raw as { servers?: unknown }).servers;
     if (!Array.isArray(servers)) return [];

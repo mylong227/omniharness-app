@@ -22,10 +22,12 @@ export interface DesktopState {
   window?: WindowBounds;
   /** 页面缩放级别（Ctrl+滚轮 / 菜单缩放；Electron zoomLevel，缺省 0）。 */
   zoom?: number;
-  /** 关闭窗口时最小化到托盘（默认 true，长任务不中断）。 */
-  closeToTray?: boolean;
-  /** 开机启动（默认 false）。 */
-  openAtLogin?: boolean;
+  /** 关闭窗口时最小化到托盘（默认 true，长任务不中断；read() 对旧存档永远回填默认 ⇒ 内存态必设）。 */
+  closeToTray: boolean;
+  /** 开机启动（默认 false；read() 对旧存档永远回填默认 ⇒ 内存态必设）。 */
+  openAtLogin: boolean;
+  /** 壳层语言（2026-11-21 B3：web 设置经 IPC 跟随写入；undefined = 未跟随过，用配置缺省）。 */
+  locale?: 'zh-CN' | 'en-US' | undefined;
 }
 
 const DEFAULT_STATE: DesktopState = {
@@ -47,6 +49,8 @@ export interface DesktopStateOptions {
   readonly closeToTray?: boolean;
   /** 首次运行的「开机启动」默认值。 */
   readonly openAtLogin?: boolean;
+  /** 壳层语言跟随（B3）。 */
+  readonly locale?: 'zh-CN' | 'en-US' | undefined;
 }
 
 /** 桌面偏好存储。 */
@@ -126,6 +130,24 @@ export class DesktopStateStore {
    * @param enabled 是否启用。
    * @returns 无返回值。
    */
+  /**
+   * 壳层语言（B3 跟随 web 设置）。
+   * @returns 当前语言或 undefined（未跟随过）。
+   */
+  public getLocale(): 'zh-CN' | 'en-US' | undefined {
+    return this.state.locale;
+  }
+
+  /**
+   * 持久化壳层语言跟随。
+   * @param locale 新语言。
+   * @returns 无返回值。
+   */
+  public setLocale(locale: 'zh-CN' | 'en-US'): void {
+    this.state = { ...this.state, locale };
+    this.save();
+  }
+
   public setCloseToTray(enabled: boolean): void {
     this.state = { ...this.state, closeToTray: enabled };
     this.save();
@@ -199,6 +221,7 @@ export class DesktopStateStore {
           typeof raw['closeToTray'] === 'boolean' ? raw['closeToTray'] : defaults.closeToTray,
         openAtLogin:
           typeof raw['openAtLogin'] === 'boolean' ? raw['openAtLogin'] : defaults.openAtLogin,
+        locale: raw['locale'] === 'zh-CN' || raw['locale'] === 'en-US' ? raw['locale'] : defaults.locale,
         ...(typeof raw['zoom'] === 'number' && Number.isFinite(raw['zoom'])
           ? { zoom: Math.min(3, Math.max(-3, raw['zoom'])) }
           : {}),

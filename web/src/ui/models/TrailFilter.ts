@@ -17,7 +17,7 @@ import { EventFields } from './EventFields.ts';
 export type TrailFilterMode = 'all' | 'thinking' | 'narration' | 'tools' | 'failures';
 
 /** 一个可渲染的轨迹行类型。 */
-export type TrailRowKind = 'thinking' | 'narration' | 'tool' | 'result' | 'other';
+type TrailRowKind = 'thinking' | 'narration' | 'tool' | 'result' | 'other';
 
 /** 一条轨迹行（事件 + 预计算的分组与失败标记）。 */
 export interface TrailRow {

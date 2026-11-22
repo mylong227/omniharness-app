@@ -4,7 +4,7 @@
 import { WorkspacePath } from './WorkspacePath.ts';
 
 /** 无工作区标记的历史会话归入此键（升级前创建的会话）。 */
-export const EARLY_KEY = '__early__';
+const EARLY_KEY = '__early__';
 
 /** 置顶会话的伪分组键（2026-11-06 实用性打磨；仅存在于分组视图，不是真实工作区）。 */
 export const PINNED_KEY = '__pinned__';
@@ -29,7 +29,7 @@ interface IdTagged {
 }
 
 /** 时间分组键（业界常见式左栏：今天 / 昨天 / 更早；归档会话单独一组）。 */
-export type TimeBucketKey = 'today' | 'yesterday' | 'earlier' | 'archived';
+type TimeBucketKey = 'today' | 'yesterday' | 'earlier' | 'archived';
 
 /** 一个时间分组。 */
 export interface TimeGroup<T> {

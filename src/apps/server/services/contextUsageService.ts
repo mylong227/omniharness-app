@@ -35,7 +35,7 @@ interface CacheCallSample {
  *    不是"聚合 token 配最近一次的信号"——那种混算会产出一句看起来精确、实则对不上的理由；
  *  - `cause === 'hit'` 只说明**最近一次**命中了，会话整体命中率仍以上面的聚合值为准。
  */
-export interface ContextCacheLastCall {
+interface ContextCacheLastCall {
   /** 分因（与日志、分因器同一枚举）。 */
   readonly cause: CacheMissCause;
   /** 可直接进面板悬停/日志的**一句话理由**（含具体数字）。 */

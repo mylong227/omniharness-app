@@ -39,6 +39,11 @@ export interface ThemeProviderProps {
  * @returns 包裹后的节点
  */
 export function ThemeProvider(props: ThemeProviderProps): React.ReactElement {
+  // theme 对象身份必须稳定（2026-11-17 性能批次）：App 每条 SSE patch 都会重渲染到本组件，
+  // antdThemeOf 内含多次 mixHex + 大对象展开——每帧新建 ThemeConfig 会换掉 ConfigProvider 的
+  // context 值身份，旗下所有 antd 消费者跟着空转。按 (theme, scheme) memo，只有换肤才重建。
+  const scheme = props.scheme ?? 'ink';
+  const theme = React.useMemo(() => antdThemeOf(props.theme, scheme), [props.theme, scheme]);
   return (
     <ConfigProvider
       locale={zhCN}
@@ -46,7 +51,7 @@ export function ThemeProvider(props: ThemeProviderProps): React.ReactElement {
       // 两字中文按钮不自动插空格（antd 默认把「写入」渲成「写 入」）：纸与墨的密度口径
       // 不需要它，且组件判据按原文找按钮（vaultTab ④ 等）。
       button={{ autoInsertSpace: false }}
-      theme={antdThemeOf(props.theme, props.scheme ?? 'ink')}
+      theme={theme}
     >
       <AntApp>{props.children}</AntApp>
     </ConfigProvider>

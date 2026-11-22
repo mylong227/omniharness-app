@@ -51,6 +51,8 @@ export interface DesktopBridge {
   openLogs(): Promise<void>;
   /** 打开诊断信息（新版 preload 才提供）。 */
   showDiagnostics?(): Promise<void>;
+  /** 壳层语言跟随（B3；新版 preload 才提供；浏览器无桥）。 */
+  setDesktopLocale?(locale: 'zh-CN' | 'en-US'): Promise<void>;
   /** 任务栏进度（-1 清除，0–1 进度，2 不确定；新版 preload 才提供）。 */
   setProgress?(value: number): Promise<void>;
   /** 拖入文件的真实系统路径（新版 preload 才提供；Electron ≥32 已移除 File.path）。 */
@@ -78,6 +80,8 @@ export interface DesktopBridge {
   onUpdateStatus(listener: (status: DesktopUpdateStatus) => void): () => void;
   onNotificationClick(listener: (sessionId: string | undefined) => void): () => void;
   onDeepLink(listener: (url: string) => void): () => void;
+  /** 全局「快速提问」：窗口被唤起后要求 UI 聚焦输入框（新版 preload 才提供）。 */
+  onQuickCapture?(listener: () => void): () => void;
 }
 
 /** 必须存在的桥方法（缺任一即视为旧版/不合法，整体降级为 null）。 */
@@ -120,6 +124,9 @@ export function desktopBridge(): DesktopBridge | null {
     ...(typeof raw['showDiagnostics'] === 'function'
       ? { showDiagnostics: () => call<void>('showDiagnostics') }
       : {}),
+    ...(typeof raw['setDesktopLocale'] === 'function'
+      ? { setDesktopLocale: (locale: 'zh-CN' | 'en-US') => call<void>('setDesktopLocale', locale) }
+      : {}),
     ...(typeof raw['setProgress'] === 'function'
       ? { setProgress: (value: number) => call<void>('setProgress', value) }
       : {}),
@@ -149,6 +156,9 @@ export function desktopBridge(): DesktopBridge | null {
     onNotificationClick: (listener) =>
       subscribe<string | undefined>('onNotificationClick', listener),
     onDeepLink: (listener) => subscribe<string>('onDeepLink', listener),
+    ...(typeof raw['onQuickCapture'] === 'function'
+      ? { onQuickCapture: (listener: () => void) => subscribe<void>('onQuickCapture', listener) }
+      : {}),
   };
 }
 

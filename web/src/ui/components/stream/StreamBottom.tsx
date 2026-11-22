@@ -21,6 +21,8 @@ import type { StreamViewProps } from '../StreamView.tsx';
  * @returns 底部挂件（同层兄弟，无额外包裹）
  */
 export function StreamBottom(props: StreamViewProps): React.ReactElement {
+  // TodoDockModel.latest 是全量倒扫事件数组（2026-11-17 性能批次）：流式期每帧重跑收进 memo。
+  const todos = React.useMemo(() => TodoDockModel.latest(props.events), [props.events]);
   return (
     <>
       {props.question == null ||
@@ -33,7 +35,7 @@ export function StreamBottom(props: StreamViewProps): React.ReactElement {
           onExpire={props.onQuestionExpired}
         />
       )}
-      <TodoDock items={TodoDockModel.latest(props.events)} />
+      <TodoDock items={todos} />
       {/* 队列模式：排队消息坞（空队列时组件自身返回 null）。 */}
       {props.queue === undefined ? null : <ChatQueueDock queue={props.queue} />}
       <Composer
@@ -42,6 +44,7 @@ export function StreamBottom(props: StreamViewProps): React.ReactElement {
         providerLabel={props.providerLabel}
         reasoning={props.reasoning}
         reasoningOptions={props.reasoningOptions}
+        {...(props.effortsByModel !== undefined ? { effortsByModel: props.effortsByModel } : {})}
         permission={props.permission}
         threadId={props.threadId}
         seed={props.composerSeed ?? null}

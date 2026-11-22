@@ -20,7 +20,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import * as React from 'react';
-import { act, render } from './rtlHarness.ts';
+import { act, flatApiStub, render } from './rtlHarness.ts';
 import { AppContext } from '../src/ui/context.ts';
 import { SessionController } from '../src/ui/controllers/SessionController.ts';
 import { SessionPanel } from '../src/ui/components/SessionPanel.tsx';
@@ -54,20 +54,12 @@ const PANEL_PROPS = {
 
 test('SessionPanel：workspaceEpoch 变化必须重取项目清单（侧栏项目名/文件树随切项目刷新）', async () => {
   let listWorkspacesCalls = 0;
-  const api = new Proxy(
-    {},
-    {
-      get: (_t, prop) => {
-        if (prop === 'listWorkspaces') {
-          return async () => {
-            listWorkspacesCalls += 1;
-            return { current: 'D:/proj', workspaces: ['D:/proj'] };
-          };
-        }
-        return async () => ({});
-      },
+  const api = flatApiStub({
+    listWorkspaces: async () => {
+      listWorkspacesCalls += 1;
+      return { current: 'D:/proj', workspaces: ['D:/proj'] };
     },
-  );
+  });
 
   const tree = (epoch: number) =>
     React.createElement(
@@ -118,7 +110,7 @@ test('SessionController：隐式切项目（loadThread）与显式切项目（on
     },
     getState: () => state,
   };
-  const api = {
+  const api = flatApiStub({
     listSessions: async () => ({
       sessions: [{ sessionId: 's1', label: 'x', workspace: 'D:/other', updatedAt: '', turns: 1, running: false }],
     }),
@@ -126,7 +118,7 @@ test('SessionController：隐式切项目（loadThread）与显式切项目（on
     switchWorkspace: async () => ({ ok: true, workspace: 'D:/other' }),
     getThread: async () => ({ items: [], hasMore: false }),
     modesSet: async () => ({ ok: true }),
-  };
+  });
   const services = {
     api,
     toast: () => {},

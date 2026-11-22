@@ -5,14 +5,51 @@
 
 import * as React from 'react';
 import { useApp } from '../../context.ts';
+import { useSessionResource } from '../../hooks/useSessionResource.ts';
 import { emptyState } from '../../format.ts';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import type { Profile, ActivePlugins } from '../../../types/models.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
+import Input from 'antd/es/input';
 import Table from 'antd/es/table';
 import type { ColumnsType } from 'antd/es/table';
 import Button from 'antd/es/button';
+import { FilePicker } from '../FilePicker.tsx';
 import { t } from '../../i18n/i18n.ts';
+
+/**
+ * 「选择…」按钮（解包 zip 路径用）：弹起统一资源选择面板（FilePicker），选中后
+ * **回填输入框**（不自动解包——解包仍是显式按钮，保持两步确认）。
+ * @param props 选中回调
+ * @returns 按钮与弹层
+ */
+function ZipBrowseButton(props: { onPick: (path: string) => void }): ReactElement {
+  const { api } = useApp();
+  const [open, setOpen] = React.useState(false);
+  return (
+    <>
+      <Button
+        type="text"
+        size="small"
+        aria-label={t('选择 zip 文件…')}
+        onClick={() => setOpen(true)}
+      >
+        {t('选择…')}
+      </Button>
+      {open ? (
+        <FilePicker
+          api={api}
+          title={t('选择插件包（.zip）')}
+          onCancel={() => setOpen(false)}
+          onPick={(paths) => {
+            setOpen(false);
+            if (paths[0] !== undefined) props.onPick(paths[0]);
+          }}
+        />
+      ) : null}
+    </>
+  );
+}
 
 /** ProfilesTab 组件的入参。 */
 export interface ProfilesTabProps {
@@ -64,15 +101,19 @@ function profileColumns(actions: RowActions): ColumnsType<Profile> {
     {
       title: t('插件'),
       key: 'plugins',
-      render: (_, p) => (
-        <>
-          {(p.plugins || []).map((n: string) => (
-            <span className="badge" key={n}>
-              {n}
-            </span>
-          ))}
-        </>
-      ),
+      // `profile.list` 只回摘要（pluginCount），不含插件名；plugins 仅在完整 profile 上才有。
+      render: (_, p) =>
+        p.plugins === undefined ? (
+          <span className="badge">{String(p.pluginCount ?? 0)}</span>
+        ) : (
+          <>
+            {p.plugins.map((n: string) => (
+              <span className="badge" key={n}>
+                {n}
+              </span>
+            ))}
+          </>
+        ),
     },
     {
       title: t('操作'),
@@ -100,33 +141,37 @@ interface ProfilesStore {
 }
 
 /**
- * 配置集数据源：列表 + 当前激活插件集，挂载与 reloadKey、sessionTick 变化时重载。
+ * 配置集数据源（2026-11-21 批次六 A1 收编 useSessionResource）：挂载与 reloadKey 变化时重载。
+ * profile 数据不随回合推进变化——followTick:false（顺带修正旧实现 deps 里多带的 sessionTick）。
  * @param reloadKey 外部重载信号（SSE profile 事件时自增）
  * @returns profiles 配置集列表；active 当前激活插件集；load 重载
  */
 function useProfilesStore(reloadKey: number): ProfilesStore {
-  const { api, toast, sessionTick } = useApp();
-  const [profiles, setProfiles] = React.useState<Profile[]>([]);
-  const [active, setActive] = React.useState<ActivePlugins>({ plugins: [] });
-
-  /** 拉取配置集列表与当前激活插件集。 */
-  const load = async (): Promise<void> => {
+  const { api, toast } = useApp();
+  const load = React.useCallback(async (): Promise<{ profiles: Profile[]; active: ActivePlugins }> => {
     try {
-      const [list, act] = await Promise.all([api.listProfiles(), api.getActiveProfile()]);
+      const [list, act] = await Promise.all([api.profile.listProfiles(), api.profile.getActiveProfile()]);
       // 形状归一（同 MemoryTab）：异常/桩响应可能不是数组，别让 .map 触发错误边界。
-      setProfiles(Array.isArray(list) ? list : []);
-      setActive(act !== null && typeof act === 'object' && Array.isArray(act.plugins) ? act : { plugins: [] });
+      return {
+        profiles: Array.isArray(list) ? list : [],
+        active:
+          act !== null && typeof act === 'object' && Array.isArray(act.plugins)
+            ? act
+            : { plugins: [] },
+      };
     } catch (e) {
       toast(t('加载失败：{msg}', { msg: (e as Error).message }), 'err');
+      throw e;
     }
-  };
+  }, [api, toast]);
+  const { data, refresh } = useSessionResource({
+    enabled: true,
+    load,
+    followTick: false,
+    reloadTick: reloadKey,
+  });
 
-  // 挂载装载 + reloadKey 变化重载（deps 只有 reloadKey；load 只读写闭包外的服务与 setter）。
-  React.useEffect(() => {
-    void load();
-  }, [reloadKey, sessionTick]);
-
-  return { profiles, active, load };
+  return { profiles: data?.profiles ?? [], active: data?.active ?? { plugins: [] }, load: refresh };
 }
 
 /** useProfileActions 的返回面（配置集三动作）。 */
@@ -156,9 +201,9 @@ function useProfileActions(
       toast(t('请填写配置集名称'), 'err');
       return;
     }
-    const act = await api.getActiveProfile();
+    const act = await api.profile.getActiveProfile();
     try {
-      await api.saveProfile({
+      await api.profile.saveProfile({
         name,
         plugins: act.plugins ?? [],
         description: t('保存于 Web 控制台'),
@@ -177,7 +222,7 @@ function useProfileActions(
    */
   const applyProfile = async (id: string): Promise<void> => {
     try {
-      const r = await api.applyProfile(id);
+      const r = await api.profile.applyProfile(id);
       toast(
         t('已应用配置集：{name}（载入 {loaded}，停用 {unloaded}）', {
           name: r.name || id,
@@ -204,7 +249,7 @@ function useProfileActions(
     });
     if (!ok) return;
     try {
-      await api.deleteProfile(id);
+      await api.profile.deleteProfile(id);
       toast(t('已删除'), 'ok');
       await reload();
     } catch (e) {
@@ -241,7 +286,7 @@ function useBundleActions(
     const id = bundleProfileRef.current ? bundleProfileRef.current.value.trim() : '';
     const params = id ? { id } : { profile: { name: 'current', plugins: active.plugins ?? [] } };
     try {
-      const r = await api.packBundle(params);
+      const r = await api.profile.packBundle(params);
       if (bundleZipRef.current) bundleZipRef.current.value = r.path;
       toast(t('已打包：{path}', { path: r.path }), 'ok');
     } catch (e) {
@@ -257,7 +302,7 @@ function useBundleActions(
       return;
     }
     try {
-      const r = await api.unpackBundle(zip);
+      const r = await api.profile.unpackBundle(zip);
       toast(
         r.patchFile
           ? t('已解包：安装 {count} 个插件，补丁层已写 {path}', { count: (r.installed || []).length, path: r.patchFile })
@@ -290,30 +335,37 @@ function BundleForm(props: {
       <div className="form">
         <label>
           {t('配置集（留空=当前激活）')}
-          <input
-            type="text"
-            ref={(el: HTMLInputElement | null) => {
-              refs.bundleProfile.current = el;
+          <Input
+            aria-label={t('配置集（留空=当前激活）')}
+            ref={(el) => {
+              refs.bundleProfile.current = el?.input ?? null;
             }}
             placeholder={t('配置集 id 或名称')}
           />
         </label>
         <div className="row">
-          <button className="ghost" onClick={() => void pack()}>
+          <Button type="text" onClick={() => void pack()}>
             {t('打包 .zip')}
-          </button>
-          <button className="ghost" onClick={() => void unpack()}>
+          </Button>
+          <Button type="text" onClick={() => void unpack()}>
             {t('解包 .zip')}
-          </button>
+          </Button>
         </div>
         <label>
           {t('解包 zip 路径')}
-          <input
-            type="text"
-            ref={(el: HTMLInputElement | null) => {
-              refs.bundleZip.current = el;
+          <Input
+            aria-label={t('解包 zip 路径')}
+            ref={(el) => {
+              refs.bundleZip.current = el?.input ?? null;
             }}
             placeholder={t('.zip 绝对路径')}
+            suffix={
+              <ZipBrowseButton
+                onPick={(path) => {
+                  if (refs.bundleZip.current) refs.bundleZip.current.value = path;
+                }}
+              />
+            }
           />
         </label>
       </div>
@@ -339,9 +391,9 @@ export function ProfilesTab(props: ProfilesTabProps): ReactElement {
   return (
     <div>
       <div className="pm-head">
-        <button className="ghost" onClick={() => void store.load()}>
+        <Button type="text" onClick={() => void store.load()}>
           {t('刷新')}
-        </button>
+        </Button>
         <span className="dim">
           {t('运行时插件（{count}）：', { count: store.active.plugins?.length || 0 })}
           {store.active.plugins?.length ? store.active.plugins.join(', ') : '—'}
@@ -367,13 +419,19 @@ export function ProfilesTab(props: ProfilesTabProps): ReactElement {
         <div className="form">
           <label>
             {t('名称')}
-            <input type="text" ref={nameRef} placeholder={t('如：minimal / web-dev')} />
+            <Input
+              aria-label={t('名称')}
+              ref={(el) => {
+                nameRef.current = el?.input ?? null;
+              }}
+              placeholder={t('如：minimal / web-dev')}
+            />
           </label>
           <div className="pane-actions">
             <span className="flex-spacer"></span>
-            <button className="btn primary" onClick={() => void actions.saveCurrent()}>
+            <Button type="primary" onClick={() => void actions.saveCurrent()}>
               {t('保存当前为配置集')}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

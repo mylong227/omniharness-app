@@ -27,6 +27,8 @@
 // 可断言信号：根节点 data-virtual / data-rendered-count / data-total-count / data-event-count。
 
 import * as React from 'react';
+import { icon } from '../kit/Icon.tsx';
+import { t } from '../i18n/i18n.ts';
 import { ChatHeader } from './ChatHeader.tsx';
 import type { ChatViewKind } from './ChatHeader.tsx';
 import { TraceView } from './TraceView.tsx';
@@ -34,6 +36,7 @@ import type { DisplayBlock } from '../textUtils.ts';
 import { DEFAULT_ITEM_HEIGHT, StreamWindow } from '../models/StreamWindow.ts';
 import type { StreamWindowMetrics } from '../models/StreamWindow.ts';
 import { BlockHeightIndex } from '../models/BlockHeightIndex.ts';
+import type { TraceRow } from '../models/TraceFilter.ts';
 import { EventFields } from '../models/EventFields.ts';
 import type { StreamModel } from '../models/StreamModelCache.ts';
 import { ToolCallCard } from './stream/ToolCallCard.tsx';
@@ -52,6 +55,7 @@ import type { ChatQueueView } from '../models/ChatMessageQueue.ts';
 import type { ApiClient } from '../../core/ApiClient.ts';
 import type { ToolResultView } from '../shared.ts';
 import {
+  renderAuditGroup,
   renderPlanNode,
   renderQuestionNode,
   renderStandaloneToolResult,
@@ -83,9 +87,13 @@ export interface StreamViewProps {
   composerSeed?: ComposerSeed | null;
   /** 队列模式的排队消息坞（2026-10-31）：空队列时 Composer 不渲染任何东西。 */
   queue?: ChatQueueView;
+  /** 打开设置（移动端顶栏入口；桌面走左栏页脚）。 */
+  onOpenSettings?: () => void;
   onEventClick: (ev: ThreadEvent) => void;
   /** 点击助手回复中的文件路径链接时，在右侧文件面板打开（而不是跳外链）。 */
   onOpenFile?: (path: string) => Promise<boolean> | boolean | void;
+  /** 只查文件是否存在（回合结果卡过滤已删除的临时产物）。 */
+  onCheckFile?: (path: string) => Promise<boolean> | boolean;
   /**
    * 在右栏网页标签打开一个地址（助手消息里的本地 dev server URL / 预览链接）。
    * 只对回环地址显示入口（见 ExternalLinkCards）。
@@ -102,11 +110,18 @@ export interface StreamViewProps {
   onRegenerate?: () => void;
   /** 编辑重发（最后一条用户消息挂载）：把该消息填回底部输入框。 */
   onEditUser?: () => void;
+  /** 引用追问：把任意一条 user / assistant 消息以引用块填回输入框。 */
+  onQuote?: (ev: ThreadEvent) => void;
+  /** 导出工具轨迹（TraceView 筛选后的行上抛；格式化与下载在控制器）。 */
+  onExportTrace?: (
+    rows: readonly TraceRow[],
+    meta: { readonly filtered: boolean; readonly filterLabel: string },
+  ) => void;
   /** 历史用户消息「从此处重开」：服务端事件流回退到该消息（最后一条走编辑重发）。 */
   onRewindUser?: (ev: ThreadEvent) => void;
   /** 当前模型（驱动 Composer 的切换器）。 */
   model: string;
-  /** 当前厂商可用模型清单（缺省时 Composer 用内置兜底）。 */
+  /** 当前厂商可用模型清单（缺省时 Composer 只保留当前值，无离线兜底）。 */
   modelOptions?: string[];
   /** 当前厂商展示名（模型下拉标题用）。 */
   providerLabel?: string;
@@ -119,6 +134,8 @@ export interface StreamViewProps {
    * 旧的手写类型垫片给未知属性留了索引签名逃生舱，于是这件事在类型层完全看不见。
    */
   reasoningOptions?: string[];
+  /** 每模型推理档位表（adaptive-reasoning）：转发给 Composer → ModelPicker 按当前模型渲染。 */
+  effortsByModel?: Record<string, string[]>;
   permission: string;
   /** 当前会话 id（AddMenu / 上下文容量面板维度）。 */
   threadId?: string | null;
@@ -217,6 +234,19 @@ function renderEventNode(ev: ThreadEvent, ctx: EventCtx): React.ReactElement | n
   const node = (inner: React.ReactElement): React.ReactElement => (
     <div className={'ev clickable ' + ev.type} key={ev.id} onClick={() => ctx.onEventClick(ev)}>
       {inner}
+      {/* 卡片点击是鼠标捷径；键盘用户需要一个真实按钮才能打开详情（2026-11-15 可达性）。 */}
+      <button
+        type="button"
+        className="ev-open"
+        aria-label={t('查看事件详情')}
+        title={t('查看事件详情')}
+        onClick={(e: React.MouseEvent) => {
+          e.stopPropagation();
+          ctx.onEventClick(ev);
+        }}
+      >
+        {icon('ellipsis', { size: 14 })}
+      </button>
     </div>
   );
 
@@ -229,6 +259,7 @@ function renderEventNode(ev: ThreadEvent, ctx: EventCtx): React.ReactElement | n
           canEdit={ev.id === ctx.lastUserId}
           turnDurationMs={ctx.turnDurations.get(ev.id)}
           onEdit={() => ctx.onEditUser?.()}
+          onQuote={ctx.onQuote === undefined ? undefined : () => ctx.onQuote?.(ev)}
           onRewind={
             ev.id === ctx.lastUserId || ctx.onRewindUser === undefined
               ? undefined
@@ -245,6 +276,7 @@ function renderEventNode(ev: ThreadEvent, ctx: EventCtx): React.ReactElement | n
           onOpenUrl={ctx.onOpenUrl}
           animate={!wasStreamed(p, ctx.finalizedStreamText)}
           onRegenerate={ev.id === ctx.lastAssistantId && ctx.busy !== true ? ctx.onRegenerate : undefined}
+          onQuote={ctx.onQuote === undefined ? undefined : () => ctx.onQuote?.(ev)}
         />,
       );
     case 'reasoning':
@@ -316,8 +348,12 @@ function renderBlockNode(b: DisplayBlock, ctx: EventCtx): React.ReactElement | n
         key={b.key}
         events={b.events}
         onOpenFile={ctx.onOpenFile}
+        onCheckFile={ctx.onCheckFile}
       />
     );
+  }
+  if (b.kind === 'audit_group') {
+    return <React.Fragment key={b.key}>{renderAuditGroup(b.events)}</React.Fragment>;
   }
   return renderEventNode(b.event, ctx);
 }
@@ -508,12 +544,14 @@ function computeStreamWindow(
   if (holeBoost <= 0) return base;
   const start = Math.max(0, base.start - holeBoost);
   const end = Math.min(keys.length, base.end + holeBoost);
+  // 一次扫描取三段高度（2026-11-17 性能批次）：此前 3 次 prefix = 每帧 3×O(blocks) 全扫。
+  const spans = index.windowSpans(keys, start, end);
   return {
     start,
     end,
     rendered: end - start,
-    padTop: index.prefix(keys, start),
-    padBottom: index.prefix(keys, keys.length) - index.prefix(keys, end),
+    padTop: spans.beforeStart,
+    padBottom: spans.total - spans.beforeEnd,
     total: base.total,
   };
 }
@@ -616,11 +654,13 @@ function buildEventCtx(props: StreamViewProps, model: StreamModel, clusterFresh:
     toolResults: props.toolResults,
     onEventClick: props.onEventClick,
     onOpenFile: props.onOpenFile,
+    onCheckFile: props.onCheckFile,
     onOpenUrl: props.onOpenUrl,
     busy: props.busy,
     lastUserId: model.lastUserId,
     lastAssistantId: model.lastAssistantId,
     onEditUser: props.onEditUser,
+    onQuote: props.onQuote,
     onRewindUser: props.onRewindUser,
     onRegenerate: props.onRegenerate,
     finalizedStreamText: props.finalizedStreamText ?? '',
@@ -679,6 +719,7 @@ export function StreamView(props: StreamViewProps): React.ReactElement {
         view={view}
         onView={setView}
         onToggleLeft={props.onToggleLeft}
+        onOpenSettings={props.onOpenSettings}
         onToggleRight={props.onToggleRight}
         rightCollapsed={props.rightCollapsed}
         focusMode={props.focusMode}
@@ -702,6 +743,7 @@ export function StreamView(props: StreamViewProps): React.ReactElement {
         liveInputs={props.liveInputs}
         toolResults={props.toolResults}
         hidden={view !== 'trace'}
+        onExport={props.onExportTrace}
       />
       <StreamBottom {...props} />
       <StreamStatusBar {...props} />

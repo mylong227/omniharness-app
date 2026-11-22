@@ -46,14 +46,14 @@ export class FileController {
    */
   public async openFile(path: string): Promise<boolean> {
     try {
-      const r = await this.services.api.readFs(path);
+      const r = await this.services.api.workspace.readFs(path);
       const tag = r.isBinary ? t('二进制文件') : r.truncated ? t('已截断（>200KB）') : '';
       const meta =
         tag === ''
           ? t('{size} 字节', { size: r.size ?? 0 })
           : t('{tag} · {size} 字节', { tag, size: r.size ?? 0 });
       const view: FileView = {
-        // 标题只放文件名：`📄 ` 前缀已废弃（emoji 当图标，见 models/Icon.ts）；
+        // 标题只放文件名：`📄 ` 前缀已废弃（emoji 当图标，见 kit/Icon.tsx）；
         // 面板自己会用 `icon('file')` 表达"这是一个文件"。
         title: r.path,
         meta: meta.trim(),
@@ -86,6 +86,23 @@ export class FileController {
         this.services.toast(t('打开失败：{msg}', { msg }), 'err');
       }
       return false;
+    }
+  }
+
+  /**
+   * 只检查文件是否存在（不打开、不提示）。
+   *
+   * 回合结果卡用它自动筛掉「写回执说新建、随后又被删除」的临时产物。
+   * **失败打开（fail-open）**：网络/服务异常时返回 true（保留行），宁可多列一行，
+   * 也不把真实交付物误删。
+   * @param path 工作区相对路径
+   * @returns 存在为 true；服务端明确不存在为 false；异常为 true
+   */
+  public async exists(path: string): Promise<boolean> {
+    try {
+      return await this.services.api.workspace.fileExists(path);
+    } catch {
+      return true;
     }
   }
 

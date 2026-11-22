@@ -17,9 +17,28 @@ export type DesktopLanguageSetting = 'system' | DesktopLocale;
 /** 语言解析结果。 */
 export class DesktopI18n {
   /**
+   * 生效语言（私有可变：B3 语言收敛后 web 设置可经 IPC 运行时切换，
+   * 持有本实例的 menu/tray/dialogs 下次 t() 即用新语言）。
+   */
+  private current: DesktopLocale;
+  /** 生效语言。 */
+  public get locale(): DesktopLocale {
+    return this.current;
+  }
+  /**
    * @param locale 生效语言。
    */
-  public constructor(public readonly locale: DesktopLocale) {}
+  public constructor(locale: DesktopLocale) {
+    this.current = locale;
+  }
+  /**
+   * 运行时切换语言（2026-11-21 B3：跟随 web 设置；菜单/托盘由调用方负责重建）。
+   * @param locale 新语言。
+   * @returns 无返回值。
+   */
+  public setLocale(locale: DesktopLocale): void {
+    this.current = locale;
+  }
 
   /**
    * 把配置值解析成具体语言。

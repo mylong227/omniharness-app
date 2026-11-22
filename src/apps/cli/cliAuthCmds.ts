@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * 企业 SSO（OIDC）CLI 命令族：`auth login` / `auth callback`。
  *
@@ -49,7 +50,7 @@ export class CliAuthCmds {
     if (sub === 'login') return await this.runAuthLogin(args.slice(1));
     if (sub === 'callback') return await this.runAuthCallback(args.slice(1));
     process.stdout.write(
-      '用法: omniharness auth login --issuer URL --client-id ID [--client-secret S] [--redirect-uri URI] [--scope S]\n' +
+      AppText.t('用法: omniharness auth login --issuer URL --client-id ID [--client-secret S] [--redirect-uri URI] [--scope S]\n') +
         '      omniharness auth callback --code C --state S\n',
     );
     return 2;
@@ -65,7 +66,7 @@ export class CliAuthCmds {
     const issuer = this.flagValue(rest, '--issuer');
     const clientId = this.flagValue(rest, '--client-id');
     if (issuer === undefined || clientId === undefined) {
-      process.stderr.write('auth login 需 --issuer 与 --client-id\n');
+      process.stderr.write(AppText.t('auth login 需 --issuer 与 --client-id\n'));
       return 2;
     }
     const config: OidcProviderConfig = {
@@ -122,12 +123,12 @@ export class CliAuthCmds {
   private async runAuthCallback(rest: readonly string[]): Promise<number> {
     const code = this.flagValue(rest, '--code');
     if (code === undefined) {
-      process.stderr.write('auth callback 需 --code\n');
+      process.stderr.write(AppText.t('auth callback 需 --code\n'));
       return 2;
     }
     const stateArg = this.flagValue(rest, '--state');
     if (stateArg === undefined) {
-      process.stderr.write('auth callback 需 --state（auth login 输出里已给出；防 CSRF 必带）\n');
+      process.stderr.write(AppText.t('auth callback 需 --state（auth login 输出里已给出；防 CSRF 必带）\n'));
       return 2;
     }
     const statePath = join(OmniHome.dir(), 'auth-state.json');
@@ -145,7 +146,7 @@ export class CliAuthCmds {
       return 1;
     }
     if (stateArg !== st.state) {
-      process.stderr.write('state 不匹配，拒绝处理（防 CSRF）\n');
+      process.stderr.write(AppText.t('state 不匹配，拒绝处理（防 CSRF）\n'));
       return 1;
     }
     const config: OidcProviderConfig = {
@@ -176,7 +177,7 @@ export class CliAuthCmds {
     process.stdout.write(
       `登录成功（access_token ${masked}，token_type ${tokens.token_type}` +
         `${tokens.expires_in !== undefined ? `，有效期 ${tokens.expires_in}s` : ''}）\n` +
-        `id_token ${tokens.id_token !== undefined ? '已获取' : '未返回'}\n`,
+        `id_token ${tokens.id_token !== undefined ? AppText.t('已获取') : AppText.t('未返回')}\n`,
     );
     return 0;
   }

@@ -21,6 +21,7 @@
     "rootDir": ".",
     "outDir": "dist",
     "strict": true,
+    "resolveJsonModule": true,
     "verbatimModuleSyntax": true,
     "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,

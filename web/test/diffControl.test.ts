@@ -35,28 +35,28 @@ async function captureRpc(fn: (api: ApiClientClass) => Promise<unknown>) {
 }
 
 test('stageFile 调用 changes.stageFile RPC', async () => {
-  const { body, res } = await captureRpc((api) => api.stageFile('src/app.ts'));
+  const { body, res } = await captureRpc((api) => api.review.stageFile('src/app.ts'));
   assert.deepEqual(res, { ok: true });
   assert.strictEqual(body.method, 'changes.stageFile');
   assert.deepEqual(body.params, { path: 'src/app.ts' });
 });
 
 test('revertFile 调用 changes.revertFile RPC', async () => {
-  const { body, res } = await captureRpc((api) => api.revertFile('src/app.ts'));
+  const { body, res } = await captureRpc((api) => api.review.revertFile('src/app.ts'));
   assert.deepEqual(res, { ok: true });
   assert.strictEqual(body.method, 'changes.revertFile');
   assert.deepEqual(body.params, { path: 'src/app.ts' });
 });
 
 test('stageHunk 调用 changes.stageHunk RPC（含 hunk 与 isNew）', async () => {
-  const { body, res } = await captureRpc((api) => api.stageHunk('src/app.ts', '@@ -1,3 +1,3 @@', true));
+  const { body, res } = await captureRpc((api) => api.review.stageHunk('src/app.ts', '@@ -1,3 +1,3 @@', true));
   assert.deepEqual(res, { ok: true });
   assert.strictEqual(body.method, 'changes.stageHunk');
   assert.deepEqual(body.params, { path: 'src/app.ts', hunk: '@@ -1,3 +1,3 @@', isNew: true });
 });
 
 test('revertHunk 调用 changes.revertHunk RPC（含 hunk）', async () => {
-  const { body, res } = await captureRpc((api) => api.revertHunk('src/app.ts', '@@ -1,3 +1,3 @@'));
+  const { body, res } = await captureRpc((api) => api.review.revertHunk('src/app.ts', '@@ -1,3 +1,3 @@'));
   assert.deepEqual(res, { ok: true });
   assert.strictEqual(body.method, 'changes.revertHunk');
   assert.deepEqual(body.params, { path: 'src/app.ts', hunk: '@@ -1,3 +1,3 @@' });

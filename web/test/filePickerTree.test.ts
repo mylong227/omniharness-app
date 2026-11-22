@@ -17,7 +17,7 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import { act, fireEvent, renderUi } from './rtlHarness.ts';
+import { act, fireEvent, renderUi, flatApiStub } from './rtlHarness.ts';
 
 const { FilePicker } = await import('../src/ui/components/FilePicker.tsx');
 
@@ -52,7 +52,7 @@ async function renderPicker(
 ): Promise<ReturnType<typeof renderUi>> {
   const ui = renderUi(FilePicker, {
     props: {
-      api: {
+      api: flatApiStub({
         listFs: async (depth?: number) => {
           calls.push({ depth });
           return { tree: TREE };
@@ -62,7 +62,7 @@ async function renderPicker(
           void includeFiles;
           return browse(path);
         },
-      },
+      }),
       onCancel: () => {},
       onPick: (paths: string[]) => picked.push(paths),
     },
@@ -228,7 +228,7 @@ test('⑥ P3：勾选即预览（前 40 行 / 二进制只说明 / 读失败如�
   const readCalls: string[] = [];
   const ui = renderUi(FilePicker, {
     props: {
-      api: {
+      api: flatApiStub({
         listFs: async () => ({
           tree: [
             { name: 'a.ts', path: 'a.ts', type: 'file' },
@@ -243,7 +243,7 @@ test('⑥ P3：勾选即预览（前 40 行 / 二进制只说明 / 读失败如�
           const lines = Array.from({ length: 60 }, (_, i) => `line-${String(i + 1)}`);
           return { path, content: lines.join('\n') };
         },
-      },
+      }),
       onCancel: () => {},
       onPick: () => {},
     },

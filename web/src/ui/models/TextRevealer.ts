@@ -1,10 +1,11 @@
+import { UI_TUNABLES } from '../../config/RuntimeConfig.ts';
 // 渐进式文本揭示：把「长文本的字符级渐进呈现」从 React 组件中剥离出来。
 //
 // 内容为真实文本、非伪造 token：只是把已有文本按节奏切片推送，用于模拟流式观感。
 // 纯逻辑（不依赖 React），定时器句柄由外部注入，便于单测与在组件卸载时彻底停止。
 
 /** 单帧推进节奏：起步至少 12 字，长文本每帧约 1/30。 */
-const STEP_MS = 22;
+const STEP_MS = UI_TUNABLES.textRevealStepMs;
 const MIN_STEP = 12;
 /** 短于此长度直接全量显示，避免无谓重渲染。 */
 const SHORT_TEXT = 240;

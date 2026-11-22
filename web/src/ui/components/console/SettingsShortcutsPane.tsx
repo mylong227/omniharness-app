@@ -7,8 +7,9 @@ import { t } from '../../i18n/i18n.ts';
 import { KeyboardShortcuts, type ShortcutAction } from '../../models/KeyboardShortcuts.ts';
 import { ConsoleCard, ConsoleRow } from './ConsoleUI.tsx';
 
-/** 全局快捷键的展示顺序与说明（组合键文案取 `KeyboardShortcuts.label`，不另抄一份）。 */
-const GLOBAL_SHORTCUTS: readonly { action: ShortcutAction; label: string }[] = [
+/** 全局快捷键的展示顺序与说明（组合键文案取 `KeyboardShortcuts.label`，不另抄一份）。
+ *  导出共享：快捷键速查浮层（ShortcutsOverlay，「?」呼出）用同一份表，杜绝两处漂移。 */
+export const GLOBAL_SHORTCUTS: readonly { action: ShortcutAction; label: string }[] = [
   { action: 'palette', label: '打开命令面板' },
   { action: 'newSession', label: '新建会话' },
   { action: 'toggleLeft', label: '收起 / 展开会话栏' },
@@ -20,8 +21,9 @@ const GLOBAL_SHORTCUTS: readonly { action: ShortcutAction; label: string }[] = [
 /** 全局快捷键解析器只用于取展示文案（无状态，模块级单例）。 */
 const SHORTCUT_LABELS = new KeyboardShortcuts();
 
-/** 输入框 / 浮层的内置按键（不经过全局绑定表，但确实由组件实现）。 */
-const INPUT_KEYS: readonly { combo: string; label: string }[] = [
+/** 输入框 / 浮层的内置按键（不经过全局绑定表，但确实由组件实现）。
+ *  导出共享：快捷键速查浮层（ShortcutsOverlay，「?」呼出）用同一份表。 */
+export const INPUT_KEYS: readonly { combo: string; label: string }[] = [
   { combo: 'Enter', label: '发送消息（输入框）' },
   { combo: 'Shift+Enter', label: '换行（输入框）' },
   { combo: 'Esc', label: '关闭浮层 / 对话框' },

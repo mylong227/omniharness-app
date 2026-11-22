@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 // 安全文件服务（#OBS-11）：校验路径必须落在指定工作区根之下，读取并返回 Buffer。
 // 复用于：
 //  - workspaceTree.readFile（RPC fs.read，前端 readFs 用）；
@@ -10,7 +11,6 @@
 // `WorkspaceGuard.isInside` 为 false ⇒ 属漏用既有守卫，不是策略差异）。
 // 现改为复用 {@link WorkspaceGuard.resolveSafe}：词法判定 + realpath 判定两层一致。
 import { closeSync, openSync, readSync, statSync } from 'node:fs';
-import { join } from 'node:path';
 import { WorkspaceGuard } from '../../../host/kernel/util.ts';
 
 /**
@@ -53,27 +53,27 @@ export class SafeFs {
    */
   public static safeResolve(workspaceRoot: string, rel: string): SafeResolveResult {
     if (!workspaceRoot) {
-      return { ok: false, error: '工作区未配置' };
+      return { ok: false, error: AppText.t('工作区未配置') };
     }
     if (typeof rel !== 'string' || rel === '') {
-      return { ok: false, error: '缺少 path' };
+      return { ok: false, error: AppText.t('缺少 path') };
     }
     let target: string;
     try {
       target = new WorkspaceGuard(workspaceRoot).resolveSafe(rel);
     } catch {
-      return { ok: false, error: '路径越界工作区' };
+      return { ok: false, error: AppText.t('路径越界工作区') };
     }
     try {
       const info = statSync(target);
       if (!info.isFile()) {
-        return { ok: false, error: '读取失败: 不是普通文件（目录或特殊文件）' };
+        return { ok: false, error: AppText.t('读取失败: 不是普通文件（目录或特殊文件）') };
       }
       return { ok: true, target, size: info.size };
     } catch (err) {
       return {
         ok: false,
-        error: '读取失败: ' + (err instanceof Error ? err.message : String(err)),
+        error: AppText.t('读取失败: ') + (err instanceof Error ? err.message : String(err)),
       };
     }
   }
@@ -95,7 +95,7 @@ export class SafeFs {
     if (!resolved.ok) return resolved;
     // 体积上限 fail-closed：超大文件（如几百 MiB 的构建产物）绝不允许整文件读进内存。
     if (resolved.size > HARD_READ_CAP) {
-      return { ok: false, error: '文件过大（超过 64 MiB，拒绝整文件读入内存）' };
+      return { ok: false, error: AppText.t('文件过大（超过 64 MiB，拒绝整文件读入内存）') };
     }
     const limit = Math.max(0, Math.min(resolved.size, maxBytes, HARD_READ_CAP));
     try {
@@ -111,7 +111,7 @@ export class SafeFs {
     } catch (err) {
       return {
         ok: false,
-        error: '读取失败: ' + (err instanceof Error ? err.message : String(err)),
+        error: AppText.t('读取失败: ') + (err instanceof Error ? err.message : String(err)),
       };
     }
   }
@@ -126,13 +126,13 @@ export class SafeFs {
    * @returns 成功给出大小与 isFile；越界 / 不存在 / 无权限给出错误描述
    */
   public static safeStat(workspaceRoot: string, rel: string): SafeStatResult {
-    if (!workspaceRoot) return { ok: false, error: '工作区未配置' };
-    if (typeof rel !== 'string' || rel === '') return { ok: false, error: '缺少 path' };
+    if (!workspaceRoot) return { ok: false, error: AppText.t('工作区未配置') };
+    if (typeof rel !== 'string' || rel === '') return { ok: false, error: AppText.t('缺少 path') };
     let target: string;
     try {
       target = new WorkspaceGuard(workspaceRoot).resolveSafe(rel);
     } catch {
-      return { ok: false, error: '路径越界工作区' };
+      return { ok: false, error: AppText.t('路径越界工作区') };
     }
     try {
       const stat = statSync(target);
@@ -140,7 +140,7 @@ export class SafeFs {
     } catch (err) {
       return {
         ok: false,
-        error: '读取失败: ' + (err instanceof Error ? err.message : String(err)),
+        error: AppText.t('读取失败: ') + (err instanceof Error ? err.message : String(err)),
       };
     }
   }
@@ -150,6 +150,3 @@ export class SafeFs {
 export type SafeReadResult =
   | { readonly ok: true; readonly buffer: Buffer; readonly size: number }
   | { readonly error: string; readonly ok: false };
-
-/** join 工具（与 path.join 一致，导出仅为测试方便）。 */
-export const pathJoin = join;

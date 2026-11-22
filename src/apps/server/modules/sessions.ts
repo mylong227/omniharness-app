@@ -1,8 +1,9 @@
+import { AppText } from '../../i18n/AppText.ts';
 import type { ServerModule } from '../core/serverModule.ts';
 
 /**
  * 会话存档模块：`sessions.*`（列表/改名/删除/分叉/归档/排序）。
- * 归入项目（`sessions.setWorkspace`）在 surface 模块——它属于「工作台界面」域。
+ * 归入项目（`sessions.setWorkspace`）2026-11-20 从 surface 归位到本模块（同域）。
  */
 export function sessionsModule(): ServerModule {
   return {
@@ -52,6 +53,18 @@ export function sessionsModule(): ServerModule {
       );
       // 置顶 / 取消置顶（2026-11-06 实用性打磨；只写侧车）：置顶会话浮到列表「置顶」组，
       // 侧车随存档目录走 ⇒ 跨设备共享同一份置顶（UI 偏好里唯一需要跟会话走的字段）。
+      // 归入项目（2026-11-20 批次三从 surface.ts 按域归位）：只改存档首行
+      // session_meta.workspace；目标目录先经 configStore 校验存在（fail-closed），
+      // 运行中的会话由存档的 runningChecker 拒绝。
+      ctx.rpc('sessions.setWorkspace', async (params) => {
+        const sessionId = typeof params['sessionId'] === 'string' ? params['sessionId'] : '';
+        // 运行中的会话不允许改写归属（存档正被 write-behind 追加）；注释与实现必须一致。
+        if (s.activeTurns.has(sessionId)) {
+          throw new Error(AppText.t('会话正在运行，暂不能修改归属（结束后再试）'));
+        }
+        const workspace = typeof params['workspace'] === 'string' ? params['workspace'] : '';
+        return s.assignSessionWorkspace(sessionId, s.requireDirectory(workspace));
+      });
       ctx.rpc('sessions.setPinned', async (params) =>
         s.sessionArchive.setPinned(
           String(params['sessionId'] ?? ''),

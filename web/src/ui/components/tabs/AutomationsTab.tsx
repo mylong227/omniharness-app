@@ -1,8 +1,11 @@
 // 自动化任务：定时把提示词交给 Agent（服务端 30s 调度；任务触发即新建会话）。
 import * as React from 'react';
 import { useApp } from '../../context.ts';
+import { useSessionResource } from '../../hooks/useSessionResource.ts';
 import { t } from '../../i18n/i18n.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
+import InputNumber from 'antd/es/input-number';
+import Input from 'antd/es/input';
 import Table from 'antd/es/table';
 import type { ColumnsType } from 'antd/es/table';
 import Switch from 'antd/es/switch';
@@ -38,15 +41,15 @@ function AutomationForm(props: {
     <section className="act-card">
       <h3 className="act-title">{t('新建自动化')}</h3>
       <div className="auto-form">
-        <input
-          className="sp-input"
+        <Input
           value={props.name}
           onChange={(e) => props.onName(e.target.value)}
           placeholder={t('名称')}
           aria-label={t('自动化名称')}
         />
-        <textarea
-          className="sp-input auto-prompt"
+        <Input.TextArea
+          className="auto-prompt"
+          rows={3}
           value={props.prompt}
           onChange={(e) => props.onPrompt(e.target.value)}
           placeholder={t('触发时发送给 Agent 的提示词')}
@@ -54,24 +57,18 @@ function AutomationForm(props: {
         />
         <label className="act-status">
           {t('间隔（分钟，5–1440）')}
-          <input
-            className="sp-input"
-            type="number"
+          <InputNumber
             min={5}
             max={1440}
-            value={props.minutes}
-            onChange={(e) => props.onMinutes(e.target.value)}
+            value={props.minutes === '' ? null : Number(props.minutes)}
+            onChange={(value) => props.onMinutes(value === null ? '' : String(value))}
             aria-label={t('自动化间隔分钟')}
+            style={{ width: 140 }}
           />
         </label>
-        <button
-          className="ghost"
-          type="button"
-          disabled={props.busy || props.name.trim() === '' || props.prompt.trim() === ''}
-          onClick={props.onCreate}
-        >
+        <Button type="text" disabled={props.busy || props.name.trim() === '' || props.prompt.trim() === ''} onClick={props.onCreate}>
           {t('创建')}
-        </button>
+        </Button>
       </div>
     </section>
   );
@@ -166,23 +163,24 @@ function useAutomationRows(api: ReturnType<typeof useApp>['api']): {
   rows: AutomationRow[] | null;
   error: string;
   setError: (value: string) => void;
-  refresh: () => Promise<void>;
+  refresh: () => void;
 } {
-  const [rows, setRows] = React.useState<AutomationRow[] | null>(null);
-  const [error, setError] = React.useState('');
-  const refresh = React.useCallback(async (): Promise<void> => {
-    try {
-      const list = await api.listAutomations();
-      setRows(Array.isArray(list) ? list : []);
-      setError('');
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
-    }
-  }, [api]);
-  React.useEffect(() => {
-    void refresh();
-  }, [refresh]);
-  return { rows, error, setError, refresh };
+  const [actionError, setActionError] = React.useState('');
+  // 列表取数收编进 useSessionResource（2026-11-17）：seq 守卫 + 失败保留旧数据。
+  const { data, error: fetchError, refresh } = useSessionResource<AutomationRow[]>({
+    enabled: true,
+    followTick: false,
+    load: React.useCallback(async () => {
+      const list = await api.automations.listAutomations();
+      return Array.isArray(list) ? list : [];
+    }, [api]),
+  });
+  return {
+    rows: data,
+    error: actionError !== '' ? actionError : fetchError ?? '',
+    setError: setActionError,
+    refresh,
+  };
 }
 
 /** 自动化面板。 */
@@ -202,14 +200,14 @@ export function AutomationsTab(): React.ReactElement {
     setBusy(true);
     setError('');
     try {
-      await api.createAutomation({
+      await api.automations.createAutomation({
         name,
         prompt,
         intervalMinutes: Number(minutes),
       });
       setName('');
       setPrompt('');
-      await refresh();
+      refresh();
       toast(t('自动化已创建'));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
@@ -228,12 +226,12 @@ export function AutomationsTab(): React.ReactElement {
     setBusy(true);
     setError('');
     try {
-      if (action === 'toggle') await api.setAutomationEnabled(row.id, !row.enabled);
-      else if (action === 'run') await api.runAutomation(row.id);
+      if (action === 'toggle') await api.automations.setAutomationEnabled(row.id, !row.enabled);
+      else if (action === 'run') await api.automations.runAutomation(row.id);
       else if (await dialog.confirm(t('删除自动化「{name}」？', { name: row.name }))) {
-        await api.deleteAutomation(row.id);
+        await api.automations.deleteAutomation(row.id);
       }
-      await refresh();
+      refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {

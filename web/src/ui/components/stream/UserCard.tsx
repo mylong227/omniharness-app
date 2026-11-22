@@ -5,8 +5,9 @@
 
 import * as React from 'react';
 import { badge, timeOf } from '../../format.ts';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import { formatDurationMs } from '../../models/DurationFormat.ts';
+import { useCopyFeedback } from '../../hooks/useCopyFeedback.ts';
 import type { ThreadEvent } from '../../../types/models.ts';
 import { t } from '../../i18n/i18n.ts';
 
@@ -22,6 +23,8 @@ export interface UserCardProps {
   turnDurationMs?: number;
   /** 编辑重发：把这条消息填回底部输入框。 */
   onEdit: () => void;
+  /** 引用追问：把这条消息以引用块填回输入框（缺省不渲染该入口）。 */
+  onQuote?: () => void;
   /**
    * 从此处重开（仅历史用户消息；最后一条走「编辑重发」）。
    * 服务端回退事件流到这条消息，再从已回填的输入框继续。
@@ -35,8 +38,11 @@ export interface UserCardProps {
  * @returns 用户消息节点
  */
 export function UserCard(props: UserCardProps): ReactElement {
-  const { ev, canEdit, busy, turnDurationMs, onEdit, onRewind } = props;
+  const { ev, canEdit, busy, turnDurationMs, onEdit, onQuote, onRewind } = props;
   const text = (ev.payload?.content as string) || '';
+  // 用户消息一键复制（2026-11-17 粘性批次）：此前复制入口只在助手卡与代码块——
+  // 想引用自己发过的 prompt 只能手选拖蓝。
+  const { copied, onCopy } = useCopyFeedback(text);
   const turnDuration =
     turnDurationMs !== undefined && turnDurationMs >= 1000
       ? formatDurationMs(turnDurationMs)
@@ -50,6 +56,28 @@ export function UserCard(props: UserCardProps): ReactElement {
           <span className="time turn-duration" title={t('本段对话从提问到完成的有效时长')}>
             {t('本轮用时 {duration}', { duration: turnDuration })}
           </span>
+        )}
+        <button
+          className={'msg-act' + (copied ? ' copy-btn--done' : '')}
+          title={t(copied ? '已复制' : '复制消息')}
+          aria-label={t(copied ? '已复制' : '复制消息')}
+          onClick={onCopy}
+        >
+          {icon(copied ? 'check' : 'copy', { size: 12 })}
+        </button>
+        {/* 引用追问（2026-11-17 粘性批次）：把这条消息以 Markdown 引用块填回输入框。 */}
+        {onQuote === undefined ? null : (
+          <button
+            className="msg-act"
+            title={t('引用追问：把这条消息填回输入框，补一句继续问')}
+            aria-label={t('引用追问')}
+            onClick={(e: React.MouseEvent) => {
+              e.stopPropagation();
+              onQuote();
+            }}
+          >
+            {icon('message', { size: 12 })}
+          </button>
         )}
         {onRewind !== undefined && !canEdit && busy !== true ? (
           <button

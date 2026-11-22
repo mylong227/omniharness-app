@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * `serve` 启动收尾的实例记录/就绪文件/UI 地址输出（从 `CliServerCmds` 外移）。
  *
@@ -6,7 +7,7 @@
  */
 import type { AppServer } from '../server/core/appServer.ts';
 import { API_VERSION } from '../../version.ts';
-import { ServeInstance } from './serveInstance.ts';
+import { ServeInstance } from '../../host/kernel/maintenance.ts';
 import { ServeReadyFile } from './serveReadyFile.ts';
 
 /** 启动收尾结果。 */
@@ -67,10 +68,10 @@ export class ServeAnnounce {
     }
     const authNote =
       token === undefined
-        ? '（未启用鉴权；仅回环可访问）'
+        ? AppText.t('（未启用鉴权；仅回环可访问）')
         : configuredToken !== ''
-          ? '（已启用 Bearer 鉴权）'
-          : '（已启用本机临时令牌；请用下面的带 token URL 打开）';
+          ? AppText.t('（已启用 Bearer 鉴权）')
+          : AppText.t('（已启用本机临时令牌；请用下面的带 token URL 打开）');
     const uiUrl =
       token === undefined
         ? `http://${host}:${port}`

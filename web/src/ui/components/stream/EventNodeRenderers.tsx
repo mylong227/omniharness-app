@@ -6,10 +6,9 @@
 // S2 长函数清偿批次：renderEventNode 体 135 → <80。
 
 import * as React from 'react';
-import { badge, jsonView, questionView, todoView } from '../../format.ts';
-import { icon } from '../../models/Icon.ts';
-import { CompactionNote } from '../../models/CompactionNote.ts';
-import { NumberFormatter } from '../../models/NumberFormatter.ts';
+import { badge, jsonView, questionView, timeOf, todoView } from '../../format.ts';
+import { icon } from '../../kit/Icon.tsx';
+import { SystemNoteNode } from './ContextBriefingCard.tsx';
 import { t } from '../../i18n/i18n.ts';
 import type { ThreadEvent } from '../../../types/models.ts';
 import type { ToolResultView } from '../../shared.ts';
@@ -19,6 +18,8 @@ export interface EventCtx {
   toolResults: Record<string, ToolResultView>;
   onEventClick: (ev: ThreadEvent) => void;
   onOpenFile?: (path: string) => Promise<boolean> | boolean | void;
+  /** 只查文件是否存在（结果卡过滤已删除的临时产物；不打开文件）。 */
+  onCheckFile?: (path: string) => Promise<boolean> | boolean;
   /** 在右栏网页标签打开本地地址（缺省时不渲染该入口）。 */
   onOpenUrl?: (url: string) => void;
   busy?: boolean;
@@ -29,6 +30,8 @@ export interface EventCtx {
   onEditUser?: () => void;
   /** 历史用户消息「从此处重开」：服务端回退事件流到该消息（最后一条走编辑重发）。 */
   onRewindUser?: (ev: ThreadEvent) => void;
+  /** 引用追问：把该消息以引用块填回输入框（缺省不渲染入口）。 */
+  onQuote?: (ev: ThreadEvent) => void;
   onRegenerate?: () => void;
   /** 已被 assistant 事件收口的流式文本。 */
   finalizedStreamText: string;
@@ -67,8 +70,8 @@ export function renderStandaloneToolResult(ev: ThreadEvent, p: Record<string, un
 }
 
 /**
- * system 事件：压缩游标收成一行简报（点击展开摘要全文，阻断冒泡防误触钻取），
- * 其余 system 文本渲染为普通系统注记。
+ * system 事件：上下文中继类注记（压缩游标 / 工作流记忆 / 长注记）收成一张可展开的简报卡，
+ * 一两句旁白仍按普通系统注记渲染。
  * @param p 事件负载
  * @param node 事件包装器
  * @returns 节点
@@ -77,33 +80,73 @@ export function renderSystemNode(
   p: Record<string, unknown>,
   node: EvWrapper,
 ): React.ReactElement {
-  const sysContent = (p.content as string) || '';
-  const compaction = CompactionNote.parse(sysContent);
-  if (compaction !== null) {
-    // 压缩游标事件（OMNI_COMPACTION_V1）：摘要动辄数千字，平铺会糊满一屏
-    // （2026-10-13 用户反馈）。收纳成一行简报，点击展开摘要全文；
-    // 点击阻断冒泡——details 的开合不应顺带触发外层的事件钻取。
-    return node(
-      <details
-        className="sysnote-fold"
-        spellCheck="false"
-        onClick={(e: React.MouseEvent) => e.stopPropagation()}
-      >
-        <summary className="sysnote-fold__summary">
-          {t('— 上下文已压缩 · 游标 upTo={upTo} · 摘要约 {n} 字 · 点击查看 —', {
-            upTo: String(compaction.upTo),
-            n: NumberFormatter.abbrev(compaction.summary.length),
-          })}
-        </summary>
-        <div className="sysnote-fold__body">{compaction.summary}</div>
-      </details>,
-    );
+  // 2026-11-16 用户反馈：压缩游标（带 evidence=）与工作流记忆（单行 → 步骤串）此前按纯文本
+  // 平铺，几 KB 的 base64 与上千字命令串糊满一屏。现在统一收成折叠卡：折叠态给标题 + 元信息
+  // + 首行摘要，展开后压缩摘要是分节 Markdown、记忆召回是逐条步骤（判定见 models/SystemNote）。
+  // 归类放在 SystemNoteNode 内部做（按 content 记忆），不在这里每次渲染重跑一遍。
+  return node(<SystemNoteNode content={(p.content as string) || ''} />);
+}
+
+/**
+ * 审计记录折叠块（2026-11-15）：每轮把 audit 事件收成一条默认收起的摘要，展开才看逐条 JSON。
+ *
+ * 为什么不在聊天流逐条展示：audit 是内部事实（heartbeat / approval / decision 各一条 JSON），
+ * 一轮几十条会把对话糊满（用户截图反馈「太长、重复、单调」）。完整审计仍在审计/决策面板。
+ * @param events 本轮 audit 事件（保持时间顺序）
+ * @returns 折叠块节点
+ */
+export function renderAuditGroup(events: readonly ThreadEvent[]): React.ReactElement {
+  const kinds = new Map<string, number>();
+  for (const ev of events) {
+    const kind = auditKindOf(ev);
+    kinds.set(kind, (kinds.get(kind) ?? 0) + 1);
   }
-  return node(
-    <div className="sysnote" spellCheck="false">
-      — {sysContent} —
-    </div>,
+  const kindText = [...kinds.entries()].map(([kind, count]) => `${kind}×${String(count)}`).join(' · ');
+  return (
+    <details className="audit-fold" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+      <summary className="audit-fold__summary">
+        <span className="audit-fold__icon" aria-hidden="true">
+          {icon('shield-alert', { size: 14 })}
+        </span>
+        <span>{t('审计记录 × {n}', { n: events.length })}</span>
+        {kindText === '' ? null : <span className="audit-fold__kinds">{kindText}</span>}
+        <span className="audit-fold__hint">{t('点击展开')}</span>
+      </summary>
+      <div className="audit-fold__body">
+        {events.map((ev) => (
+          <div className="audit-record" key={ev.id}>
+            <div className="audit-record__head">
+              <span className="mono">{auditTimeOf(ev)}</span>
+              <span className="audit-record__kind">{auditKindOf(ev)}</span>
+            </div>
+            <pre className="audit-record__json">{JSON.stringify(ev.payload ?? {}, null, 2)}</pre>
+          </div>
+        ))}
+      </div>
+    </details>
   );
+}
+
+/**
+ * 取 audit 事件的记录类型（heartbeat / approval / decision…）；形态不符回退 `audit`。
+ * @param ev audit 事件
+ * @returns 记录类型
+ */
+function auditKindOf(ev: ThreadEvent): string {
+  const record = (ev.payload as { record?: unknown } | undefined)?.record;
+  const kind = (record as { kind?: unknown } | undefined)?.kind;
+  return typeof kind === 'string' && kind !== '' ? kind : 'audit';
+}
+
+/**
+ * 取 audit 事件的展示时间（兼容 number / ISO；非法给空串）。
+ * @param ev audit 事件
+ * @returns 本地时间文本
+ */
+function auditTimeOf(ev: ThreadEvent): string {
+  const raw: unknown = ev.timestamp;
+  const ts = typeof raw === 'number' ? raw : Date.parse(String(raw));
+  return Number.isFinite(ts) ? timeOf(ts) : '';
 }
 
 /**
@@ -168,14 +211,18 @@ export function renderUnknownNode(
   p: Record<string, unknown>,
   node: EvWrapper,
 ): React.ReactElement {
+  // 未知事件默认收起：裸 JSON 平铺会像审计记录一样糊满整屏（2026-11-15 用户反馈
+  // 「整屏重复、单调」）。先给一行可识别的摘要，点击再展开完整负载。
   return node(
-    <>
-      <div className="head">{badge(ev.type)}</div>
-      <div className="card">
-        <div className="content" spellCheck="false">
-          {JSON.stringify(p)}
-        </div>
+    <details className="sysnote-fold unknown-fold" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+      <summary className="sysnote-fold__summary">
+        {badge(ev.type)} · {t('点击展开')}
+      </summary>
+      <div className="sysnote-fold__body">
+        <pre className="unknown-fold__json" spellCheck="false">
+          {JSON.stringify(p, null, 2)}
+        </pre>
       </div>
-    </>,
+    </details>,
   );
 }

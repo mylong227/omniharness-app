@@ -14,7 +14,7 @@ import { renderMarkdown, emptyState } from '../../format.ts';
 import type { FileView } from '../../shared.ts';
 import { FileKindClassifier } from '../../models/FileKindClassifier.ts';
 import { CodeSurface } from '../CodeSurface.tsx';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import { t } from '../../i18n/i18n.ts';
 
 /** FileTab 组件的入参。 */

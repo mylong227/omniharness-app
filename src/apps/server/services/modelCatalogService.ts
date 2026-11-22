@@ -1,6 +1,8 @@
+import { RuntimeConfig } from '../../config/RuntimeConfig.ts';
 import type { FileConfig } from '../../../host/kernel/config.ts';
 import type { ModelPort } from '../../../host/kernel/contracts.ts';
 import { providerPresets, type ProviderPreset } from './providerPresets.ts';
+import { ModelEffortTable } from './modelEffortTable.ts';
 import { ProviderProbe } from './providerProbe.ts';
 import { SsrfPolicy } from '../../../host/kernel/security.ts';
 
@@ -48,7 +50,7 @@ export class ModelCatalogService {
    * 淘汰最早插入的一条（Map 保持插入顺序）。淘汰只影响「下拉框少一个缓存的可用模型列表」，
    * 下次探测会重新填充，**不影响任何正确性**。
    */
-  private static readonly MAX_PROBE_CACHE = 64;
+  private static readonly MAX_PROBE_CACHE = RuntimeConfig.server.probeCacheMax;
 
   /**
    * @param deps 配置读取器（生效文件配置 + UI 适配器覆盖）
@@ -124,6 +126,7 @@ export class ModelCatalogService {
     }
     const probed = this.probeCache.get(active.id);
     const realModels = probed?.ok === true ? probed.models : [];
+    const models = Array.from(new Set([file.model ?? '', ...realModels].filter(Boolean)));
     return {
       providers,
       active: {
@@ -132,10 +135,15 @@ export class ModelCatalogService {
         defaultModel: active.defaultModel,
         model: file.model ?? active.defaultModel,
         // 只返回真实可用模型：有实测缓存用真实清单，否则只保留当前值（不 fallback 到预设兜底）。
-        models: Array.from(new Set([file.model ?? '', ...realModels].filter(Boolean))),
+        models,
         // 推理强度档位（#B6 扩展，2026-09-08）：仅当下拉动态档位可用时下发；
         // undefined 时 UI 退回内置兜底列表（向后兼容）。空数组表示该厂商无 effort 档位。
         reasoningEffort: active.reasoningEffort,
+        // 每模型档位（adaptive-reasoning，2026-11-14）：对下发清单逐模型查表收窄——
+        // 同厂商不同模型接受的档位范围不同（deepseek-chat 不收 effort、o3 只有 low–high）。
+        // 只写命中规则的条目：厂商档兜底（含厂商级 []）不进 map，UI 据缺字段回落厂商档，
+        // 两级空数组语义不相通（见 modelEffortTable）。
+        effortsByModel: ModelEffortTable.mapFor(active.id, models),
       },
     };
   }

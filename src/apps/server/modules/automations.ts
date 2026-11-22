@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import type { ServerModule } from '../core/serverModule.ts';
 
 /**
@@ -15,7 +16,7 @@ export function automationsModule(): ServerModule {
       const s = ctx.services;
       const store = s.options.automations;
       const requireStore = () => {
-        if (store === undefined) throw new Error('自动化未接线');
+        if (store === undefined) throw new Error(AppText.t('自动化未接线'));
         return store;
       };
       ctx.rpc('automations.list', () => Promise.resolve(store?.list() ?? []));
@@ -31,7 +32,7 @@ export function automationsModule(): ServerModule {
         const target = requireStore();
         const id = String(params['id'] ?? '');
         const automation = target.get(id);
-        if (automation === undefined) throw new Error('自动化不存在');
+        if (automation === undefined) throw new Error(AppText.t('自动化不存在'));
         const result = await s.turns.createThread({ prompt: automation.prompt });
         target.markRun(id);
         return result;

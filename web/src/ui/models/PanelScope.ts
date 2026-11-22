@@ -11,7 +11,7 @@
  */
 
 /** 面板数据范围。 */
-export type PanelScope = 'session' | 'workspace' | 'global' | 'server';
+type PanelScope = 'session' | 'workspace' | 'global' | 'server';
 
 /** 单个面板的范围元数据。 */
 export interface PanelScopeMeta {
@@ -22,7 +22,8 @@ export interface PanelScopeMeta {
 }
 
 /** 面板 key → 范围元数据（与 `PANELS` 的 key 一一对应）。 */
-export const PANEL_SCOPE: Readonly<Record<string, PanelScopeMeta>> = {
+const PANEL_SCOPE: Readonly<Record<string, PanelScopeMeta>> = {
+  control: { scope: 'session', hint: '编队 / 上下文 / 凭证三模式都跟随当前会话；切换会话整页跟随。' },
   tools: { scope: 'session', hint: '本次会话已触发的工具调用；随回合实时追加。' },
   changes: { scope: 'workspace', hint: '当前工作区的文件变更（非 git 工作区按本会话事件聚合）。' },
   file: { scope: 'workspace', hint: '工作区文件的只读预览。' },
@@ -36,6 +37,7 @@ export const PANEL_SCOPE: Readonly<Record<string, PanelScopeMeta>> = {
   plugins: { scope: 'global', hint: '已安装 / 可获取插件（全局；安装后刷新）。' },
   diagnostics: { scope: 'server', hint: '服务端进程与运行环境诊断（非会话数据）。' },
   audit: { scope: 'global', hint: '审计事件哈希链（全局、只追加）。' },
+  decision: { scope: 'session', hint: '本会话执行前决策、审批、授权与共形证据；切换会话整页跟随。' },
   trace: { scope: 'session', hint: '本会话的只读 trace（按事件序列读取）。' },
   permission: { scope: 'global', hint: '参数级权限规则（写进 omniharness.json，全局生效）。' },
   vault: { scope: 'global', hint: '凭据保险库（只列名字，写后不回读）。' },

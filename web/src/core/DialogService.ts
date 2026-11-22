@@ -9,7 +9,7 @@
 // 解耦方式与 ToastService 一致：服务只做「请求 → 订阅槽」，由 App 绑定到 React 状态后
 // 交给 DialogHost 渲染，组件无需把对话框塞进自己的子树。
 
-import { t } from '../ui/i18n/i18n.ts';
+import { L } from './localize.ts';
 
 /** 对话框种类。 */
 export type DialogKind = 'confirm' | 'prompt';
@@ -50,10 +50,6 @@ export interface DialogState {
 type DialogResult = boolean | string | null;
 
 type DialogSink = (state: DialogState) => void;
-
-/** 确认 / 取消按钮的缺省文案。 */
-export const DEFAULT_CONFIRM_LABEL = '确定';
-export const DEFAULT_CANCEL_LABEL = '取消';
 
 /** 应用内对话框服务：发起 Promise、由宿主渲染、用户选择后结算。 */
 export class DialogService {
@@ -140,17 +136,17 @@ export class DialogService {
     if (!this.sink) {
       // fail-closed：没有宿主就渲染不出对话框。此时「静默取消」等于让不可逆动作无声消失，
       // 「静默确认」则更危险。宁可显式抛错，把装配疏漏暴露在开发期。
-      throw new Error(t('DialogService 尚未绑定宿主，无法显示对话框'));
+      throw new Error(L('DialogService 尚未绑定宿主，无法显示对话框'));
     }
     // 前一个未结算的请求按「取消」收口，避免悬挂的 Promise 永远不 resolve。
     if (this.request) this.settle(null);
     return new Promise<DialogResult>((resolve) => {
       this.request = {
         kind,
-        title: options?.title ?? (kind === 'confirm' ? t('请确认') : t('请输入')),
+        title: options?.title ?? (kind === 'confirm' ? L('请确认') : L('请输入')),
         message,
-        confirmLabel: options?.confirmLabel ?? t('确定'),
-        cancelLabel: options?.cancelLabel ?? t('取消'),
+        confirmLabel: options?.confirmLabel ?? L('确定'),
+        cancelLabel: options?.cancelLabel ?? L('取消'),
         placeholder: options?.placeholder ?? '',
         danger: options?.danger === true,
         initial: kind === 'prompt' ? initial : '',

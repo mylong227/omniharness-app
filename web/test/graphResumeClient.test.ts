@@ -32,7 +32,7 @@ test('resumeGraph：走 graph.resume 且参数为 { runId }，返回值原样透
     id: 1,
     result: { runId: 'run_abc_1', nodeCount: 2 },
   });
-  const res = await new ApiClient().resumeGraph('run_abc_1');
+  const res = await new ApiClient().graph.resumeGraph('run_abc_1');
 
   assert.strictEqual(cap.url, '/rpc');
   // rpc 走 POST，body 恒为 JSON 串
@@ -49,7 +49,7 @@ test('resumeGraph：服务端报错（存档缺失等）⇒ 错误信息透出�
     error: { code: -32000, message: '找不到运行日志：/tmp/x/graph-runs/run_nope.jsonl' },
   });
   await assert.rejects(
-    () => new ApiClient().resumeGraph('run_nope'),
+    () => new ApiClient().graph.resumeGraph('run_nope'),
     /找不到运行日志/,
   );
 });

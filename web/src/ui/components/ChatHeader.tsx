@@ -4,7 +4,7 @@
 // 纯展示组件（函数组件范式）：展示 + 回调，无内部状态、无副作用。
 
 import * as React from 'react';
-import { icon } from '../models/Icon.ts';
+import { icon } from '../kit/Icon.tsx';
 import { PathJoiner } from '../models/PathJoiner.ts';
 import { t } from '../i18n/i18n.ts';
 
@@ -29,6 +29,8 @@ export interface ChatHeaderProps {
   onView: (v: ChatViewKind) => void;
   /** 打开左栏抽屉（仅窄屏渲染）。 */
   onToggleLeft?: () => void;
+  /** 打开设置（移动端顶栏入口；桌面走左栏页脚，不重复渲染）。 */
+  onOpenSettings?: () => void;
   /** 切换右栏（桌面=收起/展开面板；移动=抽屉）。未提供则不渲染。 */
   onToggleRight?: () => void;
   /** 右栏当前是否处于收起态（切换按钮的高亮/文案）。 */
@@ -112,7 +114,7 @@ function ViewTabs(props: {
  */
 export function ChatHeader(props: ChatHeaderProps): ReactElement {
   const { title, projectPath, busy, view, onView, onToggleLeft, onToggleRight, rightCollapsed } = props;
-  const { focusMode, onToggleFocus } = props;
+  const { focusMode, onToggleFocus, onOpenSettings } = props;
   const project =
     projectPath === undefined || projectPath === '' ? '' : PathJoiner.basename(projectPath);
   return (
@@ -125,6 +127,16 @@ export function ChatHeader(props: ChatHeaderProps): ReactElement {
           onClick={onToggleLeft}
         >
           {icon('menu', { size: 16 })}
+        </button>
+      )}
+      {onOpenSettings === undefined ? null : (
+        <button
+          className="iconbtn mob-only"
+          title={t('设置')}
+          aria-label={t('打开设置')}
+          onClick={onOpenSettings}
+        >
+          {icon('gear', { size: 16 })}
         </button>
       )}
       {project === '' ? null : (

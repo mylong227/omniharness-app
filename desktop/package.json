@@ -6,32 +6,33 @@
   "author": "mylong227",
   "license": "Apache-2.0",
   "engines": {
-    "node": ">=22.14.0"
+    "node": ">=22.18.0"
   },
   "type": "commonjs",
   "main": "dist/main.cjs",
   "scripts": {
-    "build": "node scripts/build.mjs",
+    "build": "node scripts/build.mts",
     "start": "npm run build && electron .",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/test.mjs",
-    "smoke": "node scripts/smoke.mjs",
-    "startup:report": "node scripts/startupReport.mjs",
-    "stage": "node scripts/stageHarness.mjs",
-    "verify:package": "node scripts/verifyPackage.mjs",
-    "installer": "node scripts/buildInstaller.mjs",
-    "manifest": "node scripts/releaseManifest.mjs",
-    "pack": "npm run build && npm run stage && electron-builder --dir --config electron-builder.yml",
-    "dist": "npm run build && npm run stage && electron-builder --win --x64 --config electron-builder.yml"
+    "test": "node scripts/test.mts",
+    "smoke": "node scripts/smoke.mts",
+    "startup:report": "node scripts/startupReport.mts",
+    "stage": "node scripts/stageHarness.mts",
+    "verify:package": "node scripts/verifyPackage.mts",
+    "installer": "node scripts/buildInstaller.mts",
+    "manifest": "node scripts/releaseManifest.mts",
+    "pack": "npm run build && npm run stage && electron-builder --dir --config electron-builder.yml && npm run verify:package",
+    "dist": "npm run build && npm run stage && electron-builder --win --x64 --config electron-builder.yml && npm run verify:package"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
-    "electron": "44.7.0",
+    "electron": "^45.3.4",
     "electron-builder": "26.18.0",
-    "esbuild": "^0.25.0",
-    "typescript": "^5.7.0"
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
   },
   "dependencies": {
+    "@omniharness/app": "file:..",
     "electron-updater": "^6.8.11"
   }
 }

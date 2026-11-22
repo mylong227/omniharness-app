@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * cliNativeCmds.ts —— ExecCli 命令簇（god-class 拆分 · 第 5/6 层）。
  *
@@ -48,7 +49,7 @@ export class CliNativeCmds extends CliCompareCmds {
         const name = this.flagValue(args, '--name') ?? args[1];
         const argsJson = this.flagValue(args, '--args') ?? '{}';
         if (name === undefined) {
-          throw new Error('native approval 需要 --name NAME [--args JSON]');
+          throw new Error(AppText.t('native approval 需要 --name NAME [--args JSON]'));
         }
         const decision = kernel.approvalCheck(
           name,
@@ -75,7 +76,7 @@ export class CliNativeCmds extends CliCompareCmds {
         const argsJson = this.flagValue(args, '--args') ?? '{}';
         const callId = this.flagValue(args, '--call-id') ?? 't1';
         if (name === undefined) {
-          throw new Error('native tool-call 需要 --name NAME [--args JSON] [--call-id ID]');
+          throw new Error(AppText.t('native tool-call 需要 --name NAME [--args JSON] [--call-id ID]'));
         }
         const r = kernel.toolCall(name, JSON.parse(argsJson) as Record<string, unknown>, callId);
         process.stdout.write(
@@ -98,7 +99,7 @@ export class CliNativeCmds extends CliCompareCmds {
       return 1;
     }
     process.stdout.write(
-      '用法: omniharness native info|ping|tools|approval --name N [--args JSON] | session-submit --submission JSON | context | tool-call --name N [--args JSON] [--call-id ID] | bench [--iterations N]\n',
+      AppText.t('用法: omniharness native info|ping|tools|approval --name N [--args JSON] | session-submit --submission JSON | context | tool-call --name N [--args JSON] [--call-id ID] | bench [--iterations N]\n'),
     );
     return 2;
   }
@@ -123,7 +124,7 @@ export class CliNativeCmds extends CliCompareCmds {
    */
   protected runNativeBench(kernel: NativeKernel, iterations: number): number {
     if (!kernel.available()) {
-      throw new Error('原生内核不可用，无法基准（原生内核随包预编译；本仓无 native:build 脚本）');
+      throw new Error(AppText.t('原生内核不可用，无法基准（原生内核随包预编译；本仓无 native:build 脚本）'));
     }
     const jsEngine = new RuleApproval({ rules: [] });
     const req = { sessionId: 'bench', toolName: 'shell.run', target: 'echo hi' };
@@ -151,7 +152,7 @@ export class CliNativeCmds extends CliCompareCmds {
           jsNsPerOp: Math.round(jsPerOp),
           nativeNsPerOp: Math.round(nativePerOp),
           speedup: Number((jsPerOp / nativePerOp).toFixed(2)),
-          note: '对琐碎纯逻辑裁决，JS V8 快于 N-API 边界往返——FFI 价值在系统 API 能力与重操作，勿对微调用使用',
+          note: AppText.t('对琐碎纯逻辑裁决，JS V8 快于 N-API 边界往返——FFI 价值在系统 API 能力与重操作，勿对微调用使用'),
         },
         null,
         2,
@@ -168,7 +169,7 @@ export class CliNativeCmds extends CliCompareCmds {
    */
   protected runNativeBenchShell(kernel: NativeKernel, iterations: number): number {
     if (!kernel.available()) {
-      throw new Error('原生内核不可用，无法基准（原生内核随包预编译；本仓无 native:build 脚本）');
+      throw new Error(AppText.t('原生内核不可用，无法基准（原生内核随包预编译；本仓无 native:build 脚本）'));
     }
     const command = 'echo bench-ffi';
     const omniCli = this.findOmniCli();
@@ -217,7 +218,7 @@ export class CliNativeCmds extends CliCompareCmds {
     const sub = args[0];
     if (sub !== 'definition' && sub !== 'references' && sub !== 'hover' && sub !== 'status') {
       process.stdout.write(
-        '用法: omniharness lsp <definition|references|hover|status> --file PATH --line N --col N [--lsp "server cmd"]\n',
+        AppText.t('用法: omniharness lsp <definition|references|hover|status> --file PATH --line N --col N [--lsp "server cmd"]\n'),
       );
       return 2;
     }
@@ -225,7 +226,7 @@ export class CliNativeCmds extends CliCompareCmds {
     const config = await this.buildConfig(cliArgs);
     if (config.lsp === undefined) {
       process.stdout.write(
-        'LSP 未配置：用 --lsp "server cmd" 指定语言服务器（如 --lsp "typescript-language-server --stdio"）\n',
+        AppText.t('LSP 未配置：用 --lsp "server cmd" 指定语言服务器（如 --lsp "typescript-language-server --stdio"）\n'),
       );
       return 1;
     }
@@ -239,7 +240,7 @@ export class CliNativeCmds extends CliCompareCmds {
     const col = this.flagNumber(args, '--col');
     if (file === undefined || line === undefined || col === undefined) {
       process.stdout.write(
-        '用法: omniharness lsp <definition|references|hover> --file PATH --line N --col N [--lsp "server cmd"]\n',
+        AppText.t('用法: omniharness lsp <definition|references|hover> --file PATH --line N --col N [--lsp "server cmd"]\n'),
       );
       return 2;
     }
@@ -281,7 +282,7 @@ export class CliNativeCmds extends CliCompareCmds {
       }
     }
     throw new Error(
-      '未找到 omni-cli 二进制（target/release|debug/omni-cli.exe），无法做子进程基准',
+      AppText.t('未找到 omni-cli 二进制（target/release|debug/omni-cli.exe），无法做子进程基准'),
     );
   }
 }

@@ -1,0 +1,1120 @@
+/** 桌面端纯逻辑测试：args / ready 契约 / 环境清洗 / 配置合并（不启动 Electron GUI）。 */
+import { spawnSync } from 'node:child_process';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { basename, join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { createHash } from 'node:crypto';
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import type { WorkspaceGuardError as WorkspaceGuardErrorShape } from '../src/main/ipcGuards.ts';
+
+const out = join(process.cwd(), '..', '.tmp', 'desktop-tests');
+mkdirSync(out, { recursive: true });
+
+/**
+ * esbuild 原生二进制路径。
+ *
+ * 不用 `esbuild` JS API：它会 spawn 一个常驻 service 子进程；本机受限执行环境禁止带管道的
+ * 子进程（spawn EPERM）。直接调平台二进制可执行文件（stdio inherit）在本机/CI 都能跑。
+ */
+const esbuildCandidates = [
+  process.env['ESBUILD_BINARY_PATH'],
+  join(
+    process.cwd(),
+    'node_modules',
+    `@esbuild/${process.platform}-${process.arch}`,
+    process.platform === 'win32' ? 'esbuild.exe' : 'bin/esbuild',
+  ),
+  join(
+    process.cwd(),
+    '..',
+    'node_modules',
+    `@esbuild/${process.platform}-${process.arch}`,
+    process.platform === 'win32' ? 'esbuild.exe' : 'bin/esbuild',
+  ),
+].filter((item): item is string => typeof item === 'string' && item !== '');
+const esbuildBin = esbuildCandidates.find((item) => existsSync(item));
+if (esbuildBin === undefined) {
+  throw new Error(`esbuild 二进制不存在（已查找：${esbuildCandidates.join(' / ')}）`);
+}
+// 收窄快照：CFA 不把外层收窄带进闭包（bundle 内引用的是这里的 string 常量）。
+const esbuildBinPath: string = esbuildBin;
+
+/** 打包一个纯模块到 CJS 供 Node 测试（alias 用来把 Electron 替换成测试替身）。 */
+function bundle(entry: string, name: string, external: readonly string[] = [], alias: Record<string, string> = {}): void {
+  const args = [
+    entry,
+    '--bundle',
+    '--platform=node',
+    '--format=cjs',
+    '--target=node22',
+    `--outfile=${join(out, `${name}.cjs`)}`,
+    ...external.map((item) => `--external:${item}`),
+    ...Object.entries(alias).map(([from, to]) => `--alias:${from}=${to}`),
+    '--log-level=error',
+  ];
+  const result = spawnSync(esbuildBinPath, args, { cwd: process.cwd(), stdio: 'inherit' });
+  if (result.error !== undefined || result.status !== 0) {
+    throw new Error(`esbuild 失败（${name}）：${String(result.error?.message ?? result.status)}`);
+  }
+}
+
+bundle('src/main/lib/args.ts', 'args');
+bundle('src/main/lib/ready.ts', 'ready');
+bundle('src/main/harnessSupervisor.ts', 'supervisor', ['electron']);
+bundle('src/main/desktopState.ts', 'desktopState');
+bundle('src/main/config.ts', 'config');
+bundle('src/main/i18n/DesktopI18n.ts', 'i18n');
+bundle('src/main/i18n/messages.ts', 'messages');
+bundle('src/main/app/StartupMarker.ts', 'startup');
+bundle('src/main/app/DeepLinkRouter.ts', 'deepLinks');
+bundle('src/main/app/HarnessRestartPolicy.ts', 'restartPolicy');
+bundle('src/main/app/WindowLifecycle.ts', 'windowLifecycle');
+bundle('src/main/app/SmokeHarness.ts', 'smokeHarness');
+bundle('src/main/app/AppIcon.ts', 'appIcon');
+bundle('src/main/app/HarnessStartFailure.ts', 'harnessFailure');
+// 打包载荷门禁：纯 JS 模块，直接 import（不经过 esbuild）。
+const { PackagedPayloadCheck } = await import('./lib/payloadCheck.mts');
+// 托盘：用假 electron 打包，busy 态切换/去重/回退/复位都在 node 里可测（不启动 GUI）。
+bundle('src/main/tray.ts', 'tray', [], { electron: './scripts/fakeElectron.cjs' });
+// IPC 安全守卫纯逻辑（2026-11-08 审计）：electron 仅 type-only 导入，无需假替身即可打包。
+bundle('src/main/ipcGuards.ts', 'ipcGuards');
+
+const { parseLaunchArgs } = await import(pathToFileURL(join(out, 'args.cjs')).href);
+const { parseReadyInfo } = await import(pathToFileURL(join(out, 'ready.cjs')).href);
+const { buildHarnessEnv } = await import(pathToFileURL(join(out, 'supervisor.cjs')).href);
+const { DesktopStateStore } = await import(pathToFileURL(join(out, 'desktopState.cjs')).href);
+const { DEFAULT_DESKTOP_CONFIG, loadDesktopConfig, formatCsp, CONFIG_WARNING_CODES } = await import(
+  pathToFileURL(join(out, 'config.cjs')).href
+);
+const { DesktopI18n } = await import(pathToFileURL(join(out, 'i18n.cjs')).href);
+const { DESKTOP_MESSAGES } = await import(pathToFileURL(join(out, 'messages.cjs')).href);
+const { StartupMarker } = await import(pathToFileURL(join(out, 'startup.cjs')).href);
+const { DeepLinkRouter } = await import(pathToFileURL(join(out, 'deepLinks.cjs')).href);
+const { HarnessRestartPolicy } = await import(pathToFileURL(join(out, 'restartPolicy.cjs')).href);
+const { WindowLifecycle } = await import(pathToFileURL(join(out, 'windowLifecycle.cjs')).href);
+const { SmokeHarness } = await import(pathToFileURL(join(out, 'smokeHarness.cjs')).href);
+const { resolveAppIconPath } = await import(pathToFileURL(join(out, 'appIcon.cjs')).href);
+const { HarnessStartFailure } = await import(
+  pathToFileURL(join(out, 'harnessFailure.cjs')).href
+);
+const { TrayService } = await import(pathToFileURL(join(out, 'tray.cjs')).href);
+const { assertNotifyInput, trustRejection, assertRevealPathInside, assertDirectory, WorkspaceGuardError } =
+  await import(pathToFileURL(join(out, 'ipcGuards.cjs')).href);
+
+test('DesktopI18n：system 解析 + 中英词条完整 + 占位符替换', () => {
+  assert.equal(DesktopI18n.resolve('system', 'en-US'), 'en-US');
+  assert.equal(DesktopI18n.resolve('system', 'zh-Hans-CN'), 'zh-CN');
+  assert.equal(DesktopI18n.resolve('en-US', 'zh-CN'), 'en-US');
+  assert.equal(DesktopI18n.resolve(undefined, 'en-GB'), 'en-US');
+  const zh = new DesktopI18n('zh-CN');
+  const en = new DesktopI18n('en-US');
+  assert.equal(zh.t('menu.file'), '文件');
+  assert.equal(en.t('menu.file'), 'File');
+  assert.equal(
+    en.t('dialog.updateAvailableMessage', { version: '0.2.1' }),
+    'OmniHarness 0.2.1 is available',
+  );
+  assert.equal(DEFAULT_DESKTOP_CONFIG.app.language, 'system');
+  assert.equal(DEFAULT_DESKTOP_CONFIG.update.channel, 'latest');
+  assert.equal(DEFAULT_DESKTOP_CONFIG.update.allowDowngrade, false);
+  assert.equal(DEFAULT_DESKTOP_CONFIG.window.showShortcut, 'CommandOrControl+Shift+O');
+});
+
+test('DesktopI18n：中英语言包键集合完全一致', () => {
+  const zh = new DesktopI18n('zh-CN');
+  const en = new DesktopI18n('en-US');
+  for (const key of [
+    'menu.file',
+    'menu.help',
+    'tray.show',
+    'tray.quit',
+    'tray.busy',
+    'dialog.startFailedTitle',
+    'dialog.crashTitle',
+    'dialog.updateLatestMessage',
+    'dialog.pickWorkspace',
+    'dialog.workspaceNotFound',
+    'dialog.workspaceNotDirectory',
+    'window.starting',
+  ]) {
+    assert.notEqual(zh.t(key), key, `zh 缺少 ${key}`);
+    assert.notEqual(en.t(key), key, `en 缺少 ${key}`);
+  }
+});
+
+test('ipcGuards：assertDirectory 抛 WorkspaceGuardError（稳定码 + 路径，供对话框本地化）', () => {
+  // 不存在 → not-exists
+  const missing = join(out, 'no-such-workspace-dir');
+  let err: unknown = null;
+  try {
+    assertDirectory(missing);
+  } catch (e) {
+    err = e;
+  }
+  assert.ok(err instanceof WorkspaceGuardError, '必须是 WorkspaceGuardError');
+  assert.equal((err as WorkspaceGuardErrorShape).code, 'not-exists');
+  assert.equal((err as WorkspaceGuardErrorShape).path, missing);
+  // 存在但不是目录 → not-directory
+  const file = join(out, 'guard-not-dir.tmp');
+  writeFileSync(file, 'x');
+  err = null;
+  try {
+    assertDirectory(file);
+  } catch (e) {
+    err = e;
+  }
+  assert.ok(err instanceof WorkspaceGuardError, '必须是 WorkspaceGuardError');
+  assert.equal((err as WorkspaceGuardErrorShape).code, 'not-directory');
+  assert.equal((err as WorkspaceGuardErrorShape).path, file);
+  // 合法目录 → 原样返回
+  assert.equal(assertDirectory(out), out);
+});
+
+test('StartupMarker：固定阶段格式（供 startupReport 解析）', () => {
+  const lines: string[] = [];
+  const marker = new StartupMarker({ write: (_kind: unknown, text: string) => lines.push(text) });
+  marker.mark('config.loaded');
+  marker.mark('window.created');
+  assert.equal(lines.length, 2);
+  for (const line of lines) {
+    assert.match(line, /^startup\.phase phase=[a-z.]+ elapsedMs=\d+$/u);
+  }
+});
+
+test('DeepLinkRouter：协议/workspace 解析 + 就绪前排队', async () => {
+  assert.equal(
+    DeepLinkRouter.workspaceOf('omniharness://open?workspace=D%3A%5Cws', 'omniharness'),
+    'D:\\ws',
+  );
+  assert.equal(DeepLinkRouter.workspaceOf('https://example.com/?workspace=x', 'omniharness'), null);
+  assert.equal(DeepLinkRouter.workspaceOf('not a url', 'omniharness'), null);
+  let switched = '';
+  const router = new DeepLinkRouter({
+    protocol: 'omniharness',
+    uiReadyTimeoutMs: 10,
+    getWindow: () => null,
+    isReady: () => false,
+    switchWorkspace: async (path: string) => {
+      switched = path;
+    },
+  });
+  await router.handle('omniharness://open?workspace=D%3A%5Cws');
+  assert.equal(switched, '', '未就绪时不得切工作区');
+  router.flush();
+});
+
+test('HarnessRestartPolicy：窗口内限次，超窗恢复', () => {
+  const policy = new HarnessRestartPolicy(2, 1000);
+  assert.equal(policy.allow(10_000), true);
+  assert.equal(policy.allow(10_100), true);
+  assert.equal(policy.allow(10_200), false, '窗口内第三次必须拒绝');
+  assert.equal(policy.allow(11_500), true, '超出窗口后重新允许');
+  policy.reset();
+  assert.equal(policy.allow(12_000), true);
+  assert.equal(DEFAULT_DESKTOP_CONFIG.harness.autoRestart, true);
+  assert.ok(DEFAULT_DESKTOP_CONFIG.harness.restartMax >= 1);
+});
+
+test('WindowLifecycle：重建窗口/加载 UI/关闭到托盘', () => {
+  const calls = { created: 0, loaded: 0, shown: 0, hidden: 0, tray: 0, menu: 0 };
+  let window: Record<string, unknown> | null = null;
+  let closeHandler: ((event: unknown) => void) | null = null;
+  const state = {
+    closeToTray: true,
+    openAtLogin: false,
+    get: () => ({ closeToTray: state.closeToTray, openAtLogin: state.openAtLogin }),
+    setCloseToTray: (value: boolean) => {
+      state.closeToTray = value;
+    },
+    setOpenAtLogin: (value: boolean) => {
+      state.openAtLogin = value;
+    },
+  };
+  const tray = { refresh: () => (calls.tray += 1) };
+  const lifecycle = new WindowLifecycle({
+    current: () => ({ window, handle: {}, state, tray }),
+    createWindow: () => {
+      calls.created += 1;
+      window = {
+        isMinimized: () => false,
+        restore: () => undefined,
+        show: () => (calls.shown += 1),
+        focus: () => undefined,
+        hide: () => (calls.hidden += 1),
+        on: (event: string, handler: (event: unknown) => void) => {
+          if (event === 'close') closeHandler = handler;
+        },
+        webContents: { on: () => undefined },
+      };
+      return window;
+    },
+    setWindow: () => undefined,
+    loadHarness: () => (calls.loaded += 1),
+    refreshMenu: () => (calls.menu += 1),
+    isQuitting: () => false,
+    applyAutoStart: () => undefined,
+    logger: () => null,
+  });
+  lifecycle.show();
+  assert.equal(calls.created, 1);
+  assert.equal(calls.loaded, 1);
+  assert.equal(calls.shown, 1);
+  closeHandler!({ preventDefault: () => undefined });
+  assert.equal(calls.hidden, 1, '关闭到托盘应隐藏窗口');
+  lifecycle.setCloseToTray(false);
+  assert.equal(state.closeToTray, false);
+  assert.equal(calls.tray, 1);
+  assert.equal(calls.menu, 1);
+  lifecycle.setOpenAtLogin(true);
+  assert.equal(state.openAtLogin, true);
+});
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+test('WindowLifecycle：渲染层自愈——加载失败/渲染崩溃自动重载，耗尽后交人机出口', async () => {
+  const calls = { loaded: 0, uiGone: 0 };
+  const handlers: Record<string, (...args: unknown[]) => unknown> = {};
+  let window: Record<string, unknown> | null = null;
+  const state = {
+    closeToTray: true,
+    openAtLogin: false,
+    get: () => ({ closeToTray: state.closeToTray, openAtLogin: state.openAtLogin }),
+    setCloseToTray: () => undefined,
+    setOpenAtLogin: () => undefined,
+  };
+  const lifecycle = new WindowLifecycle({
+    current: () => ({ window, handle: {}, state, tray: null }),
+    createWindow: () => {
+      window = {
+        isMinimized: () => false,
+        restore: () => undefined,
+        show: () => undefined,
+        focus: () => undefined,
+        hide: () => undefined,
+        isDestroyed: () => false,
+        on: () => undefined,
+        webContents: {
+          on: (event: string, handler: (...args: unknown[]) => unknown) => {
+            handlers[event] = handler;
+          },
+        },
+      };
+      return window;
+    },
+    setWindow: () => undefined,
+    loadHarness: () => (calls.loaded += 1),
+    refreshMenu: () => undefined,
+    isQuitting: () => false,
+    applyAutoStart: () => undefined,
+    logger: () => ({ write: () => undefined }),
+    recovery: { maxAttempts: 2, windowMs: 60_000, delayMs: 5 },
+    onUiGone: async () => {
+      calls.uiGone += 1;
+      return 1;
+    },
+  });
+  lifecycle.show();
+  assert.equal(calls.loaded, 1, '首次加载不受自愈影响');
+  assert.ok(handlers['did-fail-load'], '必须绑定 did-fail-load');
+  assert.ok(handlers['render-process-gone'], '必须绑定 render-process-gone');
+
+  // ① 前两次主帧加载失败：各自延迟后用当前句柄重载。
+  await handlers['did-fail-load']!(null, -2, 'ERR_CONNECTION_REFUSED', 'http://127.0.0.1:1/', true);
+  await sleep(40);
+  assert.equal(calls.loaded, 2, '第一次失败后应自动重载');
+  await handlers['did-fail-load']!(null, -2, 'ERR_CONNECTION_REFUSED', 'http://127.0.0.1:1/', true);
+  await sleep(40);
+  assert.equal(calls.loaded, 3, '第二次失败后仍自动重载');
+
+  // ② 第三次：窗口内达到上限 → 人机出口；选重试 ⇒ 清零计数再载一次。
+  await handlers['did-fail-load']!(null, -2, 'ERR_CONNECTION_REFUSED', 'http://127.0.0.1:1/', true);
+  await sleep(60);
+  assert.equal(calls.uiGone, 1, '恢复耗尽必须交人机出口');
+  assert.equal(calls.loaded, 4, '用户选重试后应再载一次');
+
+  // ③ 过滤面：-3（新加载取代旧加载）与子帧失败都不恢复。
+  await handlers['did-fail-load']!(null, -3, 'ERR_ABORTED', 'http://127.0.0.1:1/', true);
+  await handlers['did-fail-load']!(null, -2, 'ERR_CONNECTION_REFUSED', 'http://127.0.0.1:1/', false);
+  await sleep(30);
+  assert.equal(calls.loaded, 4, '正常取消/子帧失败不得触发恢复');
+
+  // ④ 渲染进程崩溃（abnormal-exit / oom）恢复；killed（外部干预）不恢复。
+  await handlers['render-process-gone']!(null, { reason: 'abnormal-exit', exitCode: 1 });
+  await sleep(40);
+  assert.equal(calls.loaded, 5, '渲染崩溃后应自动重载');
+  await handlers['render-process-gone']!(null, { reason: 'oom', exitCode: 0 });
+  await sleep(40);
+  assert.equal(calls.loaded, 6, 'oom 也应自动重载');
+  await handlers['render-process-gone']!(null, { reason: 'killed', exitCode: 1 });
+  await sleep(30);
+  assert.equal(calls.loaded, 6, 'killed 不触发恢复');
+});
+
+test('WindowLifecycle：recovery 未配置时保持旧行为（只记日志不恢复）', async () => {
+  const calls = { loaded: 0 };
+  const handlers: Record<string, (...args: unknown[]) => unknown> = {};
+  let window: Record<string, unknown> | null = null;
+  const state = {
+    closeToTray: true,
+    openAtLogin: false,
+    get: () => ({ closeToTray: state.closeToTray, openAtLogin: state.openAtLogin }),
+    setCloseToTray: () => undefined,
+    setOpenAtLogin: () => undefined,
+  };
+  const lifecycle = new WindowLifecycle({
+    current: () => ({ window, handle: {}, state, tray: null }),
+    createWindow: () => {
+      window = {
+        isMinimized: () => false,
+        restore: () => undefined,
+        show: () => undefined,
+        focus: () => undefined,
+        hide: () => undefined,
+        on: () => undefined,
+        webContents: {
+          on: (event: string, handler: (...args: unknown[]) => unknown) =>
+            (handlers[event] = handler),
+        },
+      };
+      return window;
+    },
+    setWindow: () => undefined,
+    loadHarness: () => (calls.loaded += 1),
+    refreshMenu: () => undefined,
+    isQuitting: () => false,
+    applyAutoStart: () => undefined,
+    logger: () => ({ write: () => undefined }),
+  });
+  lifecycle.show();
+  await handlers['did-fail-load']!(null, -2, 'ERR_CONNECTION_REFUSED', 'http://127.0.0.1:1/', true);
+  await sleep(30);
+  assert.equal(calls.loaded, 1, '未配置 recovery 时不得自动重载（行为不变）');
+});
+
+/** 冒烟判定入参基线：全绿事实（各用例按需覆盖）。 */
+function smokeFacts(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    windowAlive: true,
+    windowVisible: true,
+    hiddenLaunch: false,
+    harnessState: 'running',
+    harnessEndpoint: '127.0.0.1:51234',
+    loadedUrl: 'http://127.0.0.1:51234/?token=x',
+    dom: { root: true, bridgeVersion: 3 },
+    trayCreated: true,
+    notificationsSupported: true,
+    protocolRegistered: false,
+    ...overrides,
+  };
+}
+
+test('SmokeHarness：全绿事实 ⇒ pass，含 5 致命 + 3 观测', () => {
+  const report = SmokeHarness.judge(smokeFacts());
+  assert.equal(report.pass, true);
+  assert.equal(report.checks.length, 8);
+  for (const name of [
+    'window.created',
+    'window.visible',
+    'harness.ready',
+    'ui.origin',
+    'ui.mounted',
+  ]) {
+    assert.ok(
+      report.checks.some((c: { name: string; ok: boolean }) => c.name === name && c.ok),
+      `致命项 ${name} 应通过`,
+    );
+  }
+  for (const name of ['tray', 'notifications', 'protocol']) {
+    assert.ok(
+      report.checks.some((c: { name: string }) => c.name === name),
+      `观测项 ${name} 应在报告里`,
+    );
+  }
+});
+
+test('SmokeHarness：五类致命断言各自能判死', () => {
+  const cases = [
+    ['window.created', smokeFacts({ windowAlive: false })],
+    ['window.visible', smokeFacts({ windowVisible: false })],
+    ['harness.ready', smokeFacts({ harnessState: 'crashed', harnessEndpoint: null })],
+    ['ui.origin', smokeFacts({ loadedUrl: 'data:text/html,...' })],
+    ['ui.mounted', smokeFacts({ dom: null })],
+  ];
+  for (const [name, facts] of cases) {
+    const report = SmokeHarness.judge(facts);
+    assert.equal(report.pass, false, `${name} 失败必须判死`);
+    const check = report.checks.find((c: { name: string; ok: boolean; detail?: string }) => c.name === name);
+    assert.equal(check?.ok, false, `${name} 应带失败明细：${check?.detail}`);
+  }
+});
+
+test('SmokeHarness：--hidden 启动时按「预期隐藏」判定可见性；观测项不判死', () => {
+  assert.equal(
+    SmokeHarness.judge(smokeFacts({ hiddenLaunch: true, windowVisible: false })).pass,
+    true,
+  );
+  const degraded = SmokeHarness.judge(
+    smokeFacts({ trayCreated: false, notificationsSupported: false, protocolRegistered: false }),
+  );
+  assert.equal(degraded.pass, true, '托盘/通知/协议缺失是观测项，不得判死');
+});
+
+test('SmokeHarness：DOM 探针脚本可执行且含桥版本判定', () => {
+  // 纯 jsdom 级执行：探针在缺 window.omni 时必须报 bridgeVersion=0（而不是抛错）。
+  // 探针在渲染层里用全局 document；测试用 Function 参数显式注入同一形态。
+  const fakeDocument = { querySelector: () => null };
+  const probe = SmokeHarness.DOM_PROBE;
+  assert.ok(probe.includes('apiVersion'), '探针必须检查桥版本');
+  const fn = new Function('window', 'document', `return ${probe};`);
+  assert.deepEqual(fn({ omni: undefined }, fakeDocument), { root: false, bridgeVersion: 0 });
+  assert.deepEqual(fn({ omni: { apiVersion: 3 } }, { querySelector: () => ({ id: 'root' }) }), {
+    root: true,
+    bridgeVersion: 3,
+  });
+});
+
+test('SmokeHarness.timeoutMs：默认 90s、可放宽、越界夹取、脏值回落', () => {
+  assert.equal(SmokeHarness.timeoutMs(undefined), 90_000);
+  assert.equal(SmokeHarness.timeoutMs(''), 90_000);
+  assert.equal(SmokeHarness.timeoutMs('300000'), 300_000);
+  assert.equal(SmokeHarness.timeoutMs('1'), 10_000);
+  assert.equal(SmokeHarness.timeoutMs('9999999'), 600_000);
+  assert.equal(SmokeHarness.timeoutMs('abc'), 90_000);
+});
+
+test('parseLaunchArgs: workspace / inline / hidden / deep link', () => {
+  assert.deepEqual(parseLaunchArgs(['electron', '.', '--workspace', 'D:\\ws']), {
+    workspace: 'D:\\ws',
+    hidden: false,
+    deepLink: null,
+  });
+  assert.deepEqual(parseLaunchArgs(['electron', '.', '--workspace=D:\\ws', '--hidden']), {
+    workspace: 'D:\\ws',
+    hidden: true,
+    deepLink: null,
+  });
+  assert.equal(
+    parseLaunchArgs(['electron', '.', 'omniharness://open?workspace=x']).deepLink,
+    'omniharness://open?workspace=x',
+  );
+});
+
+test('parseReadyInfo: valid + invalid payloads', () => {
+  const valid = {
+    protocol: 1,
+    pid: 42,
+    host: '127.0.0.1',
+    port: 51234,
+    workspace: 'D:\\ws',
+    apiVersion: '0.1.0',
+    harnessVersion: '0.2.0',
+    startedAt: '2026-10-24T00:00:00.000Z',
+  };
+  assert.equal(parseReadyInfo(valid)?.port, 51234);
+  assert.equal(parseReadyInfo({ ...valid, protocol: 2 }), null);
+  assert.equal(parseReadyInfo({ ...valid, port: 0 }), null);
+  assert.equal(parseReadyInfo({ ...valid, pid: -1 }), null);
+  assert.equal(parseReadyInfo(null), null);
+});
+
+test('buildHarnessEnv: strips dangerous vars and injects controlled vars', () => {
+  const env = buildHarnessEnv(
+    {
+      NODE_OPTIONS: '--require evil.js',
+      NODE_PATH: 'x',
+      NODE_EXTRA_CA_CERTS: 'x',
+      ELECTRON_RUN_AS_NODE: '1',
+      PATH: 'C:\\Windows',
+    },
+    { OMNI_SERVE_TOKEN: 't', OMNI_NO_UI_URL: '1' },
+  );
+  assert.equal(env['NODE_OPTIONS'], undefined);
+  assert.equal(env['NODE_PATH'], undefined);
+  assert.equal(env['NODE_EXTRA_CA_CERTS'], undefined);
+  assert.equal(env['ELECTRON_RUN_AS_NODE'], undefined);
+  assert.equal(env['OMNI_SERVE_TOKEN'], 't');
+  assert.equal(env['OMNI_NO_UI_URL'], '1');
+});
+
+test('品牌图标：PNG 为 512×512，ICO 为多尺寸 Windows 图标', () => {
+  const png = readFileSync(join(process.cwd(), 'static', 'icon.png'));
+  assert.equal(png.subarray(1, 4).toString('ascii'), 'PNG');
+  assert.equal(png.readUInt32BE(16), 512);
+  assert.equal(png.readUInt32BE(20), 512);
+  const ico = readFileSync(join(process.cwd(), 'static', 'icon.ico'));
+  assert.equal(ico.readUInt16LE(0), 0);
+  assert.equal(ico.readUInt16LE(2), 1);
+  const frameCount = ico.readUInt16LE(4);
+  assert.ok(frameCount >= 7, 'ICO 必须包含多尺寸（16–256）');
+  // 任务栏不加缩放地取帧：16/20/24/32/48/256 这几档必须在（缺一档系统就只能拉伸）。
+  const frames = [];
+  for (let index = 0; index < frameCount; index += 1) {
+    const width = ico.readUInt8(6 + index * 16);
+    frames.push(width === 0 ? 256 : width);
+  }
+  for (const size of [16, 20, 24, 32, 48, 256]) {
+    assert.ok(frames.includes(size), `ICO 缺少 ${String(size)}px 帧（实际：${frames.join('/')}）`);
+  }
+});
+
+test('窗口/任务栏图标：Windows 取多尺寸 ICO，其它平台取 512 PNG', () => {
+  // 任务栏图标按 DPI 从 ICO 取帧，交给一张 PNG 只会缩放出糊边——这条判据钉住选择。
+  assert.equal(basename(resolveAppIconPath('dist', 'win32')), 'icon.ico');
+  assert.equal(resolveAppIconPath('dist', 'win32'), join('dist', 'icon.ico'));
+  assert.equal(basename(resolveAppIconPath('dist', 'darwin')), 'icon.png');
+  assert.equal(basename(resolveAppIconPath('dist', 'linux')), 'icon.png');
+  const window = readFileSync(join(process.cwd(), 'src', 'main', 'window.ts'), 'utf8');
+  assert.match(
+    window,
+    /icon: resolveAppIconPath\(__dirname, process\.platform\)/u,
+    '主窗口必须经 AppIcon 选图标，不能硬编码 icon.png',
+  );
+});
+
+test('HarnessStartFailure：详情带侧车最近输出，非本类异常保持原文', () => {
+  const failure = new HarnessStartFailure('等待 Harness 就绪超时（30000ms）', [
+    '',
+    '工作区: D:\\ws',
+    'omniharness: 启动失败：配置错误',
+  ]);
+  const detail = HarnessStartFailure.describe(failure, 'Harness 最近输出');
+  assert.match(detail, /等待 Harness 就绪超时/u);
+  assert.match(detail, /Harness 最近输出：\n工作区: D:\\ws\nomniharness: 启动失败/u);
+  assert.equal(HarnessStartFailure.reasonOf(failure), '等待 Harness 就绪超时（30000ms）');
+  // 无输出 / 非本类异常：只回原因，不凭空造输出块。
+  assert.equal(HarnessStartFailure.describe(new HarnessStartFailure('boom', []), '输出'), 'boom');
+  assert.equal(HarnessStartFailure.describe(new Error('plain'), '输出'), 'plain');
+  assert.equal(HarnessStartFailure.reasonOf('nope'), 'nope');
+  // 行数有界：只保留最后 20 行，长行截断，避免对话框被 PowerShell 堆栈撑爆。
+  const many = Array.from({ length: 40 }, (_value, index) => `line-${String(index)}`);
+  const clipped = HarnessStartFailure.describe(new HarnessStartFailure('x', many), '输出');
+  assert.ok(clipped.includes('line-39'));
+  assert.ok(!clipped.includes('line-19\n'));
+});
+
+test('PackagedPayloadCheck：载荷与当前工作树逐字节比对，能识别旧包/缺 BUILD_INFO', () => {
+  const fixture = mkdtempSync(join(tmpdir(), 'omni-payload-'));
+  const backend = join(fixture, 'backend');
+  const payload = join(fixture, 'payload');
+  try {
+    mkdirSync(join(backend, 'dist', 'src', 'apps', 'cli'), { recursive: true });
+    mkdirSync(join(fixture, 'web', 'dist'), { recursive: true });
+    writeFileSync(
+      join(backend, 'package.json'),
+      `${JSON.stringify({ version: '0.6.0-alpha.2', dependencies: { '@omniharness/kernel': 'file:vendor/k.tgz' } })}\n`,
+    );
+    writeFileSync(join(backend, 'dist', 'src', 'apps', 'cli', 'exec.js'), 'exec-v1');
+    writeFileSync(join(fixture, 'web', 'dist', 'index.html'), '<html>v1</html>');
+    const sources = { backendRoot: backend, webRoot: fixture };
+    const info = PackagedPayloadCheck.buildInfo(sources);
+    assert.equal(info.version, '0.6.0-alpha.2');
+    assert.equal(info.kernel, 'file:vendor/k.tgz');
+
+    mkdirSync(join(payload, 'dist', 'src', 'apps', 'cli'), { recursive: true });
+    mkdirSync(join(payload, 'web'), { recursive: true });
+    copyFileSync(join(backend, 'package.json'), join(payload, 'package.json'));
+    copyFileSync(
+      join(backend, 'dist', 'src', 'apps', 'cli', 'exec.js'),
+      join(payload, 'dist', 'src', 'apps', 'cli', 'exec.js'),
+    );
+    // stage 会把 `web/dist` 拷成载荷里的 `web/`（同级布局），这里按真实布局构造。
+    copyFileSync(join(fixture, 'web', 'dist', 'index.html'), join(payload, 'web', 'index.html'));    writeFileSync(join(payload, 'BUILD_INFO.json'), `${JSON.stringify(info)}\n`);
+    assert.deepEqual(PackagedPayloadCheck.inspectHarness(payload, sources).problems, []);
+
+    // 工作树前进、载荷没刷新 ⇒ 必须报「不一致」，而不是静默通过。
+    writeFileSync(join(backend, 'dist', 'src', 'apps', 'cli', 'exec.js'), 'exec-v2');
+    const stale = PackagedPayloadCheck.inspectHarness(payload, sources);
+    assert.ok(
+      stale.problems.some((problem) => problem.includes('dist/src/apps/cli/exec.js')),
+      stale.problems.join('\n'),
+    );
+
+    // 没有 stage 生成的 BUILD_INFO ⇒ 视为旧载荷（旧包根本不会有这个文件）。
+    rmSync(join(payload, 'BUILD_INFO.json'), { force: true });
+    const missing = PackagedPayloadCheck.inspectHarness(payload, sources);
+    assert.ok(missing.problems.some((problem) => problem.includes('BUILD_INFO.json')));
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
+});
+
+test('启动失败详情接线：main.ts 用 HarnessStartFailure.describe 注入侧车输出', () => {
+  const main = readFileSync(join(process.cwd(), 'src', 'main', 'main.ts'), 'utf8');
+  assert.match(main, /HarnessStartFailure\.describe\(/u);
+  assert.match(main, /dialog\.harnessOutput/u);
+});
+
+test('安装向导品牌素材：BMP 尺寸与位深符合 NSIS 要求，页面钩子齐全', () => {
+  const bmpHeader = (name: string): { width: number; height: number; bitsPerPixel: number } => {
+    const data = readFileSync(join(process.cwd(), 'installer', name));
+    assert.equal(data.subarray(0, 2).toString('ascii'), 'BM', `${name} 必须是 BMP`);
+    return {
+      width: data.readInt32LE(18),
+      height: data.readInt32LE(22),
+      bitsPerPixel: data.readUInt16LE(28),
+    };
+  };
+  // NSIS 的 MUI 侧栏 164×314、页眉 150×57，且只认 24 位 BMP（32 位带 alpha 会被拒）。
+  for (const name of ['installerSidebar.bmp', 'uninstallerSidebar.bmp']) {
+    assert.deepEqual(bmpHeader(name), { width: 164, height: 314, bitsPerPixel: 24 }, name);
+  }
+  assert.deepEqual(
+    bmpHeader('installerHeader.bmp'),
+    { width: 150, height: 57, bitsPerPixel: 24 },
+    'installerHeader.bmp',
+  );
+
+  const include = readFileSync(join(process.cwd(), 'installer', 'installer.nsh'), 'utf8');
+  for (const macro of ['customWelcomePage', 'customFinishPage', 'customUnWelcomePage']) {
+    assert.match(include, new RegExp(`!macro ${macro}\\b`, 'u'), `installer.nsh 缺少 ${macro}`);
+  }
+  assert.match(include, /LangString OMNI_WELCOME_TEXT 2052/u, '欢迎页必须有中文文案');
+
+  const config = readFileSync(join(process.cwd(), 'electron-builder.yml'), 'utf8');
+  for (const path of ['installer/installer.nsh', 'installer/installerSidebar.bmp', 'installer/installerHeader.bmp']) {
+    assert.ok(config.includes(path), `electron-builder.yml 必须引用 ${path}（否则退回默认 NSIS 外观）`);
+  }
+});
+
+test('托盘 busy 图标：256×256 PNG（与常规图标同目录，构建会随 static 一起拷贝）', () => {
+  const busy = readFileSync(join(process.cwd(), 'static', 'icon-busy.png'));
+  assert.equal(busy.subarray(1, 4).toString('ascii'), 'PNG');
+  assert.equal(busy.readUInt32BE(16), 256);
+  assert.equal(busy.readUInt32BE(20), 256);
+  const normal = readFileSync(join(process.cwd(), 'static', 'icon.png'));
+  assert.notDeepEqual(busy, normal, 'busy 变体必须是另一张图（带状态点），不能是常规图标副本');
+  const build = readFileSync(join(process.cwd(), 'scripts', 'build.mts'), 'utf8');
+  assert.match(build, /cpSync\(join\(root, 'static'\), join\(root, 'dist'\)/u, '构建必须把 static 图标拷进 dist');
+});
+
+/** 托盘动作桩：菜单构建会读 recentWorkspaces / closeToTray / openAtLogin。 */
+function trayActions() {
+  const noop = () => undefined;
+  return {
+    show: noop,
+    newWindow: noop,
+    openWorkspace: noop,
+    recentWorkspaces: () => [],
+    openRecent: noop,
+    restartHarness: noop,
+    openLogs: noop,
+    checkUpdates: noop,
+    diagnostics: noop,
+    setCloseToTray: noop,
+    setOpenAtLogin: noop,
+    quit: noop,
+    closeToTray: () => true,
+    openAtLogin: () => false,
+  };
+}
+
+/** 重置假 electron 的调用记录（tray 包内与测试侧共享同一份 globalThis 状态）。 */
+function resetElectronMock() {
+  const state = globalThis.__electronMockState;
+  assert.ok(state !== undefined, 'tray.cjs 必须先被导入（替身状态才会初始化）');
+  Object.assign(state, { created: 0, destroyed: 0, images: [], tooltips: [], menus: 0, lastTray: null });
+  return state;
+}
+
+test('TrayService busy 态：切图 / 去重 / 回落 / destroy 复位', () => {
+  const state = resetElectronMock();
+  const iconPath = join(process.cwd(), 'static', 'icon.png');
+  const tray = new TrayService(
+    iconPath,
+    trayActions(),
+    { iconSize: 16, tooltip: 'OmniHarness' },
+    { t: (key: string) => key },
+  );
+  assert.equal(tray.create(), true);
+  assert.equal(state.created, 1);
+  assert.match(state.lastTray!.image.path, /icon\.png$/u);
+  assert.deepEqual(state.lastTray!.image.resized, { width: 16, height: 16 });
+  assert.deepEqual(state.tooltips, ['OmniHarness'], '常态悬停提示 = 配置文案');
+
+  tray.setBusy(true);
+  assert.equal(state.images.length, 1, 'busy=true 必须换图');
+  assert.match(state.images[0]!.path, /icon-busy\.png$/u);
+  assert.deepEqual(state.images[0]!.resized, { width: 16, height: 16 });
+  assert.equal(state.tooltips[1]!, 'OmniHarness · tray.busy', 'busy 悬停提示补一句「回合进行中」');
+
+  tray.setBusy(true);
+  assert.equal(state.images.length, 1, '重复设置同一状态不得反复重绘');
+  assert.equal(state.tooltips.length, 2, '重复设置不得反复改提示');
+
+  tray.setBusy(false);
+  assert.equal(state.images.length, 2);
+  assert.match(state.images[1]!.path, /icon\.png$/u);
+  assert.equal(state.tooltips[2]!, 'OmniHarness', '收尾恢复常态提示');
+
+  tray.destroy();
+  assert.equal(state.destroyed, 1);
+  tray.setBusy(true);
+  assert.equal(state.images.length, 2, '销毁后不得再碰托盘');
+  assert.equal(state.tooltips.length, 3, '销毁后不得再改提示');
+});
+
+test('TrayService busy 态：创建时已在跑 ⇒ 直接以 busy 变体起盘', () => {
+  const state = resetElectronMock();
+  const tray = new TrayService(
+    join(process.cwd(), 'static', 'icon.png'),
+    trayActions(),
+    { iconSize: 16, tooltip: 'OmniHarness' },
+    { t: (key: string) => key },
+  );
+  tray.setBusy(true); // 托盘尚未创建：只记状态
+  assert.equal(tray.create(), true);
+  assert.match(state.lastTray!.image.path, /icon-busy\.png$/u, '慢启动时创建必须直接显示 busy 态');
+  assert.deepEqual(state.tooltips, ['OmniHarness · tray.busy'], '创建即 busy 时提示也要带状态');
+});
+
+test('TrayService busy 态：变体缺失 ⇒ 回退常规图标，不抛错', () => {
+  const state = resetElectronMock();
+  const dir = mkdtempSync(join(tmpdir(), 'omni-tray-'));
+  try {
+    const iconPath = join(dir, 'icon.png');
+    copyFileSync(join(process.cwd(), 'static', 'icon.png'), iconPath);
+    const tray = new TrayService(
+      iconPath,
+      trayActions(),
+      { iconSize: 16, tooltip: 'OmniHarness' },
+      { t: (key: string) => key },
+    );
+    assert.equal(tray.create(), true);
+    tray.setBusy(true);
+    assert.equal(state.images.length, 1);
+    assert.match(state.images[0]!.path, /icon\.png$/u, 'busy 变体缺失必须回退常规图标');
+    assert.equal(state.tooltips[1]!, 'OmniHarness · tray.busy', '图标回退不影响提示里的状态');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('托盘 busy 接线：omni:setProgress 的 2 / -1 驱动 setBusy，主进程注入托盘服务', () => {
+  const ipc = readFileSync(join(process.cwd(), 'src', 'main', 'ipc.ts'), 'utf8');
+  assert.match(ipc, /deps\.setTrayBusy\?\.\(progress === 2\)/u, 'setProgress 必须复用为托盘 busy 信号');
+  const main = readFileSync(join(process.cwd(), 'src', 'main', 'main.ts'), 'utf8');
+  assert.match(
+    main,
+    /setTrayBusy: \(busy\) => context\?\.tray\?\.setBusy\(busy\)/u,
+    '主进程必须把 setBusy 注入 IPC 依赖',
+  );
+});
+
+test('快速提问接线：主进程注册全局键 + 托盘/菜单入口 + preload/桥订阅同源', () => {
+  const main = readFileSync(join(process.cwd(), 'src', 'main', 'main.ts'), 'utf8');
+  // 快捷键单一真源 = desktop.config 的 app.quickCaptureShortcut（2026-11-20 配置化集中；
+  // 缺省值由 defaults/config.json parity 判据钉住）——main 里不再有硬编码键串。
+  assert.match(main, /globalShortcut\.register\(config\.app\.quickCaptureShortcut/u);
+  assert.doesNotMatch(main, /QUICK_CAPTURE_SHORTCUT/u, '快捷键不得再以模块常量硬编码');
+  assert.match(main, /quickCapture/u, '主进程必须定义 quickCapture');
+  const tray = readFileSync(join(process.cwd(), 'src', 'main', 'tray.ts'), 'utf8');
+  assert.match(tray, /tray\.quickCapture/u, '托盘菜单必须有快速提问入口');
+  const menu = readFileSync(join(process.cwd(), 'src', 'main', 'menu.ts'), 'utf8');
+  assert.match(menu, /menu\.quickCapture/u, '应用菜单必须有快速提问入口');
+  assert.match(
+    menu,
+    /accelerator: actions\.quickCaptureAccelerator/u,
+    '菜单 accelerator 与全局注册同源（desktop.config）',
+  );
+  const preload = readFileSync(join(process.cwd(), 'src', 'preload', 'preload.ts'), 'utf8');
+  assert.match(preload, /onQuickCapture:[\s\S]*omni:quickCapture/u);
+  const bridge = readFileSync(
+    join(process.cwd(), '..', 'web', 'src', 'core', 'desktop', 'DesktopBridge.ts'),
+    'utf8',
+  );
+  assert.match(bridge, /onQuickCapture\?\(listener: \(\) => void\)/u);
+});
+
+test('parseLaunchArgs: 深链协议可配置（不再硬编码 omniharness）', () => {
+  assert.equal(
+    parseLaunchArgs(['electron', '.', 'omni-test://open?workspace=x'], 'omni-test').deepLink,
+    'omni-test://open?workspace=x',
+  );
+  assert.equal(
+    parseLaunchArgs(['electron', '.', 'omniharness://open?workspace=x'], 'omni-test').deepLink,
+    null,
+  );
+});
+
+test('desktop.config.json 必须与内置默认值逐字段相等（防配置/代码漂移）', () => {
+  const shipped = JSON.parse(readFileSync(join(process.cwd(), 'desktop.config.json'), 'utf8'));
+  assert.deepEqual(shipped, DEFAULT_DESKTOP_CONFIG);
+  const loaded = loadDesktopConfig({ builtinFile: join(process.cwd(), 'desktop.config.json') });
+  assert.deepEqual(loaded.config, DEFAULT_DESKTOP_CONFIG);
+  assert.deepEqual(loaded.issues, []);
+  assert.equal(loaded.sources.length, 1);
+});
+
+test('loadDesktopConfig: 逐字段覆盖 + 非法值夹取/回落 + 未知权限剔除', () => {
+  const dir = join(out, 'config');
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
+  const userFile = join(dir, 'desktop.config.json');
+  writeFileSync(
+    userFile,
+    JSON.stringify({
+      app: { language: 'en-US' },
+      window: { width: 100, backgroundThrottling: true },
+      harness: { host: '0.0.0.0', readyTimeoutMs: 'soon', tokenBytes: 8 },
+      security: { permissions: ['geolocation', 'notifications'] },
+      update: { autoDownload: 'yes' },
+      unknownSection: { ignored: true },
+    }),
+    'utf8',
+  );
+  const loaded = loadDesktopConfig({
+    builtinFile: join(process.cwd(), 'desktop.config.json'),
+    userFile,
+  });
+  assert.equal(loaded.config.window.width, 640, 'width 夹到最小值 640');
+  assert.equal(loaded.config.window.backgroundThrottling, true);
+  assert.equal(loaded.config.harness.host, '127.0.0.1', '非回环主机回落');
+  assert.equal(loaded.config.harness.readyTimeoutMs, 60_000, '类型错误回落');
+  assert.equal(loaded.config.harness.tokenBytes, 16, 'tokenBytes 夹到最小值 16');
+  assert.deepEqual(loaded.config.security.permissions, ['notifications']);
+  assert.equal(loaded.config.update.autoDownload, false);
+  assert.equal(loaded.config.app.language, 'en-US');
+  assert.ok(loaded.issues.length >= 4, `应收集多条告警，实际 ${loaded.issues.length}`);
+  assert.ok(loaded.issues.some((issue: { path: string }) => issue.path.includes('harness.host')));
+});
+
+test('loadDesktopConfig: 非法 app.language 回落 system 并告警', () => {
+  const dir = join(out, 'config-lang');
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
+  const userFile = join(dir, 'desktop.config.json');
+  writeFileSync(userFile, JSON.stringify({ app: { language: 'fr-FR' } }), 'utf8');
+  const loaded = loadDesktopConfig({
+    builtinFile: join(process.cwd(), 'desktop.config.json'),
+    userFile,
+  });
+  assert.equal(loaded.config.app.language, 'system');
+  assert.ok(loaded.issues.some((issue: { path: string }) => issue.path.includes('app.language')));
+});
+
+test('配置告警 code 与 messages config.* 键一一对应（i18n 渲染面完整，中英齐全）', () => {
+  for (const locale of ['zh-CN', 'en-US']) {
+    const table = DESKTOP_MESSAGES[locale];
+    for (const code of CONFIG_WARNING_CODES) {
+      assert.ok(
+        typeof table[`config.${code}`] === 'string' && table[`config.${code}`].length > 0,
+        `${locale} 缺 config.${code} 文案`,
+      );
+    }
+  }
+  // 渲染链真实走一遍：一条结构化 issue → t() 出可读文案（带插值）。
+  const i18n = new DesktopI18n('zh-CN');
+  const text = i18n.t('config.expectNumber', { path: 'harness.readyTimeoutMs', actual: '"soon"', fallback: '60000' });
+  assert.ok(text.includes('harness.readyTimeoutMs') && text.includes('60000'), `插值渲染失败：${text}`);
+});
+
+test('loadDesktopConfig: 环境文件优先级最高（DEFAULT < builtin < user < env）', () => {
+  const dir = join(out, 'config-env');
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
+  const userFile = join(dir, 'user.json');
+  const envFile = join(dir, 'env.json');
+  writeFileSync(userFile, JSON.stringify({ window: { width: 1000 } }), 'utf8');
+  writeFileSync(envFile, JSON.stringify({ window: { width: 1100 } }), 'utf8');
+  const loaded = loadDesktopConfig({
+    builtinFile: join(process.cwd(), 'desktop.config.json'),
+    userFile,
+    envFile,
+  });
+  assert.equal(loaded.config.window.width, 1100);
+  assert.equal(loaded.sources.length, 3);
+});
+
+test('formatCsp: 指令顺序稳定且含配置项', () => {
+  const csp = formatCsp(DEFAULT_DESKTOP_CONFIG.security.csp);
+  assert.ok(
+    csp.startsWith("default-src 'none'; script-src 'self' 'sha256-"),
+    'script-src 必须以主题脚本哈希白名单开头（2026-11-08 摘除 unsafe-inline）',
+  );
+  assert.ok(csp.includes("connect-src 'self' http://127.0.0.1:* ws://127.0.0.1:*"));
+  assert.ok(csp.endsWith("frame-ancestors 'none'"));
+});
+
+test('DesktopStateStore: 默认值 + 持久化 + 重新加载', () => {
+  const dir = join(out, 'state');
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
+  const first = new DesktopStateStore(dir);
+  assert.equal(first.get().closeToTray, true);
+  assert.equal(first.get().openAtLogin, false);
+  assert.deepEqual(first.get().recentWorkspaces, []);
+  first.rememberWorkspace('D:\\ws');
+  first.setCloseToTray(false);
+  first.setOpenAtLogin(true);
+  const second = new DesktopStateStore(dir);
+  assert.equal(second.get().workspace, 'D:\\ws');
+  assert.equal(second.get().closeToTray, false);
+  assert.equal(second.get().openAtLogin, true);
+  assert.deepEqual(second.get().recentWorkspaces, ['D:\\ws']);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('启动阶段标记：main.ts 覆盖 config → workspace → window → harness → ui', () => {
+  const source = readFileSync(join(process.cwd(), 'src', 'main', 'main.ts'), 'utf8');
+  for (const phase of [
+    'config.loaded',
+    'workspace.resolved',
+    'window.created',
+    'harness.start',
+    'harness.ready',
+    'ui.loading',
+    'ui.ready',
+  ]) {
+    assert.ok(source.includes(`'${phase}'`), `main.ts 缺少 startup.phase ${phase} 标记`);
+  }
+});
+
+test('打包裁剪：locales 只留中英 + stage 删除死重量（onnxruntime-web/@types/old.node）', () => {
+  const builder = readFileSync(join(process.cwd(), 'electron-builder.yml'), 'utf8');
+  assert.match(builder, /electronLanguages:\s*\n\s*- en-US\s*\n\s*- zh-CN/u);
+  const stage = readFileSync(join(process.cwd(), 'scripts', 'stageHarness.mts'), 'utf8');
+  for (const name of ['onnxruntime-web', '@types']) {
+    assert.ok(stage.includes(`'${name}'`), `stage 必须删除 ${name}`);
+  }
+  assert.ok(stage.includes('.old.node'), 'stage 必须清理旧版原生内核产物');
+});
+
+test('ipcGuards.assertNotifyInput：渲染层入参 fail-closed（2026-11-08 审计补覆盖）', () => {
+  const limits = { notifyTitleMax: 160, notifyBodyMax: 800, notifySessionIdMax: 200 };
+  assert.deepEqual(assertNotifyInput({ title: 't', body: 'b' }, limits), { title: 't', body: 'b' });
+  assert.deepEqual(assertNotifyInput({ title: 't', body: 'b', sessionId: 's1' }, limits), {
+    title: 't',
+    body: 'b',
+    sessionId: 's1',
+  });
+  for (const bad of [null, undefined, 'str', 42]) {
+    assert.throws(() => assertNotifyInput(bad, limits), /invalid notify$/, '非对象入参必须拒绝');
+  }
+  assert.throws(() => assertNotifyInput({ title: '', body: 'b' }, limits), /notify\.title/);
+  assert.throws(() => assertNotifyInput({ title: 'x'.repeat(161), body: 'b' }, limits), /notify\.title/);
+  assert.throws(() => assertNotifyInput({ title: 't', body: 1 }, limits), /notify\.body/);
+  assert.throws(
+    () => assertNotifyInput({ title: 't', body: 'b', sessionId: 'x'.repeat(201) }, limits),
+    /notify\.sessionId/,
+  );
+});
+
+test('ipcGuards.trustRejection：sender / 主 frame / origin 三重校验（2026-11-08 审计补覆盖）', () => {
+  const main = { id: 'main' };
+  const other = { id: 'other' };
+  const origin = 'http://127.0.0.1:8787';
+  const frame = { url: `${origin}/?token=secret`, parent: null };
+  const deps = { mainContents: () => main };
+  const eventFrom = (sender: unknown, senderFrame: unknown = frame) => ({ sender, senderFrame });
+  assert.equal(trustRejection(eventFrom(main), deps, origin), null, '主窗口主 frame 同 origin = 可信');
+  assert.equal(
+    trustRejection(eventFrom(other), { mainContents: () => main, isTrustedContents: (c: unknown) => c === other }, origin),
+    null,
+    '多窗口白名单放行',
+  );
+  assert.equal(trustRejection(eventFrom(other), deps, origin), 'sender', '陌生 sender 拒绝');
+  assert.equal(trustRejection(eventFrom(main, null), deps, origin), 'frame', '无 frame 拒绝');
+  assert.equal(
+    trustRejection(eventFrom(main, { url: `${origin}/`, parent: { id: 'parent' } }), deps, origin),
+    'frame',
+    'iframe（子 frame）拒绝',
+  );
+  assert.equal(trustRejection(eventFrom(main), deps, ''), 'origin', 'origin 未就绪一律拒绝');
+  assert.equal(
+    trustRejection(eventFrom(main, { url: 'https://evil.example/', parent: null }), deps, origin),
+    'origin',
+    '异 origin 拒绝',
+  );
+});
+
+test('ipcGuards.assertRevealPathInside：revealPath 白名单（仅工作区子树）', () => {
+  const root = mkdtempSync(join(tmpdir(), 'omni-guard-'));
+  try {
+    mkdirSync(join(root, 'sub'), { recursive: true });
+    assert.equal(
+      assertRevealPathInside(join(root, 'sub'), [root]),
+      join(root, 'sub'),
+      '工作区子树内放行',
+    );
+    assert.equal(assertRevealPathInside(root, [root]), root, '根本身放行');
+    assert.throws(
+      () => assertRevealPathInside(join(root, '..', 'omni-guard-outside'), [root]),
+      /允许的目录子树/,
+      '子树外（兄弟目录）拒绝',
+    );
+    assert.throws(
+      () => assertRevealPathInside(join(root, 'sub', 'nope'), [root]),
+      /工作区不存在/,
+      '子树内但不存在的目录仍被 assertDirectory 拒绝',
+    );
+    assert.throws(() => assertRevealPathInside(join(root, 'sub'), []), /允许的目录子树/, '空白名单全拒');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('CSP 门禁：script-src 哈希白名单必须覆盖主题内联脚本；unsafe-inline 摘除（2026-11-08 审计）', () => {
+  /** 提取 HTML 里真实内联脚本（先剥注释，避免把注释里的 <script> 字样当脚本）的 CSP 哈希。 */
+  const inlineScriptHashes = (file: string) =>
+    [...readFileSync(file, 'utf8')
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .matchAll(/<script>([\s\S]*?)<\/script>/g)]
+      .map((m) => `'sha256-${createHash('sha256').update(m[1]!).digest('base64')}'`);
+
+  const sourceHashes = inlineScriptHashes(join(process.cwd(), '..', 'web', 'index.html'));
+  assert.equal(sourceHashes.length, 1, 'web/index.html 应恰好有一个内联脚本（主题防闪烁）');
+  const themeHash = sourceHashes[0]!;
+  const { scriptSrc, styleSrc } = DEFAULT_DESKTOP_CONFIG.security.csp;
+  assert.ok(scriptSrc.includes(themeHash), `desktop CSP 必须白名单主题脚本哈希 ${themeHash}`);
+  assert.ok(!scriptSrc.includes("'unsafe-inline'"), 'script-src 不得放行 unsafe-inline');
+  assert.ok(styleSrc.includes("'unsafe-inline'"), 'style-src 的 unsafe-inline 是登记过的接受项（antd cssinjs）');
+
+  // 真实被 serve 的是 web/dist 产物：其内联脚本哈希必须与 source 一致（防 Vite 未来转换内联脚本）。
+  const distIndex = join(process.cwd(), '..', 'web', 'dist', 'index.html');
+  if (existsSync(distIndex)) {
+    assert.deepEqual(inlineScriptHashes(distIndex), sourceHashes, 'web/dist 与 source 的内联脚本哈希漂移');
+  }
+});
+
+test('桌面壳零裸 CJK 字面量：ipc.ts / window.ts 的用户可见文案必须走消息表（硬编码清理批次钉住）', () => {
+  // 2026-11-18 普查发现两处绕过 DesktopI18n 的硬编码（目录选择框标题 / 启动页兜底文案），
+  // 收口后用本判据钉住：这两个壳面文件剥离注释后不得再出现任何 CJK——新增用户可见文案
+  // 一律进 i18n/messages.ts（双语表由 TS Record 类型强制补全）。
+  // 范围只钉「已收口的壳面」：SmokeHarness / 配置加载器等的中文是诊断输出（产品语言），
+  // harnessSupervisor/ready 的错误进日志与诊断面板，不在本判据范围（账本已登记）。
+  const stripComments = (src: string): string => {
+    let out = '';
+    let i = 0;
+    let mode = 'code';
+    while (i < src.length) {
+      const c = src[i]!;
+      const d = src[i + 1] ?? '';
+      if (mode === 'code') {
+        if (c === '/' && d === '/') { mode = 'line'; out += ' '; i += 2; continue; }
+        if (c === '/' && d === '*') { mode = 'block'; out += ' '; i += 2; continue; }
+        if (c === "'" || c === '"' || c === '`') { mode = c === "'" ? 's' : c === '"' ? 'd' : 't'; out += c; i += 1; continue; }
+        out += c; i += 1; continue;
+      }
+      if (mode === 'line') { if (c === '\n') { mode = 'code'; out += '\n'; } i += 1; continue; }
+      if (mode === 'block') { if (c === '*' && d === '/') { mode = 'code'; out += ' '; i += 2; } else { i += 1; } continue; }
+      if (c === '\\') { out += src.slice(i, i + 2); i += 2; continue; }
+      if ((mode === 's' && c === "'") || (mode === 'd' && c === '"') || (mode === 't' && c === '`')) mode = 'code';
+      out += c; i += 1;
+    }
+    return out;
+  };
+  const violations: string[] = [];
+  for (const rel of ['src/main/ipc.ts', 'src/main/window.ts']) {
+    const text = stripComments(readFileSync(join(process.cwd(), rel), 'utf8'));
+    text.split('\n').forEach((line, idx) => {
+      if (/[\u4e00-\u9fff]/.test(line)) violations.push(rel + ':' + (idx + 1) + ' → ' + line.trim().slice(0, 80));
+    });
+  }
+  assert.deepEqual(
+    violations,
+    [],
+    '桌面壳面文件出现裸中文：用户可见文案进 i18n/messages.ts（双语）；注释请放在注释里（判据已剥离注释，不误伤）',
+  );
+});

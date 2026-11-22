@@ -1,3 +1,4 @@
+import { UI_TUNABLES } from '../config/RuntimeConfig.ts';
 // 纯函数工具层（零 React / 零 DOM 依赖）：对话流与变更面板的文本/结构计算逻辑。
 // 抽离出来便于在 node --test 下直接单测（web 此前 0 测试文件，审计 P0）。
 // 注意：本文件不得 import 'react'（纯文本工具，保持零 React 依赖才能在任何环境直接加载）。
@@ -352,10 +353,10 @@ export function hostOf(u: string): string {
 }
 
 /** 回合内过程事件类型：收进「思考轨迹」时间线。 */
-export const PROCESS_TYPES = new Set(['reasoning', 'tool_call', 'tool_result']);
+const PROCESS_TYPES = new Set(['reasoning', 'tool_call', 'tool_result']);
 
 /** 单个事件块（结果类直接展示）。 */
-export interface SingleBlock {
+interface SingleBlock {
   readonly kind: 'single';
   readonly event: ThreadEvent;
 }
@@ -367,7 +368,7 @@ export interface SingleBlock {
  * 「执行过程」，既不聚气也读不出先后。现在每轮恒定只有一条轨迹，位置固定在本轮
  * 末尾（结果卡上方），运行中它就是实时思考面板，收尾后自动折叠成一行。
  */
-export interface ProcessBlock {
+interface ProcessBlock {
   readonly kind: 'process';
   readonly events: readonly ThreadEvent[];
   /** 块首 key，React 列表 diff 用。 */
@@ -393,12 +394,23 @@ export interface ProcessBlock {
  * 没有 turn_diff 的回合（旧存档 / 中途收尾）在**非运行中**也会补一张结果卡：
  * 只要写类工具真的产出了文件，产物就必须集中在卡里，而不是散在过程行里。
  */
-export interface TurnSummaryBlock {
+interface TurnSummaryBlock {
   readonly kind: 'turn_summary';
   readonly key: string;
   readonly events: readonly ThreadEvent[];
 }
-export type DisplayBlock = SingleBlock | ProcessBlock | TurnSummaryBlock;
+/**
+ * 审计记录折叠块（2026-11-15 用户截图：audit 事件逐条平铺成 JSON 卡，整屏重复且打断阅读）。
+ *
+ * 每轮把本轮所有 `audit` 事件收成**一条**默认折叠的摘要行；展开才显示逐条 JSON。
+ * 审计的完整事实仍在「审计 / 决策账本」面板，聊天流不承担逐条展示。
+ */
+interface AuditBlock {
+  readonly kind: 'audit_group';
+  readonly key: string;
+  readonly events: readonly ThreadEvent[];
+}
+export type DisplayBlock = SingleBlock | ProcessBlock | TurnSummaryBlock | AuditBlock;
 
 /** 收集「已被调用卡内联结果」的工具调用 id 集合（tool_result 隐藏判据的单一来源）。 */
 export function collectToolCallIds(events: readonly ThreadEvent[]): ReadonlySet<string> {
@@ -424,7 +436,7 @@ export function collectToolCallIds(events: readonly ThreadEvent[]): ReadonlySet<
  * @param toolCallIds 已被内联的工具调用 id 集合（`collectToolCallIds`）
  * @returns 会渲染出可见内容为 true
  */
-export function isRenderedEvent(ev: ThreadEvent, toolCallIds: ReadonlySet<string>): boolean {
+function isRenderedEvent(ev: ThreadEvent, toolCallIds: ReadonlySet<string>): boolean {
   if (ev.type === 'session_meta' || ev.type === 'model') return false;
   if (ev.type === 'tool_result') {
     return !toolCallIds.has(EventFields.rawCallId(ev));
@@ -535,6 +547,7 @@ function isNarrationAssistant(
  *  - **过程旁白**（本轮中间的 assistant 消息）同样收进轨迹：它们是「我打算做什么」的思考步骤，
  *    平铺会占满一屏；本轮最后一条助手消息（最终答复）仍留在对话里；
  *  - 非过程事件（user / assistant 最终答复 / system / todo / plan / question）保持原顺序；
+ *  - `audit` 事件本轮统一收成末尾**一条默认折叠**的 `audit_group`（不逐条占聊天流）；
  *  - `turn_diff` 收口成结果卡，事件切片交给结果卡汇总生成 / 修改文件；
  *  - 没有 turn_diff、但确实产出了文件的**已收尾**回合也补一张结果卡——产物只能出现在卡里，
  *    绝不再散落在过程行里（旧版内联产物卡的口子就此关闭）。
@@ -552,6 +565,7 @@ export function buildDisplayBlocks(events: readonly ThreadEvent[], busy: boolean
     const hasUser = segment.some((ev) => ev.type === 'user');
     const process: ThreadEvent[] = [];
     const singles: { ev: ThreadEvent; pos: number }[] = [];
+    const audit: ThreadEvent[] = [];
     let lastProcessPos = -1;
     let diffKey = '';
     for (let si = 0; si < segment.length; si += 1) {
@@ -570,6 +584,12 @@ export function buildDisplayBlocks(events: readonly ThreadEvent[], busy: boolean
       if (PROCESS_TYPES.has(ev.type)) {
         process.push(ev);
         lastProcessPos = si;
+        continue;
+      }
+      // 审计记录是内部事实（心跳/审批/决策逐条 JSON），不逐条占据聊天流：
+      // 本轮统一收进末尾的一条折叠块（2026-11-15 用户截图反馈）。
+      if (ev.type === 'audit') {
+        audit.push(ev);
         continue;
       }
       if (!isRenderedEvent(ev, callIds)) continue;
@@ -594,6 +614,9 @@ export function buildDisplayBlocks(events: readonly ThreadEvent[], busy: boolean
       if (i === insertAt && processBlock !== null) blocks.push(processBlock);
       if (i === singles.length) break;
       blocks.push({ kind: 'single', event: singles[i]!.ev } as SingleBlock);
+    }
+    if (audit.length > 0) {
+      blocks.push({ kind: 'audit_group', key: 'audit:' + audit[0]!.id, events: audit } as AuditBlock);
     }
     if (diffKey !== '') {
       blocks.push({ kind: 'turn_summary', key: diffKey, events: segment } as TurnSummaryBlock);
@@ -782,4 +805,29 @@ export function parseDiffRows(patch: string): DiffRow[] {
     }
   }
   return rows;
+}
+
+/** partial JSON 试解析的缓存（键=原文）：流式参数每帧变长，同一前缀会被多帧重复解析，缓存把滚动 / 重渲染的重复解析摊平。 */
+const PARTIAL_JSON_CACHE = new Map<string, unknown>();
+/** 缓存上限：live input 是瞬态行（个位数），64 已经远超单屏用量，满了整表清一次即可。 */
+const PARTIAL_JSON_CACHE_MAX = UI_TUNABLES.partialJsonCacheMax;
+
+/**
+ * 尽力解析一段**未完成**的 JSON 参数流（工具调用 partial）：解析失败回落空对象，绝不抛错。
+ * StreamLiveRow / TraceView 共用这一份（此前是两处各一段相同的 try/catch）。
+ * @param text 未完成 JSON 文本
+ * @returns 解析结果；失败为空对象
+ */
+export function parsePartialJson(text: string): unknown {
+  const hit = PARTIAL_JSON_CACHE.get(text);
+  if (hit !== undefined) return hit;
+  let parsed: unknown = {};
+  try {
+    parsed = JSON.parse(text) as unknown;
+  } catch {
+    parsed = {};
+  }
+  if (PARTIAL_JSON_CACHE.size >= PARTIAL_JSON_CACHE_MAX) PARTIAL_JSON_CACHE.clear();
+  PARTIAL_JSON_CACHE.set(text, parsed);
+  return parsed;
 }

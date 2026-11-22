@@ -1,12 +1,13 @@
+import { AppText } from '../../i18n/AppText.ts';
 import { Container } from '../../../host/kernel/core.ts';
 import { ServiceKeys } from '../../composition/runtime.ts';
-import { PluginManager } from '../../../host/kernel/plugin.js';
-import { PluginLoader } from '../../../host/kernel/plugin.js';
+import { PluginManager } from '../../../host/kernel/plugin.ts';
+import { PluginLoader } from '../../../host/kernel/plugin.ts';
 import { PluginHostPermissions } from './pluginHostPermissions.ts';
 import { PluginProfileStore,
   type PluginProfile,
-  type ApplyProfileResult, } from '../../../host/kernel/plugin.js';
-import type { PluginRegistry } from '../../../host/kernel/plugin.js';
+  type ApplyProfileResult, } from '../../../host/kernel/plugin.ts';
+import type { PluginRegistry } from '../../../host/kernel/plugin.ts';
 import { jsonRpc } from '../../../host/kernel/runtime.ts';
 import type { Transport } from '../../../host/kernel/runtime.ts';
 import type { ResolvedConfig } from '../../../host/kernel/contracts.ts';
@@ -165,7 +166,7 @@ export class PluginHost {
     const manager = this.pluginManager;
     const pluginsDir = this.deps.pluginsDir;
     if (registry === undefined || manager === undefined || pluginsDir === undefined) {
-      throw new Error('插件系统未初始化（serve 需注入 registry/pluginsDir）');
+      throw new Error(AppText.t('插件系统未初始化（serve 需注入 registry/pluginsDir）'));
     }
     return PluginProfileStore.applyProfile(manager, pluginsDir, registry, profile, {
       onInstall: (name) => this.notifyProfile('install', name),

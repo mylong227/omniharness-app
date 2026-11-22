@@ -4,7 +4,7 @@
 // 都是**布局与计算样式**，jsdom 没有布局（offsetWidth 恒 0），量不出用户看到的那个方块。
 // 这条判据按住用户截图里的四件事：
 //   ① 「太宽」：宽度 ≤ 280px（原生气泡会把一句权限说明拉成一条横线）；
-//   ② 「扁平设计带圆角」：10px 圆角、无投影；
+//   ② 「扁平设计带圆角」：12px 圆角（2026-11-13 圆角阶梯 --radius 10→12）、无投影；
 //   ③ 「主题跟随」：浅色是纯白纸片、深色是暗底墨片（2026-10-28 第三轮：「暗色主题冒泡
 //      也需要暗色，而不是白色底」），两边都带 1px 发丝边；
 //   ④ 位置：落在触发元素上方、夹在视口内；离开后气泡卸载、title 原样归还。
@@ -86,7 +86,7 @@ function rgbOf(value: string): number[] {
 }
 
 test(
-  '真机：悬停权限 chip —— 浅色纯白 / 深色墨片、最宽 280px、10px 圆角、无投影，且接管原生 title',
+  '真机：悬停权限 chip —— 浅色纯白 / 深色墨片、最宽 280px、12px 圆角、无投影，且接管原生 title',
   { timeout: 120_000 },
   async (t) => {
     const page = await openStubSession(t, { ...VIEWPORT, waitFor: '.dd.perm' });
@@ -110,7 +110,7 @@ test(
       assert.strictEqual(light.titleLeft, null, '悬停期间原生 title 必须摘掉，否则两套气泡同屏');
       assert.strictEqual(light.text, expected, '气泡文字必须与 title 逐字一致');
       assert.ok(light.width <= 280, `「太宽」：宽度必须 ≤280px，实测 ${String(light.width)}px`);
-      assert.strictEqual(light.radius, '10px', '「带圆角」：10px');
+      assert.strictEqual(light.radius, '12px', '「带圆角」：12px（2026-11-13 圆角阶梯）');
       assert.strictEqual(light.shadow, 'none', '「扁平」：不投影');
       const lightBg = rgbOf(light.bg);
       assert.ok(

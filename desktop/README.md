@@ -17,10 +17,11 @@ desktop/
   src/main/ipcGuards.ts    # IPC 安全守卫纯逻辑（sender/frame/origin、notify、revealPath 白名单）
   static/icon.svg     # 项目 Ω 标志源文件
   static/icon.png     # 512×512 窗口/托盘图标
-  static/icon.ico     # 多尺寸 Windows 安装包/任务栏图标
-  scripts/build.mjs   # esbuild → dist/main.cjs + dist/preload.cjs
-  scripts/stageHarness.mjs # 打包用 Harness + node.exe + 生产依赖
-  scripts/test.mjs    # 纯逻辑测试（node:test）
+  static/icon.ico     # 多尺寸 Windows 应用/安装包/任务栏图标（16–256，每档单独渲染）
+  installer/          # 安装向导品牌素材（侧栏/页眉 BMP + installer.nsh 页面钩子）
+  scripts/build.mts   # esbuild → dist/main.cjs + dist/preload.cjs
+  scripts/stageHarness.mts # 打包用 Harness + node.exe + 生产依赖
+  scripts/test.mts    # 纯逻辑测试（node:test）
   electron-builder.yml
 ```
 
@@ -101,6 +102,57 @@ npm run dist    # NSIS 安装包（未配置签名）
 `release/win-unpacked`（含 `resources/harness/node_modules`、`app.asar`、`node.exe`）；Electron 下载建议走
 `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/`。安装包/签名仍未验证。
 
+### 4.0 安装向导（2026-11-14 重做）
+
+向导外观与文案都在本仓，不依赖 electron-builder 的默认 NSIS 皮肤：
+
+- 品牌图：`installer/installerSidebar.bmp`（欢迎/完成页 164×314）、`installerHeader.bmp`
+  （内页页眉 150×57）、`installer/uninstallerSidebar.bmp`（卸载页）；配色与 `static/icon.svg`
+  同源，规格与重做说明见 [installer/README.md](installer/README.md)。
+- 页面：`installer/installer.nsh` 通过 `nsis.include` 钩子接管欢迎页、完成页、卸载欢迎页。
+  「为谁安装」页只在机器上已有「所有用户」安装时保留（让老用户原地升级、而不是装出第二份）；
+  全新安装直接按当前用户装进用户目录 —— 少一页、也没有 UAC。完成页只有「立即启动 /
+  打开安装目录」两个勾选项，文案中英各一份（`LangString 2052 / 1033`）。
+- 语言：只编 `en_US` + `zh_CN`（`installerLanguages`）。NSIS 按系统 UI 语言自动选，
+  未命中回落英文；不弹语言选择框。
+- 图标：安装包、卸载程序、应用 exe、窗口/任务栏共用 `static/icon.ico`。
+- 实机验收（2026-11-14）：完整走了一遍「欢迎页 → 目录页 → 写入 → 完成页」并静默卸载，
+  侧栏/页眉/完成页勾选项与卸载清理（目录、HKCU 键、快捷方式）均正常；欢迎页与进度页
+  截图见 [installer/README.md](installer/README.md)。
+
+只重打安装包（复用已有 `release/win-unpacked`，不重新 stage/压缩应用）：
+
+```powershell
+npm run installer        # electron-builder nsis 目标 + 生成安装包 .sha256
+```
+
+脚本内部等价于 `electron-builder --win nsis --x64 --prepackaged release/win-unpacked
+--config.win.signExecutable=false`：本机没有 `winCodeSign` 缓存（未做签名）时，跳过签名是
+必需的，否则 electron-builder 会尝试联网下载签名工具；注意用 `signExecutable: false` 而不是
+`signAndEditExecutable: false`——后者会连 exe 图标/版本资源一起跳过；要签名的正式包走
+`npm run dist`。
+
+> 本机打包小抄（2026-11-14 实测）：如果 electron-builder 卡在
+> `unpacking default Electron distribution`，用 `--config.electronDist=<desktop>/node_modules/electron/dist`
+> 直接复用已安装的 Electron（也更快）；它和 `--config.win.signExecutable=false` 可以同时用。
+
+### 4.0.1 载荷一致性门禁（2026-11-14）
+
+**真实事故**：`npm run installer` 复用了 6 天前的 `release/win-unpacked` —— 向导外观与图标
+都是新的，侧车却还是旧 `dist`（没有 DPAPI/`PSModulePath` 修复、kernel 停在 alpha.15）。
+安装版启动即报「本地 Harness 未能启动」，而源码、开发态都正常。
+
+现在的门禁（缺一项就拒绝出包，不再靠人记得先跑哪条命令）：
+
+- `npm run stage` 把版本 / kernel / 三份产物（`package.json`、侧车入口、`web/dist/index.html`）
+  的 SHA-256 写进 `resources/harness/BUILD_INFO.json`，随安装包一起发布；
+- `npm run pack` / `npm run dist` 末尾自动执行 `verify:package`：把 `release/win-unpacked` 里的
+  harness 与 `app.asar` 跟**当前工作树**逐字节比对；
+- `npm run installer` 在重打 NSIS 前跑同一套比对，发现旧载荷直接退出，并提示先 `npm run pack`。
+
+真机验收：`verify:package` 会打印 `build=<版本> · <kernel> · <builtAt> · <commit>`，可据此
+确认安装包里的侧车就是本次提交构建的那一份。
+
 ### 布局
 
 ```text
@@ -132,7 +184,15 @@ CSP/权限、路径目录名）都集中在配置里，**不再散落在主进�
 4. `OMNI_DESKTOP_CONFIG=<path>` 指定的最后一份覆盖文件。
 
 非法值（类型错/越界/非回环主机/非法 CSP token）会**回落默认并写告警到主进程日志**，
-不会静默采纳。发布包内置配置与代码默认值逐字段相等，`desktop/scripts/test.mjs` 会核对防漂移。
+不会静默采纳。发布包内置配置与代码默认值逐字段相等，`desktop/scripts/test.mts` 会核对防漂移。
+
+**三个配置面的写入者清单**（2026-11-21 补，谁写什么不再靠猜）：
+
+| 配置面 | 写入者 | 定位 |
+| --- | --- | --- |
+| `desktop.config.json`（本文件所述） | **仅手改 + 发布包内置**——没有任何程序写入者 | 部署/运维级 |
+| `userData/desktop.json`（DesktopStateStore） | 应用运行时 IPC（关闭到托盘 / 开机启动 / 窗口 bounds / 缩放 / 最近工作区） | 用户运行时偏好 |
+| `~/.omniharness/omniharness.json` | 设置页 / CLI / 手改（内核 configStore 单一写路径） | 内核行为 |
 
 示例（只写要改的字段即可）：
 
@@ -158,6 +218,10 @@ CSP/权限、路径目录名）都集中在配置里，**不再散落在主进�
 
 `window.showShortcut` 是全局「显示窗口」快捷键（Electron accelerator，如
 `CommandOrControl+Shift+O`）；空串关闭。注册失败只写日志，不阻断启动。
+
+另有一条固定的全局「快速提问」快捷键 `CommandOrControl+Shift+Space`：唤起窗口并把焦点
+送进输入框（与「显示窗口」分工：前者随手记一句，后者回到应用）。它不开放配置；注册失败
+同样只写日志，托盘菜单与「文件 → 快速提问」仍可用。
 
 `harness.autoRestart`（默认 true）在崩溃后自动重启；`restartMax`/`restartWindowMs`
 限制窗口内次数（默认 3 次 / 10 分钟），超限才弹崩溃对话框，避免崩溃循环。
@@ -226,7 +290,7 @@ cd desktop
 npm run typecheck
 npm test        # args / ready 契约 / 环境清洗 / 桌面偏好
 npm run verify:package  # 检查 release/win-unpacked 结构/裁剪/配置
-npm run installer       # 由 win-unpacked 生成 NSIS 安装包（需 makensis）
+npm run installer       # 由 release/win-unpacked 重打 NSIS 安装包（改向导外观后快速验证）
 ```
 
 已执行的集成验证（本机 Node 22.20）：
@@ -256,15 +320,21 @@ $env:OMNI_SMOKE_OUT='D:\tmp\smoke.json'; npm run smoke # 指定结果落盘位�
 `npm test` 直接覆盖（含五类致命断言与「观测项不判死」）。托盘图标/系统通知/深链注册在受限
 会话合法缺失，按观测项记录、不影响结论。
 
-## 8. 下一步
+## 8. 下一步（2026-11-20 账实：终态登记）
 
-1. **GUI 冒烟常态化**：真实桌面验收已跑通（[docs/DESKTOP-SMOKE.md](../docs/DESKTOP-SMOKE.md)，
-   2026-11-04 8/8）；CI 已接 `workflow_dispatch` 手动门，发版前触发一次即可。
-2. **安装包**：代码签名、N-1 升级实跑、安装/卸载保留 `~/.omniharness`、高 DPI 验收。
-3. **安全复核余项**：script-src 哈希白名单与 `revealPath` 工作区白名单已就位（2026-11-08），
-   剩 Renderer 权限白名单细化与 CSP 的 style-src unsafe-inline 替代方案（antd cssinjs 限制，
-   已登记为接受项）。
-4. **平台**：macOS 签名/公证；Linux 的托盘/通知能力按桌面环境降级验证。
+1. **GUI 冒烟常态化** ✅：真实桌面验收已跑通（2026-11-04 8/8；验收记录文档已随
+   2026-11-20 文档库清理退役，验收动作本身在 `desktop:smoke` 可重复执行）；CI 已接
+   `workflow_dispatch` 手动门，发版前触发一次即可。
+2. **安装包** ⏸ 外部条件项（非代码遗留）：代码签名需要证书采购决策；N-1 升级实跑需要
+   两个历史版本的真实安装环境——均属发布运维，代码侧已就绪（publish 已指本仓 omniharness-app，
+   releaseManifest 按版本推导；2026-11-20 收口）。卸载保留 `~/.omniharness` 与高 DPI 验收
+   随下次出包一并核对。
+3. **安全复核余项** ✅ 接受项终态：script-src 哈希白名单与 `revealPath` 工作区白名单已就位
+   （2026-11-08）；CSP 的 style-src unsafe-inline 替代方案受 antd cssinjs 限制，已登记为
+   **接受项**（非待办）——Renderer 权限白名单细化同批完成（notifications + clipboard-
+   sanitized-write 双白名单 + permission request/check handler）。
+4. **平台** ⏸ 环境边界（非代码遗留）：macOS 签名/公证与 Linux 托盘/通知降级验证需对应
+   平台环境，本仓当前仅出 win32 包（package-desktop.cmd 单链路）。
 
 ## 9. 与文档的关系
 
@@ -277,6 +347,28 @@ $env:OMNI_SMOKE_OUT='D:\tmp\smoke.json'; npm run smoke # 指定结果落盘位�
 - 当前直接复用现有 Web 工作台；**还不是 Codex 式的全新 React UI**。
 - 托盘/通知/深链/开机启动/更新已接线，但 GUI 级验证需真实桌面；本会话 Electron 沙箱不允许。
 - 自动更新/安装包未签名，未完成 N-1 实跑；`npm run dist` 需要 electron-builder 下载 NSIS/winCodeSign。
-- GUI 冒烟验收已脚本化（§7.1）且真实桌面已跑通（2026-11-04 8/8，见 docs/DESKTOP-SMOKE.md）；
+- GUI 冒烟验收已脚本化（§7.1）且真实桌面已跑通（2026-11-04 8/8）；
   本仓受限 shell 里 Electron 仍起不来；macOS/Linux 未验证；`stageHarness`/`nodeBinary` 已按
   平台分支，但 electron-builder 配置目前只配 Windows。
+
+### 10.1 排障：启动失败 / 任务栏图标错误（2026-11-14 实机）
+
+**「本地 Harness 未能启动」**：先看对话框详情里的「Harness 最近输出」（本次起会带上侧车最后
+20 行），再打开日志目录：`main-YYYY-MM-DD.log` 有 `harness start failed after <ms>: <原因>`，
+`harness-YYYY-MM-DD.log` 有侧车完整 stdout/stderr。典型两类：
+
+- `配置字段 providerKeysDpapi[...] 解密失败` / `ConvertTo-SecureString ... module could not be
+  loaded`：侧车不带 `WindowsPowerShellModulePath` 修复（旧载荷），按 §4.0.1 重新 `npm run pack`
+  并重装；不要用旧 `release/win-unpacked` 重打安装包。
+- `等待 Harness 就绪超时（60000ms）` 且输出为空：进程被安全软件拦截或磁盘/冷启动极慢；
+  重试一次，仍失败就把日志里的 spawn 行与时间点一起报出来。安装后首次启动可能因 Defender
+  扫描新 exe 达到 30s+（本机实测 33.6s），默认超时已放到 60s。
+
+**任务栏图标不是 Ω**：Windows 会按 **AppUserModelID**（`com.mylong227.omniharness`）在开始菜单
+里找对应快捷方式，并用**快捷方式的图标**。如果机器上还留着同 AUMID 的其它快捷方式——例如
+测试桌面端时给开发用 `electron.exe` 建过 `Electron.lnk`（图标是 Electron 默认原子）——任务栏
+就会显示它。处置：删掉多余快捷方式，重启 Explorer（任务栏）后重新启动应用；安装器现在会在
+安装完成时 `SHChangeNotify` 刷新图标缓存。开发时不要给 `electron.exe` 建带产品 AUMID 的
+开始菜单快捷方式。
+
+

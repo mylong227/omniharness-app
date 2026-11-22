@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * `serve` 端口冲突的**诊断与显式接管**（2026-10-11）。
  *
@@ -22,10 +23,10 @@
  * 真起服务的端到端接线另有一条判据（`servePortConflictE2E.test.ts`）。
  */
 
-import { ServeInstance, type ServeInstanceRecord } from './serveInstance.ts';
+import { ServeInstance, type ServeInstanceRecord } from '../../host/kernel/maintenance.ts';
 
 /** 端口占用者分类。 */
-export type PortHolderKind = 'free' | 'omni' | 'foreign';
+type PortHolderKind = 'free' | 'omni' | 'foreign';
 
 /** 端口占用者信息。 */
 export interface PortHolder {
@@ -92,7 +93,7 @@ export class ServePortConflict {
     try {
       raw = await response.json();
     } catch {
-      return { kind: 'foreign', detail: '/healthz 有响应但不是 JSON' };
+      return { kind: 'foreign', detail: AppText.t('/healthz 有响应但不是 JSON') };
     }
     const body = raw !== null && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
     const pid = body['pid'];
@@ -107,7 +108,7 @@ export class ServePortConflict {
     }
     return {
       kind: 'foreign',
-      detail: '/healthz 有响应但不是本程序的健康体（缺 status=ok 或 pid）',
+      detail: AppText.t('/healthz 有响应但不是本程序的健康体（缺 status=ok 或 pid）'),
     };
   }
 
@@ -140,7 +141,7 @@ export class ServePortConflict {
       if (holder.kind === 'omni' && holder.pid !== undefined && record.pid !== holder.pid) {
         lines.push(
           `  ⚠️ 实例记录与健康体**不一致**：记录 ${described}，健康体说占用者是 PID ${String(holder.pid)}` +
-            '（以健康体为准；记录文件可能属于更早的实例）',
+            AppText.t('（以健康体为准；记录文件可能属于更早的实例）'),
         );
       } else if (holder.kind === 'omni') {
         lines.push(`  实例记录：${described}`);
@@ -150,9 +151,9 @@ export class ServePortConflict {
         );
       }
     } else if (holder.kind === 'omni') {
-      lines.push('  该实例没有留下记录文件（旧版本启动，或记录已被清理）');
+      lines.push(AppText.t('  该实例没有留下记录文件（旧版本启动，或记录已被清理）'));
     }
-    lines.push('三条出路：');
+    lines.push(AppText.t('三条出路：'));
     lines.push(
       `  ① 换端口启动：omniharness serve --port ${String(port + 1)}（或 npm start -- --port ${String(port + 1)}）`,
     );
@@ -165,11 +166,11 @@ export class ServePortConflict {
         }`,
       );
       lines.push(
-        `  ③ 让本次启动直接接管：omniharness serve --take-port` +
-          `（**仅当占用者确认是 OmniHarness serve 时**才终止它；本程序不会杀别的进程）`,
+        AppText.t(`  ③ 让本次启动直接接管：omniharness serve --take-port`) +
+          AppText.t(`（**仅当占用者确认是 OmniHarness serve 时**才终止它；本程序不会杀别的进程）`),
       );
     } else {
-      lines.push('  ② 找出占用者并让它让路（本程序不会终止非自己的进程）');
+      lines.push(AppText.t('  ② 找出占用者并让它让路（本程序不会终止非自己的进程）'));
       if (process.platform === 'win32') {
         lines.push(
           `     Get-NetTCPConnection -LocalPort ${String(port)} -State Listen | Select-Object OwningProcess`,

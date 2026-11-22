@@ -6,12 +6,15 @@
 
 import * as React from 'react';
 import { useApp } from '../../context.ts';
+import { useSessionResource } from '../../hooks/useSessionResource.ts';
 import { ImportanceStars } from '../../models/ImportanceStars.ts';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import { emptyState } from '../../format.ts';
-import type { MemoryFact } from '../../../types/models.ts';
+import type { MemoryFact, MemoryFactsResult, TemporalFactCard } from '../../../types/models.ts';
 import { t } from '../../i18n/i18n.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
+import Select from 'antd/es/select';
+import Input from 'antd/es/input';
 import Table from 'antd/es/table';
 import type { ColumnsType } from 'antd/es/table';
 import Button from 'antd/es/button';
@@ -100,12 +103,15 @@ function MemoryTable(props: { facts: MemoryFact[] } & RowActions): ReactElement 
   );
 }
 
-/** 表单引用集（非受控输入：编辑回填与读取都走 ref，避免受控态来回同步）。 */
-interface MemoryFormRefs {
-  text: React.RefObject<HTMLInputElement | null>;
-  topic: React.RefObject<HTMLInputElement | null>;
-  imp: React.RefObject<HTMLSelectElement | null>;
+/** 记忆表单的受控值（2026-11-11 迁 antd：不再往 DOM 写 value）。 */
+interface MemoryFormValues {
+  text: string;
+  topic: string;
+  imp: string;
 }
+
+/** 表单初值（重要度默认 3）。 */
+const EMPTY_FORM: MemoryFormValues = { text: '', topic: '', imp: '3' };
 
 /** useMemoryStore 的返回面（数据 + 数据操作）。 */
 interface MemoryStore {
@@ -118,51 +124,146 @@ interface MemoryStore {
 }
 
 /**
- * 长期记忆数据源：全量列出 / 自然语言检索 / 计数；挂载与 reloadKey、sessionTick 变化时重载。
- * @param reloadKey 外部重载信号（SSE memory.changed 时自增）。
- * @returns facts 记忆列表；count 服务端计数；query/setQuery 检索词；load 全量列出；search 检索
+ * 长期记忆数据源（2026-11-21 批次六 A1 收编 useSessionResource）：挂载与 reloadKey 变化时
+ * 重载；检索词经 queryRef 在 load 闭包内消费（检索按钮 = refresh，空词回落全量）。
+ * profile 数据不随回合推进变化——followTick:false（批次四已收窄，本迁移沿用）。
+ * @param reloadKey 外部重载信号（SSE memory.changed 去抖后自增）
+ * @returns facts 记忆列表；count 服务端计数；query/setQuery 检索词；load/refresh 重载
  */
 function useMemoryStore(reloadKey: number): MemoryStore {
-  const { api, toast, sessionTick } = useApp();
-  const [facts, setFacts] = React.useState<MemoryFact[]>([]);
-  const [count, setCount] = React.useState<number>(0);
+  const { api, toast } = useApp();
   const [query, setQuery] = React.useState<string>('');
+  const queryRef = React.useRef('');
+  queryRef.current = query;
 
-  /** 列出全部记忆。 */
-  const load = async (): Promise<void> => {
+  const load = React.useCallback(async (): Promise<{ count: number; facts: MemoryFact[] }> => {
+    const q = queryRef.current.trim();
     try {
-      const r = await api.listMemory();
-      // 服务端响应做形状归一：facts 缺失/非数组时按空列表处理。
-      // 2026-10-19：桩数据/异常响应曾让 facts.map is not a function 触发错误边界、卸载整棵树。
-      setCount(typeof r.count === 'number' ? r.count : 0);
-      setFacts(Array.isArray(r.facts) ? r.facts : []);
+      if (q === '') {
+        const r = await api.memory.listMemory();
+        // 服务端响应做形状归一（2026-10-19：桩/异常响应曾让 facts.map 抛错误边界）。
+        return {
+          count: typeof r.count === 'number' ? r.count : 0,
+          facts: Array.isArray(r.facts) ? r.facts : [],
+        };
+      }
+      const r = await api.memory.searchMemory(q, 20);
+      return {
+        count: typeof r.count === 'number' ? r.count : 0,
+        facts: Array.isArray(r.results) ? r.results : [],
+      };
     } catch (e) {
       toast(t('加载失败：{msg}', { msg: (e as Error).message }), 'err');
+      throw e;
     }
-  };
+  }, [api, toast]);
+  const { data, refresh } = useSessionResource({
+    enabled: true,
+    load,
+    followTick: false,
+    reloadTick: reloadKey,
+  });
 
-  // 挂载装载 + reloadKey 变化重载（deps 只有 reloadKey，load 只读 ref/闭包外的服务）。
-  React.useEffect(() => {
-    void load();
-  }, [reloadKey, sessionTick]);
+  return { facts: data?.facts ?? [], count: data?.count ?? 0, query, setQuery, load: refresh, search: refresh };
+}
 
-  /** 检索：空查询回落为全量列出。 */
-  const search = async (): Promise<void> => {
-    const q = query.trim();
-    if (!q) {
-      await load();
-      return;
-    }
+/**
+ * 记忆时间图数据源（memory.facts，只读快照）：挂载与 reloadKey 变化时重拉。
+ * 拉取失败如实降级为「无图」（时间图隐藏，不阻塞记忆面板其余功能）。
+ * @param reloadKey 外部重载信号
+ * @returns 快照；装载中为 null（不渲染）
+ */
+function useMemoryFacts(reloadKey: number): MemoryFactsResult | null {
+  const { api } = useApp();
+  const load = React.useCallback(async (): Promise<MemoryFactsResult> => {
     try {
-      const r = await api.searchMemory(q, 20);
-      setCount(typeof r.count === 'number' ? r.count : 0);
-      setFacts(Array.isArray(r.results) ? r.results : []);
-    } catch (e) {
-      toast(t('检索失败：{msg}', { msg: (e as Error).message }), 'err');
+      return await api.memory.memoryFacts();
+    } catch {
+      // 拉取失败如实降级为「无图」：时间图隐藏，不阻塞记忆面板其余功能。
+      return { supported: false, cards: [], total: 0, active: 0 };
     }
-  };
+  }, [api]);
+  const { data: snap } = useSessionResource({
+    enabled: true,
+    load,
+    followTick: false,
+    reloadTick: reloadKey,
+  });
+  return snap;
+}
 
-  return { facts, count, query, setQuery, load, search };
+/**
+ * 时间图事实卡行：三元组 + 生命状态（有效/已被取代/已过期）+ 起止日期。
+ * @param props 卡与当前时刻
+ * @returns 卡行节点
+ */
+function FactCardRow(props: { card: TemporalFactCard; now: number }): ReactElement {
+  const { card, now } = props;
+  const superseded = card.validTo !== undefined && card.validTo <= now;
+  const expired = !superseded && card.expiresAt !== undefined && card.expiresAt <= now;
+  const stale = superseded || expired;
+  const status = superseded ? t('已被取代') : expired ? t('已过期') : t('有效');
+  const fmt = (ms: number): string => new Date(ms).toLocaleString();
+  return (
+    <div className={'mt-card' + (stale ? ' mt-card--stale' : '')}>
+      <div className="mt-card-line">
+        <span className="mt-card-triple" title={card.text ?? undefined}>
+          {card.subject} · {card.predicate} · {card.object}
+        </span>
+        <span className={stale ? 'mt-card-status mt-card-status--stale' : 'mt-card-status'}>
+          {status}
+        </span>
+      </div>
+      {card.text !== undefined && card.text !== card.object ? (
+        <div className="mt-card-text">{card.text}</div>
+      ) : null}
+      <div className="mt-card-dates">
+        {t('起 {d}', { d: fmt(card.validFrom) })}
+        {card.validTo !== undefined ? (
+          <span>
+            {' · '}
+            {t('止 {d}', { d: fmt(card.validTo) })}
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 记忆时间图区（Memory Atlas v1，只读）：同主题+谓词的取代链按时间排布。
+ * 有效卡在前、被取代卡在后（组内按 validFrom 降序），一眼看清「现在有效的是哪条」。
+ * @param props 快照
+ * @returns 区块节点；无图（supported=false）不渲染
+ */
+function MemoryAtlas(props: { snap: MemoryFactsResult }): ReactElement | null {
+  const { snap } = props;
+  if (!snap.supported) return null;
+  const now = Date.now();
+  const isActive = (card: TemporalFactCard): boolean =>
+    (card.validTo === undefined || card.validTo > now) &&
+    (card.expiresAt === undefined || card.expiresAt > now);
+  const cards = [...snap.cards].sort(
+    (a, b) => Number(isActive(b)) - Number(isActive(a)) || b.validFrom - a.validFrom,
+  );
+  return (
+    <div className="pm-section" aria-label={t('记忆时间图')}>
+      <div className="pm-title">
+        {t('时间图')}
+        <span className="mem-atlas-count">
+          {t('{active}/{total} 有效', { active: snap.active, total: snap.total })}
+        </span>
+      </div>
+      <p className="mem-atlas-hint">
+        {t('同主题+谓词的新事实会取代旧事实（到点即失效）；此视图为只读时间线。')}
+      </p>
+      <div className="mem-atlas">
+        {cards.map((card) => (
+          <FactCardRow key={card.factId} card={card} now={now} />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 /** useMemoryForm 的返回面（编辑态 + 表单操作）。 */
@@ -181,10 +282,13 @@ interface MemoryFormOps {
  * @param reload 保存/删除成功后的数据重载（通常传 store.load）
  * @returns editingId 当前编辑的记忆 id（null=新增态）与四个操作
  */
-function useMemoryForm(refs: MemoryFormRefs, reload: () => Promise<void>): MemoryFormOps {
+function useMemoryForm(
+  values: MemoryFormValues,
+  setValues: React.Dispatch<React.SetStateAction<MemoryFormValues>>,
+  reload: () => Promise<void>,
+): MemoryFormOps {
   const { api, toast, dialog } = useApp();
   const [editingId, setEditingId] = React.useState<string | null>(null);
-  const { text: textRef, topic: topicRef, imp: impRef } = refs;
 
   /**
    * 进入编辑态：把该条记忆回填到表单。
@@ -192,31 +296,27 @@ function useMemoryForm(refs: MemoryFormRefs, reload: () => Promise<void>): Memor
    */
   const startEdit = (f: MemoryFact): void => {
     setEditingId(f.id);
-    if (textRef.current) textRef.current.value = f.text;
-    if (topicRef.current) topicRef.current.value = f.topic || '';
-    if (impRef.current) impRef.current.value = String(f.importance || 3);
+    setValues({ text: f.text, topic: f.topic || '', imp: String(f.importance || 3) });
   };
 
   /** 复位表单到新增态。 */
   const reset = (): void => {
     setEditingId(null);
-    if (textRef.current) textRef.current.value = '';
-    if (topicRef.current) topicRef.current.value = '';
-    if (impRef.current) impRef.current.value = '3';
+    setValues(EMPTY_FORM);
   };
 
   /** 保存：按 editingId 决定新增或更新。 */
   const save = async (): Promise<void> => {
-    const text = textRef.current ? textRef.current.value.trim() : '';
+    const text = values.text.trim();
     if (!text) {
       toast(t('请填写事实'), 'err');
       return;
     }
-    const topic = topicRef.current ? topicRef.current.value.trim() || undefined : undefined;
-    const importance = impRef.current ? parseInt(impRef.current.value, 10) || 3 : 3;
+    const topic = values.topic.trim() || undefined;
+    const importance = parseInt(values.imp, 10) || 3;
     try {
-      if (editingId) await api.updateMemory({ id: editingId, text, topic, importance });
-      else await api.addMemory({ text, topic, importance });
+      if (editingId) await api.memory.updateMemory({ id: editingId, text, topic, importance });
+      else await api.memory.addMemory({ text, topic, importance });
       toast(editingId ? t('已更新记忆') : t('已保存记忆'), 'ok');
       reset();
       await reload();
@@ -237,7 +337,7 @@ function useMemoryForm(refs: MemoryFormRefs, reload: () => Promise<void>): Memor
     });
     if (!ok) return;
     try {
-      await api.deleteMemory(id);
+      await api.memory.deleteMemory(id);
       toast(t('已删除'), 'ok');
       await reload();
     } catch (e) {
@@ -254,62 +354,60 @@ function useMemoryForm(refs: MemoryFormRefs, reload: () => Promise<void>): Memor
  * @returns 表单区块节点
  */
 function MemoryForm(props: {
-  refs: MemoryFormRefs;
+  values: MemoryFormValues;
+  onChange: (patch: Partial<MemoryFormValues>) => void;
   editingId: string | null;
   reset: () => void;
   save: () => Promise<void>;
 }): ReactElement {
-  const { refs, editingId, reset, save } = props;
+  const { values, onChange, editingId, reset, save } = props;
   return (
     <div className="pm-section">
       <div className="pm-title">{t('新增 / 编辑记忆')}</div>
       <div className="form">
         <label>
           {t('事实')}
-          <input
-            type="text"
-            ref={(el: HTMLInputElement | null) => {
-              refs.text.current = el;
-            }}
+          <Input
+            aria-label={t('事实')}
             placeholder={t('如：用户要求所有 TS 文件用 camelCase')}
+            value={values.text}
+            onChange={(e) => onChange({ text: e.target.value })}
           />
         </label>
         <label>
           {t('主题')}
-          <input
-            type="text"
-            ref={(el: HTMLInputElement | null) => {
-              refs.topic.current = el;
-            }}
+          <Input
+            aria-label={t('主题')}
             placeholder={t('编码规范 / 项目约定 / 环境')}
+            value={values.topic}
+            onChange={(e) => onChange({ topic: e.target.value })}
           />
         </label>
         <label>
           {t('重要度')}
-          <select
-            ref={(el: HTMLSelectElement | null) => {
-              refs.imp.current = el;
-            }}
-          >
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3" selected>
-              3
-            </option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-          </select>
+          <Select
+            aria-label={t('重要度')}
+            value={values.imp}
+            onChange={(next: string) => onChange({ imp: next })}
+            options={[
+              { value: '1', label: '1' },
+              { value: '2', label: '2' },
+              { value: '3', label: '3' },
+              { value: '4', label: '4' },
+              { value: '5', label: '5' },
+            ]}
+          />
         </label>
         <div className="pane-actions">
           <span className="flex-spacer"></span>
           {editingId ? (
-            <button className="btn" onClick={reset}>
+            <Button onClick={reset}>
               {t('取消编辑')}
-            </button>
+            </Button>
           ) : null}
-          <button className="btn primary" onClick={() => void save()}>
+          <Button type="primary" onClick={() => void save()}>
             {editingId ? t('保存修改') : t('保存')}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -324,29 +422,37 @@ function MemoryForm(props: {
 export function MemoryTab(props: MemoryTabProps): ReactElement {
   const { reloadKey } = props;
   const store = useMemoryStore(reloadKey);
-  const textRef = React.useRef<HTMLInputElement | null>(null);
-  const topicRef = React.useRef<HTMLInputElement | null>(null);
-  const impRef = React.useRef<HTMLSelectElement | null>(null);
-  const refs: MemoryFormRefs = { text: textRef, topic: topicRef, imp: impRef };
-  const form = useMemoryForm(refs, store.load);
+  const atlas = useMemoryFacts(reloadKey);
+  const [values, setValues] = React.useState<MemoryFormValues>(EMPTY_FORM);
+  /** 合并式更新：三个字段各自改自己的，不互相覆盖。 */
+  const patchValues = React.useCallback((patch: Partial<MemoryFormValues>): void => {
+    setValues((prev) => ({ ...prev, ...patch }));
+  }, []);
+  const form = useMemoryForm(values, setValues, store.load);
 
   return (
     <div>
       <div className="pm-head">
-        <input
-          type="text"
+        <Input
+          aria-label={t('检索长期记忆（自然语言）…')}
           placeholder={t('检索长期记忆（自然语言）…')}
           value={store.query}
-          onInput={(e: React.SyntheticEvent) => store.setQuery((e.target as HTMLInputElement).value)}
+          onChange={(e) => store.setQuery(e.target.value)}
         />
-        <button className="ghost" onClick={() => void store.search()}>
+        <Button type="text" onClick={() => void store.search()}>
           {t('检索')}
-        </button>
-        <button className="ghost" onClick={() => void store.load()}>
+        </Button>
+        <Button type="text" onClick={() => void store.load()}>
           {t('刷新')}
-        </button>
+        </Button>
       </div>
-      <MemoryForm refs={refs} editingId={form.editingId} reset={form.reset} save={form.save} />
+      <MemoryForm
+        values={values}
+        onChange={patchValues}
+        editingId={form.editingId}
+        reset={form.reset}
+        save={form.save}
+      />
       <div className="pm-section">
         <div className="pm-title">{t('已存记忆（{count}）', { count: store.count })}</div>
         {store.facts.length === 0 ? (
@@ -359,6 +465,7 @@ export function MemoryTab(props: MemoryTabProps): ReactElement {
           <MemoryTable facts={store.facts} onEdit={form.startEdit} onDelete={(id) => void form.del(id)} />
         )}
       </div>
+      {atlas === null ? null : <MemoryAtlas snap={atlas} />}
     </div>
   );
 }

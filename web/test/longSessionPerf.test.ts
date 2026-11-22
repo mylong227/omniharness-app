@@ -12,7 +12,7 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import { fireEvent, renderFacade } from './rtlHarness.ts';
+import { fireEvent, flatApiStub, renderFacade } from './rtlHarness.ts';
 import { byClass, facadeOf, walk } from './domFacade.ts';
 import type { Facade, FacadeNode } from './domFacade.ts';
 import type { ThreadEvent } from '../src/types/models.ts';
@@ -63,7 +63,7 @@ function baseProps(events: ThreadEvent[], extra: Partial<StreamViewProps> = {}) 
     reasoning: '',
     permission: '',
     // 真实的 StreamView 会渲染 Composer（内含 PermissionPicker），后者挂载即拉档位表。
-    api: { approvalTiers: async () => ({ tiers: [] }) },
+    api: flatApiStub({ approvalTiers: async () => ({ tiers: [] }) }),
     onModelChange: () => {},
     onReasoningChange: () => {},
     onPermissionChange: () => {},

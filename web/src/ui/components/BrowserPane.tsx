@@ -12,7 +12,7 @@
 // `frame-ancestors` 拒绝嵌入，此时 iframe 会留白；「在新窗口打开」是退路。
 
 import * as React from 'react';
-import { icon } from '../models/Icon.ts';
+import { icon } from '../kit/Icon.tsx';
 import { hostOf } from '../textUtils.ts';
 import type { BrowserView } from '../shared.ts';
 import { t } from '../i18n/i18n.ts';

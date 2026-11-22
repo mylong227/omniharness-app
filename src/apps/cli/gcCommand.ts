@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * gc 子命令（GcCommand）——手动触发一轮维护巡检（2026-10-26，磁盘爆炸收口的手动面）。
  *
@@ -15,8 +16,8 @@ import {
   MaintenanceRunner,
   type MaintenanceOptions,
   type MaintenanceReport,
-} from '../../host/extensions/kernel/util/maintenanceRunner.ts';
-import { ServeInstance } from './serveInstance.ts';
+} from '../../host/kernel/maintenance.ts';
+import { ServeInstance } from '../../host/kernel/maintenance.ts';
 
 /** gc 子命令：手动维护巡检。 */
 export class GcCommand {
@@ -43,7 +44,7 @@ export class GcCommand {
     const dryRun = args.includes('--dry-run');
     const report = runner({ dryRun });
     process.stdout.write(
-      `${MaintenanceRunner.summarize(report)}${dryRun ? '（dry-run：未实际删除）' : ''}\n`,
+      `${MaintenanceRunner.summarize(report)}${dryRun ? AppText.t('（dry-run：未实际删除）') : ''}\n`,
     );
     for (const tmp of report.tmp) {
       if (tmp.removed === 0 && tmp.matched.length === 0) continue;
@@ -55,7 +56,7 @@ export class GcCommand {
       );
     }
     for (const record of report.pidSwept) {
-      const verb = report.dryRun ? '将删除' : '已删除';
+      const verb = report.dryRun ? AppText.t('将删除') : AppText.t('已删除');
       process.stdout.write(`  陈旧实例记录：${verb}（${ServeInstance.describe(record)}）\n`);
     }
     if (report.sessions !== null) {
@@ -74,8 +75,8 @@ export class GcCommand {
 
   /** 用法说明。 */
   private static readonly USAGE =
-    '用法: omniharness gc [--dry-run]\n' +
-    '  手动触发一轮维护巡检：临时目录 / 陈旧 serve 实例记录 / 会话保留策略 / 半截临时文件。\n' +
-    '  --dry-run  只报告将要清理的内容，不实际删除。\n' +
-    '  旋钮：OMNI_MAINTENANCE=off 停用；OMNI_GC_KEEP / OMNI_GC_MAX_AGE_DAYS / OMNI_GC_MAX_BYTES 调会话保留策略。\n';
+    AppText.t('用法: omniharness gc [--dry-run]\n') +
+    AppText.t('  手动触发一轮维护巡检：临时目录 / 陈旧 serve 实例记录 / 会话保留策略 / 半截临时文件。\n') +
+    AppText.t('  --dry-run  只报告将要清理的内容，不实际删除。\n') +
+    AppText.t('  旋钮：OMNI_MAINTENANCE=off 停用；OMNI_GC_KEEP / OMNI_GC_MAX_AGE_DAYS / OMNI_GC_MAX_BYTES 调会话保留策略。\n');
 }

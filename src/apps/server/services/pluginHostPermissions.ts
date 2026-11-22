@@ -6,13 +6,13 @@
  * （fs.read / net.connect / env.read / store.read），危险能力必须由操作者经
  * `OMNI_PLUGIN_PERMISSIONS` 环境变量显式授予（逗号分隔权限名，或 `all` 全开）。
  */
-import { ALL_PERMISSIONS, DANGEROUS_PERMISSIONS, Permission } from '../../../host/kernel/plugin.js';
-import type { PluginPermission as AppPluginPermission } from '../../../host/kernel/plugin.js';
-import { PermissionGate } from '../../../host/kernel/plugin.js';
+import { ALL_PERMISSIONS, DANGEROUS_PERMISSIONS, Permission } from '../../../host/kernel/plugin.ts';
+import type { PluginPermission as AppPluginPermission } from '../../../host/kernel/plugin.ts';
+import { PermissionGate } from '../../../host/kernel/plugin.ts';
 import { log } from '../../../host/kernel/util.ts';
 
 /** 宿主权限白名单的环境变量名（逗号分隔的额外授权，或 `all`）。 */
-export const PLUGIN_PERMISSIONS_ENV = 'OMNI_PLUGIN_PERMISSIONS';
+const PLUGIN_PERMISSIONS_ENV = 'OMNI_PLUGIN_PERMISSIONS';
 
 /**
  * 插件宿主权限白名单解析器（构造 `PermissionGate` 的唯一入口）。

@@ -16,7 +16,7 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import { act, fireEvent, renderUi } from './rtlHarness.ts';
+import { act, fireEvent, renderUi, flatApiStub } from './rtlHarness.ts';
 
 const { AddMenu } = await import('../src/ui/components/AddMenu.tsx');
 
@@ -47,7 +47,7 @@ async function renderAddMenu() {
   const ui = renderUi(AddMenu, {
     props: {
       threadId: '',
-      api: {
+      api: flatApiStub({
         modesGet: async () => ({ goal: '', planMode: false, sketchMode: false }),
         listPlugins: async () => [],
         agentsList: async () => ({ agents: [] }),
@@ -56,7 +56,7 @@ async function renderAddMenu() {
           gates.set(q, gate);
           return gate.promise;
         },
-      },
+      }),
       onAttach: () => {},
       onToast: () => {},
       onOpenTab: () => {},

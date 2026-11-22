@@ -6,12 +6,12 @@
 
 import * as React from 'react';
 import { t } from '../../i18n/i18n.ts';
-import { handleComposerKeyDown } from './composerKeyboard.ts';
+import { handleComposerKeyDown, type ComposerHistoryKeys } from './composerKeyboard.ts';
 import type { ComposerCompletions } from './useComposerCompletions.ts';
 import type { MentionState, SkillOption, SlashState } from './composerCompletions.ts';
 
 /** `/` 技能补全弹层的入参。 */
-export interface SlashSuggestionPopProps {
+interface SlashSuggestionPopProps {
   /** 补全态；null 时不渲染。 */
   readonly slash: SlashState | null;
   /** 选中回调（插入 `/name `）。 */
@@ -23,7 +23,7 @@ export interface SlashSuggestionPopProps {
  * @param props 组件入参
  * @returns 弹层节点；无补全时为 null
  */
-export function SlashSuggestionPop(props: SlashSuggestionPopProps): ReactElement | null {
+function SlashSuggestionPop(props: SlashSuggestionPopProps): ReactElement | null {
   const { slash, onPick } = props;
   if (slash === null) return null;
   return (
@@ -49,7 +49,7 @@ export function SlashSuggestionPop(props: SlashSuggestionPopProps): ReactElement
 }
 
 /** `@` 文件引用补全弹层的入参。 */
-export interface MentionSuggestionPopProps {
+interface MentionSuggestionPopProps {
   /** 补全态；null 时不渲染。 */
   readonly mention: MentionState | null;
   /** 选中回调（插入 `@path `）。 */
@@ -61,7 +61,7 @@ export interface MentionSuggestionPopProps {
  * @param props 组件入参
  * @returns 弹层节点；无补全时为 null
  */
-export function MentionSuggestionPop(props: MentionSuggestionPopProps): ReactElement | null {
+function MentionSuggestionPop(props: MentionSuggestionPopProps): ReactElement | null {
   const { mention, onPick } = props;
   if (mention === null) return null;
   return (
@@ -97,6 +97,10 @@ export interface ComposerInputProps {
   readonly onPaste: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
   /** 提交（Enter 发送 / 插话按钮）。 */
   readonly onSubmit: () => void;
+  /** 输入历史（空框 ↑/↓ 翻阅；缺省不接管）。 */
+  readonly history?: ComposerHistoryKeys;
+  /** 每次用户键入（草稿防抖落盘 / 退出历史翻阅态用）。 */
+  readonly onTextInput?: (value: string) => void;
 }
 
 /**
@@ -105,7 +109,7 @@ export interface ComposerInputProps {
  * @returns 输入区节点
  */
 export function ComposerInput(props: ComposerInputProps): ReactElement {
-  const { taRef, placeholder, completions, onPaste, onSubmit } = props;
+  const { taRef, placeholder, completions, onPaste, onSubmit, history, onTextInput } = props;
   return (
     <div className="composer-input">
       <SlashSuggestionPop slash={completions.slash} onPick={completions.applySlash} />
@@ -117,9 +121,14 @@ export function ComposerInput(props: ComposerInputProps): ReactElement {
         aria-label={t('任务输入框：输入任务，Enter 发送，Shift+Enter 换行，@ 引用文件，/ 选择技能')}
         placeholder={placeholder}
         onPaste={onPaste}
-        onInput={completions.refresh}
+        onInput={(e: React.FormEvent<HTMLTextAreaElement>) => {
+          completions.refresh();
+          onTextInput?.(e.currentTarget.value);
+        }}
         onClick={completions.refresh}
-        onKeyDown={(e: React.KeyboardEvent) => handleComposerKeyDown(e, completions, onSubmit)}
+        onKeyDown={(e: React.KeyboardEvent) =>
+          handleComposerKeyDown(e, completions, onSubmit, history)
+        }
       ></textarea>
     </div>
   );

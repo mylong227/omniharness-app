@@ -7,18 +7,29 @@
 // 纯展示组件：值由调用方注入，不直接读 localStorage / 全局状态。
 
 import * as React from 'react';
-import { icon } from '../../models/Icon.ts';
-import type { IconName } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
+import type { IconName } from '../../kit/Icon.tsx';
 import { t } from '../../i18n/i18n.ts';
-import type { SettingsField, SettingsModel } from '../../models/SettingsModel.ts';
+import { PathBrowseControl } from './PathBrowseControl.tsx';
+import {
+  defaultLabelOf,
+  fieldId,
+  optionLabelOf,
+  type SettingsField,
+  type SettingsModel,
+} from '../../models/SettingsModel.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
 // 2026-10-30（W4 表单专项）：三个设置原语下沉到 antd——所有设置页经本文件拼装，换这里即全站生效。
-import Select from 'antd/es/select';
+import Card from 'antd/es/card';
+import Flex from 'antd/es/flex';
 import Input from 'antd/es/input';
+import Segmented from 'antd/es/segmented';
+import Select from 'antd/es/select';
 import Switch from 'antd/es/switch';
+import Typography from 'antd/es/typography';
 
 /** 下拉选项。 */
-export interface ConsoleOption {
+interface ConsoleOption {
   /** 实际值。 */
   readonly value: string;
   /** 展示文案。 */
@@ -44,35 +55,62 @@ export interface ConsoleCardProps {
 }
 
 /**
- * 一张设置卡片。
+ * 一张设置卡片（antd Card：标题 + 说明 + 行 + 脚注）。
+ * 标题用 Typography.Title（真标题语义）；说明与脚注走次要文本；
+ * 行间距交给 `.csl-row` 的栅格，antd 只负责卡片表面与头部。
  * @param props 组件入参
  * @returns 卡片节点
  */
 export function ConsoleCard(props: ConsoleCardProps): ReactElement {
   const { title, meta, description, actions, children, footer, className } = props;
   const hasHead =
-    title !== undefined || meta !== undefined || description !== undefined || actions !== undefined;
+    title !== undefined || meta !== undefined || description !== undefined;
   return (
-    <section className={'csl-card' + (className === undefined ? '' : ' ' + className)}>
-      {hasHead ? (
-        <div className="csl-card-head">
-          <div className="csl-card-head-main">
-            {title === undefined ? null : (
-              <div className="csl-card-title-row">
-                <h2 className="csl-card-title">{title}</h2>
-                {meta === undefined ? null : <span className="csl-card-meta">{meta}</span>}
-              </div>
-            )}
+    <Card
+      size="small"
+      className={className}
+      title={
+        hasHead ? (
+          <Flex vertical gap={2}>
+            <Flex align="baseline" wrap gap={8}>
+              {title === undefined ? null : (
+                // 真 h2（迁移前 `.csl-card-title` 的语义）：字号/行高继承卡头，视觉与 level 5 一致。
+                <Typography.Title
+                  level={2}
+                  style={{ margin: 0, fontSize: 'inherit', lineHeight: 'inherit' }}
+                >
+                  {title}
+                </Typography.Title>
+              )}
+              {meta === undefined ? null : (
+                <Typography.Text type="secondary" className="mono" style={{ fontSize: 11 }}>
+                  {meta}
+                </Typography.Text>
+              )}
+            </Flex>
             {description === undefined ? null : (
-              <p className="csl-card-desc">{description}</p>
+              <Typography.Text
+                type="secondary"
+                style={{ fontWeight: 400, fontSize: 12.5, lineHeight: 1.6 }}
+              >
+                {description}
+              </Typography.Text>
             )}
-          </div>
-          {actions === undefined ? null : <div className="csl-card-actions">{actions}</div>}
-        </div>
-      ) : null}
-      <div className="csl-card-body">{children}</div>
-      {footer === undefined ? null : <div className="csl-card-foot">{footer}</div>}
-    </section>
+          </Flex>
+        ) : undefined
+      }
+      extra={actions}
+    >
+      <Flex vertical>{children}</Flex>
+      {footer === undefined ? null : (
+        <Typography.Text
+          type="secondary"
+          style={{ display: 'block', marginTop: 12, fontSize: 11.5 }}
+        >
+          {footer}
+        </Typography.Text>
+      )}
+    </Card>
   );
 }
 
@@ -86,6 +124,12 @@ export interface ConsoleRowProps {
   children?: React.ReactNode;
   /** 控件下方整宽内容（例如规则列表）。 */
   below?: React.ReactNode;
+  /** 是否刚保存过（行级「已保存」徽标；1.5s 后由模型消隐）。 */
+  saved?: boolean;
+  /** 是否需重启才能生效（常驻提示，来自 hint 里的「重启」语义）。 */
+  restart?: boolean;
+  /** 字段锚点（设置搜索定位用；格式见 `fieldId()`）。 */
+  dataFieldId?: string;
 }
 
 /**
@@ -94,11 +138,18 @@ export interface ConsoleRowProps {
  * @returns 行节点
  */
 export function ConsoleRow(props: ConsoleRowProps): ReactElement {
-  const { label, hint, children, below } = props;
+  const { label, hint, children, below, saved, restart, dataFieldId } = props;
   return (
-    <div className={'csl-row' + (children === undefined ? ' csl-row--info' : '')}>
+    <div
+      className={'csl-row' + (children === undefined ? ' csl-row--info' : '')}
+      {...(dataFieldId !== undefined ? { 'data-field-id': dataFieldId } : {})}
+    >
       <div className="csl-row-main">
-        <span className="csl-row-label">{label}</span>
+        <span className="csl-row-label">
+          {label}
+          {saved === true ? <span className="csl-row-saved">{t('已保存')}</span> : null}
+          {restart === true ? <span className="csl-row-restart">{t('需重启')}</span> : null}
+        </span>
         {hint === undefined ? null : <span className="csl-row-hint">{hint}</span>}
       </div>
       {children === undefined ? null : <div className="csl-row-control">{children}</div>}
@@ -152,21 +203,25 @@ export interface ConsoleSelectProps {
   disabled?: boolean;
   /** 宽度（CSS 值，默认按内容）。 */
   width?: string;
+  /** 未设置（空值）时的占位文案；缺省「未设置」。 */
+  placeholder?: string;
 }
 
 /**
- * 带自绘箭头的原生下拉（原生 select 保证键盘与移动端行为，外观走 CSS）。
+ * 下拉选择（antd Select：键盘与移动端行为由组件保证，外观走主题 token）。
  * @param props 组件入参
  * @returns 下拉节点
  */
 export function ConsoleSelect(props: ConsoleSelectProps): ReactElement {
-  const { value, options, onChange, ariaLabel, disabled, width } = props;
+  const { value, options, onChange, ariaLabel, disabled, width, placeholder } = props;
   return (
     <Select
       className="csl-select"
       style={width === undefined ? undefined : { width }}
       aria-label={ariaLabel}
-      value={value}
+      // 空串是"未设置"（config 里没有这个键）：交给 placeholder 表达，而不是渲染成空白下拉。
+      value={value === '' ? undefined : value}
+      placeholder={placeholder ?? t('未设置')}
       disabled={disabled === true}
       options={options.map((option) => ({ value: option.value, label: option.label }))}
       onChange={(next: string) => onChange(next)}
@@ -234,7 +289,7 @@ export interface ConsoleSwitchProps {
 }
 
 /**
- * 自绘开关（原生 checkbox 保证键盘与表单语义，外观走 CSS）。
+ * 开关（antd Switch：键盘与表单语义由组件保证，外观走主题 token）。
  * @param props 组件入参
  * @returns 开关节点
  */
@@ -252,7 +307,7 @@ export function ConsoleSwitch(props: ConsoleSwitchProps): ReactElement {
 }
 
 /** 分段控件选项。 */
-export interface ConsoleSegmentOption<V extends string> {
+interface ConsoleSegmentOption<V extends string> {
   /** 实际值。 */
   readonly value: V;
   /** 展示文案。 */
@@ -274,87 +329,39 @@ export interface ConsoleSegmentedProps<V extends string> {
 }
 
 /**
- * 分段控件（radiogroup 语义，WAI-ARIA 单选组键盘模型）。
+ * 分段控件（antd Segmented：radiogroup 语义、方向键切换、选中态由组件自己维护）。
  * @param props 组件入参
  * @returns 分段控件节点
  */
 export function ConsoleSegmented<V extends string>(props: ConsoleSegmentedProps<V>): ReactElement {
   const { options, value, onChange, ariaLabel } = props;
-  /** 段按钮引用：方向键要把焦点送到下一段（整组只有一个 Tab 落点）。 */
-  const refs = React.useRef<Array<HTMLButtonElement | null>>([]);
-  const selectedIndex = options.findIndex((option) => option.value === value);
-
-  /**
-   * ←/→/↑/↓ 环绕、Home/End 到首尾；分段控件是"立即生效"的开关，方向键即选中。
-   * @param e 键盘事件
-   * @param index 当前段下标
-   * @returns 无
-   */
-  const onKeyDown = (e: React.KeyboardEvent, index: number): void => {
-    let next = index;
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (index + 1) % options.length;
-    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-      next = (index - 1 + options.length) % options.length;
-    } else if (e.key === 'Home') next = 0;
-    else if (e.key === 'End') next = options.length - 1;
-    else return;
-    e.preventDefault();
-    const target = options[next];
-    if (target === undefined) return;
-    if (target.value !== value) onChange(target.value);
-    refs.current[next]?.focus();
-  };
-
   return (
-    <div className="csl-seg" role="radiogroup" aria-label={ariaLabel}>
-      {options.map((option, index) => {
-        const on = option.value === value;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            ref={(el) => {
-              refs.current[index] = el;
-            }}
-            role="radio"
-            aria-checked={on ? 'true' : 'false'}
-            tabIndex={on || (selectedIndex < 0 && index === 0) ? 0 : -1}
-            className={'csl-seg-item' + (on ? ' on' : '')}
-            onClick={() => {
-              if (!on) onChange(option.value);
-            }}
-            onKeyDown={(e: React.KeyboardEvent) => onKeyDown(e, index)}
-          >
-            {option.icon === undefined ? null : icon(option.icon, { size: 13 })}
-            {option.label}
-          </button>
-        );
-      })}
-    </div>
+    <Segmented
+      aria-label={ariaLabel}
+      value={value}
+      onChange={(next) => onChange(next as V)}
+      options={options.map((option) => ({
+        value: option.value,
+        label:
+          option.icon === undefined ? (
+            option.label
+          ) : (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {icon(option.icon, { size: 13 })}
+              {option.label}
+            </span>
+          ),
+      }))}
+    />
   );
 }
-
-/** 键帽。 */
-export interface ConsoleKeycapProps {
-  /** 按键组合（如 `Ctrl/Cmd+P`）。 */
-  combo: string;
-}
-
 /**
- * 键帽（快捷键页用）。
- * @param props 组件入参
- * @returns 键帽节点
- */
-export function ConsoleKeycap(props: ConsoleKeycapProps): ReactElement {
-  const { combo } = props;
-  return <kbd className="csl-kbd">{combo}</kbd>;
-}
-
-/**
- * 把一个设置字段渲染成控制台行（下拉 / 文本 / 开关）。
+ * 把一个设置字段渲染成控制台行（下拉 / 文本 / 开关 / 数字）。
  *
  * 文本字段用**本地草稿 + 失焦提交**：旧实现每敲一个字符就发一次 config.update，
  * 既慢又会把半截 URL 写进配置（用户还没输入完就已落盘）。下拉与开关仍然即时提交。
+ * 数字字段（2026-11-14 设置页补全）与文本同走"草稿 + 失焦提交"，翻译/范围校验
+ * 全在 `SettingsModel.saveField`（留空 = 显式清除覆盖）。
  * @param props 组件入参
  * @returns 行节点
  */
@@ -365,7 +372,10 @@ export function ConsoleSettingRow(props: {
   const { field, model } = props;
   const label = t(field.label);
   const hint = field.hint === undefined ? undefined : t(field.hint);
-  const committed = model.valueOf(field.key);
+  const id = fieldId(field);
+  const saved = model.getSnapshot().savedField === id;
+  // 传字段而不是 key：结构化段字段要按 path 取叶值（传 key 会拿到整段对象）。
+  const committed = model.valueOf(field);
 
   // 文本草稿：外部值变化（装载 / 保存后重拉）时同步进来。
   const [draft, setDraft] = React.useState(committed);
@@ -375,9 +385,9 @@ export function ConsoleSettingRow(props: {
 
   if (field.kind === 'switch') {
     return (
-      <ConsoleRow label={label} hint={hint}>
+      <ConsoleRow label={label} hint={hint} saved={saved} restart={field.needRestart === true} dataFieldId={id}>
         <ConsoleSwitch
-          checked={model.boolOf(field.key)}
+          checked={model.boolOf(field)}
           label={label}
           onChange={(checked) => void model.saveField(field, checked)}
         />
@@ -385,29 +395,53 @@ export function ConsoleSettingRow(props: {
     );
   }
   if (field.kind === 'select') {
+    const fallback = defaultLabelOf(field);
     return (
-      <ConsoleRow label={label} hint={hint}>
+      <ConsoleRow label={label} hint={hint} saved={saved} restart={field.needRestart === true} dataFieldId={id}>
         <ConsoleSelect
           ariaLabel={label}
           value={committed}
-          options={(field.options ?? []).map((option) => ({ value: option, label: option }))}
+          placeholder={
+            fallback === undefined ? undefined : t('未设置（默认：{value}）', { value: t(fallback) })
+          }
+          options={(field.options ?? []).map((option) => ({
+            value: option,
+            label: t(optionLabelOf(field, option)),
+          }))}
           onChange={(value) => void model.saveField(field, value)}
         />
       </ConsoleRow>
     );
   }
   return (
-    <ConsoleRow label={label} hint={hint}>
-      <ConsoleInput
-        ariaLabel={label}
-        value={draft}
-        placeholder={field.placeholder === undefined ? undefined : t(field.placeholder)}
-        mono
-        onChange={setDraft}
-        onCommit={() => {
-          if (draft.trim() !== committed.trim()) void model.saveField(field, draft);
-        }}
-      />
+    <ConsoleRow label={label} hint={hint} saved={saved} restart={field.needRestart === true} dataFieldId={id}>
+      {field.browse !== undefined ? (
+        <PathBrowseControl
+          browse={field.browse}
+          value={draft}
+          placeholder={field.placeholder === undefined ? undefined : t(field.placeholder)}
+          ariaLabel={label}
+          {...(field.key === 'longTermMemoryKeyFile' ? { pickerTitle: t('选择密钥文件') } : {})}
+          onDraft={setDraft}
+          onCommitDraft={() => {
+            if (draft.trim() !== committed.trim()) void model.saveField(field, draft);
+          }}
+          onCommit={(path) => void model.saveField(field, path)}
+        />
+      ) : (
+        <ConsoleInput
+          ariaLabel={label}
+          value={draft}
+          placeholder={field.placeholder === undefined ? undefined : t(field.placeholder)}
+          mono
+          onChange={setDraft}
+          onCommit={() => {
+            if (draft.trim() !== committed.trim()) void model.saveField(field, draft);
+          }}
+        />
+      )}
     </ConsoleRow>
   );
 }
+
+

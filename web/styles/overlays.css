@@ -142,3 +142,24 @@
   transform: translateX(-50%) translateY(0);
 }
 
+
+/* ---- 快捷键速查浮层（2026-11-17 粘性批次，? 呼出）----
+   遮罩 + 居中窄卡；数据与设置页「键盘快捷键」栏同源（GLOBAL_SHORTCUTS / INPUT_KEYS）。 */
+.sc-overlay { position: fixed; inset: 0; z-index: 90; background: var(--frost-fill-soft);
+  backdrop-filter: var(--frost-blur-soft); display: flex; align-items: center;
+  justify-content: center; padding: 20px; }
+.sc-panel { width: min(460px, 92vw); max-height: min(76vh, 640px); overflow: auto;
+  background: var(--panel); border: 1px solid var(--border-soft); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2); padding: 16px 18px 14px; }
+.sc-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.sc-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.sc-list { list-style: none; margin: 0; padding: 0; }
+.sc-row { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 4px 0; border-bottom: 1px solid var(--hairline); }
+.sc-row:last-child { border-bottom: 0; }
+.sc-label { font-size: 12.5px; color: var(--dim); }
+.sc-kbd { font-family: var(--mono); font-size: 11px; color: var(--text);
+  border: 1px solid var(--border-soft); border-radius: 6px; padding: 1px 7px;
+  background: var(--panel-2); white-space: nowrap; }
+.sc-sub { margin: 12px 0 4px; font-size: 11px; letter-spacing: 0.06em; color: var(--faint); }
+.sc-foot { margin-top: 10px; font-size: 11px; line-height: 1.5; color: var(--faint); }

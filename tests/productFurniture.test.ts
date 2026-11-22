@@ -55,8 +55,8 @@ describe('标品家具（首次上手面）', () => {
       'CONTRIBUTING.md',
       'LICENSE',
       'NOTICE',
+      // docs/ 仅保留 API 契约文档（2026-11-20 文档库清理：design/ 台账与 DESKTOP-SMOKE 已退役）
       'docs/KERNEL-CONTRACT.md',
-      'docs/DESKTOP-SMOKE.md',
       'src/host/extensions/README.md',
       'examples/embed-demo.mjs',
       'examples/catalog/registry.json',

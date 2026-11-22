@@ -131,3 +131,47 @@ test('progress 口径：下标即填充段数（前端据此判断"第几段高�
   assert.strictEqual(step, 2, 'medium 在第 3 段 ⇒ 前 3 段填实心');
   assert.strictEqual(ladder.length, 4);
 });
+
+// ---- adaptive-reasoning（2026-11-14，docs/design/adaptive-reasoning/ §5）----
+
+test('effortsFor：模型级真值优先（含确证的空数组）', () => {
+  const byModel = { 'gpt-4o': [], o3: ['low', 'medium', 'high'] };
+  // 空数组必须**原样返回**：它是"该模型确证不接收 effort"的真值，
+  // 回落厂商档会让不支持 effort 的模型重新渲染出假进度条。
+  assert.deepStrictEqual(ComposerOptions.effortsFor('gpt-4o', byModel, ['minimal', 'high']), []);
+  assert.deepStrictEqual(ComposerOptions.effortsFor('o3', byModel, ['minimal', 'high']), ['low', 'medium', 'high']);
+});
+
+test('effortsFor：模型不在表里回落厂商档；表整体未下发（旧服务端）同', () => {
+  const provider = ['low', 'medium', 'high'];
+  assert.deepStrictEqual(ComposerOptions.effortsFor('unknown-model', { o3: provider }, provider), provider);
+  assert.deepStrictEqual(ComposerOptions.effortsFor('o3', undefined, provider), provider, '旧服务端无 effortsByModel');
+  assert.strictEqual(ComposerOptions.effortsFor('o3', undefined, undefined), undefined, '两端都未知 → UI 内置兜底');
+});
+
+test('closestLevel：越界值钳到最近的强度档（序数距离）', () => {
+  assert.strictEqual(ComposerOptions.closestLevel(['low', 'medium', 'high'], 'xhigh'), 'high', '超上限 → 钳到 max 端');
+  assert.strictEqual(ComposerOptions.closestLevel(['low', 'medium', 'high'], 'minimal'), 'low', '低于下限 → 钳到 min 端');
+  assert.strictEqual(ComposerOptions.closestLevel(['low', 'high'], 'medium'), 'high', '居中 → 距离相同取更强（用户要强的意图）');
+  assert.strictEqual(ComposerOptions.closestLevel(['none', 'low', 'medium'], 'max'), 'medium');
+});
+
+test('closestLevel：值已在集合内原样返回；空集合与未设置值都返回空串（守卫）', () => {
+  assert.strictEqual(ComposerOptions.closestLevel(['low', 'medium', 'high'], 'medium'), 'medium');
+  // changeModel 对"确证不支持"的模型根本不调 closestLevel（保留原值偏好）；
+  // 这两条是防御性守卫：空集合/未设置值都不产生钳制结果。
+  assert.strictEqual(ComposerOptions.closestLevel([], 'xhigh'), '');
+  assert.strictEqual(ComposerOptions.closestLevel(['low', 'medium', 'high'], ''), '');
+});
+
+test('closestLevel：当前值为空串（未设置）不钳到最强档——未设置不是越界（review P1-1）', () => {
+  // 若把 '' 当未知强度钳到最强，等于替用户悄悄开启推理。
+  assert.strictEqual(ComposerOptions.closestLevel(['low', 'medium', 'high'], ''), '');
+});
+
+test('closestLevel：当前值强度未知时钳到集合最强档；未知档位参与排序不破坏已知序', () => {
+  assert.strictEqual(ComposerOptions.closestLevel(['low', 'medium'], 'weird'), 'medium', '未知强度按最强处理');
+  // 集合含未知档位（'turbo' 排在词表末尾之后）：已知档位距离照常计算。
+  assert.strictEqual(ComposerOptions.closestLevel(['turbo', 'low'], 'medium'), 'low');
+  assert.strictEqual(ComposerOptions.closestLevel(['low', 'turbo'], 'weird2'), 'turbo', '两个未知强度互比取集合靠后项（同为未知，先到先得）');
+});

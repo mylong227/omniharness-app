@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import { HttpBridgeTransport } from './httpBridgeTransport.ts';
 import { PreviewServer } from './previewServer.ts';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
@@ -8,7 +9,6 @@ import { brotliCompressSync, constants as zlibConstants, gzipSync } from 'node:z
 import { extname, isAbsolute, join, normalize, relative, resolve } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import type { AppServer } from '../core/appServer.ts';
-import { type RpcRequest } from '../../../host/kernel/runtime.ts';
 import { WsServer } from '../../../host/kernel/runtime.ts';
 import { ServerAuthGuard } from './serverAuthGuard.ts';
 import type { Metrics } from '../services/metrics.ts';
@@ -61,7 +61,7 @@ export interface HttpServerOptions {
 }
 
 /** 健康检查结果（供容器编排探针消费）。 */
-export interface HealthStatus {
+interface HealthStatus {
   /** `ok` 可接流；`degraded` 核心组件缺失，不应接流。 */
   readonly status: 'ok' | 'degraded';
   /** 进程已运行秒数。 */
@@ -641,34 +641,34 @@ export class HttpServer {
   private async serveWorkspaceFile(url: string, response: ServerResponse): Promise<void> {
     const ws = this.options.workspaceRoot?.();
     if (ws === undefined || ws === '') {
-      response.writeHead(503).end('工作区未配置');
+      response.writeHead(503).end(AppText.t('工作区未配置'));
       return;
     }
     const queryStart = url.indexOf('?');
     if (queryStart === -1) {
-      response.writeHead(400).end('缺少 path 查询参数');
+      response.writeHead(400).end(AppText.t('缺少 path 查询参数'));
       return;
     }
     const params = new URLSearchParams(url.slice(queryStart + 1));
     const rel = params.get('path');
     if (rel === null || rel === '') {
-      response.writeHead(400).end('缺少 path 查询参数');
+      response.writeHead(400).end(AppText.t('缺少 path 查询参数'));
       return;
     }
     let decoded: string;
     try {
       decoded = decodeURIComponent(rel);
     } catch {
-      response.writeHead(400).end('path 解码失败');
+      response.writeHead(400).end(AppText.t('path 解码失败'));
       return;
     }
     const resolved = SafeFs.safeResolve(ws, decoded);
     if (!resolved.ok) {
       // 越界/缺失：403/404 区分；其他错误统一 500。
       const status =
-        resolved.error === '路径越界工作区'
+        resolved.error === AppText.t('路径越界工作区')
           ? 403
-          : resolved.error.startsWith('读取失败')
+          : resolved.error.startsWith(AppText.t('读取失败'))
             ? 404
             : 500;
       response.writeHead(status).end(resolved.error);
@@ -760,6 +760,4 @@ export class HttpServer {
   }
 }
 
-/** 供引用：RpcRequest 类型导出（避免未使用告警）。 */
-export type { RpcRequest };
 export { HttpBridgeTransport };

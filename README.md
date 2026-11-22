@@ -1,7 +1,7 @@
 # OmniHarness App
 
 > **独立应用仓：完整后端宿主 + React 工作台 + Electron 桌面端。**
-> 内核是 [`@omniharness/kernel`](../omniharness-kernel) 的**固定发行物**（vendored tarball，当前 `0.1.0-alpha.16`），
+> 内核是 [`@omniharness/kernel`](../omniharness-kernel) 的**固定发行物**（vendored tarball，当前 `0.1.0-alpha.38`），
 > 应用经 `src/host/kernel/` **分域对接面**消费内核（全仓唯一的包导入点，门禁强制），
 > app 自有能力收留在 `src/host/extensions/`（原 `kernel-compat/`，M27 兼容层清零后更名）。
 > 2026-11-04 从 [OmniHarness](https://github.com/mylong227/OmniHarness) 切出并完成内核包迁移（M2），
@@ -13,9 +13,9 @@
 
 | 目录 | 内容 | 规模 |
 | ---- | ---- | ---- |
-| `src/` | **后端宿主**：HTTP/SSE、JSON-RPC（92 方法，16 个域模块声明式注册）、会话存储、审批/沙箱、插件宿主、CLI、MCP/ACP/AG-UI | `src/apps` + `src/host/kernel/`（19 域对接面）+ `src/host/extensions/`（app 自有扩展层） |
-| `web/` | **前端**：React 19 工作台（会话/工具/计划/变更/设置/审计/插件…） | 255 个源文件 + 153 个判据文件 / 743 用例（后端 15 文件 37 用例另计，合计 168 文件 / 780 用例） |
-| `desktop/` | **桌面端**：Electron 主进程 + preload（窗口/托盘/菜单/更新/侧车监督） | 31 个源文件，35 条纯逻辑判据 |
+| `src/` | **后端宿主**：HTTP/SSE、JSON-RPC（116 方法，21 个域模块声明式注册）、会话存储、审批/沙箱、插件宿主、CLI、MCP/ACP/AG-UI | `src/apps` + `src/host/kernel/`（20 域对接面）+ `src/host/extensions/`（app 自有扩展层） |
+| `web/` | **前端**：React 19 工作台（会话/工具/计划/变更/设置/审计/插件…） | 292 个源文件（含 14 个 en 词条分片）+ 188 个判据文件，合计 223 判据文件 / 1028 用例（后端 35 文件另计） |
+| `desktop/` | **桌面端**：Electron 主进程 + preload（窗口/托盘/菜单/更新/侧车监督） | 32 个源文件，44 条纯逻辑判据 |
 
 运行形态：
 
@@ -24,14 +24,14 @@ Electron main（受信） ──spawn──▶ node dist/src/apps/cli/exec.js se
         │                              │  HTTP+SSE 127.0.0.1:<port>（Bearer + HttpOnly Cookie）
         └── BrowserWindow ──load──▶ http://127.0.0.1:<port>/?token=…
                                        ├─ GET  /            → web/dist（Vite 产物）
-                                       ├─ POST /rpc         → JSON-RPC 2.0（92 个方法）
+                                       ├─ POST /rpc         → JSON-RPC 2.0（116 个方法）
                                        ├─ GET  /events      → SSE 事件流
                                        ├─ GET  /files       → 工作区文件
                                        └─ GET  /healthz     → 运行时自述（含 previewPort）
 ```
 
 后端的「内核」不再由本仓源码提供：全部内核符号经 `src/host/kernel/<域>.ts` 对接面导入
-（286 处包导入、19 个**自动生成**的域文件；门禁第 7 条强制单点、第 8 条拒绝生成物漂移、
+（288 处包导入、19 个**自动生成**的域文件；门禁第 7 条强制单点、第 8 条拒绝生成物漂移、
 第 9 条拒绝「已承诺能力的同名副本」）；
 桌面的「后端根目录」缺省就是本仓根；`OMNI_BACKEND_ROOT` / `OMNI_HARNESS_ENTRY` 仍可指向
 另一份后端工作树。
@@ -90,15 +90,15 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 | ---- | ---- |
 | `npm run build` | 后端：`tsc` → `dist`（原子换入）+ 伴生资源/原生库镜像 |
 | `npm run build:web` / `web:dev` | 前端 Vite 构建 / 开发服务器 |
-| `npm run web:test` | 判据（前端 153 文件 + 后端 15 文件 / 共 780 用例，文件级串行） |
+| `npm run web:test` | 判据（前端 189 文件 + 后端 37 文件 / 双项目——chrome 串行 / fast 并行 maxForks 6） |
 | `npm run typecheck` | 后端 + 前端 + 桌面三份 strict 类型检查 |
 | `npm run kernel:check` | **内核边界门禁（9 条）**：vendored 钉定 / 无内嵌副本 / 对接面单点 / tarball 与锁文件一致 / 原生内核实载 / **对接面生成物不漂移** / **已承诺能力无同名副本** |
-| `npm run kernel:surface` | 从「业务代码实际 import + 内核包 .d.ts」生成 19 个域文件（新增符号无需手写 re-export） |
+| `npm run kernel:surface` | 从「业务代码实际 import + 内核包 .d.ts」生成 20 个域文件（新增符号无需手写 re-export） |
 | `npm run kernel:vendor` | 从内核仓重新构建并固定 `vendor/*.tgz`（tag 自 package.json 钉定版本解析） |
 | `npm run smoke` | **端到端**：真起 serve，验启动令牌、`/healthz` `/readyz` `/`、`/rpc config.get` |
 | `npm run serve` | 只起 backend serve（需先 `npm run build` + `build:web`） |
 | `npm run example:embed` | 跑可运行嵌入样例（需先 `npm run build`；见 examples/embed-demo.mjs） |
-| `npm run desktop:build` / `desktop:test` | 打包主进程 / 35 条纯逻辑判据 |
+| `npm run desktop:build` / `desktop:test` | 打包主进程 / 44 条纯逻辑判据 |
 | `npm run desktop:smoke` | **真实桌面 GUI 验收**：窗口 / 侧车 / UI origin / DOM 挂载，退出码即结论 |
 | `npm run desktop:stage` / `desktop:dist` | 打包资源（含 vendor）/ NSIS 安装包 |
 | `npm run verify` | kernel:check → typecheck → 判据 → 后端构建 → 前端构建 → 冒烟 → 桌面构建与判据 |
@@ -123,29 +123,36 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 
 ```json
 "dependencies": {
-  "@omniharness/kernel": "file:vendor/omniharness-kernel-0.1.0-alpha.16.tgz"
+  "@omniharness/kernel": "file:vendor/omniharness-kernel-0.1.0-alpha.38.tgz"
 }
 ```
+
+> 2026-11-22 内核发版 `v0.1.0-alpha.38`（R27 worker 域收编轮）。
+> R26（alpha.37）：codec 深路径 + maintenance/autonomy 四件收编；R27（alpha.38）：
+> `CliWorker` / `ExternalCliWorker` / `WindowsShim` 上 worker 域（三条深路径承诺 + 23 条判据）。
+> 应用侧两轮合计删除 extensions 五件 + worker 三件（1,408 行），登记表归零；
+> `kernel:check` 九条复绿（278 源文件 / 294 处包导入 / 原生内核实载），内核 cross:check
+> 跨仓契约一致。vendor 重建自该 tag，tarball integrity 与 `package-lock.json` 已同步。
 
 对接全景——谁在哪里、怎么连、哪条门禁在把守：
 
 ```text
-package.json 钉定 vendor/omniharness-kernel-0.1.0-alpha.16.tgz
+package.json 钉定 vendor/omniharness-kernel-0.1.0-alpha.38.tgz
       │  npm ci（lockfile integrity 钉死 tarball —— kernel:check 第 1/5 条）
       ▼
 @omniharness/kernel —— vendored 固定发行物（dist/** + native/omni_napi.node 随包）
       │  全仓唯一导入点（kernel:check 第 7 条强制）
       ▼
-src/host/kernel/<域>.ts —— 19 个自动生成的分域 re-export，无实现
+src/host/kernel/<域>.ts —— 20 个自动生成的分域 re-export，无实现
       │  （kernel:surface 生成，第 8 条拒绝漂移、第 9 条拒绝已承诺能力的同名副本；
       │   分域而非单文件桶，避免 CLI 冷启动 ~700ms 税）
-      ├─▶ src/apps/**             宿主：16 个 RPC 域模块（92 方法）+ CLI + 嵌入 API
+      ├─▶ src/apps/**             宿主：21 个 RPC 域模块（116 方法）+ CLI + 嵌入 API
       └─▶ src/host/extensions/**  app 自有扩展层：Laya 决策引擎 / CLI worker / doctor /
                                  图存储 / web 广播…（同样禁止直接 import 内核包名）
 ```
 
 - **对接只有一条路**：业务代码一律 `import { X } from '<相对路径>/host/kernel/<域>.js'`，
-  全仓不出现 `@omniharness/kernel` 包名（实测 258 源文件 / 286 处包导入全部命中对接面）。
+  全仓不出现 `@omniharness/kernel` 包名（实测 274 源文件 / 288 处包导入全部命中对接面）。
   新增内核符号的姿势：在业务代码里正常 import 包名 → 跑一次 `npm run kernel:surface`
   生成/扩充对应域文件 → 提交生成物（忘了跑，`kernel:check` 第 8 条与
   `tests/kernelSurface.test.ts` 都会红）。
@@ -155,7 +162,7 @@ src/host/kernel/<域>.ts —— 19 个自动生成的分域 re-export，无实�
   共 5 件迁回对接面后，内核**已承诺**能力的同名副本为 **0**（门禁第 9 条把守）。
   归属契约见[其 README](src/host/extensions/README.md)：
   app 自有、随 app 演进、不得反向要求内核兼容。
-- **92 个 RPC 方法**由 `src/apps/server/modules/` 的 16 个域模块声明式注册
+- **110 个 RPC 方法**由 `src/apps/server/modules/` 的 18 个域模块声明式注册
   （parity 快照 `tests/serverModulesParity.test.ts` 钉住全表）；stdio 与 serve 两条组合根
   共用 `composedServerCore()` 不变量核心（历史「serve 漏接 doctor」缺陷类已结构性消灭）。
 - **原生内核随包**：内核 tarball 包含 `native/omni_napi.node`（`kernel:vendor` 注入），
@@ -183,24 +190,29 @@ src/host/kernel/<域>.ts —— 19 个自动生成的分域 re-export，无实�
 | 检查 | 结果 |
 | ---- | ---- |
 | 三份 typecheck（后端 / 前端 / 桌面） | ✅ 0 error |
-| `npm run kernel:check` | ✅ 258 源文件 / 286 处包导入（19 域对接面，全部收敛）/ 内嵌副本 0 / tarball integrity 一致 / 原生内核实载 / 生成物一致 / extensions 无已承诺影子 |
+| `npm run kernel:check` | ✅ 278 源文件 / 294 处包导入（20 域对接面，全部收敛）/ 内嵌副本 0 / tarball integrity 一致 / 原生内核实载 / 生成物一致 / extensions 无已承诺影子 |
 | 后端构建 `npm run build` | ✅ dist 原子换入；原生内核可加载 |
-| 前端构建 `npm run build:web` | ✅ 单入口 + vendor/panel-antd 分块 |
-| 判据 `npm run web:test` | ✅ 168 文件 / 780 用例（含 parity/守卫/家具/嵌入 API/JCS golden/审计修复/影子扫描判据） |
+| 前端构建 `npm run build:web` | ✅ 单入口 + vendor-react / vendor-antd 分块 |
+| 判据 `npm run web:test` | ✅ 226 文件 / 1036 用例（含 parity/守卫/家具/嵌入 API/JCS golden/审计修复/影子扫描判据；双项目并行化） |
 | 端到端 `npm run smoke` | ✅ 7/7（banner token、`/healthz`、`/readyz`、`/` HTML、`/rpc config.get`、`sessions.list`、原生内核实载） |
-| 桌面 `desktop:build` + `desktop:test` | ✅ 35/35（含 ipcGuards 三组 + CSP 哈希门禁） |
+| 桌面 `desktop:build` + `desktop:test` | ✅ 44/44（含 ipcGuards 三组 + CSP 哈希门禁 + 配置告警码↔文案键 parity） |
 | 嵌入 API 实测 | ✅ `createOmniHarness` 启动 / healthz 200 / RPC 往返 / 优雅关闭（另有自动判据 tests/embedApi.test.ts） |
-| `rpc.list` 自描述 | ✅ 一次调用返回 87~92 个方法 → 归属模块/插件（打包/嵌入形态少 5 个市场方法属正常） |
+| `rpc.list` 自描述 | ✅ 一次调用返回 105~116 个方法 → 归属模块/插件（打包/嵌入形态少 5 个市场方法属正常） |
 
 ## 8. 与上游 / 内核仓的关系
 
 - 应用代码来自上游 `OmniHarness@main`（0.4.0）；本仓的仓库级解耦、内核包迁移（M2）、
   模块化重构与 M21–M30 影子清零迁移用 `git log` 可审。
-- 内核来自 `../omniharness-kernel` 的 `v0.1.0-alpha.16` tag；`vendor/*.tgz` 是它的发行物，
+- 内核来自 `../omniharness-kernel` 的 `v0.1.0-alpha.38` tag；`vendor/*.tgz` 是它的发行物，
   **不是**第二份源码。重建用 `npm run kernel:vendor`（tag 缺省自 package.json 解析）。
 - 上游的 `tests/`、`crates/`、`third-party/`、看板与审计脚本没有切过来：本仓的判据是
-  780 用例（web 743 + 后端 37）+ 桌面 35 条 + 冒烟 7 条 + 内核边界 9 条。
+  1036 用例（web + 后端）+ 桌面 44 条 + 冒烟 9 条 + 内核边界 9 条。
 
 ## License
 
 Apache-2.0。见 [LICENSE](LICENSE) 与 [NOTICE](NOTICE)。
+
+
+
+
+

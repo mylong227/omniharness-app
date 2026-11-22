@@ -1,12 +1,9 @@
 // 前端路由绑定（F8）：持有当前路由状态、把局部补丁写入 hash、订阅浏览器前进 / 后退并收口到 App 状态。
 // 从 AppController 抽离，避免根控制器越过 25 方法的上帝类红线；AppController 仅持有本类并委托。
 
-import { parseHash, navigate, onRouteChange, type AppRoute } from '../../core/Router.ts';
+import { parseHash, navigate, onRouteChange, type AppRoute } from '../models/Router.ts';
 import type { AppHost, AppState } from './AppController.ts';
 import { MethodBinder } from './methodBinder.ts';
-
-/** 路由收口回调（把解析后的路由落到应用状态）。 */
-export type RouteApply = (route: AppRoute) => void;
 
 /**
  * 哈希路由绑定：单一职责——哈希 ↔ 应用状态 的双向同步。
@@ -52,7 +49,14 @@ export class RouteBinding {
   public navigate(partial: Partial<AppRoute>): void {
     const pane = partial.pane ?? this.route.pane;
     const threadId = partial.threadId !== undefined ? partial.threadId : this.route.threadId;
-    const next: AppRoute = { pane, threadId };
+    // 控制室内部视图：显式传入优先；同面板继续沿用当前值（跨面板导航时丢弃——view 只属于 control）。
+    const view =
+      partial.view !== undefined
+        ? partial.view
+        : pane === 'control' && pane === this.route.pane
+          ? this.route.view
+          : undefined;
+    const next: AppRoute = { pane, threadId, ...(view !== undefined ? { view } : {}) };
     const changed = next.pane !== this.route.pane || next.threadId !== this.route.threadId;
     this.route = next;
     navigate(this.route);

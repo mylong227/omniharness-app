@@ -1,3 +1,4 @@
+import { UI_TUNABLES } from '../../config/RuntimeConfig.ts';
 // 会话 / 事件 / 文件相关控制器（C3 拆分，标准 class 方式）。
 // 承接原 useAppController 中与会话、事件流、工具结果、文件预览、钻取、抽屉相关的回调，
 // 一律经 AppHost.patch 驱动 App 状态，行为逐字节等价。
@@ -15,11 +16,11 @@ import { MethodBinder } from './methodBinder.ts';
 import { SessionTicker } from './sessionTicker.ts';
 import { EventFields } from '../models/EventFields.ts';
 import { RewindImpact } from '../models/RewindImpact.ts';
-import { CheckpointNamer } from '../models/checkpoint.ts';
+import { CheckpointNamer } from '../models/Checkpoint.ts';
 import { t } from '../i18n/i18n.ts';
 
 /** 历史分页页大小（首屏只取尾部；更早内容按需补拉）。 */
-const HISTORY_PAGE_SIZE = 300;
+const HISTORY_PAGE_SIZE = UI_TUNABLES.historyPageSize;
 
 /** 会话 / 事件 / 文件控制器：单一职责，仅供 App 组合使用。 */
 export class SessionController {
@@ -49,6 +50,39 @@ export class SessionController {
    * 被丢弃（视图串会话 + 新回合过程事件丢失）。
    */
   private abandonedThreadId: string | null = null;
+  /**
+   * 打开「正在运行」的会话时记录的线程 id：此刻的 busy 属于**远端回合**（不是本页面发起的
+   * runRound），它的自然收尾没有人写本地 busy:false。`refreshSessions` 看到 `sessions.list`
+   * 回报该线程已不在跑时，据此解除 busy 并触发 `onRemoteBusyCleared`（队列续发接上，
+   * 与本地回合 finally 的 drain 同一口径）。
+   */
+  private remoteBusyThread: string | null = null;
+  /** 本页面生命周期里「见过在跑」的会话：只在它转停时提醒（避免首屏把历史停止当成刚完成）。 */
+  private readonly runningSeen = new Set<string>();
+  /** 远端回合（打开在跑会话）收尾后的联动钩子：组合根接 `ComposerController.queueDrain`。 */
+  public onRemoteBusyCleared: (() => void) | null = null;
+
+  /**
+   * 清除远端忙碌登记（降级停止用）：登记不清的话，用户随后自己开的本地回合会被
+   * refreshSessions 的远端收尾检测误伤（busy 被清 ⇒ 流式增量被丢弃）。
+   * @returns 无
+   */
+  public clearRemoteBusy(): void {
+    this.remoteBusyThread = null;
+  }
+
+  /**
+   * 是否存在「非本页发起、仍在跑」的远端回合（loadThread 登记，refreshSessions / 降级停止解除）。
+   *
+   * 队列续发的在飞判定用**这个同步字段**而不是 `state.busy`：后者经 React setState 异步提交，
+   * `runRound` 的 finally 在同一宏任务里读到的还是本回合刚要清掉的旧值，会把本地收尾续发
+   * 永远挡住（2026-11-17 chatQueueE2e 实测回归）。远端回合判定本来就只在 loadThread 登记，
+   * 与 React 提交时机无关。
+   * @returns 有远端在跑回合为 true
+   */
+  public hasRemoteBusy(): boolean {
+    return this.remoteBusyThread !== null;
+  }
 
   /**
    * 构造并绑定对外回调。
@@ -58,7 +92,7 @@ export class SessionController {
   public constructor(host: AppHost, services: AppServices) {
     this.host = host;
     this.services = services;
-    this.modes = new DeferredModes((id, patch) => services.api.modesSet(id, patch));
+    this.modes = new DeferredModes((id, patch) => services.api.threads.modesSet(id, patch));
     // 默认**挂载**：刷新 / 深链 / 全新控制器都要能收流式事件，只有点「新建」才摘。
     this.viewAttachment = new ViewAttachment();
     this.ticker = new SessionTicker(() => {
@@ -180,7 +214,7 @@ export class SessionController {
     try {
       // 显示范围来自本机偏好（当前项目 / 全部项目）：服务端据此过滤或全量返回。
       const scope = SessionsScope.read();
-      const r = await this.services.api.listSessions({
+      const r = await this.services.api.sessions.listSessions({
         includeArchived,
         ...(SessionsScope.workspaceParam(scope) !== undefined
           ? { workspace: SessionsScope.workspaceParam(scope) }
@@ -202,6 +236,34 @@ export class SessionController {
         pinned: s.pinned === true,
       }));
       this.host.patch((s) => ({ sessions: this.services.reducers.mergeSessions(s.sessions, fromDisk) }));
+      // 后台回合完成提醒（2026-11-17 粘性批次）：运行态 true→false 的下降沿补一条站内 toast。
+      // 桌面通知只覆盖本页面发起的回合（applySuccess）；浏览器端切到别的会话干活时，
+      // 后台会话完成此前是无声的。当前会话的收尾不在此提醒（applySuccess / 远端解忙各自处理）。
+      const finished: string[] = [];
+      for (const s of fromDisk) {
+        if (s.running) this.runningSeen.add(s.id);
+        else if (this.runningSeen.delete(s.id)) finished.push(s.id);
+      }
+      const currentId = this.host.getState().currentThreadId;
+      for (const id of finished) {
+        if (id === currentId) continue;
+        const label = this.host.getState().sessions.find((x) => x.id === id)?.label ?? '';
+        this.services.toast(
+          label === '' ? t('后台会话已完成本轮任务') : t('「{label}」已完成本轮任务', { label }),
+          'info',
+        );
+      }
+      // 远端回合收尾检测：打开「正在运行」的会话（remoteBusyThread）之后，它的回合不在本页面
+      // 跑，收尾没人清 busy——跟随服务端运行态自动解除（列表可能有竞态，最坏是 busy 提前一小段
+      // 解除、增量丢一截；比永远挂着停止按钮好）。
+      if (this.remoteBusyThread !== null) {
+        const stillRunning = fromDisk.some((x) => x.id === this.remoteBusyThread && x.running);
+        if (!stillRunning) {
+          this.remoteBusyThread = null;
+          this.host.patch((s) => (s.busy ? { busy: false, activeTool: null, liveInputs: [] } : {}));
+          if (this.onRemoteBusyCleared !== null) this.onRemoteBusyCleared();
+        }
+      }
     } catch {
       /* 静默：列表不可用时保留内存态 */
     }
@@ -262,7 +324,7 @@ export class SessionController {
         await this.refreshSessions();
       }
       if (generation !== this.loadGeneration) return;
-      const r = await this.services.api.getThread(id, { limit: HISTORY_PAGE_SIZE });
+      const r = await this.services.api.threads.getThread(id, { limit: HISTORY_PAGE_SIZE });
       if (generation !== this.loadGeneration) return;
       const items = r.items || [];
       // 历史会话的**工具结果**必须从事件里重建：卡片状态只来自实时 `tool_result` 通知，而加载历史时
@@ -291,7 +353,11 @@ export class SessionController {
         oldestEventId: items[0]?.id ?? null,
         historyLoading: false,
       });
-      // #OBS-12：加载历史会话必须重置 busy / activeTool，避免上一回合残留撑开过程 cluster。
+      // 记录「busy 来自远端回合」的线程：busy=false（打开的是空闲会话）时也要清掉旧记录，
+      // 否则上一线程的收尾检测会误伤当前视图。
+      this.remoteBusyThread = this.host.getState().busy ? id : null;
+      // #OBS-12：busy / activeTool 已在上面同一笔 patch 里复位；这里克隆 sessions 数组强制
+      // 会话行重渲染，让刚加载会话的运行态徽标与行菜单立刻对齐（成本一次渲染，可接受）。
       this.host.patch((s) => ({ sessions: s.sessions.map((x) => x) }));
       this.ticker.now();
       // F8：把当前会话写进 hash，支持深链 / 浏览器前进后退。
@@ -344,7 +410,7 @@ export class SessionController {
     }
     this.host.patch({ historyLoading: true });
     try {
-      const r = await this.services.api.getThread(threadId, {
+      const r = await this.services.api.threads.getThread(threadId, {
         limit: HISTORY_PAGE_SIZE,
         before: oldest,
       });
@@ -406,6 +472,8 @@ export class SessionController {
       oldestEventId: null,
       historyLoading: false,
     });
+    // 新视图没有「远端在跑」的概念（loadThread 会按新线程重记）。
+    this.remoteBusyThread = null;
     // F8：清空 hash 中的会话，回到无会话视图。
     this.services.navigate({ threadId: null });
     this.ticker.now();
@@ -432,7 +500,7 @@ export class SessionController {
    */
   public async renameSession(id: string, title: string): Promise<void> {
     try {
-      const r = await this.services.api.renameSession(id, title);
+      const r = await this.services.api.sessions.renameSession(id, title);
       if (!r.ok) {
         this.services.toast(t('重命名失败：{msg}', { msg: r.error ?? '' }), 'err');
         return;
@@ -450,7 +518,7 @@ export class SessionController {
    */
   public async deleteSession(id: string): Promise<void> {
     try {
-      const r = await this.services.api.deleteSession(id);
+      const r = await this.services.api.sessions.deleteSession(id);
       if (!r.ok && r.error !== 'session_not_found') {
         // 「运行中拒绝删除」是服务端的有意设计（避免删掉正在写盘的会话）——把**下一步动作**一并说清，
         // 否则用户只看到一句「无法删除」不知道该怎么办。
@@ -490,7 +558,7 @@ export class SessionController {
       sessions: before.map((x) => (x.id === id ? { ...x, pinned } : x)),
     });
     try {
-      const r = await this.services.api.setSessionPinned(id, pinned);
+      const r = await this.services.api.sessions.setSessionPinned(id, pinned);
       if (!r.ok) {
         this.host.patch({ sessions: before });
         this.services.toast(t('置顶失败：{msg}', { msg: r.error ?? '' }), 'err');
@@ -509,7 +577,7 @@ export class SessionController {
    */
   public async archiveSession(id: string, archived: boolean): Promise<void> {
     try {
-      const r = await this.services.api.archiveSession(id, archived);
+      const r = await this.services.api.sessions.archiveSession(id, archived);
       if (!r.ok) {
         this.services.toast(t('归档失败：{msg}', { msg: r.error ?? '' }), 'err');
         return;
@@ -529,7 +597,7 @@ export class SessionController {
   public async reorderSessions(ordered: SessionEntry[]): Promise<void> {
     this.host.patch({ sessions: ordered });
     try {
-      await this.services.api.reorderSessions(ordered.map((s) => s.id));
+      await this.services.api.sessions.reorderSessions(ordered.map((s) => s.id));
     } catch (e) {
       this.services.toast(t('排序保存失败：{msg}', { msg: (e as Error).message }), 'err');
     }
@@ -542,7 +610,7 @@ export class SessionController {
    */
   public async forkSession(id: string): Promise<void> {
     try {
-      const r = await this.services.api.forkSession(id);
+      const r = await this.services.api.sessions.forkSession(id);
       if (!r.ok) {
         this.services.toast(t('复制失败：{msg}', { msg: r.error ?? '' }), 'err');
         return;
@@ -624,13 +692,13 @@ export class SessionController {
     let checkpointLabel: string | null = null;
     try {
       const stamp = CheckpointNamer.auto().replace(/^checkpoint-/u, '');
-      const checkpoint = await this.services.api.createCheckpoint(threadId, 'rewind-' + stamp);
+      const checkpoint = await this.services.api.sessions.createCheckpoint(threadId, 'rewind-' + stamp);
       if (checkpoint.ok) checkpointLabel = checkpoint.checkpoint.label;
     } catch {
       checkpointLabel = null;
     }
     try {
-      const r = await this.services.api.rewindThread(threadId, eventId);
+      const r = await this.services.api.threads.rewindThread(threadId, eventId);
       if (!r.ok) {
         this.services.toast(t('回退失败：{msg}', { msg: r.error ?? t('未知原因') }), 'err');
         return false;

@@ -18,7 +18,7 @@
 //
 // 零 React 依赖（只导出纯数据），可直接在 node 下单测。
 
-import type { IconName } from './Icon.ts';
+import type { IconName } from '../kit/Icon.tsx';
 import { PANELS, panelOf } from './PanelRegistry.ts';
 import { SETTINGS_TABS, type SettingsTabKey } from './SettingsModel.ts';
 
@@ -41,7 +41,7 @@ export const CONSOLE_GROUPS: readonly ConsoleGroupDef[] = [
 ];
 
 /** 条目类型：设置页（可改配置） / 功能面板（看状态或做管理）。 */
-export type ConsoleEntryKind = 'setting' | 'panel';
+type ConsoleEntryKind = 'setting' | 'panel';
 
 /** 控制台里的一个导航条目。 */
 export interface ConsoleEntry {
@@ -76,8 +76,9 @@ const BASE_SETTINGS_ORDER: readonly (SettingsTabKey | 'vault')[] = [
   'shortcuts',
 ];
 
-/** Agent 能力组：按"上下文 → 扩展 → 执行"的顺序。 */
+/** Agent 能力组：控制室在首位（运行态一览），其余按"上下文 → 扩展 → 执行"的顺序。 */
 const AGENT_PANEL_ORDER: readonly string[] = [
+  'control',
   'profiles',
   'plugins',
   'skills',
@@ -95,6 +96,7 @@ const DATA_PANEL_ORDER: readonly string[] = [
   'governance',
   'rollback',
   'audit',
+  'decision',
   'diagnostics',
   'trace',
   'detail',

@@ -1,3 +1,4 @@
+import { flatApiStub } from './rtlHarness.ts';
 ﻿// 续跑**唯一实现**（`GraphController.resumeRun`）的判据（2026-10-08）。
 //
 // 为什么钉在控制器：交互改进后「编排面板卡片」与「状态栏芯片」共用这一个方法，
@@ -53,7 +54,7 @@ function makeController(opts: { resumeError?: string; streamOpen?: boolean } = {
     getState: () => state,
   };
   const services = {
-    api: {
+    api: flatApiStub({
       resumeGraph: async (runId: string) => {
         calls.resume.push(runId);
         if (opts.resumeError !== undefined) throw new Error(opts.resumeError);
@@ -63,7 +64,7 @@ function makeController(opts: { resumeError?: string; streamOpen?: boolean } = {
         calls.status.push(runId);
         return { runId, defName: 'sample-research', done: true, ok: true, nodes: [] };
       },
-    },
+    }),
     stream: { isOpen: opts.streamOpen !== false },
     toast: (message: string, kind: string) => calls.toasts.push([message, kind]),
     reducers: new AppReducers(),

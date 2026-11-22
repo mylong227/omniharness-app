@@ -18,6 +18,10 @@ export interface PanelSectionProps {
 
 /**
  * 面板分区卡：控制台/设置页的内容组织单元。
+ *
+ * 语义（2026-11-12 补回）：antd Card 的头部标题是纯 div，会丢掉迁移前
+ * `<section aria-label>` + `<h3>` 的地标/标题结构；这里用 role="region" + aria-label
+ * 命名卡根，标题以真 `<h3>` 渲染（字号/行高继承卡头，视觉不变）。
  * @param props PanelSectionProps
  * @returns 卡片节点
  */
@@ -25,8 +29,17 @@ export function PanelSection(props: PanelSectionProps): React.ReactElement {
   return (
     <Card
       size="small"
-      title={props.title}
+      title={
+        <Typography.Title
+          level={3}
+          style={{ margin: 0, fontSize: 'inherit', lineHeight: 'inherit' }}
+        >
+          {props.title}
+        </Typography.Title>
+      }
       extra={props.extra}
+      role="region"
+      aria-label={props.title}
       data-testid={props.testId}
       className="kit-panel-section"
     >

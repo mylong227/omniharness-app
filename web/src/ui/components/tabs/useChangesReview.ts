@@ -6,6 +6,8 @@
 
 import * as React from 'react';
 import { useApp } from '../../context.ts';
+import { useLatestRequest } from '../../hooks/LatestRequest.ts';
+import { useSessionResource } from '../../hooks/useSessionResource.ts';
 import { DiffHunkSplitter } from '../../models/DiffHunkSplitter.ts';
 import { ReviewCursor } from '../../models/ReviewCursor.ts';
 import { ReviewKeyboard } from '../../models/ReviewKeyboard.ts';
@@ -21,7 +23,7 @@ import type { ApiClient } from '../../../core/ApiClient.ts';
 import type { DialogService } from '../../../core/DialogService.ts';
 
 /** 变更清单响应。 */
-export interface ChangesData {
+interface ChangesData {
   source: string;
   branch?: string;
   files?: ChangeFile[];
@@ -62,32 +64,24 @@ export interface ChangesReview {
   onReviewKey: (e: React.KeyboardEvent) => void;
 }
 
-/** 拉取变更清单（进入面板 / sessionTick 变化时刷新）。 */
+/** 拉取变更清单（进入面板 / sessionTick 变化时刷新；W5 收编进 useSessionResource）。 */
 function useChangesList(api: ApiClient, sessionTick: number) {
-  const [data, setData] = React.useState<ChangesData | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
-  const [loaded, setLoaded] = React.useState<boolean>(false);
-
-  /** 拉取变更清单。 */
-  const refresh = async (): Promise<void> => {
-    setLoaded(false);
-    setError(null);
-    try {
-      setData(await api.listChanges());
-      setLoaded(true);
-    } catch (e) {
-      setError((e as Error).message);
-      setLoaded(true);
-    }
-  };
-
-  // 挂载拉取清单（[] 有意：只在进入该页时拉一次；sessionTick 变化时重取）。
-  React.useEffect(() => {
-    void refresh();
-  }, [sessionTick]);
-
+  const load = React.useCallback((): Promise<ChangesData> => api.review.listChanges(), [api]);
+  const { data, error, settled, refresh } = useSessionResource({
+    enabled: true,
+    load,
+    followTick: false,
+    reloadTick: sessionTick,
+  });
   const files = data?.files ?? [];
-  return { data, error, loaded, files, isGit: data?.source === 'git', refresh };
+  return {
+    data,
+    error,
+    loaded: settled,
+    files,
+    isGit: data?.source === 'git',
+    refresh,
+  };
 }
 
 /** patch 展开状态（含请求代际护栏：迟到响应不得覆盖后点的文件）。 */
@@ -101,8 +95,8 @@ function useChangesPatch(
   const [expanded, setExpanded] = React.useState<string | null>(null);
   const [patch, setPatch] = React.useState<string>('');
   const [patchLoading, setPatchLoading] = React.useState<boolean>(false);
-  /** patch 加载请求代际：连点两个文件时，先发的慢响应不得覆盖后点的文件。 */
-  const patchSeq = React.useRef<number>(0);
+  /** patch 加载请求守卫：连点两个文件时，先发的慢响应不得覆盖后点的文件（W5 单一实现）。 */
+  const request = useLatestRequest();
 
   /**
    * 展开 / 收起某文件的 patch。
@@ -111,25 +105,25 @@ function useChangesPatch(
   const openPatch = async (path: string): Promise<void> => {
     if (expanded === path) {
       // 收起也作废在途请求：否则迟到的 patch 会把「已收起」的文件内容重新填进来。
-      patchSeq.current++;
+      request.invalidate();
       setExpanded(null);
       setPatch('');
       return;
     }
-    const seq = ++patchSeq.current;
+    const ticket = request.begin();
     setExpanded(path);
     setPatchLoading(true);
     setPatch('');
     clearDraft();
     try {
-      const r = await api.listChanges(path);
-      if (seq !== patchSeq.current) return;
+      const r = await api.review.listChanges(path);
+      if (!request.isCurrent(ticket)) return;
       setPatch(r.patch ?? '');
     } catch (e) {
-      if (seq !== patchSeq.current) return;
+      if (!request.isCurrent(ticket)) return;
       setPatch(t('读取失败：{msg}', { msg: (e as Error).message }));
     } finally {
-      if (seq === patchSeq.current) setPatchLoading(false);
+      if (request.isCurrent(ticket)) setPatchLoading(false);
     }
   };
 
@@ -138,13 +132,13 @@ function useChangesPatch(
    * @param path 当前展开的文件路径
    */
   const reloadAfter = async (path: string): Promise<void> => {
-    const seq = ++patchSeq.current;
+    const ticket = request.begin();
     await refresh();
     await refreshComments();
     try {
-      const r = await api.listChanges(path);
+      const r = await api.review.listChanges(path);
       // 期间用户可能已切到别的文件 / 收起：迟到内容不得写进当前视图。
-      if (seq !== patchSeq.current) return;
+      if (!request.isCurrent(ticket)) return;
       setPatch(r.patch ?? '');
     } catch {
       /* patch 刷新失败保留旧内容 */
@@ -165,7 +159,7 @@ function useDiffComments(api: ApiClient, toast: (message: string, kind?: 'err' |
   /** 拉取行内评论；失败静默（评论不可用不阻断 diff 展示）。 */
   const refreshComments = async (): Promise<void> => {
     try {
-      const r = await api.listDiffComments();
+      const r = await api.review.listDiffComments();
       setComments(r.comments ?? []);
     } catch {
       /* 静默 */
@@ -176,7 +170,7 @@ function useDiffComments(api: ApiClient, toast: (message: string, kind?: 'err' |
   const saveDraft = async (): Promise<void> => {
     if (!draft || draftText.trim() === '') return;
     try {
-      await api.addDiffComment(draft.path, draft.side, draft.line, draftText.trim());
+      await api.review.addDiffComment(draft.path, draft.side, draft.line, draftText.trim());
       setDraft(null);
       setDraftText('');
       await refreshComments();
@@ -191,7 +185,7 @@ function useDiffComments(api: ApiClient, toast: (message: string, kind?: 'err' |
    */
   const deleteComment = async (id: string): Promise<void> => {
     try {
-      await api.deleteDiffComment(id);
+      await api.review.deleteDiffComment(id);
       await refreshComments();
     } catch (e) {
       toast(t('删除失败：{msg}', { msg: (e as Error).message }), 'err');
@@ -246,7 +240,7 @@ function useReviewOps(
 
   /** stage 整个文件。 */
   const stageFile = (path: string): void => {
-    void runOp('sf:' + path, () => api.stageFile(path), t('已 stage：{path}', { path }), path);
+    void runOp('sf:' + path, () => api.review.stageFile(path), t('已 stage：{path}', { path }), path);
   };
 
   /** 丢弃整个文件的工作区改动（先经 DialogService 确认）。 */
@@ -257,14 +251,14 @@ function useReviewOps(
       danger: true,
     });
     if (!ok) return;
-    await runOp('rf:' + path, () => api.revertFile(path), t('已还原：{path}', { path }), path);
+    await runOp('rf:' + path, () => api.review.revertFile(path), t('已还原：{path}', { path }), path);
   };
 
   /** stage 单个 hunk。 */
   const stageHunk = (path: string, hunk: string, isNew: boolean, idx: number): void => {
     void runOp(
       'sh:' + path + ':' + idx,
-      () => api.stageHunk(path, hunk, isNew),
+      () => api.review.stageHunk(path, hunk, isNew),
       t('已 stage 该块'),
       path,
     );
@@ -278,7 +272,7 @@ function useReviewOps(
       danger: true,
     });
     if (!ok) return;
-    await runOp('rh:' + path + ':' + idx, () => api.revertHunk(path, hunk), t('已还原该块'), path);
+    await runOp('rh:' + path + ':' + idx, () => api.review.revertHunk(path, hunk), t('已还原该块'), path);
   };
 
   return { busyAct, stageFile, revertFile, stageHunk, revertHunk };

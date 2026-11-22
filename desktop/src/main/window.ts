@@ -1,9 +1,12 @@
 /** 主窗口创建/加载/窗口状态。 */
 import { BrowserWindow, screen, type Rectangle } from 'electron';
-import { join } from 'node:path';
 import type { DesktopStateStore, WindowBounds } from './desktopState.ts';
 import type { DesktopWindowConfig } from './config.ts';
 import type { HarnessHandle } from './harnessSupervisor.ts';
+import { resolveAppIconPath } from './app/AppIcon.ts';
+// 启动页兜底文案引用消息表单一真源：不再复写字面量（改文案只动 messages.ts 一处，
+// 此前这里散落一份中文副本会静默漂移，2026-11-18 硬编码清理批次）。
+import { DESKTOP_MESSAGES } from './i18n/messages.ts';
 
 /** 启动页（内联 data URL：不依赖 asar 内文件路径，规避 packaged `ERR_FILE_NOT_FOUND`）。 */
 const loadingHtml = (hint: string, lang: string): string =>
@@ -88,7 +91,9 @@ export function createMainWindow(options: MainWindowOptions): BrowserWindow {
     minHeight: config.minHeight,
     show: false,
     title: 'OmniHarness',
-    icon: join(__dirname, 'icon.png'),
+    // 任务栏/窗口图标 = 项目标识（Ω 芯片）。Windows 传多尺寸 ICO：任务栏按 DPI
+    // 直接取 16/20/24/32/48 帧，不会把 512 PNG 缩放成糊块；其它平台用 512 PNG。
+    icon: resolveAppIconPath(__dirname, process.platform),
     backgroundColor: config.backgroundColor,
     autoHideMenuBar: config.autoHideMenuBar,
     // win32 **无边框窗口**（2026-10-31 用户口径：桌面 APP 无边框 + 极简/iOS 风）：
@@ -148,7 +153,10 @@ export function createMainWindow(options: MainWindowOptions): BrowserWindow {
   });
   void window.loadURL(
     `data:text/html;charset=utf-8,${encodeURIComponent(
-      loadingHtml(options.loadingHint ?? '正在启动本地 Harness…', options.loadingLang ?? 'zh-CN'),
+      loadingHtml(
+        options.loadingHint ?? DESKTOP_MESSAGES['zh-CN']['window.starting'],
+        options.loadingLang ?? 'zh-CN',
+      ),
     )}`,
   );
   return window;

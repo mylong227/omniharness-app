@@ -18,7 +18,7 @@ import * as React from 'react';
 import Button from 'antd/es/button';
 import Modal from 'antd/es/modal';
 import { jsonView } from '../format.ts';
-import { icon } from '../models/Icon.ts';
+import { icon } from '../kit/Icon.tsx';
 import { toolVerb } from '../textUtils.ts';
 import type { ApprovalRequest } from '../../types/models.ts';
 import { t } from '../i18n/i18n.ts';

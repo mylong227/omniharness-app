@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * License 引擎（商业化路线图 **F1**，阶段 1「单机商业版」）。
  *
@@ -163,7 +164,7 @@ export class LicenseEngine {
     const canonical = LicenseEngine.canonicalPayload(parse);
     if (!Ed25519PublicKey.verify(canonical, parse.signatureB64, input.publicKeySsh)) {
       return LicenseEngine.core(
-        'license 验签未通过（正文被篡改或签名不匹配）',
+        AppText.t('license 验签未通过（正文被篡改或签名不匹配）'),
         false,
         'signature-invalid',
         observe,
@@ -186,7 +187,7 @@ export class LicenseEngine {
     const skew = Math.max(0, input.issuedSkewMs ?? DEFAULT_ISSUED_SKEW_MS);
     if (parse.issuedAtMs > now + skew) {
       return LicenseEngine.core(
-        'license 签发时刻晚于当前时刻（超出容差），拒绝采信',
+        AppText.t('license 签发时刻晚于当前时刻（超出容差），拒绝采信'),
         false,
         'future-issued',
         observe,
@@ -196,7 +197,7 @@ export class LicenseEngine {
     // ④ 过期 ⇒ **降级为核心功能，不停摆**。
     if (now > parse.expiresAtMs) {
       const verdict = LicenseEngine.core(
-        'license 已过期：退回核心档（核心功能照常可用，请续期）',
+        AppText.t('license 已过期：退回核心档（核心功能照常可用，请续期）'),
         true,
         'expired',
         observe,
@@ -266,29 +267,29 @@ export class LicenseEngine {
       .split(/\r?\n/)
       .map((line) => line.trim())
       .filter((line) => line !== '');
-    if (lines.length < 3) return 'license 格式非法：需要「头 / 正文 / 签名」三段';
+    if (lines.length < 3) return AppText.t('license 格式非法：需要「头 / 正文 / 签名」三段');
     if (lines[0] !== LICENSE_HEADER) return `license 头非法："${lines[0]?.slice(0, 24) ?? ''}"`;
     let decoded: unknown;
     try {
       decoded = JSON.parse(Buffer.from(lines[1] ?? '', 'base64').toString('utf8'));
     } catch {
-      return 'license 正文不是合法 JSON（base64 段损坏）';
+      return AppText.t('license 正文不是合法 JSON（base64 段损坏）');
     }
-    if (typeof decoded !== 'object' || decoded === null) return 'license 正文必须是对象';
+    if (typeof decoded !== 'object' || decoded === null) return AppText.t('license 正文必须是对象');
     const record = decoded as Partial<LicensePayload>;
     if (typeof record.licenseId !== 'string' || record.licenseId.trim() === '') {
-      return 'license 缺 licenseId';
+      return AppText.t('license 缺 licenseId');
     }
     if (record.tier !== 'pro' && record.tier !== 'team' && record.tier !== 'enterprise') {
       return `license 档位非法："${String(record.tier)}"`;
     }
     if (typeof record.machineFingerprint !== 'string' || record.machineFingerprint === '') {
-      return 'license 缺 machineFingerprint';
+      return AppText.t('license 缺 machineFingerprint');
     }
     if (typeof record.issuedAtMs !== 'number' || typeof record.expiresAtMs !== 'number') {
-      return 'license 缺签发/到期时刻';
+      return AppText.t('license 缺签发/到期时刻');
     }
-    if (record.expiresAtMs <= record.issuedAtMs) return 'license 到期时刻必须晚于签发时刻';
+    if (record.expiresAtMs <= record.issuedAtMs) return AppText.t('license 到期时刻必须晚于签发时刻');
     return { ...(record as LicensePayload), signatureB64: lines[2] ?? '' };
   }
 

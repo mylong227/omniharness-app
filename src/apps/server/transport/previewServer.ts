@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 // 工作区**网页预览**源（2026-10-19）：把工作区里的静态站点（HTML / CSS / JS / 字体 / 图片）
 // 原样以只读方式提供给右栏的 `<iframe>`。
 //
@@ -40,6 +41,7 @@ import sirv, { type RequestHandler } from 'sirv';
 import { SafeFs } from '../services/safeFs.ts';
 import { runtimeLimits } from '../../../host/kernel/util.ts';
 import type { PreviewLimits } from '../../../host/kernel/contracts.ts';
+import { PREVIEW_SOURCE_MAX_BYTES } from '../services/appLimits.ts';
 
 /** 预览源选项。 */
 export interface PreviewServerOptions {
@@ -55,7 +57,7 @@ export interface PreviewServerOptions {
 }
 
 /** 单文件上限（字节）：与 SafeFs 的硬上限一致（大产物不会把内存读爆）。 */
-const MAX_PREVIEW_BYTES = 64 * 1024 * 1024;
+const MAX_PREVIEW_BYTES = PREVIEW_SOURCE_MAX_BYTES;
 
 /** sirv 的扩展名回落（`/login` → `login.html` / `login.htm`；目录同样回落到 index）。 */
 const EXTENSIONS: readonly string[] = ['html', 'htm'];
@@ -107,7 +109,7 @@ export class PreviewServer {
         if (!response.headersSent) {
           response.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
         }
-        if (!response.writableEnded) response.end('预览服务内部错误');
+        if (!response.writableEnded) response.end(AppText.t('预览服务内部错误'));
       });
     });
     // 连接级防护：预览是静态小文件，不需要长连接与慢速头。
@@ -134,7 +136,7 @@ export class PreviewServer {
     if (boundPort === 0) {
       server.closeAllConnections?.();
       server.close(() => undefined);
-      throw new Error('预览服务绑定后拿不到监听端口（address=null）——拒绝以 port 0 假装成功');
+      throw new Error(AppText.t('预览服务绑定后拿不到监听端口（address=null）——拒绝以 port 0 假装成功'));
     }
     this.server = server;
     this.boundPort = boundPort;
@@ -172,13 +174,13 @@ export class PreviewServer {
     const workspaceRoot = this.options.workspaceRoot();
     if (workspaceRoot === '') {
       response.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8' });
-      response.end('工作区未配置');
+      response.end(AppText.t('工作区未配置'));
       return;
     }
     const relative = PreviewServer.relativeOf(request.url ?? '/');
     if (relative === null) {
       response.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
-      response.end('预览路径无法解析');
+      response.end(AppText.t('预览路径无法解析'));
       return;
     }
     const resolved = PreviewServer.resolve(workspaceRoot, relative);
@@ -195,7 +197,7 @@ export class PreviewServer {
     const stat = SafeFs.safeStat(workspaceRoot, resolved.relative);
     if (stat.ok && stat.size > MAX_PREVIEW_BYTES) {
       response.writeHead(413, { 'Content-Type': 'text/plain; charset=utf-8' });
-      response.end('文件过大，拒绝整文件读入内存');
+      response.end(AppText.t('文件过大，拒绝整文件读入内存'));
       return;
     }
     // sirv 只收到「已通过守卫的具体文件」：改写 url 后让它负责 MIME / Range / HEAD / 缓存头。
@@ -311,7 +313,7 @@ export class PreviewServer {
     for (const candidate of candidates) {
       const stat = SafeFs.safeStat(root, candidate);
       if (!stat.ok) {
-        if (stat.error === '路径越界工作区') return { kind: 'forbidden' };
+        if (stat.error === AppText.t('路径越界工作区')) return { kind: 'forbidden' };
         continue;
       }
       if (stat.isFile) return { kind: 'file', relative: candidate };

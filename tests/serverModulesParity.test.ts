@@ -46,8 +46,8 @@ describe('RPC parity 快照（coreModules）', () => {
   const entries = collectMethods(coreModules());
   const methods = entries.map((e) => e.method).sort();
 
-  it('方法总数 == 92（91 + sessions.setPinned 置顶同步；有意识地增减并同步 web ApiClient）', () => {
-    expect(methods.length).toBe(92);
+  it('方法总数 == 117（116 + model.adapters，Router 卡 env 预检；有意识地增减并同步 web ApiClient）', () => {
+    expect(methods.length).toBe(117);
   });
 
   it('全量方法清单（按域前缀分组快照）', () => {
@@ -79,10 +79,23 @@ describe('RPC parity 快照（coreModules）', () => {
         "checkpoint.rollback",
         "config.get",
         "config.update",
+        "context.compact",
+        "context.handoff.add",
+        "context.handoff.clear",
+        "context.studio",
         "context.usage",
         "daemon.status",
+        "decision.configure",
+        "decision.detail",
+        "decision.export",
+        "decision.session",
         "doctor.report",
+        "fleet.applyPatch",
+        "fleet.cancel",
+        "fleet.list",
+        "fleet.patch",
         "fs.browse",
+        "fs.exists",
         "fs.list",
         "fs.mkdir",
         "fs.read",
@@ -94,12 +107,16 @@ describe('RPC parity 快照（coreModules）', () => {
         "graph.run",
         "graph.save",
         "graph.status",
+        "kernel.health",
         "memory.add",
         "memory.delete",
+        "memory.facts",
         "memory.list",
         "memory.search",
         "memory.update",
+        "model.adapters",
         "model.catalog",
+        "model.pricing",
         "model.probe",
         "modes.get",
         "modes.set",
@@ -113,6 +130,10 @@ describe('RPC parity 快照（coreModules）', () => {
         "profile.delete",
         "profile.list",
         "profile.save",
+        "proof.build",
+        "proof.export",
+        "proof.turns",
+        "proof.verify",
         "question.pending",
         "question.respond",
         "quota.get",
@@ -127,6 +148,10 @@ describe('RPC parity 快照（coreModules）', () => {
         "sessions.reorder",
         "sessions.setPinned",
         "sessions.setWorkspace",
+        "skills.apply",
+        "skills.delete",
+        "skills.diff",
+        "skills.get",
         "skills.list",
         "threads.continue",
         "threads.create",
@@ -159,15 +184,40 @@ describe('RPC parity 快照（coreModules）', () => {
     expect(byOwner.get('workspace.switch')).toBe('workspace');
     expect(byOwner.get('sessions.reorder')).toBe('sessions');
     expect(byOwner.get('sessions.setPinned')).toBe('sessions');
-    expect(byOwner.get('context.usage')).toBe('surface');
+    // 2026-11-20 批次三按域重排：control 三拆（fleet/contextStudio/proof），
+    // surface 清仓（quota→observability、modes→threads、setWorkspace→sessions）。
+    expect(byOwner.get('context.usage')).toBe('contextStudio');
+    expect(byOwner.get('fleet.list')).toBe('fleet');
+    expect(byOwner.get('fleet.cancel')).toBe('fleet');
+    expect(byOwner.get('fleet.applyPatch')).toBe('fleet');
+    expect(byOwner.get('context.compact')).toBe('contextStudio');
+    expect(byOwner.get('context.handoff.add')).toBe('contextStudio');
+    expect(byOwner.get('fleet.patch')).toBe('fleet');
+    expect(byOwner.get('proof.verify')).toBe('proof');
+    expect(byOwner.get('context.studio')).toBe('contextStudio');
+    expect(byOwner.get('proof.build')).toBe('proof');
+    expect(byOwner.get('modes.get')).toBe('threads');
+    expect(byOwner.get('modes.set')).toBe('threads');
+    expect(byOwner.get('quota.get')).toBe('observability');
+    expect(byOwner.get('sessions.setWorkspace')).toBe('sessions');
+    expect(byOwner.get('decision.session')).toBe('decision');
+    expect(byOwner.get('decision.configure')).toBe('decision');
+    expect(byOwner.get('decision.export')).toBe('decision');
     expect(byOwner.get('plugins.reload')).toBe('plugins');
     expect(byOwner.get('graph.resume')).toBe('graphs');
     expect(byOwner.get('memory.search')).toBe('memory');
+    expect(byOwner.get('memory.facts')).toBe('memory');
+    expect(byOwner.get('skills.list')).toBe('skills');
+    expect(byOwner.get('skills.apply')).toBe('skills');
+    expect(byOwner.get('model.pricing')).toBe('config');
+    expect(byOwner.get('model.adapters')).toBe('config');
     expect(byOwner.get('checkpoint.rollback')).toBe('checkpoints');
     expect(byOwner.get('changes.stageHunk')).toBe('review');
     expect(byOwner.get('trace.read')).toBe('observability');
     expect(byOwner.get('vault.set')).toBe('vault');
     expect(byOwner.get('governance.history')).toBe('governance');
+    expect(byOwner.get('kernel.health')).toBe('observability');
     expect(byOwner.get('rpc.list')).toBe('introspect');
   });
 });
+

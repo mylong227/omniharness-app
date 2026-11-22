@@ -6,7 +6,7 @@
 // 行为与旧版 useAppController 内联实现逐字节等价。
 
 import { ApiClient } from '../../core/ApiClient.ts';
-import type { AppRoute } from '../../core/Router.ts';
+import type { AppRoute } from '../models/Router.ts';
 import { EventStream } from '../../core/EventStream.ts';
 import { dismissAuthBanner } from '../authRequiredBanner.ts';
 import { RouteBinding } from './RouteBinding.ts';
@@ -36,6 +36,7 @@ import { KeyboardShortcuts } from '../models/KeyboardShortcuts.ts';
 import type { BrowserView, FileView, LiveInput, SessionEntry, ToolResultView, ToastState } from '../shared.ts';
 import type { ComposerSeed } from '../shared.ts';
 import { AppReducers } from './AppReducers.ts';
+import { routeStreamMessage } from './StreamEventRouter.ts';
 import { formatProfilePluginToast } from '../notify.ts';
 import { desktopBridge, notifyDesktop } from '../../core/desktop/DesktopBridge.ts';
 import { SessionController } from './SessionController.ts';
@@ -47,6 +48,14 @@ import { SettingsController } from './SettingsController.ts';
 import { ShortcutActions } from './ShortcutActions.ts';
 import type { ChatMode } from '../models/ChatModePreference.ts';
 import type { QueuedMessage } from '../models/ChatMessageQueue.ts';
+import { ClipboardCopier } from '../models/ClipboardCopier.ts';
+import { ModelPricing } from '../models/ModelPricing.ts';
+import { setLocalizer } from '../../core/localize.ts';
+import { ensureMarkdownLibs } from '../markdown.ts';
+import { EFFORTS_BY_MODEL, MODEL_OPTIONS, PROVIDER_LABEL } from '../models/StorageKeys.ts';
+import { SessionTranscript } from '../models/SessionTranscript.ts';
+import { TraceTranscript } from '../models/TraceTranscript.ts';
+import type { TraceRow } from '../models/TraceFilter.ts';
 import { t } from '../i18n/i18n.ts';
 
 /** 应用根组件的全部 UI 状态（原 useAppController 的各 useState 合集）。 */
@@ -72,6 +81,8 @@ export interface AppState {
   providerLabel: string;
   reasoning: string;
   reasoningOptions: string[] | undefined;
+  /** 每模型推理档位表（model.catalog 下发；undefined = 旧服务端，回落 reasoningOptions）。 */
+  effortsByModel: Record<string, string[]> | undefined;
   permission: string;
   events: ThreadEvent[];
   toolResults: Record<string, ToolResultView>;
@@ -144,6 +155,8 @@ export interface AppState {
   activeTool: string | null;
   toastState: ToastState;
   paletteOpen: boolean;
+  /** 快捷键速查浮层（「?」键开合，2026-11-17 粘性批次）。 */
+  shortcutsOpen: boolean;
   /** 会话列表是否显示**全部项目**（默认只显示当前项目；一键切换，见 SessionController.toggleSessionsScope）。 */
   sessionsScopeAll: boolean;
   /** 应用内对话框状态（替代 window.confirm / window.prompt）。 */
@@ -206,6 +219,8 @@ export class AppController {
   private readonly host: AppHost;
   /** 共享服务与纯归约器集合（组合根注入）。 */
   private readonly services: AppServices;
+  /** memory.changed 的去抖定时器（null = 无挂起刷新）。 */
+  private memoryReloadTimer: ReturnType<typeof setTimeout> | null = null;
   /** 按职责拆出的子控制器与协作件（会话 / 输入框 / graph / 快捷键解析与执行）。 */
   private readonly children: {
     sessions: SessionController;
@@ -230,6 +245,8 @@ export class AppController {
   private keyHandler: ((e: KeyboardEvent) => void) | null = null;
   /** 桌面通知/深链订阅（卸载时取消）。 */
   private desktopUnsubscribes: Array<() => void> = [];
+  /** 上一次「未处理 rejection」toast 的时刻（节流用）。 */
+  private lastRejectionToastAt = 0;
   /**
    * 「断开」宽限期（毫秒）：SSE 抖动先显示「重连中」，超过该时长仍未重连上才判「断开」。
    *
@@ -241,6 +258,23 @@ export class AppController {
   private streamGraceTimer: ReturnType<typeof setTimeout> | null = null;
   /** 哈希路由绑定（F8：深链 / 浏览器前进后退，逻辑在 RouteBinding 内，避免越过上帝类红线）。 */
   private readonly routeBinding: RouteBinding;
+
+  /**
+   * 当前路由只读快照（2026-11-10 控制室引入：面板内部视图 `view` 由 ControlTab 经它读取）。
+   * @returns 当前路由（pane / threadId / 可选 view）。
+   */
+  public route(): AppRoute {
+    return this.routeBinding.current();
+  }
+
+  /**
+   * 路由导航（2026-11-10 控制室引入：面板内部 view 切换写 hash 的公开通道）。
+   * @param partial 路由局部补丁（pane / threadId / view）。
+   * @returns 无
+   */
+  public navigateRoute(partial: Partial<AppRoute>): void {
+    this.routeBinding.navigate(partial);
+  }
 
   /** 会话子控制器（只读暴露给视图层）。 */
   public get sessions(): SessionController {
@@ -295,6 +329,10 @@ export class AppController {
     const sessions = new SessionController(this.host, this.services);
     const graph = new GraphController(this.host, this.services);
     const composer = new ComposerController(this.host, this.services, sessions);
+    // 远端回合收尾联动：打开「正在运行」的会话后，其回合不在本页面跑，自然收尾时由
+    // SessionController 在 refreshSessions 里解除 busy，这里接上队列续发（与本地回合
+    // finally 的 drain 同一口径）。
+    sessions.onRemoteBusyCleared = () => composer.queueDrain();
     const browser = new BrowserController(this.host, this.services);
     // 打开 HTML 时默认直接进网页预览（文件标签仍保留源码视图，点标签可切回）。
     const files = new FileController(this.host, this.services, (path) =>
@@ -322,6 +360,16 @@ export class AppController {
       }),
     };
     this.commands = this.buildCommands();
+    // 全局未处理 rejection 的用户可见出口（main.ts 派发 `omni:unhandled-rejection`）：
+    // 节流到 10s 一条，防连环失败刷屏；只报首条原因，全量在控制台。
+    this.lastRejectionToastAt = 0;
+    window.addEventListener('omni:unhandled-rejection', (ev) => {
+      const message = (ev as CustomEvent<string>).detail ?? '';
+      const now = Date.now();
+      if (now - this.lastRejectionToastAt < 10_000) return;
+      this.lastRejectionToastAt = now;
+      this.showToast(t('内部错误：{msg}', { msg: message }), 'err');
+    });
     // F8：路由绑定在组合根装配（需 children.sessions 作为打开会话回调）。
     this.routeBinding = new RouteBinding(this.host, (id: string) => void this.children.sessions.loadThread(id));
     // 绑定对外回调，保证作为 props 传递给子组件时 this 正确。
@@ -333,14 +381,20 @@ export class AppController {
 
   /** 挂载：绑定 toast / 对话框服务、拉取目录/配置、初始化主题、连接 SSE、刷新会话。 @returns 无 */
   public mount(): void {
+    // core 层文案接缝注入（2026-11-20 批次二 A1-2）：ApiClient/DialogService 经 localize.L
+    // 出口本地化——core 不再 import ui/i18n，方向恢复单向；任何 RPC 都晚于本注入。
+    setLocalizer(t);
     this.services.toastSvc.bind((message: string, kind?: ToastKind) => this.showToast(message, kind));
     this.services.dialogSvc.bind((state: DialogState) => this.host.patch({ dialog: state }));
+    // markdown 惰性库预热（批次六 B2）：chunk 与首屏并行下载，未就绪窗口内走 legacy 渲染。
+    void ensureMarkdownLibs();
     this.refreshModelCatalog();
+    this.refreshModelPricing();
     this.children.layout.initTheme();
     // 标签页标题也随语言走（index.html 里的静态 <title> 是中文，这里接管为 t() 文案）。
     document.title = t('OmniHarness 工作台');
     this.services.api
-      .getConfig()
+      .config.getConfig()
       .then((c) => {
         this.host.patch((s) => ({
           adapter: (c.modelAdapter || 'mock') + (c.model ? ' · ' + c.model : ''),
@@ -354,11 +408,19 @@ export class AppController {
         // 聊天模式同一口径：配置里有值才回灌（缺失时保留首帧的本地缓存，不覆盖成缺省）。
         if (c.chatMode !== undefined) this.children.composer.chatQueue.setMode(c.chatMode, false);
       })
-      .catch(() => {});
+      .catch(() => {
+        /* 启动时 config.get 失败保持静默（口径与 refreshSessions 一致）：服务端不可达时
+           连接横幅（connectStream）已是全局反馈，此处再弹 toast 属于重复打扰；回灌失败的
+           结果是首帧本地缓存生效，语义仍正确。 */
+      });
     this.connectStream();
-    // 启动时**连归档一起读一次**：此后日常刷新走快速路径（跳过归档文件的逐个扫描），而归档行已在内存
-    // ⇒ `mergeSessions` 会一直保留它们（「已归档」组不会因为快速刷新而消失）。
-    void this.children.sessions.refreshSessions(true);
+    // 启动装载两拍（2026-11-20 批次四 4.4）：第一拍走快速路径（跳过归档逐个扫描，侧栏立即
+    // 出列表）；归档补扫延后一拍——此后日常刷新走快速路径，而归档行已在内存 ⇒ `mergeSessions`
+    // 会一直保留它们（「已归档」组不会因为快速刷新而消失）。
+    void this.children.sessions.refreshSessions(false);
+    setTimeout(() => {
+      void this.children.sessions.refreshSessions(true);
+    }, 1000);
     // F8：应用初始深链（面板 + 会话）并订阅浏览器前进 / 后退。
     this.routeBinding.start();
     // 桌面端：点击原生通知/深链后聚焦到对应会话（浏览器下 desktopBridge() 为 null，自动 no-op）。
@@ -383,6 +445,14 @@ export class AppController {
           }
         }),
       );
+      // 全局「快速提问」（2026-11-10）：主进程已唤起窗口，这里只把焦点送回输入框。
+      if (bridge.onQuickCapture !== undefined) {
+        this.desktopUnsubscribes.push(
+          bridge.onQuickCapture(() => {
+            this.focusComposer();
+          }),
+        );
+      }
     }
   }
 
@@ -409,72 +479,75 @@ export class AppController {
    * @param msg SSE 信封。
    * @returns 无
    */
+  /** SSE 分流（2026-11-20 批次六抽出纯分发表 StreamEventRouter；业务处理器在下方）。 */
   private routeStreamMessage(msg: SseEnvelope): void {
-    const params = msg.params as Record<string, unknown>;
-    switch (msg.method) {
-      case 'thread.event':
-        this.children.sessions.handleEvent(params.event as ThreadEvent);
-        break;
-      case 'approval.request': {
-        const incoming = params as unknown as ApprovalRequest;
-        // 单槽 UI 不变量（见 restorePendingCards）：槽位被占用时**不覆盖**——服务端可同时挂起
-        // 多条审批（多线程并行回合），此前无条件 patch 会把用户正在看的 A 卡静默顶掉（B 的
-        // 工具挂起却无人可见）。后到请求仍在服务端挂起表排队，当前卡片处置成功后的
-        // restorePendingCards 会把它接续重建；这里只补一条应用内提示让排队可见。
-        const queued = this.host.getState().approval !== null;
-        this.host.patch((s) => (s.approval ? {} : { approval: incoming }));
-        if (queued) {
-          this.services.toast(t('已有一条审批在等待：新请求已排队，处理完当前卡片后自动接续'), 'info');
-        }
-        notifyDesktop({
-          title: t('需要你的确认'),
-          body: t('有一个工具调用等待审批，请回到 OmniHarness 处理。'),
-          ...(typeof params['threadId'] === 'string' ? { sessionId: params['threadId'] } : {}),
-        });
-        break;
-      }
-      case 'question.request': {
-        // 与 approval.request 同一单槽纪律：占用时不覆盖（服务端挂起表为真源）。
-        const queuedQuestion = this.host.getState().question !== null;
-        this.host.patch((s) => (s.question ? {} : { question: params as unknown as QuestionRequest }));
-        if (queuedQuestion) {
-          this.services.toast(t('已有一个提问在等待：新提问已排队，回答完当前后自动接续'), 'info');
-        }
-        notifyDesktop({
-          title: t('需要你的回答'),
-          body: t('Agent 正在等待你的回答。'),
-          ...(typeof params['threadId'] === 'string' ? { sessionId: params['threadId'] } : {}),
-        });
-        break;
-      }
-      case 'memory.changed':
-        this.host.patch((s) => ({ memoryReloadKey: s.memoryReloadKey + 1 }));
-        break;
-      case 'profile.event':
-        this.host.patch((s) => ({ profilesReloadKey: s.profilesReloadKey + 1 }));
-        break;
-      case 'profile.applied':
+    routeStreamMessage(msg, {
+      threadEvent: (event) => this.children.sessions.handleEvent(event),
+      approvalRequest: (params) => this.onApprovalRequest(params),
+      questionRequest: (params) => this.onQuestionRequest(params),
+      memoryChanged: () => this.onMemoryChanged(),
+      profilesReload: () => this.host.patch((s) => ({ profilesReloadKey: s.profilesReloadKey + 1 })),
+      profileApplied: (params) => {
         this.host.patch((s) => ({ profilesReloadKey: s.profilesReloadKey + 1 }));
         this.applyProfilePluginToast('profile.applied', params);
-        break;
-      case 'profile.error':
-      case 'plugin.loaded':
-      case 'plugin.loadError':
-        this.applyProfilePluginToast(msg.method, params);
-        break;
-      case 'thread.tool_input':
-        this.children.sessions.updateToolInput(params);
-        break;
-      case 'thread.text_delta':
-        this.children.sessions.appendTextDelta(params);
-        break;
-      case 'graph.progress':
-        this.children.graph.applyGraphProgress(params as unknown as GraphProgress);
-        break;
-      case 'graph.done':
-        this.children.graph.applyGraphDone(params as unknown as GraphDone);
-        break;
+      },
+      profilePluginToast: (method, params) => this.applyProfilePluginToast(method, params),
+      toolInput: (params) => this.children.sessions.updateToolInput(params),
+      textDelta: (params) => this.children.sessions.appendTextDelta(params),
+      graphProgress: (params) => this.children.graph.applyGraphProgress(params as unknown as GraphProgress),
+      graphDone: (params) => this.children.graph.applyGraphDone(params as unknown as GraphDone),
+    });
+  }
+
+  /**
+   * 审批卡到达：单槽 UI 不变量（见 restorePendingCards）——槽位被占用时**不覆盖**（服务端
+   * 可同时挂起多条审批），后到请求在服务端挂起表排队；这里只补一条应用内提示让排队可见。
+   * @param params 通知载荷
+   * @returns 无返回值
+   */
+  private onApprovalRequest(params: Record<string, unknown>): void {
+    const incoming = params as unknown as ApprovalRequest;
+    const queued = this.host.getState().approval !== null;
+    this.host.patch((s) => (s.approval ? {} : { approval: incoming }));
+    if (queued) {
+      this.services.toast(t('已有一条审批在等待：新请求已排队，处理完当前卡片后自动接续'), 'info');
     }
+    notifyDesktop({
+      title: t('需要你的确认'),
+      body: t('有一个工具调用等待审批，请回到 OmniHarness 处理。'),
+      ...(typeof params['threadId'] === 'string' ? { sessionId: params['threadId'] } : {}),
+    });
+  }
+
+  /**
+   * 提问卡到达：与 approval.request 同一单槽纪律（占用时不覆盖，服务端挂起表为真源）。
+   * @param params 通知载荷
+   * @returns 无返回值
+   */
+  private onQuestionRequest(params: Record<string, unknown>): void {
+    const queuedQuestion = this.host.getState().question !== null;
+    this.host.patch((s) => (s.question ? {} : { question: params as unknown as QuestionRequest }));
+    if (queuedQuestion) {
+      this.services.toast(t('已有一个提问在等待：新提问已排队，回答完当前后自动接续'), 'info');
+    }
+    notifyDesktop({
+      title: t('需要你的回答'),
+      body: t('Agent 正在等待你的回答。'),
+      ...(typeof params['threadId'] === 'string' ? { sessionId: params['threadId'] } : {}),
+    });
+  }
+
+  /**
+   * 记忆重载信号：300ms 去抖（2026-11-20 批次四 4.2）——蒸馏类连续写 N 条记忆会产生
+   * N 次通知，面板每次重拉都是全量 list，去抖合并为一个刷新信号。
+   * @returns 无返回值
+   */
+  private onMemoryChanged(): void {
+    if (this.memoryReloadTimer !== null) clearTimeout(this.memoryReloadTimer);
+    this.memoryReloadTimer = setTimeout(() => {
+      this.memoryReloadTimer = null;
+      this.host.patch((s) => ({ memoryReloadKey: s.memoryReloadKey + 1 }));
+    }, 300);
   }
 
   /** 连接 SSE 并把各消息方法路由到对应子控制器。 @returns 无 */
@@ -517,12 +590,35 @@ export class AppController {
     window.addEventListener('omni:token-updated', onTokenUpdated);
     this.desktopUnsubscribes.push(() => window.removeEventListener('omni:token-updated', onTokenUpdated));
     this.keyHandler = (e: KeyboardEvent) => {
+      // 「?」速查（2026-11-17 粘性批次）：非输入焦点按 ? 开合快捷键速查浮层。
+      // ? 是 Shift+/，不需要 ctrl/meta；输入焦点内让给正文（问号照打）。
+      if (e.key === '?' && !e.ctrlKey && !e.metaKey && !AppController.isEditableTarget(e.target)) {
+        e.preventDefault();
+        this.host.patch((s) => ({ shortcutsOpen: !s.shortcutsOpen }));
+        return;
+      }
       const action = this.children.keyBindings.resolve(e);
       if (!action) return;
       e.preventDefault();
       this.children.shortcuts.run(action);
     };
     window.addEventListener('keydown', this.keyHandler);
+  }
+
+  /**
+   * 判定事件目标是否是可编辑元素（输入框 / 文本域 / 可编辑宿主）：
+   * 裸键快捷键（如「?」）只在非输入焦点时接管，避免劫持正文输入。
+   * @param target 事件目标
+   * @returns 可编辑为 true
+   */
+  private static isEditableTarget(target: EventTarget | null): boolean {
+    if (!(target instanceof HTMLElement)) return false;
+    return (
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.tagName === 'SELECT' ||
+      target.isContentEditable
+    );
   }
 
   /**
@@ -534,7 +630,7 @@ export class AppController {
    */
   private restorePendingCards(): void {
     this.services.api
-      .pendingApprovals()
+      .control.pendingApprovals()
       .then((list) => {
         const first = list[0];
         if (first !== undefined) this.host.patch((s) => (s.approval ? {} : { approval: first }));
@@ -545,7 +641,7 @@ export class AppController {
         this.services.toast(t('挂起审批恢复失败，可刷新页面重试'), 'err');
       });
     this.services.api
-      .pendingQuestions()
+      .control.pendingQuestions()
       .then((list) => {
         const first = list[0];
         if (first !== undefined) {
@@ -563,7 +659,7 @@ export class AppController {
   /** 拉取当前厂商可用模型清单并写入状态 / 持久化（含推理强度档位）。 @returns 无 */
   public refreshModelCatalog(): void {
     this.services.api
-      .modelCatalog()
+      .config.modelCatalog()
       .then((cat) => {
         const active = cat.active;
         if (active) {
@@ -571,17 +667,36 @@ export class AppController {
             modelOptions: active.models,
             providerLabel: active.label,
             reasoningOptions: active.reasoningEffort,
+            effortsByModel: active.effortsByModel,
           });
           try {
-            localStorage.setItem('omni-model-options', JSON.stringify(active.models));
-            localStorage.setItem('omni-provider-label', active.label);
+            localStorage.setItem(MODEL_OPTIONS, JSON.stringify(active.models));
+            localStorage.setItem(PROVIDER_LABEL, active.label);
+            localStorage.setItem(EFFORTS_BY_MODEL, JSON.stringify(active.effortsByModel ?? {}));
           } catch {
             /* 忽略 */
           }
           this.host.patch((s) => (s.model ? s : { model: active.model || s.model }));
         }
       })
-      .catch(() => {});
+      .catch((e: unknown) => {
+        // 模型清单读取失败不再静默（2026-11-17 全面 review）：失败后下拉只能停留 localStorage
+        // 缓存或为空，用户看着「没有可选模型」却不知道为什么。与挂起恢复失败同一口径：如实提示。
+        const msg = e instanceof Error ? e.message : String(e);
+        this.services.toast(t('模型清单读取失败：{msg}', { msg }), 'err');
+      });
+  }
+
+  /** 拉取服务端价表喂给 ModelPricing（#9；失败静默——内置表兜底，成本估算不中断）。 @returns 无 */
+  public refreshModelPricing(): void {
+    this.services.api
+      .config.modelPricing()
+      .then((table) => {
+        ModelPricing.setServerTable(table);
+      })
+      .catch(() => {
+        // 价表下发失败不打扰用户：内置参考价表兜底（≈ 口径不变），下一次刷新会话时重试。
+      });
   }
 
   /**
@@ -615,6 +730,122 @@ export class AppController {
     this.host.patch({ paletteOpen: false });
   }
 
+  /** 关闭快捷键速查浮层。 @returns 无 */
+  public closeShortcuts(): void {
+    this.host.patch({ shortcutsOpen: false });
+  }
+
+  /**
+   * 把焦点送回输入框：关闭压在中间的控制台 / 命令面板，等 DOM 更新后聚焦 textarea。
+   *
+   * 桌面端的全局「快速提问」快捷键与标题条按钮都走这里；浏览器里也可由调用方复用。
+   * 用两帧 requestAnimationFrame 而不是同步查询：关闭控制台会让输入区重新挂载，
+   * 同步查询拿到的可能是即将卸载的旧节点。
+   * @returns 无
+   */
+  public focusComposer(): void {
+    this.host.patch({ settingsOpen: false, panelModalOpen: false, paletteOpen: false });
+    const focus = (): void => {
+      const input = document.querySelector<HTMLTextAreaElement>('.composer textarea');
+      if (input === null) return;
+      input.focus();
+      const end = input.value.length;
+      input.setSelectionRange(end, end);
+      input.scrollIntoView({ block: 'nearest' });
+    };
+    if (typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(() => window.requestAnimationFrame(focus));
+      return;
+    }
+    focus();
+  }
+
+  /**
+   * 复制当前会话的深链（不带一次性 token；同机同浏览器凭 cookie 可直接打开）。
+   * @returns 无
+   */
+  public copySessionLink(): void {
+    const threadId = this.host.getState().currentThreadId;
+    if (threadId === null || threadId === '') {
+      this.showToast(t('还没有可分享的会话'), 'info');
+      return;
+    }
+    const base = typeof location === 'undefined' ? '' : location.href.split('#')[0] ?? '';
+    const link = base + '#thread=' + encodeURIComponent(threadId);
+    void ClipboardCopier.copy(link).then((ok) => {
+      this.showToast(ok ? t('已复制会话链接') : t('复制失败，请检查剪贴板权限'), ok ? 'ok' : 'err');
+    });
+  }
+
+  /**
+   * 把当前已加载的会话导出为 Markdown 文件（浏览器下载；不写服务端）。
+   * @returns 无
+   */
+  public exportSession(): void {
+    const state = this.host.getState();
+    if (state.events.length === 0) {
+      this.showToast(t('当前会话还没有可导出的内容'), 'info');
+      return;
+    }
+    const entry = state.sessions.find((session) => session.id === state.currentThreadId);
+    const title = entry !== undefined ? entry.label : '';
+    const now = Date.now();
+    const body = SessionTranscript.markdown(state.events, {
+      title,
+      now,
+      partial: state.historyHasMore,
+    });
+    this.downloadText(SessionTranscript.filename(title, now), body, 'text/markdown;charset=utf-8');
+    this.showToast(t('已导出会话 Markdown'));
+  }
+
+  /**
+   * 导出工具轨迹（2026-11-17 粘性批次）：把 TraceView 当前筛选后的行整理成 Markdown 下载。
+   * 行数据由组件层传入（筛选状态是组件事实源），格式化在 TraceTranscript 纯函数。
+   * @param rows 筛选后的轨迹行
+   * @param options 标题 / 筛选标注
+   * @returns 无
+   */
+  public exportTrace(
+    rows: readonly TraceRow[],
+    options: { readonly title?: string; readonly filtered?: boolean; readonly filterLabel?: string } = {},
+  ): void {
+    if (rows.length === 0) {
+      this.showToast(t('当前轨迹没有可导出的行'), 'info');
+      return;
+    }
+    const now = Date.now();
+    const body = TraceTranscript.markdown(rows, { ...options, now });
+    this.downloadText(TraceTranscript.filename(options.title ?? '', now), body, 'text/markdown;charset=utf-8');
+    this.showToast(t('已导出轨迹 Markdown'));
+  }
+
+  /**
+   * 浏览器下载一段文本（Blob + 匿名 anchor + 回收 URL；exportSession/exportTrace 共用）。
+   * @param filename 下载文件名
+   * @param body 文本内容
+   * @param mime MIME 类型
+   * @returns 无
+   */
+  private downloadText(filename: string, body: string, mime: string): void {
+    try {
+      const blob = new Blob([body], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    } catch (cause) {
+      this.showToast(
+        t('导出失败：{msg}', { msg: cause instanceof Error ? cause.message : String(cause) }),
+        'err',
+      );
+    }
+  }
+
   /**
    * 响应审批（允许 / 拒绝），可选「总是允许」时写回 autoApprove。
    * @param decision 决策
@@ -626,10 +857,10 @@ export class AppController {
     if (!req) return;
     try {
       if (always) {
-        await this.services.api.updateConfig({ autoApprove: true });
+        await this.services.api.config.updateConfig({ autoApprove: true });
         decision = 'allow';
       }
-      await this.services.api.respondApproval(req.requestId, decision);
+      await this.services.api.control.respondApproval(req.requestId, decision);
       // **成功后才收卡片**：与 answerQuestion 同一纪律。先收卡片再发 RPC 会在失败时
       // 丢掉挂起（回合永久等待），而用户只看到一行 toast。
       this.host.patch({ approval: null });
@@ -655,7 +886,7 @@ export class AppController {
     const request = this.host.getState().question;
     if (!request) return;
     try {
-      const ack = await this.services.api.respondQuestion(request.requestId, answers);
+      const ack = await this.services.api.control.respondQuestion(request.requestId, answers);
       if (!ack.ok) {
         if (ack.error === 'unknown_request') {
           this.host.patch({ question: null });
@@ -687,7 +918,7 @@ export class AppController {
   }
 
   /**
-   * 设置当前激活面板（PanelPicker / RightPanel 复用；F8：同步写入 hash）。
+   * 设置当前激活面板（控制台导航与右栏面板复用；F8：同步写入 hash）。
    * @param key 面板标识
    * @returns 无
    */
@@ -734,6 +965,7 @@ export class AppController {
       toast: (message: string, kind?: ToastKind) => this.showToast(message, kind),
       dialog: this.services.dialogSvc,
       refreshModelCatalog: () => this.refreshModelCatalog(),
+      openContextPane: () => this.navigateRoute({ pane: 'control', view: 'context' }),
       sessionId: this.host.getState().currentThreadId,
       sessionTick: this.host.getState().sessionTick,
       workspaceEpoch: this.host.getState().workspaceEpoch,
@@ -761,6 +993,8 @@ export class AppController {
       toggleRight: () => this.children.layout.toggleRight(),
       toggleFocus: () => this.children.layout.toggleFocus(),
       openSettings: () => this.children.settings.open(),
+      copySessionLink: () => this.copySessionLink(),
+      exportSession: () => this.exportSession(),
     });
   }
 }

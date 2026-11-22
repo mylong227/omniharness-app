@@ -24,10 +24,12 @@ import { SessionPanel } from './components/SessionPanel.tsx';
 import { StreamView } from './components/StreamView.tsx';
 import { TitlebarStrip } from './components/TitlebarStrip.tsx';
 import { RightPanel } from './components/RightPanel.tsx';
+import { WorkbenchHome } from './components/workbench/WorkbenchHome.tsx';
 import { BrowserPane } from './components/BrowserPane.tsx';
 import { isSettingKey } from './models/ConsoleRegistry.ts';
 import { ApprovalModal } from './components/ApprovalModal.tsx';
 import { CommandPalette } from './components/CommandPalette.tsx';
+import { ShortcutsOverlay } from './components/ShortcutsOverlay.tsx';
 import { Toast } from './components/Toast.tsx';
 import { DialogHost } from './components/DialogHost.tsx';
 import { TooltipLayer } from './components/TooltipLayer.tsx';
@@ -39,103 +41,11 @@ import { ThemeProvider } from './theme/ThemeProvider.tsx';
 import { usePanelParts, type PanelHandlers } from './components/usePanelParts.ts';
 import { useRecentLocalUrls } from './components/useRecentLocalUrls.ts';
 
-// 首屏真需要的两个面板保持静态：ToolsTab 是默认 activePane 的首帧内容；
-// FileTab 是右栏文件视（永远挂载为 RightPanel 的 children）。其余全部走异步块。
-import { ToolsTab } from './components/tabs/ToolsTab.tsx';
+// 右栏文件视保持静态：FileTab 永远挂载为 RightPanel 的 children（不属于面板渲染器表）。
+// 其余功能面板的 lazy 声明、渲染器表（`Record<PaneKey, …>` 编译期完整）与空闲预取
+// 收口在 `./components/paneRenderers.ts`（W3 单源化，2026-11-21）。
 import { FileTab } from './components/tabs/FileTab.tsx';
-
-// 功能面板 + 控制台「按需加载 + **空闲期预取**」（2026-10-18 起；2026-10-29 扩到全部面板）：
-// 第一版只做 `React.lazy`，实测首次点开会出现 200–300 ms 的「加载中…」——那比省下的
-// 8.7 KB gzip 更伤体验，于是回退为「lazy + 空闲预取」两件事一起做：
-//   ① lazy：入口不包含这些面板（首屏解析更小）；
-//   ② 挂载后空闲期**异步预取**全部 chunk（不阻塞首屏）——用户真正点开时 chunk 已在缓存里，
-//      打开零等待。预取失败也无妨：Suspense fallback 仍在，只是回到"首开等一下"。
-// 2026-10-29（分块改造，看板 §179）把 Metrics/Changes/Plugins/Permission/Trace/Detail 与
-// **ConsoleView 一并转 lazy**，这不只是为了入口瘦身：W4 面板迁移要给它们上 antd
-// Table/Form/Descriptions——**静态面板会把面板级 antd 拖回首屏 entry**（vite.config 的
-// 面板族 denylist 只对异步导入方生效）。控制台默认关闭（settingsOpen=false），与面板同级。
-const ConsoleView = React.lazy(() =>
-  import('./components/console/ConsoleView.tsx').then((m) => ({ default: m.ConsoleView })),
-);
-const GraphTab = React.lazy(() =>
-  import('./components/tabs/GraphTab.tsx').then((m) => ({ default: m.GraphTab })),
-);
-const ActivityTab = React.lazy(() =>
-  import('./components/tabs/ActivityTab.tsx').then((m) => ({ default: m.ActivityTab })),
-);
-const SkillsTab = React.lazy(() =>
-  import('./components/tabs/SkillsTab.tsx').then((m) => ({ default: m.SkillsTab })),
-);
-const AutomationsTab = React.lazy(() =>
-  import('./components/tabs/AutomationsTab.tsx').then((m) => ({ default: m.AutomationsTab })),
-);
-const MemoryTab = React.lazy(() =>
-  import('./components/tabs/MemoryTab.tsx').then((m) => ({ default: m.MemoryTab })),
-);
-const ProfilesTab = React.lazy(() =>
-  import('./components/tabs/ProfilesTab.tsx').then((m) => ({ default: m.ProfilesTab })),
-);
-const RollbackTab = React.lazy(() =>
-  import('./components/tabs/RollbackTab.tsx').then((m) => ({ default: m.RollbackTab })),
-);
-const GovernanceTab = React.lazy(() =>
-  import('./components/tabs/GovernanceTab.tsx').then((m) => ({ default: m.GovernanceTab })),
-);
-const DiagnosticsTab = React.lazy(() =>
-  import('./components/tabs/DiagnosticsTab.tsx').then((m) => ({ default: m.DiagnosticsTab })),
-);
-const AuditTab = React.lazy(() =>
-  import('./components/tabs/AuditTab.tsx').then((m) => ({ default: m.AuditTab })),
-);
-const VaultTab = React.lazy(() =>
-  import('./components/tabs/VaultTab.tsx').then((m) => ({ default: m.VaultTab })),
-);
-const MetricsTab = React.lazy(() =>
-  import('./components/tabs/MetricsTab.tsx').then((m) => ({ default: m.MetricsTab })),
-);
-const ChangesTab = React.lazy(() =>
-  import('./components/tabs/ChangesTab.tsx').then((m) => ({ default: m.ChangesTab })),
-);
-const PluginsTab = React.lazy(() =>
-  import('./components/tabs/PluginsTab.tsx').then((m) => ({ default: m.PluginsTab })),
-);
-const PermissionTab = React.lazy(() =>
-  import('./components/tabs/PermissionTab.tsx').then((m) => ({ default: m.PermissionTab })),
-);
-const TraceTab = React.lazy(() =>
-  import('./components/tabs/TraceTab.tsx').then((m) => ({ default: m.TraceTab })),
-);
-const DetailTab = React.lazy(() =>
-  import('./components/tabs/DetailTab.tsx').then((m) => ({ default: m.DetailTab })),
-);
-
-/** 空闲期预取上面 18 个按需块（面板 + 控制台，与 lazy 的 import 一一对应）。 */
-function prefetchLazyPanes(): void {
-  const loaders: (() => Promise<unknown>)[] = [
-    () => import('./components/console/ConsoleView.tsx'),
-    () => import('./components/tabs/ActivityTab.tsx'),
-    () => import('./components/tabs/SkillsTab.tsx'),
-    () => import('./components/tabs/AutomationsTab.tsx'),
-    () => import('./components/tabs/GraphTab.tsx'),
-    () => import('./components/tabs/MemoryTab.tsx'),
-    () => import('./components/tabs/ProfilesTab.tsx'),
-    () => import('./components/tabs/RollbackTab.tsx'),
-    () => import('./components/tabs/GovernanceTab.tsx'),
-    () => import('./components/tabs/DiagnosticsTab.tsx'),
-    () => import('./components/tabs/AuditTab.tsx'),
-    () => import('./components/tabs/VaultTab.tsx'),
-    () => import('./components/tabs/MetricsTab.tsx'),
-    () => import('./components/tabs/ChangesTab.tsx'),
-    () => import('./components/tabs/PluginsTab.tsx'),
-    () => import('./components/tabs/PermissionTab.tsx'),
-    () => import('./components/tabs/TraceTab.tsx'),
-    () => import('./components/tabs/DetailTab.tsx'),
-  ];
-  for (const load of loaders) {
-    // 失败静默：真正打开时 Suspense 会再试一次，且 fallback 可读。
-    void load().catch(() => undefined);
-  }
-}
+import { ConsoleView, paneOf, prefetchLazyPanes } from './components/paneRenderers.ts';
 import { SessionsScope } from './models/SessionsScope.ts';
 import { desktopBridge } from '../core/desktop/DesktopBridge.ts';
 
@@ -162,6 +72,7 @@ function initialState(): AppState {
     providerLabel: '',
     reasoning: '',
     reasoningOptions: undefined,
+    effortsByModel: undefined,
     permission: '',
     events: [],
     toolResults: {},
@@ -197,6 +108,7 @@ function initialState(): AppState {
     activeTool: null,
     toastState: { seq: 0, message: '', kind: 'info', visible: false },
     paletteOpen: false,
+    shortcutsOpen: false,
     sessionsScopeAll: SessionsScope.read() === 'all',
     dialog: { request: null },
     streamText: '',
@@ -231,75 +143,12 @@ function mergeAppPatch(prev: AppState, action: AppAction): AppState {
  * @returns 右侧面板节点
  */
 function renderPane(ctrl: AppController, s: AppState): ReactElement {
-  switch (s.activePane) {
-    case 'activity':
-      return React.createElement(ActivityTab, {
-        events: s.events,
-        toolResults: s.toolResults,
-        busy: s.busy,
-        activeTool: s.activeTool,
-        approval: s.approval,
-        question: s.question,
-        onOpenPane: (key: string) => ctrl.setActivePane(key),
-      });
-    case 'skills':
-      return React.createElement(SkillsTab, null);
-    case 'automations':
-      return React.createElement(AutomationsTab, null);
-    case 'metrics':
-      return React.createElement(MetricsTab, null);
-    case 'changes':
-      return React.createElement(ChangesTab, null);
-    case 'governance':
-      // (F2 治理台) 晋升台账逐行独立复核 + 回滚锚点；不依赖会话（治理数据按工作区取）。
-      return React.createElement(GovernanceTab, null);
-    case 'diagnostics':
-      // Web 交付：daemon 运行态 + doctor 报告（两个只读入口合成一屏）。
-      return React.createElement(DiagnosticsTab, null);
-    case 'audit':
-      // Web 交付：审计事件（哈希链）+ 只读 trace 自省。
-      return React.createElement(AuditTab, null);
-    case 'trace':
-      return React.createElement(TraceTab, { sessionId: s.currentThreadId });
-    case 'permission':
-      // Web 交付：参数级权限规则编辑器（写盘走 config.update，服务端严格校验）。
-      return React.createElement(PermissionTab, null);
-    case 'vault':
-      // Web 交付：凭据保险库（只列名字、写入即清空、服务端不提供回读）。
-      return React.createElement(VaultTab, null);
-    case 'rollback':
-      return React.createElement(RollbackTab, {
-        sessionId: s.currentThreadId,
-        onRolledBack: ctrl.sessions.loadThread,
-      });
-    // 'settings' 已**不在此处**（2026-10-17）：设置从右栏面板改成独立页面；
-    // 2026-10-26 起它与功能面板合并为 components/console/ConsoleView.tsx。
-    // 若这里还留着 case，说明有人把设置又塞回了面板列表——那会与控制台形成两个真相。
-    case 'plugins':
-      return React.createElement(PluginsTab, null);
-    case 'graph':
-      return React.createElement(GraphTab, {
-        graphRuns: s.graphRuns,
-        onRunStart: ctrl.graph.onRunStart,
-        // 续跑实现只有一处（控制器），面板卡片与状态栏芯片共用。
-        onResume: ctrl.graph.resumeRun,
-      });
-    case 'memory':
-      return React.createElement(MemoryTab, { reloadKey: s.memoryReloadKey });
-    case 'profiles':
-      return React.createElement(ProfilesTab, { reloadKey: s.profilesReloadKey });
-    case 'file':
-      return React.createElement(FileTab, { fileView: s.fileView });
-    case 'detail':
-      return React.createElement(DetailTab, { detailEvent: s.detailEvent });
-    case 'tools':
-    default:
-      return React.createElement(ToolsTab, {
-        toolItems: ctrl.sessions.getToolItems(),
-        onShowTool: ctrl.sessions.onShowTool,
-      });
-  }
+  // 面板级错误边界（2026-11-17 全面 review）：此前全仓只有根级一处边界，任一右栏面板渲染
+  // 抛错会把**整个工作台**换成 crash 屏（左右栏、输入区全部陪葬）。包在 switch 输出外、
+  // key=activePane：爆炸半径收敛到单面板，切面板即重置边界（上一个面板的错误态不带走）。
+  return React.createElement(RenderErrorBoundary, { key: s.activePane }, paneOf(ctrl, s));
 }
+
 
 /**
  * 打开会话，并在加载完成后补一次队列续发。
@@ -504,6 +353,9 @@ function sessionPanelElement(
     onOpenSettings: h.onOpenSettings,
     connected: s.connected,
     streamState: s.streamState,
+    // 多会话并行聚合（2026-11-17 粘性批次）：页脚徽标显示「N 个会话在跑」——
+    // 运行态只在侧栏行内有指示，切走后用户回不到"全局还有几只在跑"的感知。
+    runningCount: s.sessions.reduce((n, x) => (x.running === true ? n + 1 : n), 0),
     open: s.leftOpen,
     style: leftStyle,
   });
@@ -533,8 +385,10 @@ function streamViewElement(
     composerSeed: s.composerSeed,
     // 队列模式：排队消息坞（空队列时组件自身不渲染任何东西）。
     queue: chatQueueViewOf(ctrl, s),
+    onOpenSettings: () => ctrl.settings.open('general'),
     onEventClick: ctrl.sessions.showDetail,
     onOpenFile: ctrl.files.openFile,
+    onCheckFile: ctrl.files.exists,
     // 助手消息里的回环 URL（dev server 地址）可一键进右栏网页标签。
     onOpenUrl: ctrl.browser.open,
     onSend: ctrl.composer.send,
@@ -546,11 +400,23 @@ function streamViewElement(
     onStop: ctrl.composer.stop,
     onRegenerate: ctrl.composer.regenerate,
     onEditUser: ctrl.composer.editLastUser,
+    // 引用追问：任意一条消息以引用块填回输入框（纯前端拼接，零新 RPC）。
+    onQuote: (ev) => ctrl.composer.quoteMessage(ev),
+    // 轨迹导出：TraceView 筛选后的行上抛，控制器格式化（TraceTranscript）并下载。
+    onExportTrace: (rows, meta) => {
+      const entry = s.sessions.find((x) => x.id === s.currentThreadId);
+      ctrl.exportTrace(rows, {
+        title: entry !== undefined ? entry.label : '',
+        filtered: meta.filtered,
+        filterLabel: meta.filterLabel,
+      });
+    },
     model: s.model,
     modelOptions: s.modelOptions,
     providerLabel: s.providerLabel,
     reasoning: s.reasoning,
     reasoningOptions: s.reasoningOptions,
+    effortsByModel: s.effortsByModel,
     permission: s.permission,
     threadId: s.currentThreadId,
     onToast: ctrl.showToast,
@@ -598,6 +464,7 @@ function rightPanelElement(
   ctrl: AppController,
   s: AppState,
   recentLocalUrls: readonly string[],
+  workspacePath: string,
 ): ReactElement {
   return React.createElement(
     RightPanel,
@@ -619,6 +486,16 @@ function rightPanelElement(
         recentUrls: recentLocalUrls,
         onNavigate: ctrl.browser.open,
         onReload: ctrl.browser.reload,
+      }),
+      // 无文件 / 无网页时的首页（2026-11-10）：只留项目、本会话与工作区变更三块。
+      home: React.createElement(WorkbenchHome, {
+        workspacePath,
+        workspaceEpoch: s.workspaceEpoch,
+        currentSession: s.sessions.find((session) => session.id === s.currentThreadId),
+        events: s.events,
+        api: ctrl.api,
+        onOpenFile: (path: string) => void ctrl.files.openFile(path),
+        onOpenChanges: () => ctrl.openPane('changes'),
       }),
     },
     // 右栏文件视图；功能面板与设置在下面的控制台（ConsoleView）里。
@@ -647,7 +524,9 @@ function renderBody(
         'app' + (desktopBridge()?.windowFrame === 'hidden' ? ' has-titlebar' : ''),
     },
     // 桌面壳（win32 隐藏系统标题栏）的一体化标题条：非桌面/旧壳渲染 null，浏览器无感。
-    React.createElement(TitlebarStrip, null),
+    React.createElement(TitlebarStrip, {
+      onQuickCapture: () => ctrl.focusComposer(),
+    }),
     React.createElement(
       'div',
       {
@@ -690,7 +569,7 @@ function renderBody(
               width: s.rightWidth,
               onChange: (w: number) => ctrl.layout.onRightWidthChange(w),
             }),
-            rightPanelElement(ctrl, s, recentLocalUrls),
+            rightPanelElement(ctrl, s, recentLocalUrls, workspacePath),
           ),
     ),
     React.createElement(ApprovalModal, {
@@ -709,6 +588,8 @@ function renderBody(
       commands: s.paletteOpen ? paletteCommandsOf(ctrl) : ctrl.commands,
       onClose: ctrl.closePalette,
     }),
+    // 快捷键速查浮层（2026-11-17 粘性批次）：非输入焦点按「?」呼出。
+    React.createElement(ShortcutsOverlay, { open: s.shortcutsOpen, onClose: ctrl.closeShortcuts }),
     React.createElement(Toast, { toast: s.toastState }),
     React.createElement(DialogHost, { dialog: s.dialog }),
   );
@@ -718,7 +599,7 @@ function renderBody(
  * 应用根组件：消费容器控制器 AppController 的全部状态与回调，装配三栏布局树。
  * @returns 根渲染树（含 AppContext.Provider）
  */
-export function App(): ReactElement {
+function App(): ReactElement {
   const [state, setState] = React.useState<AppState>(initialState);
   // 最新状态镜像：供控制器同步读取（getState），避免闭包读到陈旧快照。
   const stateRef = React.useRef<AppState>(state);

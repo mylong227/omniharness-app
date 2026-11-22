@@ -39,6 +39,7 @@ const EMPTY_SNAPSHOT: SettingsSnapshot = {
   profiles: [],
   activePlugins: '',
   savedHint: '',
+  savedField: '',
   saving: false,
   error: '',
   loadError: '',
@@ -49,13 +50,13 @@ const EMPTY_SNAPSHOT: SettingsSnapshot = {
  * @param ctx 应用上下文
  * @returns 模型实例（调用方负责 dispose）
  */
-export function createSettingsModel(ctx: SettingsModelContext): SettingsModel {
+function createSettingsModel(ctx: SettingsModelContext): SettingsModel {
   return new SettingsModel({
-    getConfig: () => ctx.api.getConfig(),
-    updateConfig: (patch) => ctx.api.updateConfig(patch),
-    listProfiles: () => ctx.api.listProfiles() as Promise<Profile[]>,
-    getActiveProfile: () => ctx.api.getActiveProfile(),
-    applyProfile: (id) => ctx.api.applyProfile(id),
+    getConfig: () => ctx.api.config.getConfig(),
+    updateConfig: (patch) => ctx.api.config.updateConfig(patch),
+    listProfiles: () => ctx.api.profile.listProfiles() as Promise<Profile[]>,
+    getActiveProfile: () => ctx.api.profile.getActiveProfile(),
+    applyProfile: (id) => ctx.api.profile.applyProfile(id),
     refreshModelCatalog: ctx.refreshModelCatalog,
     toast: (message, kind) => ctx.toast(message, kind),
   });

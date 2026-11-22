@@ -1,7 +1,7 @@
 import type { AuditRecordDraft } from './auditTypes.ts';
 
 /** Codex 解析过程里的成本累计（`token_count` 给的是累计值，取最后一次覆盖）。 */
-export interface CodexTokenState {
+interface CodexTokenState {
   /** 输入 token。 */
   prompt: number;
   /** 输出 token。 */

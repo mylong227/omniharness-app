@@ -10,7 +10,7 @@ export interface CommandItem {
 }
 
 /** 分组内的命令条目：`index` 为该项在扁平过滤结果中的下标（供键盘高亮与执行定位）。 */
-export interface GroupedCommandEntry {
+interface GroupedCommandEntry {
   /** 命令项。 */
   item: CommandItem;
   /** 在 `filter(query)` 扁平结果中的下标。 */

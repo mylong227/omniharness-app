@@ -79,7 +79,8 @@ function retryButton(root: HTMLElement): HTMLButtonElement | null {
   const errors = Array.from(root.querySelectorAll('.sp-load-error'));
   for (const box of errors) {
     const btn = Array.from(box.querySelectorAll('button')).find((b) =>
-      (b.textContent ?? '').includes('重试'),
+      // antd Button 在无 ThemeProvider 的测试里给两字中文插空格（`重 试`）：去掉空白再比。
+      (b.textContent ?? '').replace(/\s/g, '').includes('重试'),
     );
     if (btn !== undefined) return btn as HTMLButtonElement;
   }
@@ -112,7 +113,10 @@ test('厂商目录读取失败：显示原因与重试，重试成功后卡片�
     fail = false;
     fireEvent.click(retry);
     await waitFor(() => {
-      if (!ui.container.querySelector('.sp-card-wrap')) throw new Error('重试后厂商卡片未出现');
+      // 厂商折叠条已迁 antd Collapse（不再有 .sp-card-wrap 外壳）：以厂商名出现为准。
+      if (!(ui.container.textContent ?? '').includes('DeepSeek')) {
+        throw new Error('重试后厂商卡片未出现');
+      }
     });
     assert.strictEqual(
       ui.container.querySelector('.sp-load-error'),

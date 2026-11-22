@@ -7,11 +7,14 @@
 
 import * as React from 'react';
 import { useApp } from '../../context.ts';
+import { useSessionResource } from '../../hooks/useSessionResource.ts';
 import { GraphDefBuilder, type StepDraft } from '../../models/GraphDefBuilder.ts';
 import { emptyState } from '../../format.ts';
-import { icon } from '../../models/Icon.ts';
+import { icon } from '../../kit/Icon.tsx';
 import type { GraphRunState, GraphSummary } from '../../../types/models.ts';
 import { t } from '../../i18n/i18n.ts';
+import Input from 'antd/es/input';
+import Button from 'antd/es/button';
 
 /** React 的 style 必须是「属性→值」映射，不能传 CSS 字符串。 */
 const BLACKBOARD_BOX: Record<string, string> = { marginTop: '6px' };
@@ -93,8 +96,9 @@ function renderRun(r: GraphRunState, actions: RunActions): ReactElement {
   const doneCount = nodes.filter((n) => n.status === 'done').length;
   const restCount = Math.max(0, nodes.length - doneCount);
   const resume = r.done && !r.ok ? (
-    <button
-      className="ghost btn-resume"
+    <Button
+      type="text"
+      className="btn-resume"
       title={
         restCount > 0
           ? t('复用已完成 {done} 步的产出，只重跑剩下 {rest} 步（runId 不变，进度实时刷新）', { done: doneCount, rest: restCount })
@@ -103,7 +107,7 @@ function renderRun(r: GraphRunState, actions: RunActions): ReactElement {
       onClick={() => actions.onResume(r.runId, r.defName)}
     >
       {nodes.length > 0 ? t('续跑（跳过已完成 {done} 步）', { done: doneCount }) : t('续跑')}
-    </button>
+    </Button>
   ) : null;
   const bb = r.blackboard ? (
     <div style={BLACKBOARD_BOX}>
@@ -144,17 +148,17 @@ function renderStoredGraph(g: GraphSummary, actions: StoredActions): ReactElemen
           {g.name}
           <span className="pc-ver">{t('{count} 步', { count: g.stepCount })}</span>
         </span>
-        <button className="ghost btn-run" onClick={() => actions.onRun(g.id, g.name)}>
+        <Button type="link" size="small" className="btn-run" onClick={() => actions.onRun(g.id, g.name)}>
           {t('运行')}
-        </button>
+        </Button>
       </div>
       <div className="pc-foot">
-        <button className="ghost" onClick={() => actions.onOpen(g.id)}>
+        <Button type="text" size="small" onClick={() => actions.onOpen(g.id)}>
           {t('打开')}
-        </button>
-        <button className="btn-remove" onClick={() => actions.onDelete(g.id)}>
+        </Button>
+        <Button type="text" size="small" danger onClick={() => actions.onDelete(g.id)}>
           {t('删除')}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -223,7 +227,8 @@ function useGraphDraft(): GraphDraft {
       SAMPLE.steps.map((s) => ({
         id: s.id,
         dep: GraphDefBuilder.depText(s.dependsOn),
-        prompt: s.prompt,
+        // 示例提示词是用户可见的种子内容，消费点走 i18n（键 = 中文原文，en 词条在 tabsToolsVault）。
+        prompt: t(s.prompt),
       })),
     );
     toast(t('已载入示例（未保存，可点「保存」）'), 'info');
@@ -241,7 +246,7 @@ function useGraphDraft(): GraphDraft {
    */
   const openGraph = async (id: string): Promise<void> => {
     try {
-      const def = await api.getGraph(id);
+      const def = await api.graph.getGraph(id);
       setName(def.name || id);
       setSteps(
         (def.steps || []).map((s) => ({
@@ -259,31 +264,19 @@ function useGraphDraft(): GraphDraft {
 }
 
 /**
- * 已存图列表数据源：进入该页时拉取一次（sessionTick 变化重拉）。
- * @param sessionTick 会话轮换信号
- * @returns graphs 已存图列表；load 重载
+ * 已存图列表数据源（2026-11-21 批次六 A1 收编 useSessionResource）：
+ * 进入该页时拉取一次（followTick:false——graphs 只在保存/删除后变，动作集显式 refresh）。
+ * @returns graphs 已存图列表；load 重载（返回在飞 Promise）
  */
-function useGraphList(sessionTick: number): { graphs: GraphSummary[]; load: () => Promise<void> } {
-  const { api, toast } = useApp();
-  const [graphs, setGraphs] = React.useState<GraphSummary[]>([]);
-
-  /** 拉取已存图列表。 */
-  const load = async (): Promise<void> => {
-    try {
-      const listed = await api.listGraphs();
-      // 同理：非数组（桩/异常响应）按空列表处理，别让 .map 抛错。
-      setGraphs(Array.isArray(listed) ? listed : []);
-    } catch (e) {
-      toast(t('图列表不可用：{msg}', { msg: (e as Error).message }), 'err');
-    }
-  };
-
-  // 挂载拉取图列表（[] 有意：只在进入该页时拉一次）。
-  React.useEffect(() => {
-    void load();
-  }, [sessionTick]);
-
-  return { graphs, load };
+function useGraphList(): { graphs: GraphSummary[]; load: () => Promise<void> } {
+  const { api } = useApp();
+  const load = React.useCallback(async (): Promise<GraphSummary[]> => {
+    const listed = await api.graph.listGraphs();
+    // 同理：非数组（桩/异常响应）按空列表处理，别让 .map 抛错。
+    return Array.isArray(listed) ? listed : [];
+  }, [api]);
+  const { data, refresh } = useSessionResource({ enabled: true, load, followTick: false });
+  return { graphs: data ?? [], load: refresh };
 }
 
 /**
@@ -318,7 +311,7 @@ function useGraphRun(
       return;
     }
     try {
-      const res = await api.saveGraph(def);
+      const res = await api.graph.saveGraph(def);
       toast(t('已保存：{id}', { id: res.id }), 'ok');
       await load();
     } catch (e) {
@@ -334,7 +327,7 @@ function useGraphRun(
       return;
     }
     try {
-      const res = await api.runGraph(def);
+      const res = await api.graph.runGraph(def);
       onRunStart(res.runId, def.name);
     } catch (e) {
       toast(t('运行失败：{msg}', { msg: (e as Error).message }), 'err');
@@ -348,7 +341,7 @@ function useGraphRun(
    */
   const runById = async (id: string, gname: string): Promise<void> => {
     try {
-      const res = await api.runGraphById(id);
+      const res = await api.graph.runGraphById(id);
       onRunStart(res.runId, gname);
     } catch (e) {
       toast(t('运行失败：{msg}', { msg: (e as Error).message }), 'err');
@@ -367,7 +360,7 @@ function useGraphRun(
     });
     if (!ok) return;
     try {
-      await api.deleteGraph(id);
+      await api.graph.deleteGraph(id);
       await load();
     } catch (e) {
       toast(t('删除失败：{msg}', { msg: (e as Error).message }), 'err');
@@ -428,36 +421,48 @@ function StepEditor(props: { draft: GraphDraft }): ReactElement {
       <div id="stepEditor">
         {steps.map((s, i) => (
           <div className="step-row" key={i}>
-            <input
+            <Input
               className="step-id"
+              aria-label={t('步骤 id')}
               placeholder={t('步骤 id')}
               value={s.id}
-              onInput={(e: React.SyntheticEvent) => updateStep(i, 'id', (e.target as HTMLInputElement).value)}
+              onChange={(e) => updateStep(i, 'id', e.target.value)}
             />
-            <input
+            <Input
               className="step-dep"
+              aria-label={t('依赖(逗号分隔)')}
               placeholder={t('依赖(逗号分隔)')}
               value={s.dep}
-              onInput={(e: React.SyntheticEvent) => updateStep(i, 'dep', (e.target as HTMLInputElement).value)}
+              onChange={(e) => updateStep(i, 'dep', e.target.value)}
             />
-            <button className="ghost step-del" onClick={() => removeStep(i)}>
-              ×
-            </button>
-            <textarea
+            <Button
+              type="text"
+              size="small"
+              danger
+              className="step-del"
+              aria-label={t('删除这一步骤')}
+              icon={icon('x', { size: 13 })}
+              onClick={() => removeStep(i)}
+            />
+            <Input.TextArea
               className="step-prompt"
+              aria-label={t('提示词')}
               rows={2}
               placeholder={t('提示词')}
               value={s.prompt}
-              onInput={(e: React.SyntheticEvent) =>
-                updateStep(i, 'prompt', (e.target as HTMLTextAreaElement).value)
-              }
-            ></textarea>
+              onChange={(e) => updateStep(i, 'prompt', e.target.value)}
+            />
           </div>
         ))}
       </div>
-      <button className="ghost" onClick={addStep}>
-        {t('+ 添加步骤')}
-      </button>
+      <Button
+        type="text"
+        style={{ alignSelf: 'flex-start' }}
+        icon={icon('plus', { size: 14 })}
+        onClick={addStep}
+      >
+        {t('添加步骤')}
+      </Button>
     </>
   );
 }
@@ -469,24 +474,21 @@ function StepEditor(props: { draft: GraphDraft }): ReactElement {
  */
 export function GraphTab(props: GraphTabProps): ReactElement {
   const { graphRuns, onRunStart, onResume } = props;
-  const { sessionTick } = useApp();
   const draft = useGraphDraft();
-  const { graphs, load } = useGraphList(sessionTick);
+  const { graphs, load } = useGraphList();
   const run = useGraphRun(draft.collectDef, load, onRunStart);
 
   return (
     <div>
       <GraphGuide />
       <div className="pm-head">
-        <button className="ghost" onClick={() => void load()}>
+        <Button icon={icon('refresh', { size: 14 })} onClick={() => void load()}>
           {t('刷新')}
-        </button>
-        <button className="ghost" onClick={draft.loadSample}>
-          {t('载入示例')}
-        </button>
-        <button className="ghost" onClick={draft.newGraph}>
+        </Button>
+        <Button onClick={draft.loadSample}>{t('载入示例')}</Button>
+        <Button type="primary" onClick={draft.newGraph}>
           {t('新建')}
-        </button>
+        </Button>
       </div>
       <div className="pm-section">
         <div className="pm-title">{t('已存图')}</div>
@@ -505,10 +507,10 @@ export function GraphTab(props: GraphTabProps): ReactElement {
         <div className="form">
           <label>
             {t('图名')}
-            <input
-              type="text"
+            <Input
+              aria-label={t('图名')}
               value={draft.name}
-              onInput={(e: React.SyntheticEvent) => draft.setName((e.target as HTMLInputElement).value)}
+              onChange={(e) => draft.setName(e.target.value)}
               placeholder="my-pipeline"
             />
           </label>
@@ -516,12 +518,12 @@ export function GraphTab(props: GraphTabProps): ReactElement {
         </div>
         <div className="pane-actions">
           <span className="flex-spacer"></span>
-          <button className="btn" onClick={() => void run.runDef()}>
+          <Button onClick={() => void run.runDef()}>
             {t('运行')}
-          </button>
-          <button className="btn primary" onClick={() => void run.save()}>
+          </Button>
+          <Button type="primary" onClick={() => void run.save()}>
             {t('保存')}
-          </button>
+          </Button>
         </div>
         <div id="graphStatus">
           {Object.keys(graphRuns).length === 0

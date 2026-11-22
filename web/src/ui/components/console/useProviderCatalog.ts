@@ -11,6 +11,7 @@ import * as React from 'react';
 import { t } from '../../i18n/i18n.ts';
 import type { SettingsTabKey } from '../../models/SettingsModel.ts';
 import type { AppContextValue } from '../../context.ts';
+import { useSessionResource } from '../../hooks/useSessionResource.ts';
 import type { Config, ProviderPreset, ProviderProbeResult } from '../../../types/models.ts';
 
 /** 厂商目录装载态：把「读取中 / 读取失败 / 目录真的为空」分开。 */
@@ -20,6 +21,8 @@ export type CatalogStatus = 'idle' | 'loading' | 'ready' | 'error';
 export interface ProviderCatalogState {
   /** 厂商预设清单。 */
   providers: ProviderPreset[];
+  /** 当前生效厂商 id（model.catalog 的 active.id 单一真源；undefined = 目录未就绪）。 */
+  activeId: string | undefined;
   /** 已保存（打码）的 Key：厂商 id → 打码值。 */
   maskedKeys: Record<string, string>;
   /** Key 输入草稿（仅存在于内存，保存后清空）。 */
@@ -34,12 +37,12 @@ export interface ProviderCatalogState {
   catalogError: string;
   /** 形如 `<id>:<action>` 的忙碌标记。 */
   busyById: Record<string, string>;
-  /** 折叠状态：厂商 id → 是否展开（缺省时按自动规则）。 */
-  expanded: Record<string, boolean>;
+  /** 当前打开编辑抽屉的厂商 id（null = 关闭）。 */
+  editorOpenId: string | null;
+  /** 打开 / 关闭编辑抽屉。 */
+  setEditorOpen: (id: string | null) => void;
   /** 重新拉厂商目录与打码 Key。 */
   reloadProviders: () => void;
-  /** 展开 / 折叠某厂商。 */
-  setExpandedOpen: (id: string, open: boolean) => void;
   /** 修改某厂商的 Key 草稿。 */
   setDraft: (id: string, value: string) => void;
   /** 手选某厂商的模型。 */
@@ -69,18 +72,15 @@ export interface ProviderCatalogOptions {
 }
 
 /**
- * 厂商是否为当前生效厂商。
- * @param preset 厂商预设
- * @param adapter 当前适配器
- * @param baseUrl 当前自定义端点（空串＝未覆盖）
+ * 厂商是否为当前生效厂商——**单一真源**：`model.catalog` 下发的 `active.id`。
+ * 旧实现按「adapter 相同 && (baseUrl 为空或相等)」宽松匹配，openai 兼容适配器下
+ * 多家厂商（deepseek/moonshot/zhipu…）会同时命中「当前」（2026-11-14 重设计修掉）。
+ * @param presetId 厂商预设 id
+ * @param activeId 目录下发的当前生效厂商 id（undefined = 目录未就绪）
  * @returns 是否生效
  */
-export function isActiveProvider(
-  preset: ProviderPreset,
-  adapter: string,
-  baseUrl: string,
-): boolean {
-  return adapter === preset.adapter && (baseUrl === '' || baseUrl === preset.baseUrl);
+export function isActiveProvider(presetId: string, activeId: string | undefined): boolean {
+  return activeId !== undefined && presetId === activeId;
 }
 
 /**
@@ -97,7 +97,11 @@ export function selectedModelFor(
   choices: Record<string, string>,
   activeModel: string,
 ): string | undefined {
-  return choices[preset.id] ?? (models.includes(activeModel) ? activeModel : models[0]);
+  // 手选值可能来自旧探测（模型已下线）或残留空串：只接受**当前清单内**的值，
+  // 否则回落到当前模型/清单首项，避免下拉空白与「启用一个不存在的模型」。
+  const picked = choices[preset.id];
+  if (picked !== undefined && picked !== '' && models.includes(picked)) return picked;
+  return models.includes(activeModel) ? activeModel : models[0];
 }
 
 /** 忙碌标记状态与动作。 */
@@ -114,6 +118,8 @@ interface BusyControls {
 interface CatalogLoad {
   /** 厂商预设清单。 */
   providers: ProviderPreset[];
+  /** 当前生效厂商 id（catalog 的 active.id；undefined = 无当前厂商）。 */
+  activeId: string | undefined;
   /** 已保存（打码）的 Key。 */
   maskedKeys: Record<string, string>;
   /** 目录装载态。 */
@@ -125,41 +131,27 @@ interface CatalogLoad {
 }
 
 /**
- * 拉厂商目录与打码 Key（含竞态防护）。
+ * 拉厂商目录与打码 Key（W5：目录流收编进 useSessionResource，票号/错误/清空语义单源）。
+ *
+ * 目录失败**不静默**：写进 status/error，由模型页显示原因 + 重试；刷新失败保留上一帧卡片。
+ * 打码 Key 是旁路流：失败静默（配置错误由设置页 loadError 统一提示），不阻断目录。
+ *
  * @param api 服务端客户端
  * @param tab 当前设置页
  * @returns 目录数据与重试入口
  */
 function useCatalogLoad(api: AppContextValue['api'], tab: SettingsTabKey): CatalogLoad {
-  const [providers, setProviders] = React.useState<ProviderPreset[]>([]);
   const [maskedKeys, setMaskedKeys] = React.useState<Record<string, string>>({});
-  const [catalogStatus, setCatalogStatus] = React.useState<CatalogStatus>('idle');
-  const [catalogError, setCatalogError] = React.useState('');
-  const catalogReqRef = React.useRef(0);
+  const loadCatalog = React.useCallback(() => api.config.modelCatalog(), [api]);
+  const catalog = useSessionResource({
+    enabled: tab === 'model',
+    load: loadCatalog,
+    followTick: false,
+  });
 
-  /**
-   * 拉厂商目录与打码 Key。
-   *
-   * 目录失败**不静默**：写进状态，由模型页显示原因 + 重试；刷新失败保留上一帧卡片。
-   * @returns 无
-   */
-  const reloadProviders = React.useCallback((): void => {
-    const request = ++catalogReqRef.current;
-    setCatalogStatus('loading');
-    setCatalogError('');
-    api
-      .modelCatalog()
-      .then((result) => {
-        if (request !== catalogReqRef.current) return;
-        setProviders(result.providers);
-        setCatalogStatus('ready');
-      })
-      .catch((cause: unknown) => {
-        if (request !== catalogReqRef.current) return;
-        setCatalogError(cause instanceof Error ? cause.message : String(cause));
-        setCatalogStatus('error');
-      });
-    api
+  /** 打码 Key 旁路取数：失败静默、保留上一帧。 */
+  const reloadKeys = React.useCallback((): void => {
+    api.config
       .getConfig()
       .then((config: Config) => {
         const keys = (config as unknown as Record<string, unknown>)['providerKeys'];
@@ -171,10 +163,33 @@ function useCatalogLoad(api: AppContextValue['api'], tab: SettingsTabKey): Catal
   }, [api]);
 
   React.useEffect(() => {
-    if (tab === 'model') reloadProviders();
-  }, [tab, reloadProviders]);
+    if (tab === 'model') reloadKeys();
+  }, [tab, reloadKeys]);
 
-  return { providers, maskedKeys, catalogStatus, catalogError, reloadProviders };
+  /** 重新拉厂商目录与打码 Key（动作后统一入口）。 */
+  const reloadProviders = React.useCallback((): void => {
+    void catalog.refresh();
+    reloadKeys();
+  }, [catalog.refresh, reloadKeys]);
+
+  /** 三态映射：error 优先，其次「有数据 = ready」，首取中 = loading。 */
+  const catalogStatus: CatalogStatus =
+    catalog.error !== null
+      ? 'error'
+      : catalog.data !== null
+        ? 'ready'
+        : catalog.loading
+          ? 'loading'
+          : 'idle';
+
+  return {
+    providers: catalog.data?.providers ?? [],
+    activeId: catalog.data?.active?.id,
+    maskedKeys,
+    catalogStatus,
+    catalogError: catalog.error ?? '',
+    reloadProviders,
+  };
 }
 
 /**
@@ -220,6 +235,23 @@ function useModelSelection(): ModelSelection {
     setModelSel((prev) => ({ ...prev, [id]: value }));
   };
   return { modelSel, setModelChoice };
+}
+
+/** 编辑抽屉开合状态（重设计后总览网格点卡即开）。 */
+interface EditorOpen {
+  /** 当前打开的厂商 id；null = 关闭。 */
+  editorOpenId: string | null;
+  /** 打开 / 关闭。 */
+  setEditorOpen: (id: string | null) => void;
+}
+
+/**
+ * 编辑抽屉开合。
+ * @returns 状态与动作
+ */
+function useEditorOpen(): EditorOpen {
+  const [editorOpenId, setEditorOpen] = React.useState<string | null>(null);
+  return { editorOpenId, setEditorOpen };
 }
 
 /** Key 草稿 hook 的入参。 */
@@ -275,7 +307,7 @@ function useProviderDrafts(options: ProviderDraftOptions): ProviderDrafts {
     }
     options.markBusy(preset.id, 'key');
     try {
-      await options.api.updateConfig({ setProviderKey: { vendor: preset.id, key } });
+      await options.api.config.updateConfig({ setProviderKey: { vendor: preset.id, key } });
       setDrafts((prev) => ({ ...prev, [preset.id]: '' }));
       options.toast(t('{name} Key 已保存（服务端打码存储）', { name: preset.label }), 'ok');
       options.reloadProviders();
@@ -328,7 +360,7 @@ function useProviderProbes(options: ProviderProbeOptions): ProviderProbes {
   const probe = async (preset: ProviderPreset): Promise<void> => {
     options.markBusy(preset.id, 'probe');
     try {
-      const result = (await options.api.probeModels(preset.id)).providers[0];
+      const result = (await options.api.config.probeModels(preset.id)).providers[0];
       if (result === undefined) {
         options.toast(t('检测失败：厂商未返回结果'), 'err');
         return;
@@ -403,7 +435,7 @@ function useProviderEnable(options: ProviderEnableOptions): {
     }
     options.markBusy(preset.id, 'enable');
     try {
-      await options.api.updateConfig({ enableProvider: preset.id, model });
+      await options.api.config.updateConfig({ enableProvider: preset.id, model });
       options.toast(t('{name} 已启用（模型 {model}），下一条消息即生效', { name: preset.label, model }), 'ok');
       options.reloadProviders();
       await options.onReloadSettings();
@@ -427,6 +459,7 @@ export function useProviderCatalog(options: ProviderCatalogOptions): ProviderCat
   const load = useCatalogLoad(options.api, options.tab);
   const busy = useProviderBusy();
   const selection = useModelSelection();
+  const editor = useEditorOpen();
   const drafts = useProviderDrafts({
     api: options.api,
     toast: options.toast,
@@ -457,13 +490,9 @@ export function useProviderCatalog(options: ProviderCatalogOptions): ProviderCat
     markBusy: busy.markBusy,
     clearBusy: busy.clearBusy,
   });
-  const [expanded, setExpanded] = React.useState<Record<string, boolean>>({});
-  const setExpandedOpen = (id: string, open: boolean): void => {
-    setExpanded((prev) => ({ ...prev, [id]: open }));
-  };
-
   return {
     providers: load.providers,
+    activeId: load.activeId,
     maskedKeys: load.maskedKeys,
     drafts: drafts.drafts,
     probes: probes.probes,
@@ -471,9 +500,9 @@ export function useProviderCatalog(options: ProviderCatalogOptions): ProviderCat
     catalogStatus: load.catalogStatus,
     catalogError: load.catalogError,
     busyById: busy.busyById,
-    expanded,
+    editorOpenId: editor.editorOpenId,
+    setEditorOpen: editor.setEditorOpen,
     reloadProviders: load.reloadProviders,
-    setExpandedOpen,
     setDraft: drafts.setDraft,
     setModelChoice: selection.setModelChoice,
     saveKey: drafts.saveKey,

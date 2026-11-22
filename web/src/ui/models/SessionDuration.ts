@@ -13,7 +13,7 @@ import { formatDurationMs } from './DurationFormat.ts';
 import { t } from '../i18n/i18n.ts';
 
 /** 时长展示态。 */
-export type SessionDurationState = 'running' | 'done';
+type SessionDurationState = 'running' | 'done';
 
 /** 时钟视图。 */
 export interface SessionDurationView {

@@ -13,6 +13,20 @@ import { MODEL_ADAPTER_IDS } from '../../host/kernel/contracts.ts';
  * 名字只声明一次，`satisfies` 仍保留（清单若与 `CliArgs.modelAdapter` 类型不符即编译报错）。
  */
 export const MODEL_ADAPTERS = MODEL_ADAPTER_IDS satisfies readonly CliArgs['modelAdapter'][];
+
+/**
+ * 推理强度 7 档白名单（#B6）：与内核 `ENUM_VALUES.reasoning` 同源语义，
+ * `satisfies` 保证与 `CliArgs.reasoning` 联合类型漂移即编译报错。
+ */
+export const REASONINGS = [
+  'none',
+  'minimal',
+  'low',
+  'medium',
+  'high',
+  'xhigh',
+  'max',
+] as const satisfies readonly NonNullable<CliArgs['reasoning']>[];
 export const STORAGE_ADAPTERS = [
   'memory',
   'jsonl',

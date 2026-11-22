@@ -29,11 +29,11 @@ import { log } from '../../host/kernel/util.ts';
 import type { EntitlementObserver } from './featureEntitlements.ts';
 
 /** 内联 license 的环境变量名。 */
-export const LICENSE_ENV_TEXT = 'OMNI_LICENSE';
+const LICENSE_ENV_TEXT = 'OMNI_LICENSE';
 /** license 文件路径的环境变量名（与内联同时存在时**优先**）。 */
-export const LICENSE_ENV_FILE = 'OMNI_LICENSE_FILE';
+const LICENSE_ENV_FILE = 'OMNI_LICENSE_FILE';
 /** 验签公钥的环境变量名。 */
-export const LICENSE_ENV_PUBLIC_KEY = 'OMNI_LICENSE_PUBLIC_KEY';
+const LICENSE_ENV_PUBLIC_KEY = 'OMNI_LICENSE_PUBLIC_KEY';
 
 /** license 文件字节上限（缺省 64 KiB）。 */
 const DEFAULT_MAX_LICENSE_BYTES = 64 * 1024;

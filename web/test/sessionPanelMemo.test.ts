@@ -25,21 +25,15 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import * as React from 'react';
-import { act, render } from './rtlHarness.ts';
+import { act, flatApiStub, render } from './rtlHarness.ts';
 import { AppContext } from '../src/ui/context.ts';
 import type { AppContextValue } from '../src/ui/context.ts';
-import type { ApiClient } from '../src/core/ApiClient.ts';
 
 const { SessionPanel } = await import('../src/ui/components/SessionPanel.tsx');
 
 /** 任意方法都成功返回的假 api（面板挂载期会打若干 RPC，判据只关心渲染次数）。 */
-const fakeApi = new Proxy({} as ApiClient, {
-  get: (_t, prop) => {
-    if (prop === 'listWorkspaces') {
-      return async () => ({ current: 'D:/proj', workspaces: ['D:/proj'] });
-    }
-    return async () => ({});
-  },
+const fakeApi = flatApiStub({
+  listWorkspaces: async () => ({ current: 'D:/proj', workspaces: ['D:/proj'] }),
 });
 
 /** 最小上下文值（api/toast/dialog 桩 + 指定的 tick）。 */

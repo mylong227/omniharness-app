@@ -23,10 +23,12 @@
 // 整页会因模块解析失败而完全不挂载；web e2e 正是靠这一条把这类错误挡在提交前）。
 import * as React from 'react';
 import { useApp } from '../../context.ts';
-import { icon } from '../../models/Icon.ts';
+import { useSessionResource } from '../../hooks/useSessionResource.ts';
+import { icon } from '../../kit/Icon.tsx';
 import type { ReactElement } from 'react';
-import { t } from '../../i18n/i18n.ts';
+import { currentLocale, t } from '../../i18n/i18n.ts';
 // 面板级 antd 一律子路径导入（不走 'antd' 桶文件，理由见 vite.config.ts「分块改造」注释）。
+import Button from 'antd/es/button';
 import Table from 'antd/es/table';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -62,7 +64,14 @@ type GovernanceHistory =
         }[];
       };
     }
-  | { readonly available: false; readonly reason: string };
+  | {
+      readonly available: false;
+      readonly reason: string;
+      readonly code?: string;
+      readonly feature?: string;
+      readonly tier?: string;
+      readonly requiredTier?: string;
+    };
 
 /**
  * 晋升台账行列表（2026-10-29 W4：antd Table）。
@@ -162,9 +171,9 @@ function GovernanceError(props: { message: string; onRetry: () => void }): React
   return (
     <div className="governance-tab">
       <p className="err">{t('读取治理数据失败：{msg}', { msg: props.message })}</p>
-      <button type="button" onClick={props.onRetry}>
+      <Button onClick={props.onRetry}>
         {t('重试')}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -174,44 +183,28 @@ function GovernanceError(props: { message: string; onRetry: () => void }): React
  * @returns 治理面板节点
  */
 export function GovernanceTab(): ReactElement {
-  const { api, sessionTick } = useApp();
-  const [data, setData] = React.useState<GovernanceHistory | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
-  const [loading, setLoading] = React.useState<boolean>(true);
+  const { api } = useApp();
+  // 取数收编进 useSessionResource（2026-11-17）：seq 守卫 + 失败保留旧数据。全局只读，不跟 tick。
+  const { data, error, loading, refresh } = useSessionResource<GovernanceHistory>({
+    enabled: true,
+    followTick: false,
+    load: React.useCallback(async () => api.governance.governanceHistory<GovernanceHistory>(), [api]),
+  });
 
-  /** 拉取治理视图（失败也进状态：UI 必须能显示"读不出来"，不许静默空列表）。 */
-  const refresh = React.useCallback(async (): Promise<void> => {
-    setLoading(true);
-    setError(null);
-    try {
-      const r = await api.governanceHistory<GovernanceHistory>();
-      setData(r);
-    } catch (e) {
-      setError((e as Error).message);
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [api]);
-
-  React.useEffect(() => {
-    void refresh();
-  }, [refresh, sessionTick]);
-
-  if (loading) return <div className="governance-tab">{t('载入晋升台账…')}</div>;
-  if (error !== null) {
-    return <GovernanceError message={error} onRetry={() => void refresh()} />;
+  if (loading && data === null) return <div className="governance-tab">{t('载入晋升台账…')}</div>;
+  if (data === null && error !== null) {
+    return <GovernanceError message={error} onRetry={refresh} />;
   }
   if (data === null) return <div className="governance-tab">{t('暂无治理数据。')}</div>;
   if (!data.available) {
     // 读不出来要**直说**：空列表会被误读成"没有晋升记录"。
     return (
       <div className="governance-tab">
-        <p className="err">{data.reason || t('未提供原因')}</p>
+        <p className="err">{entitlementReasonOf(data) || t('未提供原因')}</p>
         <p className="hint">{t('台账尚未产生时可忽略；若已产生过晋升，请检查工作区 .omniharness/evolution。')}</p>
-        <button type="button" onClick={() => void refresh()}>
+        <Button onClick={refresh}>
           {t('重试')}
-        </button>
+        </Button>
       </div>
     );
   }
@@ -239,9 +232,9 @@ export function GovernanceTab(): ReactElement {
             ? ''
             : t('（首个失败 #{seq}）', { seq: summary.firstFailureSeq })}
         </span>
-        <button type="button" onClick={() => void refresh()}>
+        <Button onClick={refresh}>
           {t('刷新')}
-        </button>
+        </Button>
       </header>
       <GovernanceRows rows={rows} />
       <RollbackTargets targets={rollbackTargets} />
@@ -249,3 +242,30 @@ export function GovernanceTab(): ReactElement {
   );
 }
 
+
+
+/**
+ * 授权拒因的本地化重组（2026-11-14）：服务端拒因是**机读结构字段**（code/feature/
+ * tier/requiredTier）+ 中文 reason——中文 locale 直显原 reason，English 按结构字段
+ * 重组英文拒因；未知 code 回落服务端原文（fail-open）。
+ * @param data 拒绝分支数据
+ * @returns 本地化拒因
+ */
+function entitlementReasonOf(data: { reason: string; code?: string; feature?: string; tier?: string; requiredTier?: string }): string {
+  if (currentLocale() === 'en' && data.code !== undefined) {
+    const feature = data.feature ?? 'this feature';
+    const tier = data.tier ?? 'core';
+    const required = data.requiredTier ?? 'pro';
+    if (data.code === 'tier-too-low') {
+      return t('功能 {feature} 需要 {requiredTier} 档（当前 {tier}）；当前未持有有效授权', {
+        feature, requiredTier: required, tier,
+      });
+    }
+    if (data.code === 'no-license') {
+      return t('功能 {feature} 需要 {requiredTier} 档；当前未持有有效授权', {
+        feature, requiredTier: required,
+      });
+    }
+  }
+  return data.reason;
+}

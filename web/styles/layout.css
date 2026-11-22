@@ -39,11 +39,10 @@
 @media (max-width:880px) { .tabs { display:flex; } }
 .pane { display:none; }
 .pane.active { display:block; }
-.tool-item { display:flex; align-items:center; gap:8px; padding:6px 9px; border-radius:8px; cursor:pointer; font-size:13px; }
-.tool-item:hover { background:var(--panel-2); }
-.tool-item .dot { width:8px; height:8px; border-radius:50%; background:var(--warn); flex:none; }
-.tool-item.ok .dot { background:var(--ok); } .tool-item.err .dot { background:var(--err); }
-.tool-item .state { margin-left:auto; color:var(--dim); font-size:11px; }
+/* 工具行（antd Button type="text"）：表面/悬停/焦点归 antd，这里只留布局与状态列；
+   #toolList 提高特异性，压过 antd 单类（cssinjs 注入顺序无关）。 */
+#toolList .tool-item { display:flex; align-items:center; justify-content:flex-start; gap:8px; font-size:13px; text-align:left; }
+#toolList .tool-item .state { margin-left:auto; color:var(--dim); font-size:11px; }
 .metric-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
 .metric { border:1px solid var(--border-soft); }
 .kv { display:flex; justify-content:space-between; border-bottom:1px solid var(--border-soft); }
@@ -150,21 +149,35 @@
 .dlg { width:400px; }
 .dlg .dlg-msg { color:var(--text); line-height:1.6; margin-bottom:14px; word-break:break-word; }
 .dlg .dlg-input { width:100%; margin-bottom:14px; }
-.btn-remove { cursor:pointer; border:1px solid var(--border-soft); background:var(--bg-elev); color:var(--text); }
 
 /* ---------- 会话分组（按工作区折叠 + 分页展开 + 隐藏滚动条） ---------- */
 #sessions { max-height:260px; overflow-y:auto; scrollbar-width:none; }
 #sessions::-webkit-scrollbar { display:none; }
-.ws-group { margin-bottom:8px; }
+.ws-group { margin-bottom: 8px; }
 .ws-head {
-  display:flex; align-items:center; gap:6px; padding:6px 8px; cursor:pointer; user-select:none;
+  display:flex; align-items:center; gap:6px; padding:8px 8px; cursor:pointer; user-select:none;
+  /* 2026-11-15：时间分组头从 div 改成 button（键盘可展开/收起）。原生按钮的边框/底色/
+   * 字体全部清零，保持原视觉；宽度撑满以便整行可点。 */
+  width:100%; border:0; background:transparent; color:var(--faint); font:inherit; font-size:11.5px; text-align:left;
 }
 .ws-head .ws-caret { font-size:10px; width:10px; }
 .ws-head .ws-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; direction:rtl; text-align:left; }
 .ws-head .ws-count { font-size:11px; color:var(--dim); }
-.ws-list { margin-top:2px; }
-.ws-more { width:100%; text-align:center; background:transparent; border:none; color:var(--dim);
-  font-size:11.5px; padding:5px 0; cursor:pointer; border-radius:6px; }
+/* 2026-11-14 第三轮（用户截图：会话每一条太挤）：列表改弹性列 + 行间距。
+   2026-11-14 第四轮（用户反馈「太开了」）：行距回调，并清掉 .session 历史上叠加的
+   2px margin-bottom——让 gap 成为行距的唯一来源。
+   2026-11-14 第五轮（用户：「间隙间距小一点」）：行距 4→2、组距 10→8、列表顶距 3→2。 */
+.ws-list {
+  margin-top: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ws-list .session { margin-bottom: 0; }
+.ws-more {
+  width:100%; text-align:center; background:transparent; border:none; color:var(--dim);
+  font-size:11.5px; padding:6px 0; margin-top:2px; cursor:pointer; border-radius:var(--r-sm);
+}
 .ws-more:hover { background:var(--panel-2); color:var(--text); }
 
 /* ---------- 左栏（业界常见式）：顶部项目切换器 / 可折叠区块 / 收起成图标条 / 行右键菜单 ---------- */

@@ -33,6 +33,7 @@ import { useSettingsSurfaceModel } from './useSettingsSurfaceModel.ts';
 import { useProviderCatalog, type ProviderCatalogState } from './useProviderCatalog.ts';
 import type { Config } from '../../../types/models.ts';
 import type { SettingsModel } from '../../models/SettingsModel.ts';
+import Button from 'antd/es/button';
 
 /** 设置页的入参。 */
 export interface SettingsSurfaceProps {
@@ -83,9 +84,9 @@ function LoadErrorBanner(props: { message: string; onRetry: () => void }): React
   return (
     <div className="sp-load-error csl-banner" role="alert">
       <span>{props.message}</span>
-      <button className="csl-btn" type="button" onClick={props.onRetry}>
+      <Button onClick={props.onRetry}>
         {t('重试')}
-      </button>
+      </Button>
     </div>
   );
 }

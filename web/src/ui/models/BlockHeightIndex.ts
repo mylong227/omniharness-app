@@ -125,6 +125,33 @@ export class BlockHeightIndex {
   }
 
   /**
+   * 一次扫描同时取三段高度（2026-11-17 性能批次）：窗口计算此前调 3 次 prefix = 每帧
+   * 3×O(blocks) 全扫（数千块会话下滚动帧可感）；本方法单次遍历给出全部三值。
+   * @param keys 当前全部块 key（有序）
+   * @param start 窗口起点（exclusive 前缀边界，同 prefix 的 count 语义）
+   * @param end 窗口终点（padBottom 的前缀边界）
+   * @returns start 前累计高（padTop）、end 前累计高与全量总高
+   */
+  public windowSpans(
+    keys: readonly string[],
+    start: number,
+    end: number,
+  ): { readonly beforeStart: number; readonly beforeEnd: number; readonly total: number } {
+    const startN = Math.max(0, Math.min(start, keys.length));
+    const endN = Math.max(0, Math.min(end, keys.length));
+    let beforeStart = 0;
+    let beforeEnd = 0;
+    let total = 0;
+    for (let i = 0; i < keys.length; i++) {
+      const h = this.get(keys[i]!);
+      total += h;
+      if (i < startN) beforeStart += h;
+      if (i < endN) beforeEnd += h;
+    }
+    return { beforeStart, beforeEnd, total };
+  }
+
+  /**
    * 全部块按真实高度的总高（滚动条总高用）。
    * @param keys 当前全部块 key（有序）
    * @returns 总高（px）

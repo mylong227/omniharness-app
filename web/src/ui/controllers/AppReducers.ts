@@ -31,6 +31,10 @@ export interface CommandDeps {
   toggleFocus: () => void;
   /** 打开设置模态（2026-10-17：设置不再是右栏面板，见 AppReducers.buildCommands 注释）。 */
   openSettings: () => void;
+  /** 复制当前会话深链（2026-11-10 工作台体验：命令面板一键分享）。 */
+  copySessionLink?: () => void;
+  /** 导出当前会话 Markdown（2026-11-10：本地文件，不写服务端）。 */
+  exportSession?: () => void;
 }
 
 /** 应用根组件的纯状态归约器：无状态、无 React 依赖，全部为可单测的纯方法。 */
@@ -425,6 +429,23 @@ export class AppReducers {
         run: () => deps.toggleFocus(),
       },
     );
+    // 会话实用动作（2026-11-10）：只在宿主注入了实现时出现，旧嵌入调用方不受影响。
+    if (deps.exportSession !== undefined) {
+      list.push({
+        id: 'export-session',
+        label: '导出会话 Markdown',
+        group: '会话',
+        run: () => deps.exportSession?.(),
+      });
+    }
+    if (deps.copySessionLink !== undefined) {
+      list.push({
+        id: 'copy-session-link',
+        label: '复制会话链接',
+        group: '会话',
+        run: () => deps.copySessionLink?.(),
+      });
+    }
     return list;
   }
 }
