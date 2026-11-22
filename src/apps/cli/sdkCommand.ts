@@ -16,7 +16,7 @@ import { CliArgReader } from './cliArgReader.ts';
 
 /** 用法提示。 */
 const USAGE =
-  '用法: omniharness sdk call --url ws://HOST:PORT/ws --method NAME [--params JSON] [--timeout MS]\n' +
+  AppText.t('用法: omniharness sdk call --url ws://HOST:PORT/ws --method NAME [--params JSON] [--timeout MS]\n') +
   '      omniharness sdk ping --url ws://HOST:PORT/ws\n';
 
 /**

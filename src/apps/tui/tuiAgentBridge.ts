@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * TUI ↔ Agent 桥（#S35 收口）——把 `omniharness tui` 从「回声 stub」接到真实任务回路上。
  *
@@ -23,9 +24,9 @@ import type { SessionEvent } from '../../host/kernel/contracts.ts';
 import type { TuiEvent } from './../../host/contracts/ports/tui/tuiEvent.ts';
 import type { TuiTaskRunner } from './../../host/contracts/ports/tui/tuiTaskRunner.ts';
 
-/** 单条文本载荷的展示截断上限（字符）：TUI 行不是日志文件，超长正文以省略号收尾。 */
+/** 单条文本载荷的展示截断上限（字符）：TUI 行不是日志文件，超长正文以省略号收尾（C 类：纯展示，不随部署调节）。 */
 const TEXT_LIMIT = 400;
-/** 工具参数预览的截断上限（字符）。 */
+/** 工具参数预览的截断上限（字符；C 类：纯展示，不随部署调节）。 */
 const ARGS_LIMIT = 80;
 
 /**
@@ -80,7 +81,7 @@ export class TuiAgentBridge {
     const bridge = this;
     async function* run(): AsyncGenerator<TuiEvent> {
       if (bridge.runner === undefined) {
-        throw new Error('TuiAgentBridge 未绑定任务执行面（attach）即被 send');
+        throw new Error(AppText.t('TuiAgentBridge 未绑定任务执行面（attach）即被 send'));
       }
       const runner: TuiTaskRunner = bridge.runner;
       const queue: TuiEvent[] = [];
@@ -152,7 +153,7 @@ export class TuiAgentBridge {
         const name = TuiAgentBridge.textOf(payload['name']);
         return {
           kind: 'tool_call',
-          text: name === '' ? '（未知工具）' : name,
+          text: name === '' ? AppText.t('（未知工具）') : name,
           meta: TuiAgentBridge.truncate(TuiAgentBridge.jsonOf(payload['args']), ARGS_LIMIT),
         };
       }
@@ -161,11 +162,11 @@ export class TuiAgentBridge {
         const body =
           TuiAgentBridge.textOf(payload['output']) ||
           TuiAgentBridge.textOf(payload['error']) ||
-          '（无输出）';
+          AppText.t('（无输出）');
         return {
           kind: 'tool_result',
           text: TuiAgentBridge.truncate(body, TEXT_LIMIT),
-          ...(ok ? {} : { meta: '失败' }),
+          ...(ok ? {} : { meta: AppText.t('失败') }),
         };
       }
       case 'question':

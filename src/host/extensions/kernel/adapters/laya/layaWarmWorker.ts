@@ -1,3 +1,4 @@
+import { AppText } from '../../../../../apps/i18n/AppText.ts';
 /**
  * Laya 常驻推理进程（热路径）：`laya_infer.py --serve` + JSONL over stdio。
  *
@@ -238,7 +239,7 @@ export class LayaWarmWorker {
    */
   public async decide(input: LayaWarmInference): Promise<LayaBridgeResponse> {
     if (this.closed) {
-      return { available: false, note: 'Laya 热进程已关闭（不重启）' };
+      return { available: false, note: AppText.t('Laya 热进程已关闭（不重启）') };
     }
     if (!this.ready) {
       this.preload();
@@ -249,7 +250,7 @@ export class LayaWarmWorker {
         note:
           this.loadError.length > 0
             ? `Laya 热进程不可用：${this.loadError}`
-            : '热进程仍在加载权重（本次决策跳过；加载继续在后台进行）',
+            : AppText.t('热进程仍在加载权重（本次决策跳过；加载继续在后台进行）'),
       };
     }
     try {
@@ -291,7 +292,7 @@ export class LayaWarmWorker {
     timeoutMs?: number,
   ): Promise<LayaBridgeResponse> {
     if (this.closed) {
-      return Promise.reject(new Error('热进程已关闭'));
+      return Promise.reject(new Error(AppText.t('热进程已关闭')));
     }
     try {
       this.ensureChild();
@@ -300,7 +301,7 @@ export class LayaWarmWorker {
     }
     const child = this.child;
     if (child?.stdin === undefined || child.stdin === null) {
-      return Promise.reject(new Error('热进程 stdin 不可用'));
+      return Promise.reject(new Error(AppText.t('热进程 stdin 不可用')));
     }
     const id = this.nextId;
     this.nextId += 1;
@@ -353,7 +354,7 @@ export class LayaWarmWorker {
     // 断开竞态下的 EPIPE 属正常现象，不上抛（stdin 写回调里另有结构化失败通道）。
     child.stdin?.on('error', () => undefined);
     child.stdout?.on('error', () => undefined);
-    child.on('exit', () => this.onExit(new Error('热进程已退出'), child));
+    child.on('exit', () => this.onExit(new Error(AppText.t('热进程已退出')), child));
     child.on('error', (error: Error) => this.onExit(error, child));
     LayaProcessLiveness.set(this.child, false);
     this.scheduleIdle();
@@ -455,7 +456,7 @@ export class LayaWarmWorker {
     this.loading = false;
     this.loadError = '';
     this.readyWaiters.settle(false);
-    this.pending.failAll(new Error('热进程已回收'));
+    this.pending.failAll(new Error(AppText.t('热进程已回收')));
     if (child === undefined) {
       return;
     }

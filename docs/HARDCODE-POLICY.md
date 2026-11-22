@@ -19,22 +19,35 @@ C 类豁免的理由：把安全上限做成可配置等于允许部署方无意
 | 门禁 | 覆盖 |
 |---|---|
 | `web/test/i18nCoverage.test.ts` | Web `t('…')` 字面量键 + `.label/.hint/.name/.group` 表值都有 en 词条 |
+| `web/test/webTableI18n.test.ts` | Web 数据表 `label/hint/desc/title/text/message/…` 的 CJK 值都有 en 词条 |
+| `web/test/webHardcodedText.test.ts` | Web 的 `new Error` / toast·confirm·prompt / JSX `title`·`aria-label`·`placeholder` 不得裸 CJK |
 | `tests/appTextCoverage.test.ts` | 服务端/CLI/审计的 `AppText.t` 键有 en 词条、分片无重复、用户可见上下文无裸 CJK |
-| `tests/webHardcodedText.test.ts` | Web 组件/控制器里用户可见上下文（JSX 属性、toast/confirm、Error、aria/title/placeholder）不得有裸 CJK |
 | `tests/runtimeConfig.test.ts` | `src/config/app.json` 形状/正数校验，且被 web 与服务端共用 |
+| `tests/magicValues.test.ts` | `TIMEOUT/TTL/POLL/LIMIT/CACHE/…` 数字常量必须来自 `RuntimeConfig/UI_TUNABLES`（C 类显式豁免） |
+
+## C 类显式豁免清单（不在门禁里报错）
+
+| 位置 | 理由 |
+|---|---|
+| `src/host/.../schema/protocolSchema.ts`、`contracts/schema/codeGenerator.ts` | 协议 schema 描述与 SDK 代码生成模板：开发者文档源，不是运行期 UI 文案 |
+| `src/apps/tui/tuiAgentBridge.ts` 的 `TEXT_LIMIT/ARGS_LIMIT` | 纯展示截断，不随部署调节 |
+| `desktop/src/main/SmokeHarness.ts`、`scripts/**` | CI/开发工具输出，不进产品 UI；桌面产品文案走 `DESKTOP_MESSAGES` |
+| `rpcErrorCodes` 的 `'RPC 超时'`、`fleetLaneParser` 的 `'…（共'` | 协议/日志解析匹配标记，翻译会破坏匹配 |
 
 ## 迁移状态（2026-11-22）
 
-- ✅ Web：`t()` 覆盖 1,983 处；数据表经 `t()` 消费；en 词条门禁在守。
-- ✅ 服务端 / CLI / 审计 / 企业 OIDC：用户可见错误、提示、usage、stdout/stderr 已走 `AppText.t()`；
-  en 词条全量（249 键）。
-- ✅ 可调参数首批：Web（搜索去抖/轨迹上限/摘要展开/容量轮询/编队轮询·TTL·读数/历史分页）、
-  服务端（审批·提问超时/入参预览/分页/trace/搜索/附件/决策行数/自定义答案）进 `app.json`。
-- ⏳ 待续：审计渲染器/doctor 报告的拼接型文案、更多调优常量（继续按 A/B 类迁移，C 类豁免）。
+- ✅ Web：全部 CJK 字面量在 AST 口径下都有 en 词条（0 missing）；数据表经 `t()` 消费；
+  三条 Web 门禁在守。
+- ✅ 服务端 / CLI / 审计 / 企业 / TUI / host 适配层：用户可见错误、提示、usage、报告、诊断、
+  角色与模式指令全部走 `AppText.t()`；en 分片 server/cli/audit/common 全量，缺词会由门禁拦截。
+- ✅ 可调参数：`src/config/app.json` 单一来源，首批 + 第二批 + 收尾（页面/缓存/markdown/部分 JSON/
+  OIDC 超时）全部接入 `RuntimeConfig`/`UI_TUNABLES`，启动 fail-fast；`magicValues` 门禁防回潮。
+- ✅ 剩余可调参数位于 `src/host` 内核适配层（laya/croner），按内核配置/env 体系管理，不在本仓 app 配置范围。
 
 ## 评审自检
 
 1. 新文案进的是词条目录，还是裸字符串？（A 类）
-2. 新数值会随环境/运营变化吗？会 → `app.json`；不会且属协议/安全 → 命名常量并注释。（B/C 类）
-3. 改 `app.json` 是否同步了 `RuntimeConfig` 的接口与校验？
+2. 新数值会随环境/运营变化吗？会 → `app.json`；不会且属协议/安全/纯展示 → 命名常量并注释。（B/C 类）
+3. 改 `app.json` 是否同步了 `RuntimeConfig` / `UI_TUNABLES` 的接口与校验？
 4. 有没有在业务代码里直读 env / 文件再各自解析？配置只在启动层解析一次。
+5. 新增 C 类豁免是否写进上表并说明理由？否则门禁会拒绝。

@@ -404,7 +404,7 @@ export class ExecCli extends CliAgentCmds {
       // 同样返回 undefined，用户改坏 omniharness.json 后看到的是"功能不存在"——排查方向
       // 完全被带偏。留一行 stderr 把两者区分开（命令本身仍照常走"未启用"分支不打挂）。
       process.stderr.write(
-        `[omniharness] capability 装配失败（注意：这与"未启用"不同，多为配置错误）：` +
+        AppText.t(`[omniharness] capability 装配失败（注意：这与"未启用"不同，多为配置错误）：`) +
           `${error instanceof Error ? error.message : String(error)}\n`,
       );
       return undefined;

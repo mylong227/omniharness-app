@@ -1,3 +1,4 @@
+import { RuntimeConfig } from '../config/RuntimeConfig.ts';
 import { AppText } from '../i18n/AppText.ts';
 /**
  * `IdTokenVerifierPort` 的 `jose` 实现（Wave A.5 · 依赖准入第二项）。
@@ -53,7 +54,7 @@ const MAX_TOKEN_BYTES = 16 * 1024;
 const DEFAULT_CLOCK_TOLERANCE_SEC = 30;
 
 /** 缺省 JWKS 获取超时（毫秒）。 */
-const DEFAULT_TIMEOUT_MS = 5_000;
+const DEFAULT_TIMEOUT_MS = RuntimeConfig.server.enterpriseTimeoutMs;
 
 /** JWKS 缓存冷却（毫秒）：未知 kid 触发的重取不得被高频请求放大。 */
 const JWKS_COOLDOWN_MS = 30_000;

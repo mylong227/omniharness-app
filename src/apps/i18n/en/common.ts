@@ -26,6 +26,26 @@ export const COMMON: Readonly<Record<string, string>> = {
   'OIDC 换码需要 redirect_uri（config 或 params 至少提供一处）':
     'OIDC code exchange requires redirect_uri (provide it in config or params)',
   'id_token 为空': 'id_token is empty',
+  'laya 决策失败（fail-open）': 'laya decision failed (fail-open)',
+  'Laya 热进程仍在加载权重，本次决策跳过（fail-open；加载继续在后台进行）':
+    'The Laya warm process is still loading weights; skipping this decision (fail-open; loading continues in the background)',
+  'Laya 决策失败（fail-open：本次降级为无预判，不影响主流程）':
+    'Laya decision failed (fail-open: this decision runs without a prediction; the main flow is unaffected)',
+  'Laya 决策引擎后端已就绪': 'Laya decision-engine backend is ready',
+  'Laya 决策引擎后端不可用（fail-open，决策将回落到 LLM）':
+    'Laya decision-engine backend is unavailable (fail-open; decisions fall back to the LLM)',
+  'laya 后端不可用（fail-open）': 'laya backend unavailable (fail-open)',
+  '桥无输出（进程可能被超时终止）': 'Bridge produced no output (the process may have been killed by a timeout)',
+  'Laya 热进程已关闭（不重启）': 'Laya warm process closed (not restarting)',
+  '热进程仍在加载权重（本次决策跳过；加载继续在后台进行）':
+    'Warm process is still loading weights (skipping this decision; loading continues in the background)',
+  '热进程已关闭': 'Warm process closed',
+  '热进程 stdin 不可用': 'Warm process stdin is unavailable',
+  '热进程已退出': 'Warm process exited',
+  '热进程已回收': 'Warm process reclaimed',
+  '注入快照顶层应为对象 { cases: [...] }': 'Injection snapshot top level must be an object { cases: [...] }',
+  '注入快照 cases 应为非空数组': 'Injection snapshot cases must be a non-empty array',
+  'MCP registry 响应必须是对象': 'MCP registry response must be an object',
   '探索者': 'Explorer',
   '先摸清代码与数据全貌，再下结论': 'Map the code and data first, then draw conclusions',
   '以「探索者」角色工作：先把相关目录结构、调用链与既有实现读清楚，再给结论。':

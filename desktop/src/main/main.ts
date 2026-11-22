@@ -162,8 +162,8 @@ function run(): void {
       // 超时也要给出「卡在哪」：CI 上看不到窗口，没有这行就只能猜（2026-11-10 实测）。
       const win = context?.window ?? null;
       const url =
-        win === null || win.isDestroyed() ? '(无窗口)' : DesktopLogger.redact(win.webContents.getURL());
-      const sidecar = context?.supervisor?.getState() ?? '(未创建)';
+        win === null || win.isDestroyed() ? '(no window)' : DesktopLogger.redact(win.webContents.getURL());
+      const sidecar = context?.supervisor?.getState() ?? '(not created)';
       process.stdout.write(
         `[omni-smoke] TIMEOUT: ${Math.round(smokeTimeoutMs / 1000)}s 内未得出结论` +
           `（sidecar=${sidecar} url=${url}）\n`,
@@ -501,7 +501,7 @@ async function resolveWorkspace(
     // 无人值守冒烟：原生目录选择框没人点，会一直挂到超时闸才退出（2026-11-10 CI 实测）。
     // 与其挂 300s 再报「TIMEOUT」，不如当场说清楚缺什么。
     process.stderr.write(
-      '[omni-smoke] 缺少 --workspace：无人值守冒烟不弹目录选择框，请显式传工作区目录\n',
+      '[omni-smoke] missing --workspace: unattended smoke does not open a directory picker; pass the workspace directory explicitly\n',
     );
     app.exit(2);
     return null;

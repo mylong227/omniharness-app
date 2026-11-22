@@ -112,7 +112,7 @@ export class CliCredentialBuild {
       // fail-closed 不变，但把密码学真相翻成人话：换主密钥后旧密文本就不可读，宁可报错也不冒充"没存过"。
       const detail = error instanceof Error ? error.message : String(error);
       throw new Error(
-        `--vault-hydrate 读取凭据失败（在此停住，不静默降级为"凭据不存在"）：主密钥来自` +
+        AppText.t(`--vault-hydrate 读取凭据失败（在此停住，不静默降级为"凭据不存在"）：主密钥来自`) +
           `${VaultKeyDefaults.describeSource(args.vaultKeyFile)}；换了密钥来源后，` +
           `先前用别的密钥写下的密文必然解不开（GCM 认证失败）。原始错误：${detail}`,
       );

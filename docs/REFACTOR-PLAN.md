@@ -382,6 +382,19 @@ useSessionResource 12 面板既有接线、theme.css token 纪律。
 - [x] 遗留台账 L1-L9 全终态（L4 裁定 B 已删 boost；L7 终态关闭）
 - [x] `npm run verify` 全链绿（2026-11-22 实跑：232 文件 1064 用例 + desktop 44；CI 待推送后复核）
 
+## 九、硬编码治理（批次十六，2026-11-22）
+
+> 策略与判定口径见 [HARDCODE-POLICY.md](HARDCODE-POLICY.md)：A 用户可见文本 / B 可调参数 /
+> C 协议·安全·纯展示常量（显式豁免）。
+
+- [x] AppText 应用层文案目录（zh 原文即键 + en 分片 + `{param}` 插值 + locale 接线）
+- [x] 服务端/CLI/审计/企业/TUI/host 用户可见文案外部化，en 全量（门禁拦截缺词）
+- [x] `src/config/app.json` 单一来源 + `RuntimeConfig`/`UI_TUNABLES` 启动校验；40+ 可调参数迁入
+- [x] 文案门禁四条 + 魔法值门禁一条（`appTextCoverage` / `webTableI18n` / `webHardcodedText` /
+  `runtimeConfig` / `magicValues`）
+- [x] 策略文档与 C 类豁免清单（协议 schema/codegen、TUI 展示截断、CI/scripts、解析匹配标记）
+- [x] `npm run verify` 全链复跑绿（见批次十六提交）
+
 ## 工作量粗估
 
 | 波次 | 批次 | 约量 |

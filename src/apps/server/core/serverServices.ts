@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import { ContextWindowCatalog } from '../../../host/kernel/context.ts';
 import { SubagentTree } from '../../../host/kernel/core.ts';
 import type { ResolvedConfig, SubagentTreePort } from '../../../host/kernel/contracts.ts';
@@ -226,7 +227,7 @@ export class ServerServices {
     // 白等一整个超时窗口（审批 120s / 提问 300s）才收尾，期间 activeTurns 一直是 running
     // （2026-09-22 修审计 P2；提问沿同一口径，2026-10-08）。
     options.transport.setOnAllClientsGone?.(() => {
-      this.events.denyAllPending('客户端全部断开（页面关闭 / 连接断开）');
+      this.events.denyAllPending(AppText.t('客户端全部断开（页面关闭 / 连接断开）'));
     });
     this.plugins = new PluginHost({
       pluginsDir: options.pluginsDir,

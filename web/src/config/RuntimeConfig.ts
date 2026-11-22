@@ -27,6 +27,8 @@ export interface UiTunables {
   readonly quoteMaxChars: number;
   readonly streamIntervalMs: number;
   readonly textRevealStepMs: number;
+  readonly markdownCacheTextChars: number;
+  readonly partialJsonCacheMax: number;
 }
 
 /** 校验并冻结 web 段。 */

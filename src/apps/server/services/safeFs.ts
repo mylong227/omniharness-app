@@ -73,7 +73,7 @@ export class SafeFs {
     } catch (err) {
       return {
         ok: false,
-        error: '读取失败: ' + (err instanceof Error ? err.message : String(err)),
+        error: AppText.t('读取失败: ') + (err instanceof Error ? err.message : String(err)),
       };
     }
   }
@@ -111,7 +111,7 @@ export class SafeFs {
     } catch (err) {
       return {
         ok: false,
-        error: '读取失败: ' + (err instanceof Error ? err.message : String(err)),
+        error: AppText.t('读取失败: ') + (err instanceof Error ? err.message : String(err)),
       };
     }
   }
@@ -140,7 +140,7 @@ export class SafeFs {
     } catch (err) {
       return {
         ok: false,
-        error: '读取失败: ' + (err instanceof Error ? err.message : String(err)),
+        error: AppText.t('读取失败: ') + (err instanceof Error ? err.message : String(err)),
       };
     }
   }

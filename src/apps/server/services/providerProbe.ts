@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import { RuntimeConfig } from '../../config/RuntimeConfig.ts';
 /**
  * 厂商连通探测与运行时模型构造（#模型接入页）。
@@ -163,7 +164,7 @@ export class ProviderProbe {
       configured: !preset.needsKey || (key !== undefined && key.length > 0),
     };
     if (!base.configured) {
-      return { ...base, ok: false, models: preset.models, source: 'none', error: '未配置 API Key' };
+      return { ...base, ok: false, models: preset.models, source: 'none', error: AppText.t('未配置 API Key') };
     }
     try {
       const ids = await ProviderProbe.fetchModelsEndpoint(

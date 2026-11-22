@@ -166,7 +166,7 @@ export class ServePortConflict {
         }`,
       );
       lines.push(
-        `  ③ 让本次启动直接接管：omniharness serve --take-port` +
+        AppText.t(`  ③ 让本次启动直接接管：omniharness serve --take-port`) +
           AppText.t(`（**仅当占用者确认是 OmniHarness serve 时**才终止它；本程序不会杀别的进程）`),
       );
     } else {

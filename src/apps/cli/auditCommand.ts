@@ -27,7 +27,7 @@ import { CliArgReader } from './cliArgReader.ts';
 
 /** 用法提示（`audit` 三种形态的完整说明）。 */
 const USAGE =
-  '用法:\n' +
+  AppText.t('用法:\n') +
   '  omniharness audit export [--audit-dir DIR | --audit-file PATH] [--since ISO] [--until ISO]\n' +
   '                          [--type T] [--session S] [--actor A] [--format json|table|csv]\n' +
   '                          [--out FILE] [--limit N] [--compliance]\n' +
@@ -35,11 +35,11 @@ const USAGE =
   '                          [--title TEXT] [--source-format omni|claude-code|codex|acp]\n' +
   '                          [--strict] [--redact off|paths|secrets|all]\n' +
   '  omniharness audit verify <REPORT...> [--json]\n' +
-  '  omniharness audit <FILE|DIR...>            # report 的简写\n' +
+  AppText.t('  omniharness audit <FILE|DIR...>            # report 的简写\n') +
   '\n' +
-  '  --strict  任一输入存在未识别的来源条目时以退出码 1 失败（缺省只在报告里显示「未识别 N」）。\n' +
-  '  --redact  脱敏模式（缺省 off，证据保真优先）：paths 遮绝对路径（保留末两段+哈希）、\n' +
-  '            secrets 遮密钥（前缀/赋值/高熵）、all 两者；报告顶部显示 mode，verify 对 hits 对账。\n' +
+  AppText.t('  --strict  任一输入存在未识别的来源条目时以退出码 1 失败（缺省只在报告里显示「未识别 N」）。\n') +
+  AppText.t('  --redact  脱敏模式（缺省 off，证据保真优先）：paths 遮绝对路径（保留末两段+哈希）、\n') +
+  AppText.t('            secrets 遮密钥（前缀/赋值/高熵）、all 两者；报告顶部显示 mode，verify 对 hits 对账。\n') +
   AppText.t('  退出码契约见 docs/audit/EXIT_CODES.md。\n');
 
 /** `report` 的取值型旗标。 */

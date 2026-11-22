@@ -25,7 +25,7 @@ import { CliArgReader } from './cliArgReader.ts';
 
 /** 用法提示。 */
 const USAGE =
-  '用法: omniharness license status --license <file> --license-public-key <ssh-ed25519 …>\n' +
+  AppText.t('用法: omniharness license status --license <file> --license-public-key <ssh-ed25519 …>\n') +
   AppText.t('说明: 校验本机 license 并打印生效档位；无 license / 已过期 ⇒ 退出码 1（核心功能照常可用，请续期）。\n');
 
 /** license 子命令。 */

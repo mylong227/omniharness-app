@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * 常驻 daemon 控制器（D3）：以 PID 文件管理后台 serve 进程。
  *
@@ -215,7 +216,7 @@ export class DaemonController {
     child.unref();
     const pid = child.pid;
     if (pid === undefined) {
-      throw new Error('daemon 启动失败：未能获取子进程 PID');
+      throw new Error(AppText.t('daemon 启动失败：未能获取子进程 PID'));
     }
     // 就绪探测：入口不存在/端口被占时子进程会立刻退出，旧实现照样写 PID 并让 CLI
     // 打印“已启动”（用户按假成功继续连 UI）。这里给一个很短的存活窗口，失败即抛错。

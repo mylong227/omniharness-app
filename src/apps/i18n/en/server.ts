@@ -109,6 +109,38 @@ export const SERVER: Readonly<Record<string, string>> = {
   'checkpoint.create 需要 label': 'checkpoint.create requires a label',
   'checkpoint.rollback 需要 sessionId': 'checkpoint.rollback requires sessionId',
   '路径越界工作区': 'Path escapes the workspace',
+  'src/config/app.json 缺少 web/server 段': 'src/config/app.json is missing the web/server sections',
+  'daemon 启动失败：未能获取子进程 PID': 'Daemon failed to start: could not obtain the child process PID',
+  '未持授权（core 档）': 'No license (core tier)',
+  '；当前未持有效授权': '; no valid license currently',
+  'license 验签未通过（正文被篡改或签名不匹配）':
+    'License signature verification failed (payload tampered with or signature mismatch)',
+  'license 签发时刻晚于当前时刻（超出容差），拒绝采信':
+    'License issue time is later than the current time (beyond tolerance); refusing to trust it',
+  'license 已过期：退回核心档（核心功能照常可用，请续期）':
+    'License expired: falling back to the core tier (core features still work; please renew)',
+  'license 格式非法：需要「头 / 正文 / 签名」三段':
+    'Invalid license format: expected three segments (header / payload / signature)',
+  'license 正文不是合法 JSON（base64 段损坏）':
+    'License payload is not valid JSON (corrupted base64 segment)',
+  'license 正文必须是对象': 'License payload must be an object',
+  'license 缺 licenseId': 'License is missing licenseId',
+  'license 缺 machineFingerprint': 'License is missing machineFingerprint',
+  'license 缺签发/到期时刻': 'License is missing issued/expiry timestamps',
+  'license 到期时刻必须晚于签发时刻': 'License expiry must be later than its issue time',
+  '客户端全部断开（页面关闭 / 连接断开）':
+    'All clients disconnected (page closed / connection lost)',
+  '文件不存在或不可访问：': 'File does not exist or is inaccessible: ',
+  '不支持的文件类型：': 'Unsupported file type: ',
+  '读取失败：': 'Read failed: ',
+  '未配置 API Key': 'API key is not configured',
+  '读取失败: ': 'Read failed: ',
+  'trace.read 需要非空 sessionId': 'trace.read requires a non-empty sessionId',
+  '【本会话目标】': '[Session goal]',
+  '【计划模式】先产出可执行的步骤方案（含涉及文件与验证方式）并停下来等确认；':
+    '[Plan mode] First produce an executable step plan (including files and verification) and stop for confirmation;',
+  '【绘图模式】动手前先用 Mermaid（结构/流程/时序）画清方案草图，再调用 sketch_write 保存草图，':
+    '[Diagram mode] Before changing anything, sketch the plan in Mermaid (structure/flow/sequence), save it with sketch_write,',
   '预览服务绑定后拿不到监听端口（address=null）——拒绝以 port 0 假装成功':
     'Preview server has no listening port after bind (address=null); refusing to fake success with port 0',
   'answers 必须是数组': 'answers must be an array',

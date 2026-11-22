@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * trace 子命令（TraceCommand）——只读自省「我刚做了什么」的 CLI 入口。
  *
@@ -22,7 +23,7 @@ import { CliArgReader } from './cliArgReader.ts';
 
 /** 用法提示。 */
 const USAGE =
-  '用法: omniharness trace read --session ID [--limit N] [--kind K] ' +
+  AppText.t('用法: omniharness trace read --session ID [--limit N] [--kind K] ') +
   '[--storage-dir DIR] [--json]\n';
 
 /**

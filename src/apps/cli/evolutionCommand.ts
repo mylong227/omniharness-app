@@ -39,9 +39,9 @@ const DEFAULT_LEDGER_DIR = join('.omniharness', 'evolution');
 
 /** 用法提示。 */
 const USAGE =
-  '用法: omniharness evolution status [--workspace DIR] [--dir REL] [--json]\n' +
+  AppText.t('用法: omniharness evolution status [--workspace DIR] [--dir REL] [--json]\n') +
   '      omniharness evolution history [--workspace DIR] [--dir REL] [--json]\n' +
-  '      omniharness evolution cycle --yes [其他 CLI 旗标…]\n' +
+  AppText.t('      omniharness evolution cycle --yes [其他 CLI 旗标…]\n') +
   '      omniharness evolution lineage [--skill A --skill B] [--pack NAME] [--out FILE] [--sign-key FILE] [--json]\n' +
   '      omniharness evolution lineage --verify FILE [--trust <ssh-ed25519 …>] [--json]\n' +
   '      omniharness evolution rollback --seq N --yes [--out FILE] [--workspace DIR] [--dir REL]\n' +
