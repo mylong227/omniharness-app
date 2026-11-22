@@ -8,16 +8,5 @@
  * 分域原因：按域加载——根入口整包实测 ~780ms，单域 ~60ms（Node 22，见 vendor/README.md）。
  */
 
-export { BudgetedModel } from '@omniharness/kernel/kernel/adapters/model/budgetedModel.js';
-export { CostBudget } from '@omniharness/kernel/kernel/adapters/model/costBudget.js';
-export type { BudgetSnapshot } from '@omniharness/kernel/kernel/adapters/model/costBudget.js';
-export { LlamaCppModel } from '@omniharness/kernel/kernel/adapters/model/llamaCppModel.js';
-export type { LlamaCppConfig } from '@omniharness/kernel/kernel/adapters/model/llamaCppModel.js';
-export { MockModel } from '@omniharness/kernel/kernel/adapters/model/mockModel.js';
-export { MOCK_ADAPTER_ID, modelAdapterRegistry } from '@omniharness/kernel/kernel/adapters/model/modelAdapterRegistry.js';
-export type { OpenAiCompatibleConfig } from '@omniharness/kernel/kernel/adapters/model/openAiCompatibleModel.js';
-export { ResponsesModel } from '@omniharness/kernel/kernel/adapters/model/responsesModel.js';
-export type { ResponsesConfig } from '@omniharness/kernel/kernel/adapters/model/responsesModel.js';
-export { DEFAULT_RETRY_POLICY, RetryingModel } from '@omniharness/kernel/kernel/adapters/model/retryingModel.js';
-export type { DelayFn, RetryPolicy } from '@omniharness/kernel/kernel/adapters/model/retryingModel.js';
-export { DEFAULT_FALLBACK_PRICE, DEFAULT_ROUTE_PRICING, RoutePricing, UNPRICED_DEFAULT_FAMILIES } from '@omniharness/kernel/kernel/adapters/model/routePricing.js';
+export { BudgetedModel, CostBudget, DEFAULT_FALLBACK_PRICE, DEFAULT_RETRY_POLICY, DEFAULT_ROUTE_PRICING, LlamaCppModel, MOCK_ADAPTER_ID, MockModel, ResponsesModel, RetryingModel, RoutePricing, UNPRICED_DEFAULT_FAMILIES, modelAdapterRegistry } from '@omniharness/kernel/adapters';
+export type { BudgetSnapshot, DelayFn, LlamaCppConfig, OpenAiCompatibleConfig, ResponsesConfig, RetryPolicy } from '@omniharness/kernel/adapters';

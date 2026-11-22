@@ -150,7 +150,7 @@ if (typeof dep === 'string' && dep.startsWith('file:')) {
 
 // 6. 原生内核真实可加载
 try {
-  const { NativeKernel } = await import('@omniharness/kernel/kernel/native/nativeKernel.js');
+  const { NativeKernel } = await import('@omniharness/kernel/runtime');
   const native = new NativeKernel();
   if (!native.available()) {
     fail(`原生内核不可用（pluginPath=${native.modulePath()}）`);

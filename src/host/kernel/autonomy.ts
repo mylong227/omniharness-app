@@ -8,11 +8,6 @@
  * 分域原因：按域加载——根入口整包实测 ~780ms，单域 ~60ms（Node 22，见 vendor/README.md）。
  */
 
-export { GoalChecker } from '@omniharness/kernel/kernel/autonomy/goalChecker.js';
-export { GoalRunner } from '@omniharness/kernel/kernel/autonomy/goalRunner.js';
-export { WorkflowRunLog } from '@omniharness/kernel/kernel/autonomy/workflowRunLog.js';
-export { WorkflowRunner } from '@omniharness/kernel/kernel/autonomy/workflowRunner.js';
-export type { GraphNodeStatus } from '@omniharness/kernel/kernel/autonomy/workflowRunner.js';
-export type { WorkflowDef } from '@omniharness/kernel/kernel/autonomy/workflowTypes.js';
-export type { GraphSummary } from '@omniharness/kernel/contracts/ports/autonomy/graphSummary.js';
-export { GraphStore } from '@omniharness/kernel/kernel/autonomy/graphStore.js';
+export { GoalChecker, GoalRunner, GraphStore, WorkflowRunLog, WorkflowRunner } from '@omniharness/kernel/runtime';
+export type { GraphNodeStatus, WorkflowDef } from '@omniharness/kernel/runtime';
+export type { GraphSummary } from '@omniharness/kernel/contracts';

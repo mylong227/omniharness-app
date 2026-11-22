@@ -8,5 +8,5 @@
  * 分域原因：按域加载——根入口整包实测 ~780ms，单域 ~60ms（Node 22，见 vendor/README.md）。
  */
 
-export { ExternalCliWorker } from '@omniharness/kernel/kernel/worker/externalCliWorker.js';
-export type { ExternalCliWorkerSpec } from '@omniharness/kernel/kernel/worker/externalCliWorker.js';
+export { ExternalCliWorker } from '@omniharness/kernel/runtime';
+export type { ExternalCliWorkerSpec } from '@omniharness/kernel/runtime';

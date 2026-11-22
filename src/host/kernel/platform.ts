@@ -8,19 +8,5 @@
  * 分域原因：按域加载——根入口整包实测 ~780ms，单域 ~60ms（Node 22，见 vendor/README.md）。
  */
 
-export { WasmSkillSchema } from '@omniharness/kernel/kernel/capability/schemas/wasmSkillSchema.js';
-export type { WasmSkillAsset } from '@omniharness/kernel/kernel/capability/schemas/wasmSkillSchema.js';
-export { PromotionHistoryService } from '@omniharness/kernel/kernel/governance/promotionHistoryService.js';
-export type { PromotionHistoryView } from '@omniharness/kernel/kernel/governance/promotionHistoryService.js';
-export { ProvenanceIssuer } from '@omniharness/kernel/kernel/governance/provenanceIssuer.js';
-export type { ProvenanceCertificate, ProvenanceIssuerIdentity } from '@omniharness/kernel/kernel/governance/provenanceIssuer.js';
-export { NativeKernel } from '@omniharness/kernel/kernel/native/nativeKernel.js';
-export type { Skill, SkillEntry } from '@omniharness/kernel/kernel/skill/skill.js';
-export { SkillMdCodec } from '@omniharness/kernel/kernel/skill/skillMdCodec.js';
-export { SkillRegistry } from '@omniharness/kernel/kernel/skill/skillRegistry.js';
-export { SupervisorKernel } from '@omniharness/kernel/kernel/supervisor/supervisorKernel.js';
-export { SimpleWorker } from '@omniharness/kernel/kernel/worker/simpleWorker.js';
-export type { Worker, WorkerRequest, WorkerResult } from '@omniharness/kernel/kernel/worker/worker.js';
-export { WorkerOrchestrator } from '@omniharness/kernel/kernel/worker/workerOrchestrator.js';
-export type { DelegateTask } from '@omniharness/kernel/kernel/worker/workerOrchestrator.js';
-export { WorkerRegistry } from '@omniharness/kernel/kernel/worker/workerRegistry.js';
+export { NativeKernel, PromotionHistoryService, ProvenanceIssuer, SimpleWorker, SkillMdCodec, SkillRegistry, SupervisorKernel, WasmSkillSchema, WorkerOrchestrator, WorkerRegistry } from '@omniharness/kernel/runtime';
+export type { DelegateTask, PromotionHistoryView, ProvenanceCertificate, ProvenanceIssuerIdentity, Skill, SkillEntry, WasmSkillAsset, Worker, WorkerRequest, WorkerResult } from '@omniharness/kernel/runtime';

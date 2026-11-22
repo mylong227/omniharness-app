@@ -8,15 +8,5 @@
  * 分域原因：按域加载——根入口整包实测 ~780ms，单域 ~60ms（Node 22，见 vendor/README.md）。
  */
 
-export { ContextAssembler } from '@omniharness/kernel/kernel/context/contextAssembler.js';
-export { ContextBreakdownEstimator } from '@omniharness/kernel/kernel/context/contextBreakdownEstimator.js';
-export type { ContextBreakdown, ContextBreakdownRow } from '@omniharness/kernel/kernel/context/contextBreakdownEstimator.js';
-export { COMPACTION_MARKER, ContextCompactor } from '@omniharness/kernel/kernel/context/contextCompactor.js';
-export type { CompactionOptions, CompactionResult } from '@omniharness/kernel/kernel/context/contextCompactor.js';
-export { ContextWindowCatalog } from '@omniharness/kernel/kernel/context/contextWindowCatalog.js';
-export { SpillPolicy } from '@omniharness/kernel/kernel/context/spillPolicy.js';
-export type { SpillPolicyOptions } from '@omniharness/kernel/kernel/context/spillPolicy.js';
-export { TokenEstimator } from '@omniharness/kernel/kernel/context/tokenEstimator.js';
-export { ToolResultSpiller } from '@omniharness/kernel/kernel/context/toolResultSpiller.js';
-export type { SpillerOptions } from '@omniharness/kernel/kernel/context/toolResultSpiller.js';
-export { CompactionStateCodec } from '@omniharness/kernel/kernel/context/compactionStateCodec.js';
+export { COMPACTION_MARKER, CompactionStateCodec, ContextAssembler, ContextBreakdownEstimator, ContextCompactor, ContextWindowCatalog, SpillPolicy, TokenEstimator, ToolResultSpiller } from '@omniharness/kernel/runtime';
+export type { CompactionOptions, CompactionResult, ContextBreakdown, ContextBreakdownRow, SpillPolicyOptions, SpillerOptions } from '@omniharness/kernel/runtime';

@@ -10,7 +10,7 @@ import { createRequire } from 'node:module';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PERSISTABLE_KEYS } from '../src/apps/server/services/configPersistKeys.ts';
-import { ConfigError } from '@omniharness/kernel/kernel/config/configError.js';
+import { ConfigError } from '@omniharness/kernel/runtime';
 
 const KERNEL_DIST = join(
   dirname(fileURLToPath(import.meta.url)),

@@ -8,35 +8,7 @@
  * 分域原因：按域加载——根入口整包实测 ~780ms，单域 ~60ms（Node 22，见 vendor/README.md）。
  */
 
-export { ArrayAt } from '@omniharness/kernel/kernel/util/arrayAt.js';
-export { AsyncChildProcess } from '@omniharness/kernel/kernel/util/asyncChildProcess.js';
-export { BuiltinDefaults, builtinDefaults } from '@omniharness/kernel/kernel/util/builtinDefaults.js';
-export { FileLock } from '@omniharness/kernel/kernel/util/concurrency/fileLock.js';
-export { PendingRequests } from '@omniharness/kernel/kernel/util/concurrency/pendingRequests.js';
-export type { PendingTimeout } from '@omniharness/kernel/kernel/util/concurrency/pendingRequests.js';
-export { Ed25519PublicKey } from '@omniharness/kernel/kernel/util/ed25519PublicKey.js';
-export { EigenSpectrum } from '@omniharness/kernel/kernel/util/eigenspectrum.js';
-export { endpointDefaults } from '@omniharness/kernel/kernel/util/endpointDefaults.js';
-export type { ResolvedAdapterDefaults } from '@omniharness/kernel/kernel/util/endpointDefaults.js';
-export { HashChain } from '@omniharness/kernel/kernel/util/hashChain.js';
-export { Id } from '@omniharness/kernel/kernel/util/id.js';
-export { Logger, log } from '@omniharness/kernel/kernel/util/logger.js';
-export { OmniHome } from '@omniharness/kernel/kernel/util/omniHome.js';
-export { OutputDecoder } from '@omniharness/kernel/kernel/util/outputDecoder.js';
-export { runtimeLimits } from '@omniharness/kernel/kernel/util/runtimeLimits.js';
-export { SessionArchiveLayout } from '@omniharness/kernel/kernel/util/sessionArchiveLayout.js';
-export { SessionSummaryBuilder } from '@omniharness/kernel/kernel/util/sessionSummaryBuilder.js';
-export type { SessionSummary } from '@omniharness/kernel/kernel/util/sessionSummaryBuilder.js';
-export { SessionSummarySidecar } from '@omniharness/kernel/kernel/util/sessionSummarySidecar.js';
-export { PathTraversalError, WorkspaceGuard } from '@omniharness/kernel/kernel/util/workspaceGuard.js';
-export { WorkspaceIdentity } from '@omniharness/kernel/kernel/util/workspaceIdentity.js';
-export { Retry } from '@omniharness/kernel/kernel/util/concurrency/retry.js';
-export { JsonObjectFile } from '@omniharness/kernel/kernel/util/jsonObjectFile.js';
-export { LocalDay } from '@omniharness/kernel/kernel/util/localDay.js';
-export { MimeType } from '@omniharness/kernel/kernel/util/mimeType.js';
-export { PortablePath } from '@omniharness/kernel/kernel/util/portablePath.js';
-export { QuantileSketch } from '@omniharness/kernel/kernel/util/quantileSketch.js';
-export { SecretRedactor } from '@omniharness/kernel/kernel/util/secretRedactor.js';
-export { Jcs } from '@omniharness/kernel/kernel/receipts/jcs.js';
+export { ArrayAt, AsyncChildProcess, BuiltinDefaults, Ed25519PublicKey, EigenSpectrum, FileLock, HashChain, Id, Jcs, JsonObjectFile, LocalDay, Logger, MimeType, OmniHome, OutputDecoder, PathTraversalError, PendingRequests, PortablePath, QuantileSketch, Retry, SecretRedactor, SessionArchiveLayout, SessionSummaryBuilder, SessionSummarySidecar, WorkspaceGuard, WorkspaceIdentity, builtinDefaults, endpointDefaults, log, runtimeLimits } from '@omniharness/kernel/runtime';
+export type { PendingTimeout, ResolvedAdapterDefaults, SessionSummary } from '@omniharness/kernel/runtime';
 export { AatExporter, AuditBundles, AuditRecorder, ConformalAatVerifier, EventMerkle, ExecutionCertificates, JoseReceiptSigner } from '@omniharness/kernel/receipts';
 export type { AatRecord, AuditApprovalRecord, AuditBundle, AuditBundleVerdict, AuditContextTaintRecord, AuditDecisionRecord, AuditEventPayload, AuditPolicySnapshotRecord, AuditRecord, ExecutionCertificate, ReceiptSigner, SignedAuditBundle, SignedExecutionCertificate, TrustStore } from '@omniharness/kernel/receipts';

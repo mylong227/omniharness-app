@@ -8,14 +8,5 @@
  * 分域原因：按域加载——根入口整包实测 ~780ms，单域 ~60ms（Node 22，见 vendor/README.md）。
  */
 
-export { Agent } from '@omniharness/kernel/kernel/core/agent.js';
-export type { AgentResult } from '@omniharness/kernel/kernel/core/agent.js';
-export { AppendOnlyEventLog } from '@omniharness/kernel/kernel/core/appendOnlyEventLog.js';
-export { CheckpointManager } from '@omniharness/kernel/kernel/core/checkpointManager.js';
-export { Container } from '@omniharness/kernel/kernel/core/container.js';
-export { SessionRecorder } from '@omniharness/kernel/kernel/core/sessionRecorder.js';
-export { StepRunner } from '@omniharness/kernel/kernel/core/stepRunner.js';
-export { ToolGate } from '@omniharness/kernel/kernel/core/toolGate.js';
-export { TurnRunner } from '@omniharness/kernel/kernel/core/turnRunner.js';
-export { InterjectionClassifier } from '@omniharness/kernel/kernel/core/steering/interjectionClassifier.js';
-export { SubagentTree } from '@omniharness/kernel/kernel/subagent/subagentTree.js';
+export { Agent, AppendOnlyEventLog, CheckpointManager, Container, InterjectionClassifier, SessionRecorder, StepRunner, SubagentTree, ToolGate, TurnRunner } from '@omniharness/kernel/runtime';
+export type { AgentResult } from '@omniharness/kernel/runtime';

@@ -8,6 +8,6 @@
  * 分域原因：按域加载——根入口整包实测 ~780ms，单域 ~60ms（Node 22，见 vendor/README.md）。
  */
 
-export { ModelCapabilityProbe } from '@omniharness/kernel/kernel/adapters/model/modelCapabilityProbe.js';
-export { InjectionMetric } from '@omniharness/kernel/kernel/eval/injectionMetric.js';
-export type { InjectionCase, SnapshotReport } from '@omniharness/kernel/kernel/eval/injectionSnapshotAggregator.js';
+export { ModelCapabilityProbe } from '@omniharness/kernel/adapters';
+export { InjectionMetric } from '@omniharness/kernel/runtime';
+export type { InjectionCase, SnapshotReport } from '@omniharness/kernel/runtime';

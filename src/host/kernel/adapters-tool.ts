@@ -8,10 +8,5 @@
  * 分域原因：按域加载——根入口整包实测 ~780ms，单域 ~60ms（Node 22，见 vendor/README.md）。
  */
 
-export { CodeExecutorTool } from '@omniharness/kernel/kernel/adapters/tool/code/codeExecutorTool.js';
-export type { CodeExecutorOptions } from '@omniharness/kernel/kernel/adapters/tool/code/codeExecutorTool.js';
-export { CodeInterpreter } from '@omniharness/kernel/kernel/adapters/tool/code/codeInterpreter.js';
-export type { CodeInterpreterDeps, CodeRunResult } from '@omniharness/kernel/kernel/adapters/tool/code/codeInterpreter.js';
-export { SpillReadTool } from '@omniharness/kernel/kernel/adapters/tool/meta/spillReadTool.js';
-export { RegistryToolPort } from '@omniharness/kernel/kernel/adapters/tool/registryToolPort.js';
-export { DelegateTool } from '@omniharness/kernel/kernel/adapters/tool/workflow/delegateTool.js';
+export { CodeExecutorTool, CodeInterpreter, DelegateTool, RegistryToolPort, SpillReadTool } from '@omniharness/kernel/adapters';
+export type { CodeExecutorOptions, CodeInterpreterDeps, CodeRunResult } from '@omniharness/kernel/adapters';

@@ -8,15 +8,5 @@
  * 分域原因：按域加载——根入口整包实测 ~780ms，单域 ~60ms（Node 22，见 vendor/README.md）。
  */
 
-export { ConfigError } from '@omniharness/kernel/kernel/config/configError.js';
-export { ConfigFactory } from '@omniharness/kernel/kernel/config/configFactory.js';
-export type { ExtraTool, OmniHarnessConfig } from '@omniharness/kernel/kernel/config/configFactory.js';
-export { ConfigFile, configFile } from '@omniharness/kernel/kernel/config/configFile.js';
-export type { FileConfig, FileMcpServer, LayeredOptions, ModelRouterConfig, PermissionRuleConfig, PermissionRuleDecision, SsrfPolicyConfig, WorkspaceTrustOptions } from '@omniharness/kernel/kernel/config/configFile.js';
-export { DefaultPromptFragments } from '@omniharness/kernel/kernel/config/defaultPromptFragments.js';
-export { ProfileLoader } from '@omniharness/kernel/kernel/config/profileLoader.js';
-export { providerPresets } from '@omniharness/kernel/kernel/config/providerPresets.js';
-export type { ProviderPreset } from '@omniharness/kernel/kernel/config/providerPresets.js';
-export { WorkspaceTrust } from '@omniharness/kernel/kernel/config/workspaceTrust.js';
-export { ConfigRebase } from '@omniharness/kernel/kernel/config/configRebase.js';
-export { CredentialResolver } from '@omniharness/kernel/kernel/config/credentialResolver.js';
+export { ConfigError, ConfigFactory, ConfigFile, ConfigRebase, CredentialResolver, DefaultPromptFragments, ProfileLoader, WorkspaceTrust, configFile, providerPresets } from '@omniharness/kernel/runtime';
+export type { ExtraTool, FileConfig, FileMcpServer, LayeredOptions, ModelRouterConfig, OmniHarnessConfig, PermissionRuleConfig, PermissionRuleDecision, ProviderPreset, SsrfPolicyConfig, WorkspaceTrustOptions } from '@omniharness/kernel/runtime';

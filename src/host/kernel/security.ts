@@ -8,8 +8,5 @@
  * 分域原因：按域加载——根入口整包实测 ~780ms，单域 ~60ms（Node 22，见 vendor/README.md）。
  */
 
-export { EnforcementModeResolver } from '@omniharness/kernel/kernel/security/enforcementModeResolver.js';
-export { SsrfGuard } from '@omniharness/kernel/kernel/security/ssrfGuard.js';
-export { SsrfPolicy } from '@omniharness/kernel/kernel/security/ssrfPolicy.js';
-export { ToolOutputTrust } from '@omniharness/kernel/kernel/security/toolOutputTrust.js';
-export type { ContentTrustTier } from '@omniharness/kernel/contracts/ports/security/trustTier.js';
+export { EnforcementModeResolver, SsrfGuard, SsrfPolicy, ToolOutputTrust } from '@omniharness/kernel/runtime';
+export type { ContentTrustTier } from '@omniharness/kernel/contracts';

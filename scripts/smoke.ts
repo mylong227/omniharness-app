@@ -158,7 +158,7 @@ try {
     `HTTP ${String(healthRpc.status)} sections=${String(Array.isArray(sections) ? sections.length : '?')}`,
   );
 
-  const { NativeKernel } = await import('@omniharness/kernel/kernel/native/nativeKernel.js');
+  const { NativeKernel } = await import('@omniharness/kernel/runtime');
   const native = new NativeKernel();
   const pong = native.available() ? native.ping() : { ok: false, native: false };
   check(

@@ -8,14 +8,5 @@
  * 分域原因：按域加载——根入口整包实测 ~780ms，单域 ~60ms（Node 22，见 vendor/README.md）。
  */
 
-export { ServiceKeys } from '@omniharness/kernel/kernel/composition/serviceKeys.js';
-export { Runtime } from '@omniharness/kernel/kernel/composition/runtime.js';
-export type { RpcMessage } from '@omniharness/kernel/contracts/ports/server/rpcMessage.js';
-export type { RpcRequest } from '@omniharness/kernel/contracts/ports/server/rpcRequest.js';
-export type { SdkSocket } from '@omniharness/kernel/contracts/ports/server/sdkSocket.js';
-export type { Transport } from '@omniharness/kernel/contracts/ports/server/transport.js';
-export { jsonRpc } from '@omniharness/kernel/kernel/rpc/jsonRpc.js';
-export { SdkClient } from '@omniharness/kernel/kernel/rpc/sdkClient.js';
-export { LineTransport } from '@omniharness/kernel/kernel/transport/lineTransport.js';
-export { WebSocketSdkSocket } from '@omniharness/kernel/kernel/transport/webSocketSdkSocket.js';
-export { WsConnection, WsServer } from '@omniharness/kernel/kernel/transport/wsConnection.js';
+export { LineTransport, Runtime, SdkClient, ServiceKeys, WebSocketSdkSocket, WsConnection, WsServer, jsonRpc } from '@omniharness/kernel/runtime';
+export type { RpcMessage, RpcRequest, SdkSocket, Transport } from '@omniharness/kernel/contracts';

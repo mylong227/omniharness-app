@@ -8,12 +8,6 @@
  * 分域原因：按域加载——根入口整包实测 ~780ms，单域 ~60ms（Node 22，见 vendor/README.md）。
  */
 
-export { dangerousCommands } from '@omniharness/kernel/kernel/adapters/sandbox/dangerousCommands.js';
-export { EgressBlockedError, NetworkEgressGuard } from '@omniharness/kernel/kernel/adapters/sandbox/networkEgressGuard.js';
-export type { NetworkEgressOptions } from '@omniharness/kernel/kernel/adapters/sandbox/networkEgressGuard.js';
-export { PassthroughSandbox } from '@omniharness/kernel/kernel/adapters/sandbox/passthroughSandbox.js';
-export { SandboxCapabilityTable } from '@omniharness/kernel/kernel/adapters/sandbox/sandboxCapabilityTable.js';
-export type { SandboxCapabilityEntry } from '@omniharness/kernel/kernel/adapters/sandbox/sandboxCapabilityTable.js';
-export { SandboxManager } from '@omniharness/kernel/kernel/adapters/sandbox/sandboxManager.js';
-export type { SandboxProfile } from '@omniharness/kernel/kernel/adapters/sandbox/sandboxManager.js';
+export { EgressBlockedError, NetworkEgressGuard, PassthroughSandbox, SandboxCapabilityTable, SandboxManager, dangerousCommands } from '@omniharness/kernel/adapters';
+export type { NetworkEgressOptions, SandboxCapabilityEntry, SandboxProfile } from '@omniharness/kernel/adapters';
 export { IsolationLadderFactory } from '@omniharness/kernel/sandbox';

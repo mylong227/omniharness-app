@@ -8,13 +8,5 @@
  * 分域原因：按域加载——根入口整包实测 ~780ms，单域 ~60ms（Node 22，见 vendor/README.md）。
  */
 
-export { Benchmark } from '@omniharness/kernel/kernel/evolution/benchmark.js';
-export { EvolutionControllerImpl } from '@omniharness/kernel/kernel/evolution/evolutionControllerImpl.js';
-export { FailClosedEvolutionGate } from '@omniharness/kernel/kernel/evolution/failClosedEvolutionGate.js';
-export type { BenchmarkFn, FailClosedEvolutionGateOptions, SafetyCheck } from '@omniharness/kernel/kernel/evolution/failClosedEvolutionGate.js';
-export { HashChainPromotionLedger } from '@omniharness/kernel/kernel/evolution/hashChainPromotionLedger.js';
-export { RlvrController } from '@omniharness/kernel/kernel/evolution/rlvrController.js';
-export type { RlvrEvolutionBundle, RlvrEvolutionOptions } from '@omniharness/kernel/kernel/evolution/rlvrController.js';
-export { TwistDiscoveryEngine } from '@omniharness/kernel/kernel/evolution/twistDiscoveryEngine.js';
-export type { TwistDiscoveryOptions } from '@omniharness/kernel/kernel/evolution/twistDiscoveryEngine.js';
-export type { VerifiableRewardFn } from '@omniharness/kernel/kernel/evolution/verifiableReward.js';
+export { Benchmark, EvolutionControllerImpl, FailClosedEvolutionGate, HashChainPromotionLedger, RlvrController, TwistDiscoveryEngine } from '@omniharness/kernel/runtime';
+export type { BenchmarkFn, FailClosedEvolutionGateOptions, RlvrEvolutionBundle, RlvrEvolutionOptions, SafetyCheck, TwistDiscoveryOptions, VerifiableRewardFn } from '@omniharness/kernel/runtime';

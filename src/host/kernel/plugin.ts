@@ -8,27 +8,6 @@
  * 分域原因：按域加载——根入口整包实测 ~780ms，单域 ~60ms（Node 22，见 vendor/README.md）。
  */
 
-export { PluginManager } from '@omniharness/kernel/kernel/plugin/pluginManager.js';
-export { PermissionGate } from '@omniharness/kernel/kernel/plugin/permissionGate.js';
-export { PermissionDeniedError } from '@omniharness/kernel/kernel/plugin/permissionDeniedError.js';
-export type { PluginPermission } from '@omniharness/kernel/contracts/ports/plugin/pluginPermission.js';
-export type { Plugin } from '@omniharness/kernel/contracts/ports/plugin/plugin.js';
-export { PluginProfileStore } from '@omniharness/kernel/kernel/plugin/pluginProfileStore.js';
-export type { PluginProfile } from '@omniharness/kernel/contracts/ports/plugin/pluginProfile.js';
-export type { ApplyProfileResult } from '@omniharness/kernel/contracts/ports/plugin/applyProfileResult.js';
-export { PluginRegistry } from '@omniharness/kernel/kernel/plugin/pluginRegistry.js';
-export { PluginLoader } from '@omniharness/kernel/kernel/plugin/pluginLoader.js';
-export { PluginBundler } from '@omniharness/kernel/kernel/plugin/pluginBundler.js';
-export { BundleCodec } from '@omniharness/kernel/kernel/plugin/bundleCodec.js';
-export { PackGrader } from '@omniharness/kernel/kernel/plugin/packGrader.js';
-export type { SandboxLegVerdict } from '@omniharness/kernel/kernel/plugin/packGrader.js';
-export type { PackCapability } from '@omniharness/kernel/kernel/plugin/packStaticScanner.js';
-export { PrivateSkillSource } from '@omniharness/kernel/kernel/plugin/privateSkillSource.js';
-export { Manifest } from '@omniharness/kernel/kernel/plugin/manifest.js';
-export type { PluginManifest } from '@omniharness/kernel/contracts/ports/plugin/pluginManifest.js';
-export { PluginWorkerMetrics } from '@omniharness/kernel/kernel/plugin/worker/pluginWorkerMetrics.js';
-export { ALL_PERMISSIONS, DANGEROUS_PERMISSIONS, Permission } from '@omniharness/kernel/kernel/plugin/permission.js';
-export type { MediaAnalysisConfig } from '@omniharness/kernel/contracts/ports/media/mediaAnalysisConfig.js';
-export { AssetPackCodec } from '@omniharness/kernel/kernel/asset/assetPackCodec.js';
-export type { PackSigningIdentity } from '@omniharness/kernel/kernel/asset/assetPackCodec.js';
-export { AssetPackInstaller } from '@omniharness/kernel/kernel/asset/assetPackInstaller.js';
+export { ALL_PERMISSIONS, AssetPackCodec, AssetPackInstaller, BundleCodec, DANGEROUS_PERMISSIONS, Manifest, PackGrader, Permission, PermissionDeniedError, PermissionGate, PluginBundler, PluginLoader, PluginManager, PluginProfileStore, PluginRegistry, PluginWorkerMetrics, PrivateSkillSource } from '@omniharness/kernel/runtime';
+export type { PackCapability, PackSigningIdentity, SandboxLegVerdict } from '@omniharness/kernel/runtime';
+export type { ApplyProfileResult, MediaAnalysisConfig, Plugin, PluginManifest, PluginPermission, PluginProfile } from '@omniharness/kernel/contracts';
