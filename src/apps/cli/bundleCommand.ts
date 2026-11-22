@@ -28,17 +28,17 @@ import type { PluginRegistryFactory } from './pluginCommand.ts';
 
 /** bundle 用法提示。 */
 const USAGE =
-  '用法: omniharness bundle pack <profileName> [--key-file K] [--out-dir D] [--dir P] | bundle unpack <path.ohb> [--key-file K] [--dir P] | bundle source list|sync --source DIR --trust KEY [--loose]\n';
+  AppText.t('用法: omniharness bundle pack <profileName> [--key-file K] [--out-dir D] [--dir P] | bundle unpack <path.ohb> [--key-file K] [--dir P] | bundle source list|sync --source DIR --trust KEY [--loose]\n');
 
 /** `bundle source` 用法提示（G2 私有技能源）。 */
 /** `bundle grade` 用法提示（H1 分级）。 */
 const GRADE_USAGE =
   '用法: omniharness bundle grade <path.ohb> [--declare process,fs-write] [--sandbox-level LEVEL]\n' +
-  '说明: 产出 A/B/C 评级（评级即门禁输出）；C ⇒ 退出码 1（不可安装）。\n';
+  AppText.t('说明: 产出 A/B/C 评级（评级即门禁输出）；C ⇒ 退出码 1（不可安装）。\n');
 
 const SOURCE_USAGE =
   '用法: omniharness bundle source list|sync --source DIR --trust <ssh-ed25519 …> [--trust …] [--loose]\n' +
-  '说明: 缺省严格档——无 Ed25519 签名的包一律拒；--loose 才收无签名包（标注 community）。\n';
+  AppText.t('说明: 缺省严格档——无 Ed25519 签名的包一律拒；--loose 才收无签名包（标注 community）。\n');
 
 export class BundleCommand {
   /** 注入的注册表工厂（打包时用于解析插件源）。 */
@@ -153,7 +153,7 @@ export class BundleCommand {
     // （缺省 `vm`），更严档不可达时如实回落到 `in-process`——报告里的 `level` 是**实际生效**档位。
     // 不做"请求 os-sandbox 然后静默降档"：那会让报告声称跑在更强隔离里（阶梯本身也拒这种放松）。
     const candidates = level !== undefined ? [level, 'in-process'] : ['vm', 'in-process'];
-    let lastReason = '未尝试任何档位';
+    let lastReason = AppText.t('未尝试任何档位');
     for (const candidate of candidates) {
       try {
         const result = await ladder.run({

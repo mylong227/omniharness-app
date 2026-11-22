@@ -59,6 +59,67 @@ export const CLI: Readonly<Record<string, string>> = {
   '[OK] 未发现健康问题': '[OK] No health issues found',
   '[WARN] 发现 {count} 项问题:': '[WARN] {count} issue(s) found:',
   'resume/fork 模式需要 --prompt': 'resume/fork mode requires --prompt',
+  '  退出码契约见 docs/audit/EXIT_CODES.md。\n':
+    '  Exit-code contract: see docs/audit/EXIT_CODES.md.\n',
+  '完整': 'complete',
+  '断裂': 'broken',
+  '未启用': 'disabled',
+  '用法: omniharness bundle pack <profileName> [--key-file K] [--out-dir D] [--dir P] | bundle unpack <path.ohb> [--key-file K] [--dir P] | bundle source list|sync --source DIR --trust KEY [--loose]\n':
+    'Usage: omniharness bundle pack <profileName> [--key-file K] [--out-dir D] [--dir P] | bundle unpack <path.ohb> [--key-file K] [--dir P] | bundle source list|sync --source DIR --trust KEY [--loose]\n',
+  '说明: 产出 A/B/C 评级（评级即门禁输出）；C ⇒ 退出码 1（不可安装）。\n':
+    'Note: produces an A/B/C rating (the rating is the gate output); C ⇒ exit code 1 (not installable).\n',
+  '说明: 缺省严格档——无 Ed25519 签名的包一律拒；--loose 才收无签名包（标注 community）。\n':
+    'Note: strict by default—bundles without an Ed25519 signature are rejected; only --loose accepts unsigned bundles (marked community).\n',
+  '未尝试任何档位': 'No tier was attempted',
+  '说明: list / metadata 只读；install 会改动状态（入册 + 入账），必须显式 --yes。\n':
+    'Note: list / metadata are read-only; install mutates state (registers and records) and requires explicit --yes.\n',
+  '说明: status/history/lineage 只读；cycle / rollback 会改动状态，必须显式 --yes。\n':
+    'Note: status/history/lineage are read-only; cycle / rollback mutate state and require explicit --yes.\n',
+  '复核失败': 'verification failed',
+  '终止信号': 'termination signal',
+  '未捕获异常': 'uncaught exception',
+  '晋升落在本进程内存技能表（会话级）；台账为持久产物。':
+    'Promotion lands in this process’s in-memory skill table (session-scoped); the ledger is the durable artifact.',
+  '将删除': 'will delete',
+  '已删除': 'deleted',
+  '  旋钮：OMNI_MAINTENANCE=off 停用；OMNI_GC_KEEP / OMNI_GC_MAX_AGE_DAYS / OMNI_GC_MAX_BYTES 调会话保留策略。\n':
+    '  Knobs: OMNI_MAINTENANCE=off disables it; OMNI_GC_KEEP / OMNI_GC_MAX_AGE_DAYS / OMNI_GC_MAX_BYTES tune session retention.\n',
+  '落盘自动经 Windows DPAPI 系统级加密': 'stored with Windows DPAPI system-level encryption',
+  '落盘为明文（当前平台无系统级加密；请保证本机文件权限）':
+    'stored in plaintext (this platform has no system-level encryption; secure local file permissions)',
+  '说明: 校验本机 license 并打印生效档位；无 license / 已过期 ⇒ 退出码 1（核心功能照常可用，请续期）。\n':
+    'Note: validates the local license and prints the effective tier; missing/expired ⇒ exit code 1 (core features still work; please renew).\n',
+  '用法: omniharness plugin load --file PATH [--allow PERM ...] | plugin list | plugin search [QUERY] | plugin install <name> | plugin remove <name>\n':
+    'Usage: omniharness plugin load --file PATH [--allow PERM ...] | plugin list | plugin search [QUERY] | plugin install <name> | plugin remove <name>\n',
+  '  [危险权限]': '  [dangerous permission]',
+  '\n注意: 该插件声明危险权限，加载时将被 PermissionGate 拦截，除非显式 --allow 放行。':
+    '\nNote: this plugin declares dangerous permissions and will be blocked by PermissionGate unless explicitly allowed with --allow.',
+  '（未启用鉴权；仅回环可访问）': '(authentication disabled; loopback only)',
+  '（已启用 Bearer 鉴权）': '(Bearer authentication enabled)',
+  '（已启用本机临时令牌；请用下面的带 token URL 打开）':
+    '(local ephemeral token enabled; open the tokenized URL below)',
+  '/healthz 有响应但不是 JSON': '/healthz responded but not with JSON',
+  '/healthz 有响应但不是本程序的健康体（缺 status=ok 或 pid）':
+    '/healthz responded but not with this program’s health body (missing status=ok or pid)',
+  '（以健康体为准；记录文件可能属于更早的实例）':
+    '(the health body is authoritative; the record file may belong to an earlier instance)',
+  '  该实例没有留下记录文件（旧版本启动，或记录已被清理）':
+    '  This instance left no record file (started by an older version, or the record was cleaned up)',
+  '三条出路：': 'Three options:',
+  '  ② 找出占用者并让它让路（本程序不会终止非自己的进程）':
+    '  ② Identify the holder and make it yield (this program never kills processes it does not own)',
+  '来自 --workspace': 'from --workspace',
+  '来自本机固定项目（~/.omniharness/omniharness.json 的 workspace；用 --workspace 可覆盖）':
+    'from the pinned local project (workspace in ~/.omniharness/omniharness.json; override with --workspace)',
+  '本机固定项目的路径已不存在 ⇒ 回落启动目录（请用 --workspace 指定，或在 UI 里切换项目）':
+    'the pinned local project path no longer exists ⇒ falling back to the launch directory (specify --workspace or switch projects in the UI)',
+  '来自启动目录': 'from the launch directory',
+  '用法: omniharness kv get|set|del|list [--key K] [--value V] [--prefix P] [--kv-file PATH]\n':
+    'Usage: omniharness kv get|set|del|list [--key K] [--value V] [--prefix P] [--kv-file PATH]\n',
+  '用法: omniharness vault get|set|del|list [--name N] [--value V] [--vault-backend crypto|env] [--kv-adapter memory|json-file|sqlite] [--kv-file PATH] [--vault-key-file PATH]\n':
+    'Usage: omniharness vault get|set|del|list [--name N] [--value V] [--vault-backend crypto|env] [--kv-adapter memory|json-file|sqlite] [--kv-file PATH] [--vault-key-file PATH]\n',
+  '环境变量 OMNIHARNESS_VAULT_KEY': 'environment variable OMNIHARNESS_VAULT_KEY',
+  '（用户级默认，首次使用时生成）': '(user-level default, generated on first use)',
   '[omniharness] --format 只支持 html / md / json\n':
     '[omniharness] --format only supports html / md / json\n',
   '[omniharness] --source-format 只支持 omni / claude-code / codex / acp\n':

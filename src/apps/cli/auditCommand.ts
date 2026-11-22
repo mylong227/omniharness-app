@@ -40,7 +40,7 @@ const USAGE =
   '  --strict  任一输入存在未识别的来源条目时以退出码 1 失败（缺省只在报告里显示「未识别 N」）。\n' +
   '  --redact  脱敏模式（缺省 off，证据保真优先）：paths 遮绝对路径（保留末两段+哈希）、\n' +
   '            secrets 遮密钥（前缀/赋值/高熵）、all 两者；报告顶部显示 mode，verify 对 hits 对账。\n' +
-  '  退出码契约见 docs/audit/EXIT_CODES.md。\n';
+  AppText.t('  退出码契约见 docs/audit/EXIT_CODES.md。\n');
 
 /** `report` 的取值型旗标。 */
 const REPORT_VALUE_FLAGS: readonly string[] = [
@@ -383,10 +383,10 @@ export class AuditCommand {
     if (chain.ok === false) {
       process.stderr.write(
         `[omniharness] 审计哈希链校验失败：${chain.reason ?? AppText.t('未知原因')}（断裂处 seq=${String(chain.brokenAt)}）\n` +
-          `              该报告不可作为合规证据，请核查审计日志完整性。\n`,
+          AppText.t(`              该报告不可作为合规证据，请核查审计日志完整性。\n`),
       );
     }
-    const chainLabel = chain.ok === true ? '完整' : chain.ok === false ? '断裂' : '未启用';
+    const chainLabel = chain.ok === true ? AppText.t('完整') : chain.ok === false ? AppText.t('断裂') : AppText.t('未启用');
     const text = AuditExporter.formatCompliance(report);
     const outFile = reader.value('--out');
     if (outFile !== undefined) {

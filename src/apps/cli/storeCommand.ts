@@ -19,10 +19,10 @@ import { KvStoreFactory, type KvHandle } from './kvStoreFactory.ts';
 
 /** kv 用法提示。 */
 const KV_USAGE =
-  '用法: omniharness kv get|set|del|list [--key K] [--value V] [--prefix P] [--kv-file PATH]\n';
+  AppText.t('用法: omniharness kv get|set|del|list [--key K] [--value V] [--prefix P] [--kv-file PATH]\n');
 /** vault 用法提示。 */
 const VAULT_USAGE =
-  '用法: omniharness vault get|set|del|list [--name N] [--value V] [--vault-backend crypto|env] [--kv-adapter memory|json-file|sqlite] [--kv-file PATH] [--vault-key-file PATH]\n';
+  AppText.t('用法: omniharness vault get|set|del|list [--name N] [--value V] [--vault-backend crypto|env] [--kv-adapter memory|json-file|sqlite] [--kv-file PATH] [--vault-key-file PATH]\n');
 
 export class StoreCommand {
   /** KV 后端工厂（kv 与 vault 共用）。 */

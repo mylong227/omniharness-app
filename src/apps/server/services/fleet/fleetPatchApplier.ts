@@ -1,3 +1,4 @@
+import { AppText } from '../../../i18n/AppText.ts';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { resolve } from 'node:path';
@@ -57,7 +58,7 @@ export class FleetPatchApplier {
     if (!confirmed) {
       return FleetPatchApplier.fail(
         'confirm_required',
-        '应用补丁会改写主工作区；必须显式确认。',
+        AppText.t('应用补丁会改写主工作区；必须显式确认。'),
       );
     }
     const preview = this.deps.reader.read(path);
@@ -67,12 +68,12 @@ export class FleetPatchApplier {
     if (preview.truncated) {
       return FleetPatchApplier.fail(
         'patch_truncated',
-        '补丁超过 512 KB 且预览被截断，不能安全应用；请从补丁文件直接处理。',
+        AppText.t('补丁超过 512 KB 且预览被截断，不能安全应用；请从补丁文件直接处理。'),
       );
     }
     const root = this.deps.workspaceRoot();
     if (root === '') {
-      return FleetPatchApplier.fail('patch_unavailable', '工作区未定位，无法应用补丁。');
+      return FleetPatchApplier.fail('patch_unavailable', AppText.t('工作区未定位，无法应用补丁。'));
     }
     const absolute = resolve(root, path);
     try {
@@ -109,7 +110,7 @@ export class FleetPatchApplier {
     const code = record.code === 'ENOENT' ? 'git_unavailable' : fallback;
     return FleetPatchApplier.fail(
       code,
-      `补丁应用失败：${typeof message === 'string' && message !== '' ? message : '未知 git 错误'}。`,
+      `补丁应用失败：${typeof message === 'string' && message !== '' ? message : AppText.t('未知 git 错误')}。`,
     );
   }
 

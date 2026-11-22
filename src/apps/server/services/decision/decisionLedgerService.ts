@@ -1,3 +1,4 @@
+import { AppText } from '../../../i18n/AppText.ts';
 import { RuntimeConfig } from '../../../config/RuntimeConfig.ts';
 import type { SessionEvent } from '../../../../host/kernel/contracts.ts';
 import type {
@@ -120,12 +121,12 @@ export class DecisionLedgerService {
    */
   public async detailOf(threadId: string, recordId: string): Promise<DecisionResult<DecisionDetailView>> {
     if (recordId === '') {
-      return DecisionLedgerService.failure('record_not_found', '缺少决策记录 id。');
+      return DecisionLedgerService.failure('record_not_found', AppText.t('缺少决策记录 id。'));
     }
     const loaded = await this.eventsOf(threadId);
     if ('ok' in loaded) return loaded;
     if (!loaded.some((event) => event.type === 'audit')) {
-      return DecisionLedgerService.failure('record_not_found', '这个会话还没有决策记录。');
+      return DecisionLedgerService.failure('record_not_found', AppText.t('这个会话还没有决策记录。'));
     }
     const inspected = this.inspectOf(loaded);
     if ('ok' in inspected) return inspected;
@@ -134,7 +135,7 @@ export class DecisionLedgerService {
     const aat = index.aatByRecordId.get(recordId);
     const raw = index.rawByAatId.get(recordId);
     if (row === undefined || aat === undefined || raw === undefined) {
-      return DecisionLedgerService.failure('record_not_found', '这条决策已不在当前事件流里；刷新后再试。');
+      return DecisionLedgerService.failure('record_not_found', AppText.t('这条决策已不在当前事件流里；刷新后再试。'));
     }
     const policy = policyOf(raw, index);
     const approvals = approvalsOf(raw, index);
@@ -187,18 +188,18 @@ export class DecisionLedgerService {
     const loaded = await this.eventsOf(threadId);
     if ('ok' in loaded) return loaded;
     if (!loaded.some((event) => event.type === 'audit')) {
-      return DecisionLedgerService.failure('export_blocked', '这个会话还没有决策记录；没有可导出的 AAT。');
+      return DecisionLedgerService.failure('export_blocked', AppText.t('这个会话还没有决策记录；没有可导出的 AAT。'));
     }
     const inspected = this.inspectOf(loaded);
     if ('ok' in inspected) return inspected;
     const { snapshot } = inspected;
     const structural = structuralOf(snapshot);
     if (structural.status !== 'pass') {
-      return DecisionLedgerService.failure('export_blocked', '结构复核未通过；先处理断链/字段问题，再导出。');
+      return DecisionLedgerService.failure('export_blocked', AppText.t('结构复核未通过；先处理断链/字段问题，再导出。'));
     }
     const conformal = conformalOf(snapshot);
     if (conformal.status === 'fail') {
-      return DecisionLedgerService.failure('export_blocked', '共形复核未通过；先处理证据问题，再导出。');
+      return DecisionLedgerService.failure('export_blocked', AppText.t('共形复核未通过；先处理证据问题，再导出。'));
     }
     const content = JSON.stringify(snapshot.records, null, 2);
     const size = Buffer.byteLength(content, 'utf8');
@@ -225,7 +226,7 @@ export class DecisionLedgerService {
    */
   private async eventsOf(threadId: string): Promise<readonly SessionEvent[] | DecisionFailure> {
     if (threadId === '') {
-      return DecisionLedgerService.failure('no_session', '先选择一个会话，再打开决策账本。');
+      return DecisionLedgerService.failure('no_session', AppText.t('先选择一个会话，再打开决策账本。'));
     }
     try {
       return await this.deps.events(threadId);

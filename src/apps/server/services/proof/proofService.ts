@@ -1,3 +1,4 @@
+import { AppText } from '../../../i18n/AppText.ts';
 import type { SessionEvent, ToolDefinition } from '../../../../host/kernel/contracts.ts';
 import { AuditBundles, EventMerkle, ExecutionCertificates, Jcs } from '../../../../host/kernel/util.ts';
 import type { ExecutionCertificate, SignedExecutionCertificate } from '../../../../host/kernel/util.ts';
@@ -58,7 +59,7 @@ export class ProofService {
    */
   public async turnsOf(threadId: string): Promise<readonly ProofTurnSummary[] | ProofFailure> {
     if (threadId === '') {
-      return ProofService.failure('no_session', '先选择一个会话，再打开凭证。');
+      return ProofService.failure('no_session', AppText.t('先选择一个会话，再打开凭证。'));
     }
     let events: readonly SessionEvent[];
     try {
@@ -175,7 +176,7 @@ export class ProofService {
     | ProofFailure
   > {
     if (threadId === '') {
-      return ProofService.failure('no_session', '先选择一个会话，再打开凭证。');
+      return ProofService.failure('no_session', AppText.t('先选择一个会话，再打开凭证。'));
     }
     if (!Number.isInteger(turnIndex) || turnIndex < 0) {
       return ProofService.failure('proof_invalid', `回合下标非法：${String(turnIndex)}。`);
@@ -195,7 +196,7 @@ export class ProofService {
       );
     }
     if (ProofTurnSlicer.eventsOf(events, slice).length === 0) {
-      return ProofService.failure('proof_empty', '这个回合没有可复核的事件。');
+      return ProofService.failure('proof_empty', AppText.t('这个回合没有可复核的事件。'));
     }
     return { events, slice };
   }
@@ -228,7 +229,7 @@ export class ProofService {
         root === certificate.eventRoot ? 'pass' : 'fail',
         root === certificate.eventRoot
           ? `Merkle 根一致（${root.slice(0, 12)}…）。`
-          : 'Merkle 根不一致：事件流可能被增删或改序。',
+          : AppText.t('Merkle 根不一致：事件流可能被增删或改序。'),
         root === certificate.eventRoot ? undefined : 'EVENT_ROOT_MISMATCH',
       ),
       ProofService.checkOf(
@@ -258,7 +259,7 @@ export class ProofService {
       return ProofService.checkOf(
         'SIGNATURE',
         'warn',
-        '未配置签名器：结构自洽（未签名），复核方无法确认签发方身份。',
+        AppText.t('未配置签名器：结构自洽（未签名），复核方无法确认签发方身份。'),
       );
     }
     if (signed === undefined) {
@@ -294,13 +295,13 @@ export class ProofService {
    */
   private toolSurfaceCheck(certificate: ExecutionCertificate): ProofCheck {
     if (certificate.toolSurfaceDigest === undefined) {
-      return ProofService.checkOf('TOOL_SURFACE', 'warn', '证书未绑定工具面摘要。');
+      return ProofService.checkOf('TOOL_SURFACE', 'warn', AppText.t('证书未绑定工具面摘要。'));
     }
     const digest = ExecutionCertificates.digestOf(this.safeTools());
     return ProofService.checkOf(
       'TOOL_SURFACE',
       digest === certificate.toolSurfaceDigest ? 'pass' : 'fail',
-      `工具面摘要 ${digest === certificate.toolSurfaceDigest ? '一致' : '不一致'}（${digest.slice(0, 12)}…）。`,
+      `工具面摘要 ${digest === certificate.toolSurfaceDigest ? AppText.t('一致') : AppText.t('不一致')}（${digest.slice(0, 12)}…）。`,
       digest === certificate.toolSurfaceDigest ? undefined : 'TOOL_SURFACE_MISMATCH',
     );
   }
@@ -313,7 +314,7 @@ export class ProofService {
   private auditCheck(threadId: string): ProofCheck {
     const sink = this.deps.audit();
     if (sink === undefined) {
-      return ProofService.checkOf('AUDIT_CHAIN', 'warn', '本地审计链未启用（serve 组合根未注入 audit sink）。');
+      return ProofService.checkOf('AUDIT_CHAIN', 'warn', AppText.t('本地审计链未启用（serve 组合根未注入 audit sink）。'));
     }
     let all: ReturnType<AuditSink['read']>;
     try {
@@ -327,7 +328,7 @@ export class ProofService {
     }
     const records = all.filter((event) => event.sessionId === threadId);
     if (records.length === 0) {
-      return ProofService.checkOf('AUDIT_CHAIN', 'warn', '本地审计链没有该会话的记录。');
+      return ProofService.checkOf('AUDIT_CHAIN', 'warn', AppText.t('本地审计链没有该会话的记录。'));
     }
     const seqs = records.map((event) => event.seq).filter((seq): seq is number => typeof seq === 'number');
     const first = seqs.length > 0 ? String(Math.min(...seqs)) : '—';

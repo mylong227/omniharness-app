@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import { HttpBridgeTransport } from './httpBridgeTransport.ts';
 import { PreviewServer } from './previewServer.ts';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
@@ -640,34 +641,34 @@ export class HttpServer {
   private async serveWorkspaceFile(url: string, response: ServerResponse): Promise<void> {
     const ws = this.options.workspaceRoot?.();
     if (ws === undefined || ws === '') {
-      response.writeHead(503).end('工作区未配置');
+      response.writeHead(503).end(AppText.t('工作区未配置'));
       return;
     }
     const queryStart = url.indexOf('?');
     if (queryStart === -1) {
-      response.writeHead(400).end('缺少 path 查询参数');
+      response.writeHead(400).end(AppText.t('缺少 path 查询参数'));
       return;
     }
     const params = new URLSearchParams(url.slice(queryStart + 1));
     const rel = params.get('path');
     if (rel === null || rel === '') {
-      response.writeHead(400).end('缺少 path 查询参数');
+      response.writeHead(400).end(AppText.t('缺少 path 查询参数'));
       return;
     }
     let decoded: string;
     try {
       decoded = decodeURIComponent(rel);
     } catch {
-      response.writeHead(400).end('path 解码失败');
+      response.writeHead(400).end(AppText.t('path 解码失败'));
       return;
     }
     const resolved = SafeFs.safeResolve(ws, decoded);
     if (!resolved.ok) {
       // 越界/缺失：403/404 区分；其他错误统一 500。
       const status =
-        resolved.error === '路径越界工作区'
+        resolved.error === AppText.t('路径越界工作区')
           ? 403
-          : resolved.error.startsWith('读取失败')
+          : resolved.error.startsWith(AppText.t('读取失败'))
             ? 404
             : 500;
       response.writeHead(status).end(resolved.error);

@@ -128,8 +128,8 @@ export class InitCommand {
       // 「绝不假装已加密」），文案必须分平台如实（2026-11-06 审计 P2）。
       const secrecy =
         process.platform === 'win32'
-          ? '落盘自动经 Windows DPAPI 系统级加密'
-          : '落盘为明文（当前平台无系统级加密；请保证本机文件权限）';
+          ? AppText.t('落盘自动经 Windows DPAPI 系统级加密')
+          : AppText.t('落盘为明文（当前平台无系统级加密；请保证本机文件权限）');
       process.stdout.write(`  Key 已存入 providerKeys.${preset.id}（${secrecy}；本机文件勿提交仓库）\n`);
     }
     process.stdout.write(AppText.t('\n下一步：\n  omniharness serve        起工作台\n  omniharness "任务描述"    跑一次任务\n'));
@@ -163,7 +163,7 @@ export class InitCommand {
   }
 
   /** 用法文本。 */
-  private static readonly USAGE = `用法: omniharness init [选项]
+  private static readonly USAGE = AppText.t(`用法: omniharness init [选项]
 
 一键初始化：选厂商 → 填 Key → 写入用户级 ~/.omniharness/omniharness.json（合并，不覆盖其它字段）。
 TTY 下不带参数运行即交互式；脚本/CI 用旗标直达。
@@ -176,7 +176,7 @@ TTY 下不带参数运行即交互式；脚本/CI 用旗标直达。
   --force           覆盖已有的 modelAdapter/baseUrl/model（缺省只填空缺）
   --print, -p       只打印将写入的内容（Key 打码），不落盘
   -h, --help        本帮助
-`;
+`);
 }
 
 /** 打码视图（--print 用）：Key 只露前 3 后 4。 */
@@ -196,4 +196,3 @@ function redact(cfg: FileConfig): Record<string, unknown> {
   }
   return raw;
 }
-

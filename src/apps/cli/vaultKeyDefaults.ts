@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * 凭据保险库的**主密钥来源**默认值（2026-10-11）。
  *
@@ -65,9 +66,9 @@ export class VaultKeyDefaults {
   ): string {
     const fromEnv = (env.OMNIHARNESS_VAULT_KEY ?? '').trim();
     if (fromEnv !== '') {
-      return '环境变量 OMNIHARNESS_VAULT_KEY';
+      return AppText.t('环境变量 OMNIHARNESS_VAULT_KEY');
     }
     const file = VaultKeyDefaults.resolveKeyFile(explicit);
-    return `密钥文件 ${file}${explicit === undefined || explicit.trim() === '' ? '（用户级默认，首次使用时生成）' : ''}`;
+    return `密钥文件 ${file}${explicit === undefined || explicit.trim() === '' ? AppText.t('（用户级默认，首次使用时生成）') : ''}`;
   }
 }

@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 // 技能实验室编辑服务（2026-11-20，docs/design/skill-lab v1）：
 // 纯逻辑层（零 IO / 零 RPC 依赖，node 直测）——CRISPR SPI 语义的 app 侧落地：
 // 定点编辑（精确点名）+ 差异测试（fail-closed）+ 回滚（不写盘即无副作用）。
@@ -142,13 +143,13 @@ export function validateDraft(
 ): readonly string[] {
   const issues: string[] = [];
   if (!NAME_RE.test(draft.name)) {
-    issues.push('skills.apply 需要合法 name（非空、无空白与路径分隔符、≤64 字符）');
+    issues.push(AppText.t('skills.apply 需要合法 name（非空、无空白与路径分隔符、≤64 字符）'));
   }
   if (draft.description.trim() === '') {
-    issues.push('skills.apply 需要 description（一句话说明技能何时用）');
+    issues.push(AppText.t('skills.apply 需要 description（一句话说明技能何时用）'));
   }
   if (draft.instructions.trim() === '') {
-    issues.push('skills.apply 需要 instructions（技能正文，不能为空）');
+    issues.push(AppText.t('skills.apply 需要 instructions（技能正文，不能为空）'));
   }
   const exists = configSkills.some((s) => s.name === draft.name);
   if (mode === 'create' && exists) {

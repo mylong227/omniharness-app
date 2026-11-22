@@ -1,3 +1,4 @@
+import { AppText } from '../../../i18n/AppText.ts';
 ﻿/**
  * 会话回退服务：把持久化事件流截断到指定事件（**重生成的服务端真回退**）。
  *
@@ -49,13 +50,13 @@ export class SessionRewindService {
    */
   public async rewind(sessionId: string, keepEventId: string): Promise<SessionRewindOutcome> {
     if (sessionId.trim() === '') {
-      return { ok: false, error: '缺少 sessionId' };
+      return { ok: false, error: AppText.t('缺少 sessionId') };
     }
     if (keepEventId.trim() === '') {
-      return { ok: false, error: '缺少 keepEventId' };
+      return { ok: false, error: AppText.t('缺少 keepEventId') };
     }
     if (this.deps.isRunning(sessionId)) {
-      return { ok: false, error: '该会话有回合正在运行：请先中止再回退' };
+      return { ok: false, error: AppText.t('该会话有回合正在运行：请先中止再回退') };
     }
     const events = await this.deps.events(sessionId);
     if (events.length === 0) {

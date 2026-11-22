@@ -1,3 +1,4 @@
+import { AppText } from '../../../i18n/AppText.ts';
 // 决策账本**会话视图与复核**（2026-11-21 P3 从 decisionLedgerService.ts 拆出）：
 // 回合摘要 / 覆盖范围 / 摘要计数 / 结构复核 / 共形复核 / 空态 / 审计状态 / 边界声明——纯函数。
 
@@ -117,29 +118,29 @@ export function structuralOf(snapshot: DecisionAatSnapshot): DecisionStructuralV
       status: snapshot.rawAudit.ok ? 'pass' : 'fail',
       detail: snapshot.rawAudit.ok
         ? `原始审计链 ${String(snapshot.rawAudit.count)} 条连续。`
-        : (snapshot.rawAudit.problems[0]?.detail ?? '原始审计链复核失败。'),
+        : (snapshot.rawAudit.problems[0]?.detail ?? AppText.t('原始审计链复核失败。')),
     },
     {
       code: 'AAT_CHAIN',
       status: snapshot.aatVerdict.ok ? 'pass' : 'fail',
       detail: snapshot.aatVerdict.ok
         ? `AAT 链 ${String(snapshot.records.length)} 条一致。`
-        : (snapshot.aatVerdict.problems[0]?.detail ?? 'AAT 链复核失败。'),
+        : (snapshot.aatVerdict.problems[0]?.detail ?? AppText.t('AAT 链复核失败。')),
     },
     {
       code: 'SEQUENCE',
       status: aatCodes.has('SEQUENCE_GAP') ? 'fail' : 'pass',
-      detail: aatCodes.has('SEQUENCE_GAP') ? 'AAT 序号有缺口。' : '序号连续。',
+      detail: aatCodes.has('SEQUENCE_GAP') ? AppText.t('AAT 序号有缺口。') : AppText.t('序号连续。'),
     },
     {
       code: 'SESSION',
       status: aatCodes.has('SESSION_MISMATCH') ? 'fail' : 'pass',
-      detail: aatCodes.has('SESSION_MISMATCH') ? 'AAT 记录跨会话。' : '记录属于同一会话。',
+      detail: aatCodes.has('SESSION_MISMATCH') ? AppText.t('AAT 记录跨会话。') : AppText.t('记录属于同一会话。'),
     },
     {
       code: 'AUTHORIZATION',
       status: aatCodes.has('AUTHORIZATION_REUSED') ? 'fail' : 'pass',
-      detail: aatCodes.has('AUTHORIZATION_REUSED') ? '单次授权被复用。' : '未发现授权复用。',
+      detail: aatCodes.has('AUTHORIZATION_REUSED') ? AppText.t('单次授权被复用。') : AppText.t('未发现授权复用。'),
     },
     {
       code: 'PRINCIPAL',
@@ -147,7 +148,7 @@ export function structuralOf(snapshot: DecisionAatSnapshot): DecisionStructuralV
       detail:
         missingPrincipal > 0
           ? `${String(missingPrincipal)}/${String(decisions.length)} 条决策缺少授权主体；不影响链，但不能回答谁授权。`
-          : '所有决策都有授权主体。',
+          : AppText.t('所有决策都有授权主体。'),
     },
   ];
   return {
@@ -186,7 +187,7 @@ export function conformalOf(snapshot: DecisionAatSnapshot): DecisionConformalVie
         codes.has('CONFORMAL_SNAPSHOT_MISSING')
           ? 'fail'
           : 'pass',
-      detail: '校准单元可还原（full / delta）。',
+      detail: AppText.t('校准单元可还原（full / delta）。'),
     },
     {
       code: 'CONFORMAL_DIGEST',
@@ -194,27 +195,27 @@ export function conformalOf(snapshot: DecisionAatSnapshot): DecisionConformalVie
         codes.has('CONFORMAL_DIGEST_MISMATCH') || codes.has('CONFORMAL_SNAPSHOT_MISMATCH')
           ? 'fail'
           : 'pass',
-      detail: '类摘要 / 全类摘要可按包内单元重算。',
+      detail: AppText.t('类摘要 / 全类摘要可按包内单元重算。'),
     },
     {
       code: 'CONFORMAL_THRESHOLD',
       status: codes.has('CONFORMAL_THRESHOLD_MISMATCH') ? 'fail' : 'pass',
-      detail: '阈值 τ 可由 calibration units 重算。',
+      detail: AppText.t('阈值 τ 可由 calibration units 重算。'),
     },
     {
       code: 'CONFORMAL_RISK_SCORE',
       status: codes.has('CONFORMAL_RISK_SCORE_MISMATCH') ? 'fail' : 'pass',
-      detail: '风险分可由 risk features 重算。',
+      detail: AppText.t('风险分可由 risk features 重算。'),
     },
     {
       code: 'CONFORMAL_MODEL',
       status: codes.has('CONFORMAL_RISK_MODEL_MISMATCH') ? 'fail' : 'pass',
-      detail: '风险权重模型摘要一致。',
+      detail: AppText.t('风险权重模型摘要一致。'),
     },
     {
       code: 'CONFORMAL_ABOVE_THRESHOLD',
       status: codes.has('CONFORMAL_RISK_ABOVE_THRESHOLD') ? 'fail' : 'pass',
-      detail: '每条放行都满足 riskScore < threshold。',
+      detail: AppText.t('每条放行都满足 riskScore < threshold。'),
     },
   ];
   return {

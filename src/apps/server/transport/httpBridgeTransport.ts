@@ -1,3 +1,4 @@
+import { AppText } from '../../i18n/AppText.ts';
 import { jsonRpc, type RpcMessage, type RpcRequest } from '../../../host/kernel/runtime.ts';
 import type { Transport } from '../../../host/kernel/runtime.ts';
 import { type WsConnection } from '../../../host/kernel/runtime.ts';
@@ -218,7 +219,7 @@ export class HttpBridgeTransport implements Transport {
   public async handlePost(body: string, authHeader?: string): Promise<RpcMessage> {
     const message = jsonRpc.parse(body);
     if (message === undefined || !jsonRpc.isRequest(message)) {
-      return jsonRpc.errorResponse(-1, -32700, '无效请求');
+      return jsonRpc.errorResponse(-1, -32700, AppText.t('无效请求'));
     }
     if (this.auth !== undefined) {
       const subject = await this.auth.authenticate(authHeader);
@@ -226,7 +227,7 @@ export class HttpBridgeTransport implements Transport {
         return jsonRpc.errorResponse(
           message.id,
           -32001,
-          '未认证或令牌无效（需 Authorization: Bearer <token>）',
+          AppText.t('未认证或令牌无效（需 Authorization: Bearer <token>）'),
         );
       }
     }
@@ -275,7 +276,7 @@ export class HttpBridgeTransport implements Transport {
                   jsonRpc.errorResponse(
                     message.id,
                     -32001,
-                    '未认证或令牌无效（需 Authorization: Bearer <token>）',
+                    AppText.t('未认证或令牌无效（需 Authorization: Bearer <token>）'),
                   ),
                 ),
               );
