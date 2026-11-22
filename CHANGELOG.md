@@ -8,8 +8,8 @@
 ### Added（新增）
 - **文档门禁 + 发布打包手动门**（2026-11-22，审计收口）：
   · 新增 `scripts/checkDocs.ts`（`npm run docs:check`），接入 `verify` 与 CI：README/CONTRIBUTING/docs
-    的相对链接必须存在；域数 / 域模块数 / RPC 方法数必须与代码实测一致（域文件数、`modules/index.ts`
-    登记数、parity 快照常量）。门禁本身做过断链负向验证。
+    的仓库内相对链接必须存在（仓库外兄弟仓引用按外链跳过）；域数 / 域模块数 / RPC 方法数必须与
+    代码实测一致（域文件数、`modules/index.ts` 登记数、parity 快照常量）。门禁本身做过断链负向验证。
   · CI 新增 `desktop-package` 手动 job：stage（含 vendor 与侧车）→ electron-builder NSIS →
     `verify:package` → 上传安装包，补上 push 流水线不覆盖的发布打包面。
   · 按实测回填文档：`KERNEL-CONTRACT`（116→117 方法、278→285 源文件、对接面 430 唯一符号 /

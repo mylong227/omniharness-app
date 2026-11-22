@@ -12,10 +12,11 @@
  *    parity 快照里的 `expect(methods.length).toBe(N)`）。
  *
  * 范围：README、CONTRIBUTING、docs/**、desktop/README、src/host/extensions/README、vendor/README。
+ * 仓库外的引用（如 `../omniharness-kernel` 兄弟仓）按外链跳过——CI 检出里不存在，不能用它判死。
  * CHANGELOG 是历史记录（条目里的路径可能已退役），不参与本门禁。
  */
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -92,7 +93,11 @@ function checkLinks(file: string): void {
     if (/^(?:https?:|mailto:|#)/u.test(raw)) continue;
     const target = raw.replace(/^</u, '').replace(/>$/u, '').split('#')[0] ?? '';
     if (target === '') continue;
-    if (!existsSync(resolve(dirname(join(ROOT, file)), target))) {
+    const absolute = resolve(dirname(join(ROOT, file)), target);
+    // 仓库外引用（如 ../omniharness-kernel 兄弟仓）在 CI 检出里不存在，按外链跳过。
+    const inside = relative(ROOT, absolute);
+    if (inside.startsWith('..') || isAbsolute(inside)) continue;
+    if (!existsSync(absolute)) {
       fail(`${file}: 相对链接指向不存在的路径 -> ${target}`);
     }
   }
@@ -165,6 +170,6 @@ if (failures.length > 0) {
   process.exit(1);
 }
 process.stdout.write(
-  `docs:check OK —— ${String(files.length)} 个 Markdown 相对链接全部存在；` +
+  `docs:check OK —— ${String(files.length)} 个 Markdown 文件的仓库内相对链接全部存在；` +
     `域数 / 域模块数 / RPC 方法数与代码实测一致\n`,
 );
