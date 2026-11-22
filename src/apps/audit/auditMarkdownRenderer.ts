@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 import { AuditFormatting } from './auditFormatting.ts';
 import { AuditRedactor } from './auditRedactor.ts';
 import type { AuditChainedRecord, AuditReport } from './auditTypes.ts';
@@ -22,44 +23,66 @@ export class AuditMarkdownRenderer {
     return [
       `# ${report.title}`,
       '',
-      `> ${report.generator.name} ${report.generator.version} · 生成于 ${report.generatedAt} · schema \`${report.schema}\``,
+      AppText.t('> {name} {version} · 生成于 {date} · schema `{schema}`', {
+        name: report.generator.name,
+        version: report.generator.version,
+        date: report.generatedAt,
+        schema: report.schema,
+      }),
       '',
-      '## 来源',
+      AppText.t('## 来源'),
       '',
-      `- 文件：\`${this.code(report.source.path)}\``,
-      `- 格式：\`${report.source.format}\` · 会话：\`${this.code(report.source.sessionId ?? '未知')}\``,
-      `- 工作区：\`${this.code(report.source.workspace ?? '未知')}\` · 模型：\`${this.code(report.source.model ?? '未知')}\``,
-      `- 输入 SHA-256：\`${report.source.sha256}\``,
-      `- 时间范围：${AuditFormatting.timestamp(report.source.startedAt)} → ${AuditFormatting.timestamp(report.source.endedAt)}（${AuditFormatting.duration(report.summary.durationMs)}）`,
+      AppText.t('- 文件：`{path}`', { path: this.code(report.source.path) }),
+      AppText.t('- 格式：`{format}` · 会话：`{session}`', {
+        format: report.source.format,
+        session: this.code(report.source.sessionId ?? AppText.t('未知')),
+      }),
+      AppText.t('- 工作区：`{workspace}` · 模型：`{model}`', {
+        workspace: this.code(report.source.workspace ?? AppText.t('未知')),
+        model: this.code(report.source.model ?? AppText.t('未知')),
+      }),
+      AppText.t('- 输入 SHA-256：`{sha}`', { sha: report.source.sha256 }),
+      AppText.t('- 时间范围：{start} → {end}（{duration}）', {
+        start: AuditFormatting.timestamp(report.source.startedAt),
+        end: AuditFormatting.timestamp(report.source.endedAt),
+        duration: AuditFormatting.duration(report.summary.durationMs),
+      }),
       '',
-      '## 摘要',
+      AppText.t('## 摘要'),
       '',
-      '| 项目 | 值 |',
+      AppText.t('| 项目 | 值 |'),
       '| ---- | -- |',
-      `| 记录 | ${AuditFormatting.number(report.summary.total)} |`,
+      AppText.t('| 记录 | {count} |', { count: AuditFormatting.number(report.summary.total) }),
       ...(report.coverage === undefined
         ? []
-        : [`| 未识别 | ${AuditFormatting.number(report.coverage.unrecognized)} |`]),
+        : [
+            AppText.t('| 未识别 | {count} |', {
+              count: AuditFormatting.number(report.coverage.unrecognized),
+            }),
+          ]),
       ...(report.redaction === undefined
         ? []
-        : [`| 脱敏 | ${AuditRedactor.modeLabel(report.redaction)} |`]),
-      `| 工具调用 | ${AuditFormatting.number(report.summary.toolCalls)} |`,
-      `| 工具失败 | ${AuditFormatting.number(report.summary.toolFailures)} |`,
-      `| 涉及文件 | ${AuditFormatting.number(report.summary.filesChanged)} |`,
-      `| 审批 | ${AuditFormatting.number(report.summary.approvals)} |`,
+        : [AppText.t('| 脱敏 | {mode} |', { mode: AuditRedactor.modeLabel(report.redaction) })]),
+      AppText.t('| 工具调用 | {count} |', { count: AuditFormatting.number(report.summary.toolCalls) }),
+      AppText.t('| 工具失败 | {count} |', { count: AuditFormatting.number(report.summary.toolFailures) }),
+      AppText.t('| 涉及文件 | {count} |', { count: AuditFormatting.number(report.summary.filesChanged) }),
+      AppText.t('| 审批 | {count} |', { count: AuditFormatting.number(report.summary.approvals) }),
       ...this.tokenRows(report),
       '',
-      '## 完整性',
+      AppText.t('## 完整性'),
       '',
-      `- 算法：\`sha256\` · 链头：\`${report.integrity.head}\``,
-      `- 记录数：${AuditFormatting.number(report.integrity.count)} · 创世：\`${report.integrity.genesis}\``,
-      '- 复核：`omniharness audit verify <本文件>`（或与报告内嵌载荷逐字节对照）',
+      AppText.t('- 算法：`sha256` · 链头：`{head}`', { head: report.integrity.head }),
+      AppText.t('- 记录数：{count} · 创世：`{genesis}`', {
+        count: AuditFormatting.number(report.integrity.count),
+        genesis: report.integrity.genesis,
+      }),
+      AppText.t('- 复核：`omniharness audit verify <本文件>`（或与报告内嵌载荷逐字节对照）'),
       '',
       ...this.filesSection(report),
       ...this.timelineSection(report),
-      '## 完整载荷',
+      AppText.t('## 完整载荷'),
       '',
-      '<details><summary>展开 JSON（哈希链覆盖其中每条记录）</summary>',
+      AppText.t('<details><summary>展开 JSON（哈希链覆盖其中每条记录）</summary>'),
       '',
       AuditMarkdownRenderer.PAYLOAD_MARKER,
       `${this.fenceFor(payload)}json`,
@@ -70,7 +93,7 @@ export class AuditMarkdownRenderer {
       '',
       '---',
       '',
-      '哈希链证明“报告自生成后未被改动”，不证明会话本身真实、也不证明生成者身份。',
+      AppText.t('哈希链证明“报告自生成后未被改动”，不证明会话本身真实、也不证明生成者身份。'),
     ].join('\n');
   }
 
@@ -84,10 +107,10 @@ export class AuditMarkdownRenderer {
       return [];
     }
     return [
-      `| 输入 token | ${AuditFormatting.number(report.tokens.prompt)} |`,
-      `| 输出 token | ${AuditFormatting.number(report.tokens.completion)} |`,
-      `| 缓存读 token | ${AuditFormatting.number(report.tokens.cached)} |`,
-      `| 总 token | ${AuditFormatting.number(report.tokens.total)} |`,
+      AppText.t('| 输入 token | {count} |', { count: AuditFormatting.number(report.tokens.prompt) }),
+      AppText.t('| 输出 token | {count} |', { count: AuditFormatting.number(report.tokens.completion) }),
+      AppText.t('| 缓存读 token | {count} |', { count: AuditFormatting.number(report.tokens.cached) }),
+      AppText.t('| 总 token | {count} |', { count: AuditFormatting.number(report.tokens.total) }),
     ];
   }
 
@@ -98,12 +121,17 @@ export class AuditMarkdownRenderer {
    */
   private filesSection(report: AuditReport): string[] {
     if (report.files.length === 0) {
-      return ['## 文件变更', '', '源里没有可识别的写类工具调用或 diff。', ''];
+      return [
+        AppText.t('## 文件变更'),
+        '',
+        AppText.t('源里没有可识别的写类工具调用或 diff。'),
+        '',
+      ];
     }
     return [
-      '## 文件变更',
+      AppText.t('## 文件变更'),
       '',
-      '| 路径 | 触及 | 新增 | 删除 |',
+      AppText.t('| 路径 | 触及 | 新增 | 删除 |'),
       '| ---- | ---- | ---- | ---- |',
       ...report.files.map(
         (file) =>
@@ -121,15 +149,18 @@ export class AuditMarkdownRenderer {
   private timelineSection(report: AuditReport): string[] {
     const shown = report.records.slice(0, AuditFormatting.MAX_DISPLAY_RECORDS);
     const lines = [
-      '## 时间线',
+      AppText.t('## 时间线'),
       '',
       ...(report.records.length > shown.length
         ? [
-            `> 仅展示前 ${String(shown.length)} 条（共 ${String(report.records.length)} 条）；完整数据见文末载荷。`,
+            AppText.t('> 仅展示前 {shown} 条（共 {total} 条）；完整数据见文末载荷。', {
+              shown: String(shown.length),
+              total: String(report.records.length),
+            }),
             '',
           ]
         : []),
-      '| # | 时间 | 类别 | 事件 | 详情 |',
+      AppText.t('| # | 时间 | 类别 | 事件 | 详情 |'),
       '| - | ---- | ---- | ---- | ---- |',
     ];
     for (const item of shown) {
