@@ -20,7 +20,7 @@
 ## 提交规范
 
 - 格式：`type(scope): 祈使句摘要`（refactor / feat / fix / docs / test / chore）。破坏性变更加 `!` 并在正文写迁移说明。
-- 分支惯例：日常提交只推 `feat/<主题>`；`main` 由快进合并或 PR 推进，不直接 `git push origin main`（2026-11-10 定）。
+- 分支策略：**只在 `main` 上开发与提交**（2026-11-22 起）。`feat/kernel-package` 已并入 `main` 并删除，不再新建长期分支；历史提交仍可 `git log` 追溯。
 - 每个提交自成一体：typecheck + 相关判据过；不提交「半截 dist」或 `.zcode/`、`.tmp/` 产物。
 - 大重构按「基线 → 机械搬移（行为等价）→ 行为变更」拆提交，diff 可审。
 
