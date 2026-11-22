@@ -43,6 +43,10 @@ C 类豁免的理由：把安全上限做成可配置等于允许部署方无意
 - ✅ 可调参数：`src/config/app.json` 单一来源，首批 + 第二批 + 收尾（页面/缓存/markdown/部分 JSON/
   OIDC 超时）全部接入 `RuntimeConfig`/`UI_TUNABLES`，启动 fail-fast；`magicValues` 门禁防回潮。
 - ✅ 剩余可调参数位于 `src/host` 内核适配层（laya/croner），按内核配置/env 体系管理，不在本仓 app 配置范围。
+- ✅ 端口 / URL 不重复登记进 `app.json`（避免双源漂移）：开发端口与代理 origin 的单一来源是
+  `scripts/devConfig.ts`（`OMNI_BACKEND_PORT` / `OMNI_UI_PORT` / `OMNI_DEV_HOST` / `OMNI_BACKEND_ORIGIN`）；
+  运行时服务端口走 CLI `--port` / 内核 server 配置；厂商端点与运维上限走内核
+  `defaults/endpoints.json` / `defaults/limits.json`（`OMNI_*` 可覆盖）。应用侧只消费，不另存。
 
 ## 评审自检
 
