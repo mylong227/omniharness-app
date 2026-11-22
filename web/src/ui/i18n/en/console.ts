@@ -246,4 +246,5 @@ export const EN_CONSOLE: Record<string, string> = {
   '厂商 Key / 端点 / 当前使用': 'Provider key / endpoint / currently in use',
   '托盘 / 开机启动 / 更新': 'Tray / launch at login / updates',
   '快捷键一览': 'Keyboard shortcuts overview',
+  '消息': 'Messages',
 };

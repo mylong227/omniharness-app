@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * 无第三方依赖 TUI 交互会话（#S35，交互式会话）。
  *
@@ -27,7 +28,7 @@ export class Interactive {
     const out = opts.out ?? process.stdout;
     const exitWords = opts.exitWords ?? ['exit', 'quit'];
     const rl = opts.rl ?? createInterface({ input: process.stdin, output: out, terminal: true });
-    out.write(`${TuiRenderer.renderStatusLine('就绪', '输入消息开始；exit/quit 退出')}\n`);
+    out.write(`${TuiRenderer.renderStatusLine(AppText.t('就绪'), AppText.t('输入消息开始；exit/quit 退出'))}\n`);
     try {
       while (true) {
         const input = await new Promise<string | null>((resolve) => {
@@ -60,7 +61,7 @@ export class Interactive {
       }
     } finally {
       if (opts.rl === undefined) rl.close();
-      out.write(`${TuiRenderer.renderStatusLine('已退出')}\n`);
+      out.write(`${TuiRenderer.renderStatusLine(AppText.t('已退出'))}\n`);
     }
   }
 }

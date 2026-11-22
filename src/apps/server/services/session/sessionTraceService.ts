@@ -1,3 +1,4 @@
+import { AppText } from '../../../i18n/AppText.ts';
 import { RuntimeConfig } from '../../../config/RuntimeConfig.ts';
 /**
  * 只读 trace 自省服务（SessionTraceService）——把「读 trace」接进真实生产路径。
@@ -131,7 +132,7 @@ export class SessionTraceService {
   public read(request: TraceReadRequest): TraceReadResult {
     const session = request.session;
     if (session.trim() === '') {
-      return { session, entries: [], count: 0, error: 'trace.read 需要非空 sessionId' };
+      return { session, entries: [], count: 0, error: AppText.t('trace.read 需要非空 sessionId') };
     }
     const reader = this.readers.get(session);
     if (reader === undefined) {

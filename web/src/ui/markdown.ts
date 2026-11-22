@@ -302,7 +302,7 @@ let mdCache: MarkdownItInstance | null = null;
  */
 const HTML_CACHE_MAX_ENTRIES = UI_TUNABLES.markdownCacheEntries;
 const HTML_CACHE_MAX_CHARS = UI_TUNABLES.markdownCacheChars;
-const HTML_CACHE_MAX_TEXT = 64 * 1024;
+const HTML_CACHE_MAX_TEXT = UI_TUNABLES.markdownCacheTextChars;
 const htmlCache = new Map<string, string>();
 let htmlCacheChars = 0;
 

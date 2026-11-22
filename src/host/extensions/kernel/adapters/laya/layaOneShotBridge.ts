@@ -1,3 +1,4 @@
+import { AppText } from '../../../../../apps/i18n/AppText.ts';
 /**
  * Laya 单发桥（一次性子进程）：一个请求 → 一个响应 → 进程退出。
  *
@@ -160,7 +161,7 @@ export class LayaOneShotBridge {
       .filter((entry) => entry.length > 0)
       .pop();
     if (line === undefined) {
-      throw new Error('桥无输出（进程可能被超时终止）');
+      throw new Error(AppText.t('桥无输出（进程可能被超时终止）'));
     }
     try {
       return JSON.parse(line) as LayaBridgeResponse;

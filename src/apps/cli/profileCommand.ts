@@ -15,7 +15,7 @@ import { CliArgReader } from './cliArgReader.ts';
 
 /** profile 用法提示。 */
 const USAGE =
-  '用法: omniharness profile list | profile create <name> [--desc D] [--plugin P ...] | profile delete <name> | profile use <name>\n';
+  AppText.t('用法: omniharness profile list | profile create <name> [--desc D] [--plugin P ...] | profile delete <name> | profile use <name>\n');
 
 export class ProfileCommand {
   /**

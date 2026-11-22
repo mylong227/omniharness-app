@@ -6,6 +6,22 @@
 ## [Unreleased]
 
 ### Changed（变更）
+- **批次十六（2026-11-22，硬编码治理：AppText 全量 + 配置单一来源 + 三类门禁）**：
+  · **服务端/CLI/审计/企业/TUI/host 用户可见文案全量外部化**：新增
+    `src/apps/i18n/AppText.ts` 与 `en/{server,cli,audit,common}.ts` 分片（中文原文即键、
+    `{param}` 插值、缺词回落）；服务端/CLI/审计报告/doctor/决策视图/证明/配额/回滚/模型指令/
+    角色提示/审计解析器/TUI/license/daemon 等 500+ 键全部有逐字英文；locale 随
+    `AppServerOptions.locale`（serve 读用户配置）与 `config.update` 同步。
+  · **可调参数单一来源 `src/config/app.json`**：`RuntimeConfig`（服务端）与 `UI_TUNABLES`
+    （web）启动 fail-fast 校验；两批共 40+ 项（搜索去抖/轨迹上限/轮询/TTL/历史分页/审批与提问
+    超时/分页/trace/搜索/附件/决策行数/markdown 缓存/草稿/引用上限/流式节流/HTTP 超时/线程与图
+    上限/OIDC 超时等）迁入；协议/安全常量按策略保留命名常量。
+  · **门禁**：`tests/appTextCoverage`（en 覆盖/分片去重/裸 CJK）、`web/test/webTableI18n`
+    （表值 en 覆盖）、`web/test/webHardcodedText`（Error/toast/JSX 属性）、`tests/runtimeConfig`
+    （配置形状/单一来源）、`tests/magicValues`（超时/间隔/上限必须来自配置）。
+  · **策略文档**：新增 `docs/HARDCODE-POLICY.md`，定义 A 文本 / B 参数 / C 安全·展示常量三类、
+    门禁清单与显式豁免（协议 schema 与 codegen 模板、TUI 展示截断、CI/scripts、解析匹配标记）。
+  · 验证：`npm run verify` 全链绿（237 文件 1075 用例 + desktop 44；knip 0；build/build:web/smoke 全过）。
 - **批次十五（2026-11-22，K2 接收 alpha.38 / R27——worker 域补齐，R25d 收口）**：
   · vendored kernel 升 `0.1.0-alpha.38`（内核仓 R27：`51f6282` / `adfa1a7` / `27abbb6`，
   tag `v0.1.0-alpha.38`）：内核新承诺三条 worker 深路径 `kernel/worker/cliWorker.js`、

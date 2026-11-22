@@ -33,11 +33,11 @@ const USAGE =
 /** `bundle source` 用法提示（G2 私有技能源）。 */
 /** `bundle grade` 用法提示（H1 分级）。 */
 const GRADE_USAGE =
-  '用法: omniharness bundle grade <path.ohb> [--declare process,fs-write] [--sandbox-level LEVEL]\n' +
+  AppText.t('用法: omniharness bundle grade <path.ohb> [--declare process,fs-write] [--sandbox-level LEVEL]\n') +
   AppText.t('说明: 产出 A/B/C 评级（评级即门禁输出）；C ⇒ 退出码 1（不可安装）。\n');
 
 const SOURCE_USAGE =
-  '用法: omniharness bundle source list|sync --source DIR --trust <ssh-ed25519 …> [--trust …] [--loose]\n' +
+  AppText.t('用法: omniharness bundle source list|sync --source DIR --trust <ssh-ed25519 …> [--trust …] [--loose]\n') +
   AppText.t('说明: 缺省严格档——无 Ed25519 签名的包一律拒；--loose 才收无签名包（标注 community）。\n');
 
 export class BundleCommand {

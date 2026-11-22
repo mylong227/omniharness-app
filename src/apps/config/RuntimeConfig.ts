@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 // 应用可调参数（单一来源：`src/config/app.json`）。
 //
 // 设计口径（docs/HARDCODE-POLICY.md）：
@@ -38,6 +39,8 @@ export interface WebTunables {
   readonly quoteMaxChars: number;
   readonly streamIntervalMs: number;
   readonly textRevealStepMs: number;
+  readonly markdownCacheTextChars: number;
+  readonly partialJsonCacheMax: number;
 }
 
 /** 服务端可调参数。 */
@@ -74,6 +77,7 @@ export interface ServerTunables {
   readonly probeCacheMax: number;
   readonly threadMaxLimit: number;
   readonly graphMaxRuns: number;
+  readonly enterpriseTimeoutMs: number;
 }
 
 /** 配置文件整体形状。 */
@@ -110,7 +114,7 @@ export class RuntimeConfig {
   private static validate(value: unknown): AppConfigData {
     const data = value as Partial<AppConfigData> | null;
     if (data === null || typeof data !== 'object' || data.web === undefined || data.server === undefined) {
-      throw new Error('src/config/app.json 缺少 web/server 段');
+      throw new Error(AppText.t('src/config/app.json 缺少 web/server 段'));
     }
     const check = <T extends Record<string, unknown>>(section: T, name: string): T => {
       for (const [key, raw] of Object.entries(section)) {

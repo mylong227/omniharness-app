@@ -33,7 +33,7 @@ import { CliArgReader } from './cliArgReader.ts';
 
 /** 用法提示。 */
 const USAGE =
-  '用法: omniharness capability list [--json]\n' +
+  AppText.t('用法: omniharness capability list [--json]\n') +
   '      omniharness capability metadata [--kind KIND] [--json]\n' +
   '      omniharness capability install <pack.ohb> --yes [--allow-unsigned]\n' +
   AppText.t('说明: list / metadata 只读；install 会改动状态（入册 + 入账），必须显式 --yes。\n');

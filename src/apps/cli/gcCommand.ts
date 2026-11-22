@@ -75,8 +75,8 @@ export class GcCommand {
 
   /** 用法说明。 */
   private static readonly USAGE =
-    '用法: omniharness gc [--dry-run]\n' +
-    '  手动触发一轮维护巡检：临时目录 / 陈旧 serve 实例记录 / 会话保留策略 / 半截临时文件。\n' +
-    '  --dry-run  只报告将要清理的内容，不实际删除。\n' +
+    AppText.t('用法: omniharness gc [--dry-run]\n') +
+    AppText.t('  手动触发一轮维护巡检：临时目录 / 陈旧 serve 实例记录 / 会话保留策略 / 半截临时文件。\n') +
+    AppText.t('  --dry-run  只报告将要清理的内容，不实际删除。\n') +
     AppText.t('  旋钮：OMNI_MAINTENANCE=off 停用；OMNI_GC_KEEP / OMNI_GC_MAX_AGE_DAYS / OMNI_GC_MAX_BYTES 调会话保留策略。\n');
 }

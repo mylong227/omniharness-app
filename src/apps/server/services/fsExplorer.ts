@@ -254,7 +254,7 @@ export class FsExplorer {
     try {
       st = await stat(target);
     } catch (e) {
-      return { path: target, error: '文件不存在或不可访问：' + (e as Error).message };
+      return { path: target, error: AppText.t('文件不存在或不可访问：') + (e as Error).message };
     }
     if (!st.isFile()) {
       return { path: target, error: AppText.t('不是文件') };
@@ -265,13 +265,13 @@ export class FsExplorer {
     const name = basename(target);
     const mediaType = FsExplorer.inferMediaType(name);
     if (!ALLOWED_MEDIA_PREFIXES.some((p) => mediaType.startsWith(p))) {
-      return { path: target, error: '不支持的文件类型：' + mediaType };
+      return { path: target, error: AppText.t('不支持的文件类型：') + mediaType };
     }
     let buf: Buffer;
     try {
       buf = await readFile(target);
     } catch (e) {
-      return { path: target, error: '读取失败：' + (e as Error).message };
+      return { path: target, error: AppText.t('读取失败：') + (e as Error).message };
     }
     return {
       file: {

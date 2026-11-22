@@ -59,6 +59,46 @@ export const CLI: Readonly<Record<string, string>> = {
   '[OK] 未发现健康问题': '[OK] No health issues found',
   '[WARN] 发现 {count} 项问题:': '[WARN] {count} issue(s) found:',
   'resume/fork 模式需要 --prompt': 'resume/fork mode requires --prompt',
+  '就绪': 'Ready',
+  '输入消息开始；exit/quit 退出': 'Type a message to start; exit/quit to leave',
+  '已退出': 'Exited',
+  'TuiAgentBridge 未绑定任务执行面（attach）即被 send':
+    'TuiAgentBridge received send before a task surface was attached',
+  '（未知工具）': '(unknown tool)',
+  '（无输出）': '(no output)',
+  '失败': 'failed',
+  '  omniharness audit <FILE|DIR...>            # report 的简写\n':
+    '  omniharness audit <FILE|DIR...>            # shorthand for report\n',
+  '  --strict  任一输入存在未识别的来源条目时以退出码 1 失败（缺省只在报告里显示「未识别 N」）。\n':
+    '  --strict  fail with exit code 1 if any input has unrecognized source entries (by default only "Unrecognized N" appears in the report).\n',
+  '  --redact  脱敏模式（缺省 off，证据保真优先）：paths 遮绝对路径（保留末两段+哈希）、\n':
+    '  --redact  redaction mode (default off, evidence fidelity first): paths masks absolute paths (keeps last two segments + hash),\n',
+  '            secrets 遮密钥（前缀/赋值/高熵）、all 两者；报告顶部显示 mode，verify 对 hits 对账。\n':
+    '            secrets masks secrets (prefix/assignment/high-entropy), all does both; the report header shows the mode and verify reconciles hits.\n',
+  '用法: omniharness bundle grade <path.ohb> [--declare process,fs-write] [--sandbox-level LEVEL]\n':
+    'Usage: omniharness bundle grade <path.ohb> [--declare process,fs-write] [--sandbox-level LEVEL]\n',
+  '用法: omniharness bundle source list|sync --source DIR --trust <ssh-ed25519 …> [--trust …] [--loose]\n':
+    'Usage: omniharness bundle source list|sync --source DIR --trust <ssh-ed25519 …> [--trust …] [--loose]\n',
+  '用法: omniharness capability list [--json]\n': 'Usage: omniharness capability list [--json]\n',
+  '用法: omniharness evolution status [--workspace DIR] [--dir REL] [--json]\n':
+    'Usage: omniharness evolution status [--workspace DIR] [--dir REL] [--json]\n',
+  '      omniharness evolution cycle --yes [其他 CLI 旗标…]\n':
+    '      omniharness evolution cycle --yes [other CLI flags…]\n',
+  '用法: omniharness gc [--dry-run]\n': 'Usage: omniharness gc [--dry-run]\n',
+  '  手动触发一轮维护巡检：临时目录 / 陈旧 serve 实例记录 / 会话保留策略 / 半截临时文件。\n':
+    '  Manually run one maintenance sweep: temp dirs / stale serve instance records / session retention / partial temp files.\n',
+  '  --dry-run  只报告将要清理的内容，不实际删除。\n':
+    '  --dry-run  only report what would be cleaned; delete nothing.\n',
+  '用法: omniharness license status --license <file> --license-public-key <ssh-ed25519 …>\n':
+    'Usage: omniharness license status --license <file> --license-public-key <ssh-ed25519 …>\n',
+  '用法: omniharness profile list | profile create <name> [--desc D] [--plugin P ...] | profile delete <name> | profile use <name>\n':
+    'Usage: omniharness profile list | profile create <name> [--desc D] [--plugin P ...] | profile delete <name> | profile use <name>\n',
+  '用法: omniharness sdk call --url ws://HOST:PORT/ws --method NAME [--params JSON] [--timeout MS]\n':
+    'Usage: omniharness sdk call --url ws://HOST:PORT/ws --method NAME [--params JSON] [--timeout MS]\n',
+  '用法: omniharness trace read --session ID [--limit N] [--kind K] ':
+    'Usage: omniharness trace read --session ID [--limit N] [--kind K] ',
+  '应用已正常启动：请打开「设置 → 模型接入」填写 API Key 并保存，再重新发送即可（无需重启应用）。':
+    'The app started normally: open Settings → Model access, enter an API key, save, and resend (no restart needed).',
   '  退出码契约见 docs/audit/EXIT_CODES.md。\n':
     '  Exit-code contract: see docs/audit/EXIT_CODES.md.\n',
   '完整': 'complete',

@@ -454,4 +454,6 @@ export const EN_SETTINGS: Record<string, string> = {
   // —— 路由卡凭据预检（2026-11-21 P2，model.adapters env 实测）——
   '条目 {n}（{adapter}）：环境变量 {env} 未检测到——serve 启动将拒绝（fail-closed）':
     'Entry {n} ({adapter}): env {env} not detected — serve will refuse at startup (fail-closed)',
+  '影子模式（跑记不改行为）': 'Shadow mode (logs only, no behavior change)',
+  '生效': 'active',
 };

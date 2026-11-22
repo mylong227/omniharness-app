@@ -1,3 +1,4 @@
+import { AppText } from '../../../../../apps/i18n/AppText.ts';
 /**
  * Laya 决策引擎适配器（本地 System-1 推理）：把「类型化决策（`noul` / `choice` / `score`）」
  * 接到本地 `laya` Python 后端上，供自验证回环等高频判断点复用，替代 LLM 长推理。
@@ -176,7 +177,7 @@ export class LayaDecisionEngine implements DecisionEngine {
     const response = await this.runInference(request.state, questions);
     if (response.available !== true) {
       this.logDecideFailure(response.note ?? '');
-      return { answers: {}, available: false, note: response.note ?? 'laya 决策失败（fail-open）' };
+      return { answers: {}, available: false, note: response.note ?? AppText.t('laya 决策失败（fail-open）') };
     }
     return {
       answers: response.answers ?? {},
@@ -290,7 +291,7 @@ export class LayaDecisionEngine implements DecisionEngine {
         return;
       }
       this.coldSkipLogged = true;
-      log.warn('Laya 热进程仍在加载权重，本次决策跳过（fail-open；加载继续在后台进行）', {
+      log.warn(AppText.t('Laya 热进程仍在加载权重，本次决策跳过（fail-open；加载继续在后台进行）'), {
         engine: this.name,
         warmupWaitMs: this.cfg.warmupWaitMs,
         note,
@@ -301,7 +302,7 @@ export class LayaDecisionEngine implements DecisionEngine {
       return;
     }
     this.failureLogged = true;
-    log.warn('Laya 决策失败（fail-open：本次降级为无预判，不影响主流程）', {
+    log.warn(AppText.t('Laya 决策失败（fail-open：本次降级为无预判，不影响主流程）'), {
       engine: this.name,
       warm: this.cfg.warm,
       note,
@@ -328,9 +329,9 @@ export class LayaDecisionEngine implements DecisionEngine {
       ...(this.availabilityNote.length > 0 ? { note: this.availabilityNote } : {}),
     };
     if (this.availability === true) {
-      log.info('Laya 决策引擎后端已就绪', fields);
+      log.info(AppText.t('Laya 决策引擎后端已就绪'), fields);
     } else {
-      log.warn('Laya 决策引擎后端不可用（fail-open，决策将回落到 LLM）', fields);
+      log.warn(AppText.t('Laya 决策引擎后端不可用（fail-open，决策将回落到 LLM）'), fields);
     }
   }
 
@@ -342,7 +343,7 @@ export class LayaDecisionEngine implements DecisionEngine {
   private unavailableNote(): string {
     return this.availabilityNote.length > 0
       ? `laya 后端不可用（fail-open）：${this.availabilityNote}`
-      : 'laya 后端不可用（fail-open）';
+      : AppText.t('laya 后端不可用（fail-open）');
   }
 
   /**

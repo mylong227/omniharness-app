@@ -1,3 +1,4 @@
+import { UI_TUNABLES } from '../config/RuntimeConfig.ts';
 // 纯函数工具层（零 React / 零 DOM 依赖）：对话流与变更面板的文本/结构计算逻辑。
 // 抽离出来便于在 node --test 下直接单测（web 此前 0 测试文件，审计 P0）。
 // 注意：本文件不得 import 'react'（纯文本工具，保持零 React 依赖才能在任何环境直接加载）。
@@ -809,7 +810,7 @@ export function parseDiffRows(patch: string): DiffRow[] {
 /** partial JSON 试解析的缓存（键=原文）：流式参数每帧变长，同一前缀会被多帧重复解析，缓存把滚动 / 重渲染的重复解析摊平。 */
 const PARTIAL_JSON_CACHE = new Map<string, unknown>();
 /** 缓存上限：live input 是瞬态行（个位数），64 已经远超单屏用量，满了整表清一次即可。 */
-const PARTIAL_JSON_CACHE_MAX = 64;
+const PARTIAL_JSON_CACHE_MAX = UI_TUNABLES.partialJsonCacheMax;
 
 /**
  * 尽力解析一段**未完成**的 JSON 参数流（工具调用 partial）：解析失败回落空对象，绝不抛错。

@@ -259,7 +259,7 @@ export class CliMcpCmds extends CliServerCmds {
     try {
       const address = await server.listen();
       process.stderr.write(
-        `OmniHarness MCP 服务器已启动（Streamable HTTP · ` +
+        AppText.t(`OmniHarness MCP 服务器已启动（Streamable HTTP · `) +
           `http://${address.host}:${address.port}${path} · ` +
           `协议 ${McpProtocol.SUPPORTED_VERSIONS.join(', ')}）\n`,
       );
