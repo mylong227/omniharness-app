@@ -1,3 +1,4 @@
+import { RuntimeConfig } from '../../config/RuntimeConfig.ts';
 import { AppText } from '../../i18n/AppText.ts';
 import { jsonRpc, type RpcMessage, type RpcRequest } from '../../../host/kernel/runtime.ts';
 import type { Transport } from '../../../host/kernel/runtime.ts';
@@ -49,7 +50,7 @@ export class HttpBridgeTransport implements Transport {
    *
    * **长任务 RPC 不适用本预算**，见 {@link HttpBridgeTransport.LONG_REQUEST_TIMEOUT_MS}。
    */
-  public static readonly REQUEST_TIMEOUT_MS = 60_000;
+  public static readonly REQUEST_TIMEOUT_MS = RuntimeConfig.server.httpRequestTimeoutMs;
 
   /**
    * **长任务** RPC 的等待上限（毫秒）：30 分钟。
@@ -64,7 +65,7 @@ export class HttpBridgeTransport implements Transport {
    * 仍**保留上限**（不是无限等）：S15 的「挂起可收敛为一条可解释错误」性质不放弃，只是把预算放到
    * 长任务的量级。真正需要更长时可走 `turns.abort` 主动收尾，而不是让连接永久悬挂。
    */
-  public static readonly LONG_REQUEST_TIMEOUT_MS = 30 * 60_000;
+  public static readonly LONG_REQUEST_TIMEOUT_MS = RuntimeConfig.server.httpLongRequestTimeoutMs;
 
   /** 走**长预算**的 RPC 方法（同步等待 agent / 编排跑完的那些）。 */
   private static readonly LONG_RUNNING_METHODS: ReadonlySet<string> = new Set([

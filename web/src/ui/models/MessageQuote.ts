@@ -1,3 +1,4 @@
+import { UI_TUNABLES } from '../../config/RuntimeConfig.ts';
 // 消息引用追问（2026-11-17 粘性批次）：把任意一条 user / assistant 消息以 Markdown 引用块
 // 填回底部输入框，用户在引用下面直接补问题发送——模型天然能从 blockquote 分辨「哪段是历史、
 // 哪段是新问题」，比口头说「关于你刚才说的…」精确得多。纯前端拼接（复用 composerSeed 回填），
@@ -6,7 +7,7 @@
 // 纯函数（零 DOM / React 依赖，可最小桩单测）。
 
 /** 引用正文的最大字符数（超长截断；输入框塞几千字 UX 不可用，用户需要全文请走导出）。 */
-const MAX_CHARS = 4000;
+const MAX_CHARS = UI_TUNABLES.quoteMaxChars;
 /** 截断省略号。 */
 const TAIL = '…';
 

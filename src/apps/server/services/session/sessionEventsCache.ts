@@ -1,3 +1,4 @@
+import { RuntimeConfig } from '../../../config/RuntimeConfig.ts';
 // 空闲会话事件读档缓存（2026-11-21 批次七 B1，深研 P0 项）：
 // kernel `JsonlStorage.load` 是全文件读入 + 逐行 parse——「补拉 300 条」每次都付
 // O(整档) IO+parse。本缓存按 threadId 持有最近解析结果（LRU 条数上限 + TTL 双保险）。
@@ -13,10 +14,10 @@
 import type { SessionEvent } from '../../../../host/kernel/contracts.ts';
 
 /** 缓存条目上限（LRU；大会话单条可达数 MB，条数封顶即内存封顶）。 */
-const CACHE_MAX_ENTRIES = 4;
+const CACHE_MAX_ENTRIES = RuntimeConfig.server.eventsCacheMaxEntries;
 
 /** TTL（毫秒）：任何漏网失效路径的最坏陈旧窗口。 */
-const CACHE_TTL_MS = 30_000;
+const CACHE_TTL_MS = RuntimeConfig.server.eventsCacheTtlMs;
 
 const entries = new Map<string, { readonly at: number; readonly events: readonly SessionEvent[] }>();
 

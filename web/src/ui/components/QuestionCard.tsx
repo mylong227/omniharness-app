@@ -1,3 +1,4 @@
+import { UI_TUNABLES } from '../../config/RuntimeConfig.ts';
 // 提问卡：服务端 `question.request` 上行时，在输入框正上方渲染的可作答卡片（2026-10-08）。
 //
 // 为什么必须有它：在此之前 Web 端对提问只有「只读卡」——选项按钮恒 disabled，没有任何提交入口，
@@ -17,7 +18,7 @@ import type {
 import { t } from '../i18n/i18n.ts';
 
 /** 倒计时步长（毫秒）。 */
-const TICK_MS = 1000;
+const TICK_MS = UI_TUNABLES.tickMs;
 
 /** QuestionCard 组件的入参。 */
 export interface QuestionCardProps {

@@ -15,6 +15,18 @@ export interface UiTunables {
   readonly fleetCacheTtlMs: number;
   readonly fleetStaleTickMs: number;
   readonly historyPageSize: number;
+  readonly tickMs: number;
+  readonly metricsPollMs: number;
+  readonly pluginsDebounceMs: number;
+  readonly clusterFreshMs: number;
+  readonly markdownCacheEntries: number;
+  readonly markdownCacheChars: number;
+  readonly highlightCacheEntries: number;
+  readonly draftMaxEntries: number;
+  readonly hoverDelayMs: number;
+  readonly quoteMaxChars: number;
+  readonly streamIntervalMs: number;
+  readonly textRevealStepMs: number;
 }
 
 /** 校验并冻结 web 段。 */

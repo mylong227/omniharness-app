@@ -1,3 +1,4 @@
+import { UI_TUNABLES } from '../../config/RuntimeConfig.ts';
 // 全站悬浮提示的 DOM 层（无 React）：悬停时**接管原生 `title` 气泡**。
 //
 // ## 为什么接管 title
@@ -42,7 +43,7 @@ const TITLE_ATTR = 'title';
 /** 摘下来的 `title` 暂存位置（原生不会读它，因此不会冒泡）。 */
 const STASH_ATTR = 'data-tip';
 /** 默认延迟：比原生（约 400–500ms）快，又足以滤掉"鼠标路过"。 */
-const DEFAULT_DELAY_MS = 180;
+const DEFAULT_DELAY_MS = UI_TUNABLES.hoverDelayMs;
 
 /**
  * 悬浮提示控制器：只管"什么时候显示哪条 title"，不碰样式与位置。

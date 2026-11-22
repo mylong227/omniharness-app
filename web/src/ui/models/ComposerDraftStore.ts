@@ -1,3 +1,4 @@
+import { UI_TUNABLES } from '../../config/RuntimeConfig.ts';
 // 会话草稿库（2026-11-17 粘性批次）。
 //
 // ## 为什么需要它
@@ -17,7 +18,7 @@
 /** 存储键（localStorage）。 */
 const STORAGE_KEY = 'omni-composer-drafts';
 /** 条目上限：超出按插入序淘汰最旧。 */
-const MAX_ENTRIES = 32;
+const MAX_ENTRIES = UI_TUNABLES.draftMaxEntries;
 
 /** 输入框草稿库：按会话 id 保留未发送文本。 */
 export class ComposerDraftStore {

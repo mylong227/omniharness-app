@@ -1,3 +1,4 @@
+import { RuntimeConfig } from '../../config/RuntimeConfig.ts';
 import { readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { SessionEvent } from '../../../host/kernel/contracts.ts';
@@ -10,7 +11,7 @@ import { AsyncChildProcess } from '../../../host/kernel/util.ts';
  * 一个 100 MB 的构建产物就能让主线程卡住数百毫秒。超过上限时：patch 返回显式占位文本、
  * 行数记 0（列表仍显示文件，只是不预览内容）。
  */
-const MAX_UNTRACKED_BYTES = 2 * 1024 * 1024;
+const MAX_UNTRACKED_BYTES = RuntimeConfig.server.untrackedMaxBytes;
 
 /** 单文件变更统计。 */
 interface ChangeStat {
