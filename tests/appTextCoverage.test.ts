@@ -16,7 +16,6 @@ import { join } from 'node:path';
 const SRC = 'src';
 const EN_DIR = join('src', 'apps', 'i18n', 'en');
 const APP_DIRS = ['src/apps/server', 'src/apps/cli', 'src/apps/audit', 'src/apps/enterprise'];
-const CJK = /[\u3400-\u9fff]/u;
 
 /** 递归收集 .ts/.tsx。 */
 function collect(dir: string, out: string[] = []): string[] {
