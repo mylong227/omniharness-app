@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 import { AUDIT_VERIFIER_SCRIPT } from './auditVerifierScript.ts';
 import { AuditFormatting } from './auditFormatting.ts';
 import { AuditRedactor } from './auditRedactor.ts';
@@ -51,7 +52,7 @@ export class AuditHtmlRenderer {
   public render(report: AuditReport): string {
     return [
       '<!doctype html>',
-      '<html lang="zh-CN"><head>',
+      `<html lang="${AppText.locale === 'en' ? 'en' : 'zh-CN'}"><head>`,
       '<meta charset="utf-8" />',
       '<meta name="viewport" content="width=device-width, initial-scale=1" />',
       `<title>${AuditFormatting.escapeHtml(report.title)}</title>`,
@@ -80,9 +81,9 @@ export class AuditHtmlRenderer {
     return [
       '<header>',
       `<h1>${AuditFormatting.escapeHtml(report.title)}</h1>`,
-      `<div class="sub">${AuditFormatting.escapeHtml(report.generator.name)} ${AuditFormatting.escapeHtml(report.generator.version)} · 生成于 ${AuditFormatting.escapeHtml(report.generatedAt)} · 格式 ${AuditFormatting.escapeHtml(source.format)} · 会话 ${AuditFormatting.escapeHtml(source.sessionId ?? '未知')}</div>`,
-      `<div class="sub">来源 <code>${AuditFormatting.escapeHtml(source.path)}</code> · 工作区 ${AuditFormatting.escapeHtml(source.workspace ?? '未知')} · 模型 ${AuditFormatting.escapeHtml(source.model ?? '未知')}</div>`,
-      `<p><span class="badge" id="oh-verify-state">复核中…</span></p>`,
+      `<div class="sub">${AuditFormatting.escapeHtml(report.generator.name)} ${AuditFormatting.escapeHtml(report.generator.version)} · ${AppText.t('生成于')} ${AuditFormatting.escapeHtml(report.generatedAt)} · ${AppText.t('格式')} ${AuditFormatting.escapeHtml(source.format)} · ${AppText.t('会话')} ${AuditFormatting.escapeHtml(source.sessionId ?? AppText.t('未知'))}</div>`,
+      `<div class="sub">${AppText.t('来源')} <code>${AuditFormatting.escapeHtml(source.path)}</code> · ${AppText.t('工作区')} ${AuditFormatting.escapeHtml(source.workspace ?? AppText.t('未知'))} · ${AppText.t('模型')} ${AuditFormatting.escapeHtml(source.model ?? AppText.t('未知'))}</div>`,
+      `<p><span class="badge" id="oh-verify-state">${AppText.t('复核中…')}</span></p>`,
       '</header>',
     ].join('\n');
   }
@@ -95,23 +96,23 @@ export class AuditHtmlRenderer {
   private cardsHtml(report: AuditReport): string {
     const summary = report.summary;
     const cards = [
-      this.card('记录', AuditFormatting.number(summary.total)),
+      this.card(AppText.t('记录'), AuditFormatting.number(summary.total)),
       ...(report.coverage === undefined
         ? []
-        : [this.card('未识别', AuditFormatting.number(report.coverage.unrecognized))]),
+        : [this.card(AppText.t('未识别'), AuditFormatting.number(report.coverage.unrecognized))]),
       ...(report.redaction === undefined
         ? []
-        : [this.card('脱敏', AuditRedactor.modeLabel(report.redaction))]),
-      this.card('工具调用', AuditFormatting.number(summary.toolCalls)),
-      this.card('工具失败', AuditFormatting.number(summary.toolFailures)),
-      this.card('涉及文件', AuditFormatting.number(summary.filesChanged)),
-      this.card('审批', AuditFormatting.number(summary.approvals)),
-      this.card('耗时', AuditFormatting.duration(summary.durationMs)),
+        : [this.card(AppText.t('脱敏'), AuditRedactor.modeLabel(report.redaction))]),
+      this.card(AppText.t('工具调用'), AuditFormatting.number(summary.toolCalls)),
+      this.card(AppText.t('工具失败'), AuditFormatting.number(summary.toolFailures)),
+      this.card(AppText.t('涉及文件'), AuditFormatting.number(summary.filesChanged)),
+      this.card(AppText.t('审批'), AuditFormatting.number(summary.approvals)),
+      this.card(AppText.t('耗时'), AuditFormatting.duration(summary.durationMs)),
     ];
     if (report.tokens !== null) {
-      cards.push(this.card('输入 token', AuditFormatting.number(report.tokens.prompt)));
-      cards.push(this.card('输出 token', AuditFormatting.number(report.tokens.completion)));
-      cards.push(this.card('缓存读 token', AuditFormatting.number(report.tokens.cached)));
+      cards.push(this.card(AppText.t('输入 token'), AuditFormatting.number(report.tokens.prompt)));
+      cards.push(this.card(AppText.t('输出 token'), AuditFormatting.number(report.tokens.completion)));
+      cards.push(this.card(AppText.t('缓存读 token'), AuditFormatting.number(report.tokens.cached)));
     }
     return `<section class="cards">${cards.join('')}</section>`;
   }
@@ -135,15 +136,16 @@ export class AuditHtmlRenderer {
     const integrity = report.integrity;
     return [
       '<section class="panel">',
-      '<h2>完整性</h2>',
-      `<div class="sub">算法 <code>${AuditFormatting.escapeHtml(integrity.algorithm)}</code> · 链头 <code>${AuditFormatting.escapeHtml(integrity.head)}</code></div>`,
-      `<div class="sub">创世 <code>${AuditFormatting.escapeHtml(integrity.genesis)}</code> · 记录数 ${AuditFormatting.number(integrity.count)} · 输入文件 SHA-256 <code>${AuditFormatting.escapeHtml(report.source.sha256)}</code></div>`,
-      '<p><button id="oh-verify">在本页复核</button></p>',
-      '<p class="muted" id="oh-verify-result">正在重算哈希链…</p>',
-      '<p class="muted">页内按钮复核的是载荷链；文件级完整性（含本页展示层）请用 <code>omniharness audit verify &lt;本文件&gt;</code>。</p>',
-      '<details><summary>复核算法（可与第三方实现逐字节对照）</summary><pre>规范化：对象键按 UTF-16 码元升序；省略 undefined；数组保持顺序。',
-      '哈希：hash_n = SHA-256(prev_n + "\\n" + canonical(record_n))；prev_1 = 64 个 "0"。',
-      '链头：最后一条的 hash；空链时为创世哈希。</pre></details>',
+      `<h2>${AppText.t('完整性')}</h2>`,
+      `<div class="sub">${AppText.t('算法')} <code>${AuditFormatting.escapeHtml(integrity.algorithm)}</code> · ${AppText.t('链头')} <code>${AuditFormatting.escapeHtml(integrity.head)}</code></div>`,
+      `<div class="sub">${AppText.t('创世')} <code>${AuditFormatting.escapeHtml(integrity.genesis)}</code> · ${AppText.t('记录数')} ${AuditFormatting.number(integrity.count)} · ${AppText.t('输入文件 SHA-256')} <code>${AuditFormatting.escapeHtml(report.source.sha256)}</code></div>`,
+      `<p><button id="oh-verify">${AppText.t('在本页复核')}</button></p>`,
+      `<p class="muted" id="oh-verify-result">${AppText.t('正在重算哈希链…')}</p>`,
+      `<p class="muted">${AppText.t('页内按钮复核的是载荷链；文件级完整性（含本页展示层）请用 <code>omniharness audit verify &lt;本文件&gt;</code>。')}</p>`,
+      `<details><summary>${AppText.t('复核算法（可与第三方实现逐字节对照）')}</summary><pre>${AppText.t('规范化：对象键按 UTF-16 码元升序；省略 undefined；数组保持顺序。')}`,
+      AppText.t('哈希：hash_n = SHA-256(prev_n + "\\n" + canonical(record_n))；prev_1 = 64 个 "0"。'),
+      AppText.t('链头：最后一条的 hash；空链时为创世哈希。'),
+      '</pre></details>',
       '</section>',
     ].join('\n');
   }
@@ -155,7 +157,7 @@ export class AuditHtmlRenderer {
    */
   private filesHtml(report: AuditReport): string {
     if (report.files.length === 0) {
-      return '<h2>文件变更</h2><p class="muted">源里没有可识别的写类工具调用或 diff。</p>';
+      return `<h2>${AppText.t('文件变更')}</h2><p class="muted">${AppText.t('源里没有可识别的写类工具调用或 diff。')}</p>`;
     }
     const rows = report.files.map((file) =>
       [
@@ -168,8 +170,8 @@ export class AuditHtmlRenderer {
       ].join(''),
     );
     return [
-      '<h2>文件变更</h2>',
-      '<table><thead><tr><th>路径</th><th>触及</th><th>新增</th><th>删除</th></tr></thead><tbody>',
+      `<h2>${AppText.t('文件变更')}</h2>`,
+      `<table><thead><tr><th>${AppText.t('路径')}</th><th>${AppText.t('触及')}</th><th>${AppText.t('新增')}</th><th>${AppText.t('删除')}</th></tr></thead><tbody>`,
       rows.join(''),
       '</tbody></table>',
     ].join('\n');
@@ -185,12 +187,12 @@ export class AuditHtmlRenderer {
     const rows = shown.map((item) => this.recordRow(item));
     const note =
       report.records.length > shown.length
-        ? `<p class="muted">仅展示前 ${String(shown.length)} 条（共 ${String(report.records.length)} 条）；完整数据在内嵌载荷中。</p>`
+        ? `<p class="muted">${AppText.t('仅展示前 {shown} 条（共 {total} 条）；完整数据在内嵌载荷中。', { shown: String(shown.length), total: String(report.records.length) })}</p>`
         : '';
     return [
-      '<h2>时间线</h2>',
+      `<h2>${AppText.t('时间线')}</h2>`,
       note,
-      '<table><thead><tr><th>#</th><th>时间</th><th>类别</th><th>事件</th><th>详情</th></tr></thead><tbody>',
+      `<table><thead><tr><th>#</th><th>${AppText.t('时间')}</th><th>${AppText.t('类别')}</th><th>${AppText.t('事件')}</th><th>${AppText.t('详情')}</th></tr></thead><tbody>`,
       rows.join(''),
       '</tbody></table>',
     ].join('\n');
@@ -223,9 +225,8 @@ export class AuditHtmlRenderer {
   private footerHtml(report: AuditReport): string {
     return [
       '<footer>',
-      '<p>哈希链证明“这份报告自生成后未被改动”，<strong>不证明</strong>会话本身真实、也不证明是谁生成的。',
-      '需要来源可信时，请与留存副本或外部时间戳一起使用。</p>',
-      `<p>schema ${AuditFormatting.escapeHtml(report.schema)} · 输入文件 <code>${AuditFormatting.escapeHtml(report.source.path)}</code></p>`,
+      `<p>${AppText.t('哈希链证明“这份报告自生成后未被改动”，<strong>不证明</strong>会话本身真实、也不证明是谁生成的。需要来源可信时，请与留存副本或外部时间戳一起使用。')}</p>`,
+      `<p>schema ${AuditFormatting.escapeHtml(report.schema)} · ${AppText.t('输入文件')} <code>${AuditFormatting.escapeHtml(report.source.path)}</code></p>`,
       '</footer>',
     ].join('');
   }
