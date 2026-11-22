@@ -166,7 +166,7 @@ export class AuditTool {
         );
         continue;
       }
-      const where = item.brokenAt === null ? '报告字段' : `第 ${String(item.brokenAt + 1)} 条记录`;
+      const where = item.brokenAt === null ? AppText.t('报告字段') : `第 ${String(item.brokenAt + 1)} 条记录`;
       process.stdout.write(
         `✗ ${item.path} — ${where}：${item.reason ?? AppText.t('未知原因')}（报告可能被改动，不可作为证据）\n`,
       );

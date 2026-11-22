@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 import { AuditToolPaths } from './auditToolPaths.ts';
 import { AuditValues } from './auditValues.ts';
 import type { AuditRecordDraft } from './auditTypes.ts';
@@ -22,7 +23,7 @@ export class AcpToolWriter {
     update: Record<string, unknown>,
     ts: string | null,
   ): void {
-    const title = AuditValues.stringField(update, 'title') ?? '工具调用';
+    const title = AuditValues.stringField(update, 'title') ?? AppText.t('工具调用');
     const kind = AuditValues.stringField(update, 'kind');
     const callId = AuditValues.stringField(update, 'toolCallId');
     const files = AcpToolWriter.filesOfUpdate(update);
@@ -60,7 +61,7 @@ export class AcpToolWriter {
     records.push({
       ts,
       kind: 'tool_result',
-      title: status === 'error' ? '工具失败' : '工具结果',
+      title: status === 'error' ? AppText.t('工具失败') : AppText.t('工具结果'),
       text: AuditValues.truncate(text),
       ...(callId !== null ? { callId } : {}),
       status,

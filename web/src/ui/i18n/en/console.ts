@@ -237,4 +237,13 @@ export const EN_CONSOLE: Record<string, string> = {
 
   // —— 杂项（控制台里复用的既有文案） ——
   '…': '…',
+  '中文 / English': 'Chinese / English',
+  '跟随系统 / 深色 / 浅色': 'Follow system / dark / light',
+  '靛墨 / 苔青 / 绛紫 / 琥珀 / 玫红 / 石墨':
+    'Indigo ink / moss / magenta / amber / rose / graphite',
+  '左栏宽度（拖动分隔条同源）': 'Left pane width (same source as dragging the splitter)',
+  '右栏宽度（拖动分隔条同源）': 'Right pane width (same source as dragging the splitter)',
+  '厂商 Key / 端点 / 当前使用': 'Provider key / endpoint / currently in use',
+  '托盘 / 开机启动 / 更新': 'Tray / launch at login / updates',
+  '快捷键一览': 'Keyboard shortcuts overview',
 };

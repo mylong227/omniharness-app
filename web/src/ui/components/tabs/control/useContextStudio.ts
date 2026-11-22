@@ -31,7 +31,7 @@ export function useContextStudio(threadId: string | null, active: boolean): UseC
   const enabled = active && threadId !== null && threadId !== '';
   const load = React.useCallback((): Promise<ContextStudioSnapshotLike> => {
     // enabled 已挡住空会话；这里只是把「调用处必须给 threadId」表达成类型安全的分支。
-    if (threadId === null || threadId === '') return Promise.reject(new Error('未选择会话'));
+    if (threadId === null || threadId === '') return Promise.reject(new Error('no-session'));
     return api.context.contextStudio(threadId);
   }, [api, threadId]);
   const { data, loading, error, refresh } = useSessionResource({

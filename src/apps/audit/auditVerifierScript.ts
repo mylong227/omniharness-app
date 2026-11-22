@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 /**
  * HTML 报告内嵌的**离线复核脚本**（浏览器端 SHA-256 + 规范 JSON + 链重算）。
  *
@@ -95,15 +96,15 @@ export const AUDIT_VERIFIER_SCRIPT: string = [
   "    var result = document.getElementById('oh-verify-result');",
   '    if (badge) {',
   "      badge.className = ok ? 'badge ok' : 'badge bad';",
-  "      badge.textContent = ok ? '链完整' : '不可信';",
+  AppText.t("      badge.textContent = ok ? '链完整' : '不可信';"),
   '    }',
   '    if (result) {',
   '      result.textContent = text;',
   '    }',
   '  }',
   '  function fail(at, reason) {',
-  "    var where = at === null ? '报告字段' : '第 ' + (at + 1) + ' 条记录';",
-  "    setState(false, '✗ 复核失败：' + where + '（' + reason + '）。这份报告不可作为证据。');",
+  AppText.t("    var where = at === null ? '报告字段' : '第 ' + (at + 1) + ' 条记录';"),
+  AppText.t("    setState(false, '✗ 复核失败：' + where + '（' + reason + '）。这份报告不可作为证据。');"),
   '  }',
   '  function run() {',
   "    var node = document.getElementById('oh-audit-payload');",
@@ -134,7 +135,7 @@ export const AUDIT_VERIFIER_SCRIPT: string = [
   "    if (report.integrity.head !== expectedHead) { return fail(null, 'head'); }",
   "    if (report.summary && typeof report.summary.total === 'number' && report.summary.total !== records.length) { return fail(null, 'summary'); }",
   "    if (report.coverage && typeof report.coverage.recognized === 'number' && report.coverage.recognized !== records.length) { return fail(null, 'coverage'); }",
-  "    setState(true, '✓ 复核通过：' + records.length + ' 条记录、链头 ' + prev.slice(0, 16) + '…；报告自发放起未被改动。');",
+  AppText.t("    setState(true, '✓ 复核通过：' + records.length + ' 条记录、链头 ' + prev.slice(0, 16) + '…；报告自发放起未被改动。');"),
   '  }',
   "  var button = document.getElementById('oh-verify');",
   "  if (button) { button.addEventListener('click', run); }",
