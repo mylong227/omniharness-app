@@ -1,6 +1,7 @@
 # 全仓 .ts 化 · 内核归属收编 · 前端整体重构 —— 执行计划
 
-> 盘点日期 2026-11-21（基线：feat/kernel-package @ e9e7c7e，vendored kernel alpha.36，
+> 盘点日期 2026-11-21（基线：e9e7c7e，原 `feat/kernel-package` 分支，2026-11-22 已并入
+> `main` 并删除该分支；vendored kernel alpha.36，
 > 内核源仓 HEAD 24ba977 同版）。本文是**计划**，不是执行记录；各批次落地后回填 CHANGELOG。
 > 三路只读深盘（脚本 ts 化牵连面 / web 前端架构 / extensions 归属判定）的完整事实已内化于下文，
 > 每条结论带文件证据。
