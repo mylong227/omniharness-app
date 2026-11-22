@@ -20,6 +20,11 @@
     清掉已退役 `design/` 台账的相对链接与代码注释引用。
 
 ### Fixed（修复）
+- **安装包把整个仓库打进了 app**（2026-11-22，打包手动门首跑）：`desktop/package.json` 里的
+  `@omniharness/app: file:..` 没有任何桌面代码消费，但 electron-builder 会把它（junction 指向仓库根）
+  连同 `.desktop-stage` / `dist` / `web` / 上一版 `desktop/release` 一起塞进 `app.asar.unpacked`——
+  安装包 **665.5 MB**、载荷 **1.9 GB / 33,165 文件**。删除该依赖并清掉 lock 里的残留条目后重打：
+  安装包 **186.8 MB**、载荷 **598.2 MB / 28,013 文件**，`verify:package` 仍通过。
 - **CI 真机截图判据在干净检出下必红**（2026-11-22，`verify` run 44972776474）：
   · `settingsRuntimeCards` / `providerTilesShots` / `brandArc` 直接 `writeFileSync` 到
     `web/archive/`，而该目录被 `.gitignore` 忽略、CI 检出时并不存在 ⇒ ENOENT 判红。

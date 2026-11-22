@@ -33,7 +33,6 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
-    "@omniharness/app": "file:..",
     "electron-updater": "^6.8.11"
   }
 }
