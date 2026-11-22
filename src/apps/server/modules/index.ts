@@ -22,7 +22,7 @@ import { vaultModule } from './vault.ts';
 import { workspaceModule } from './workspace.ts';
 
 /**
- * AppServer 内置模块清单 —— 116 个 RPC 方法（21 个域模块）的**唯一**注册出处（parity 快照测试钉住）。
+ * AppServer 内置模块清单 —— 117 个 RPC 方法（21 个域模块）的**唯一**注册出处（parity 快照测试钉住）。
  *
  * 加新能力 = 在本目录新建一个模块文件（或往同域模块里加 `ctx.rpc`），再在此登记一行。
  * 嵌入方经 `createOmniHarness({ modules })` / `new AppServer({ modules })` 追加的模块

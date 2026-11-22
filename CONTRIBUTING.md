@@ -4,7 +4,7 @@
 
 1. **fail-closed**：没接线就如实报「未接线」，绝不返回空值冒充正常——「看着绿」是本仓历史缺陷的头号形态。
 2. **单点真源**：内核导入只走 `src/host/kernel/`、RPC 注册只走 `src/apps/server/modules/`、厂商目录只读 `providerPresets`。发现第二份拷贝，收敛它而不是绕过它。
-3. **改一处，验证全链**：`npm run verify` 是唯一裁决（kernel:check 8 判据 → typecheck×3 → 780 判据 → build → smoke → desktop）。
+3. **改一处，验证全链**：`npm run verify` 是唯一裁决（kernel:check 9 判据 → typecheck×5 → 1075 判据 → build → smoke → desktop）。
 
 ## 常见任务的最短路径
 
@@ -28,11 +28,11 @@
 
 | 目录 | 内容 | 运行 |
 | ---- | ---- | ---- |
-| `web/test/**` | 前端 149 文件（组件/逻辑/a11y，文件级串行） | `npm run web:test` |
+| `web/test/**` | 前端 195 文件（组件/逻辑/a11y，文件级串行） | `npm run web:test` |
 | `tests/**` | 后端判据（RPC parity、ApiClient 漂移守卫、家具守卫、嵌入 API 生命周期、旗标注册纪律、内核对接面生成物） | 同上 |
-| `desktop/scripts/test.mts`（内联 38 条） | 桌面纯逻辑判据 | `npm run desktop:test` |
-| `scripts/checkKernelBoundary.ts` | 内核边界门禁 8 条（含对接面生成物不漂移） | `npm run kernel:check` |
-| `scripts/kernelSurface.ts` | 从业务 import 生成 19 个内核对接面域文件 | `npm run kernel:surface` |
-| `scripts/smoke.ts` | 端到端 7 项（真起 serve） | `npm run smoke` |
+| `desktop/scripts/test.mts`（内联 44 条） | 桌面纯逻辑判据 | `npm run desktop:test` |
+| `scripts/checkKernelBoundary.ts` | 内核边界门禁 9 条（含对接面生成物不漂移） | `npm run kernel:check` |
+| `scripts/kernelSurface.ts` | 从业务 import 生成 20 个内核对接面域文件 | `npm run kernel:surface` |
+| `scripts/smoke.ts` | 端到端 9 项（真起 serve） | `npm run smoke` |
 
 环境：Node ≥ 22.14（`engines` 钉定），Windows/macOS/Linux 均可开发；桌面打包当前仅 Windows。
