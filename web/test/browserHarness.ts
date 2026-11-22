@@ -428,7 +428,7 @@ function chromePidsWithMarker(marker: string): number[] {
  * @param {number} [timeoutMs] 超时
  * @returns {Promise<string>} page target 的 webSocketDebuggerUrl
  */
-export async function waitForPageWs(port: number, marker: string, timeoutMs = 30000) {
+export async function waitForPageWs(port: number, marker: string, timeoutMs = 60000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     try {

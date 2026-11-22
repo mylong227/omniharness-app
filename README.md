@@ -14,7 +14,7 @@
 | 目录 | 内容 | 规模 |
 | ---- | ---- | ---- |
 | `src/` | **后端宿主**：HTTP/SSE、JSON-RPC（117 方法，21 个域模块声明式注册）、会话存储、审批/沙箱、插件宿主、CLI、MCP/ACP/AG-UI | `src/apps` + `src/host/kernel/`（20 域对接面）+ `src/host/extensions/`（app 自有扩展层） |
-| `web/` | **前端**：React 19 工作台（会话/工具/计划/变更/设置/审计/插件…） | 325 个源文件（含 14 个 en 词条分片）+ 195 个前端判据文件；后端 42 个判据文件，合计 237 判据文件 / 1075 用例 |
+| `web/` | **前端**：React 19 工作台（会话/工具/计划/变更/设置/审计/插件…） | 325 个源文件（含 14 个 en 词条分片）+ 195 个前端判据文件；后端 43 个判据文件，合计 238 判据文件 / 1079 用例 |
 | `desktop/` | **桌面端**：Electron 主进程 + preload（窗口/托盘/菜单/更新/侧车监督） | 36 个源文件，44 条纯逻辑判据 |
 
 运行形态：
@@ -90,7 +90,7 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 | ---- | ---- |
 | `npm run build` | 后端：`tsc` → `dist`（原子换入）+ 伴生资源/原生库镜像 |
 | `npm run build:web` / `web:dev` | 前端 Vite 构建 / 开发服务器 |
-| `npm run web:test` | 判据（前端 195 文件 + 后端 42 文件 / 双项目——chrome 串行 / fast 并行 maxForks 6） |
+| `npm run web:test` | 判据（前端 195 文件 + 后端 43 文件 / 双项目——chrome 串行 / fast 并行 maxForks 6） |
 | `npm run typecheck` | 后端 + 前端 + 桌面 + 脚本 + 判据五份 strict 类型检查 |
 | `npm run kernel:check` | **内核边界门禁（9 条）**：vendored 钉定 / 无内嵌副本 / 对接面单点 / tarball 与锁文件一致 / 原生内核实载 / **对接面生成物不漂移** / **已承诺能力无同名副本** |
 | `npm run docs:check` | **文档门禁**：README/CONTRIBUTING/docs 的相对链接必须存在；域数/域模块数/RPC 方法数必须与代码实测一致 |
@@ -194,7 +194,7 @@ src/host/kernel/<域>.ts —— 20 个自动生成的分域 re-export，无实�
 | `npm run kernel:check` | ✅ 285 源文件 / 294 处包导入（20 域对接面，全部收敛）/ 内嵌副本 0 / tarball integrity 一致 / 原生内核实载 / 生成物一致 / extensions 无已承诺影子 |
 | 后端构建 `npm run build` | ✅ dist 原子换入；原生内核可加载 |
 | 前端构建 `npm run build:web` | ✅ 单入口 + vendor-react / vendor-antd 分块 |
-| 判据 `npm run web:test` | ✅ 237 文件 / 1075 用例（含 parity/守卫/家具/嵌入 API/JCS golden/审计修复/影子扫描判据；双项目并行化） |
+| 判据 `npm run web:test` | ✅ 238 文件 / 1079 用例（含 parity/守卫/家具/嵌入 API/JCS golden/审计修复/影子扫描判据；双项目并行化） |
 | 端到端 `npm run smoke` | ✅ 9/9（banner token、`/healthz`、`/readyz`、`/` HTML、`/rpc config.get`、`sessions.list`、原生内核实载） |
 | 桌面 `desktop:build` + `desktop:test` | ✅ 44/44（含 ipcGuards 三组 + CSP 哈希门禁 + 配置告警码↔文案键 parity） |
 | 嵌入 API 实测 | ✅ `createOmniHarness` 启动 / healthz 200 / RPC 往返 / 优雅关闭（另有自动判据 tests/embedApi.test.ts） |
@@ -207,7 +207,7 @@ src/host/kernel/<域>.ts —— 20 个自动生成的分域 re-export，无实�
 - 内核来自 `../omniharness-kernel` 的 `v0.1.0-alpha.38` tag；`vendor/*.tgz` 是它的发行物，
   **不是**第二份源码。重建用 `npm run kernel:vendor`（tag 缺省自 package.json 解析）。
 - 上游的 `tests/`、`crates/`、`third-party/`、看板与审计脚本没有切过来：本仓的判据是
-  1075 用例（前端 195 文件 + 后端 42 文件）+ 桌面 44 条 + 冒烟 9 条 + 内核边界 9 条。
+  1079 用例（前端 195 文件 + 后端 43 文件）+ 桌面 44 条 + 冒烟 9 条 + 内核边界 9 条。
 
 ## License
 

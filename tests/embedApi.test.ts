@@ -75,5 +75,7 @@ describe('createOmniHarness（嵌入 API 生命周期）', () => {
     const list2 = await rpc<{ count: number }>(second, 'rpc.list');
     expect(list2.count).toBeGreaterThan(0);
     await second.close();
-  }, 60_000);
+  // 两次完整 boot + 端口复用，在 fast 项目 6 个 worker 与 chrome 判据并行时会被拖慢
+  // （2026-11-22 本机全量实跑 60s 超时一次，隔离重跑 14s 即绿）：给到全局上限 120s。
+  }, 120_000);
 });

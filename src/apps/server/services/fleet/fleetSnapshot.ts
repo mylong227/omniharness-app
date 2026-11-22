@@ -3,10 +3,12 @@
  *
  * 数据来源与诚实边界（设计 §4.2 / §4.6，全部**只读**）：
  *  - 车道从**父会话事件流**解析：`tool_call(name='subagent')` 是派生事实，
- *    对应 `tool_result` 是回传事实——本实现不持有内核编排器实例（alpha.19 已导出
- *    `SubagentOrchestrator`，接线待排期；原对齐台账已退役）。
- *  - 运行中车道（有 tool_call 无 tool_result）的步数 / token / 改动**未知**：
- *    子代理事件只进内存桥，结束后才落盘，运行态对这些字段一律 `undefined`，绝不填 0 冒充。
+ *    对应 `tool_result` 是回传事实。
+ *  - **运行中子会话 id 已接线**（alpha.21/22）：serve 组合根把内核 `SubagentTree` 注入
+ *    `OmniHarnessConfig.subagentTree`，编排器在子代理启动时写 `callId → childSessionId`，
+ *    `FleetRegistry` 据此在 `tool_result` 落盘前就补上 `childSessionId`。
+ *  - 运行中车道的步数 / token / 改动**仍未知**：内核只在结果回传时上报这些指标
+ *    （没有运行态指标端口或事件），故一律 `undefined`，绝不填 0 冒充。
  *  - `truncated` / `aborted` / `writesUnrecoverable` 原样透传，**不得渲染成成功**。
  */
 
@@ -15,7 +17,7 @@ export type FleetStatus = 'queued' | 'running' | 'ok' | 'failed' | 'aborted' | '
 
 /** 一条子代理车道（父会话事件流里的一次 subagent 派生）。 */
 export interface FleetNode {
-  /** 子会话 id（tool_result 回传后才有；运行中为 undefined）。 */
+  /** 子会话 id（子代理启动即由共享父子树登记；查不到时 undefined）。 */
   readonly childSessionId?: string;
   /** 工具调用 id（运行中即可用于 `fleet.cancel`；结果回传后仍保留）。 */
   readonly callId?: string;

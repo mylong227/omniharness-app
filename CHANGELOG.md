@@ -32,8 +32,18 @@
     自建父目录——所有截图类判据共用同一修复。
   · `providerTilesShots` 点「打开设置」时侧栏页脚可能尚未挂载（40 次自旋踩空）：
     改为先 `waitFor` 入口出现再点击，与 `settingsRuntimeCards` 的等待语义一致。
+  · 真机判据的 page target 启动等待 `waitForPageWs` 默认 30s→60s：本机全量并发跑时偶发
+    「CDP page target 未就绪」（2026-11-22 复现，隔离重跑即绿）；只延长等待，不改变判据。
+  · `tests/embedApi` 的单测预算 60s→120s：两次完整 boot + 端口复用，在 6 个 fast worker 与
+    chrome 判据并行时会被拖慢（2026-11-22 复现一次 60s 超时，隔离重跑 14s 即绿）。
 
 ### Changed（变更）
+- **编队运行态说明回正 + 接线判据**（2026-11-22，审计收口）：
+  · `fleet.list` 的运行中子会话 id 早已按 alpha.21/22 接线（serve 组合根把内核 `SubagentTree`
+    注入 `OmniHarnessConfig.subagentTree`，编排器在子代理启动时写 `callId → childSessionId`，
+    `FleetRegistry.childOfCall` 在 `tool_result` 回传前补全）；原注释「接线待排期」已更正。
+  · 新增 `tests/fleetWiring.test.ts`：钉住端口契约（父子树 → 运行中车道）与组合根三处接线，
+    并继续断言运行中 `steps` / `tokens` 必须为 `undefined`——内核不上报运行态指标，不填 0 冒充。
 - **批次十六（2026-11-22，硬编码治理：AppText 全量 + 配置单一来源 + 三类门禁）**：
   · **服务端/CLI/审计/企业/TUI/host 用户可见文案全量外部化**：新增
     `src/apps/i18n/AppText.ts` 与 `en/{server,cli,audit,common}.ts` 分片（中文原文即键、

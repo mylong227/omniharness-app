@@ -7,9 +7,10 @@ import type { FleetNode, FleetStatus } from './fleetSnapshot.ts';
  *
  * ## 为什么解析事件流而不是调内核编排器
  *
- * 内核 alpha.19 已导出 `SubagentOrchestrator`（`./kernel/subagent/subagentOrchestrator.js`），
- * 但本应用的 serve 组合根尚未持有其实例（接线是独立改造）；当前实现仍按事件流解析。
- * 派生的**可观测事实全部落回父事件流**：
+ * 内核 `SubagentOrchestrator` 在 `configToolRegistry` 内部构造，app 拿不到实例；但 alpha.21 起
+ * 宿主可注入 `SubagentTreePort`（`OmniHarnessConfig.subagentTree`），编排器在子代理启动时写入
+ * `callId → childSessionId`，运行中子会话 id 由 `FleetRegistry` 查询补全，**不经本解析器**。
+ * 派生的可观测事实仍以父事件流为准：
  *  - `tool_call(name='subagent')`：派生发生（含任务原文）——此时子代理可能仍在跑；
  *  - `tool_result`：结果回传，output 首行是内核 `subagentTool.head.text.1` 渲染的
  *    `[子智能体 <id>] <步数> 步 / <毫秒>ms<状态后缀>`，writes 块带 patch 去向与诚实标记。

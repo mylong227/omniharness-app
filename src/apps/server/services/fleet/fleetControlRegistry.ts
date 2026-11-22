@@ -104,9 +104,10 @@ export class FleetControlRegistry {
 /**
  * Fleet 感知的工具端口包装：只在 `subagent` 调用上注入可单独取消的 AbortSignal，其余原样委托。
  *
- * 为什么要包在工具端口层：内核 `SubagentTool` 只接收 `ToolContext.signal`，而 app 拿不到内部
- * `SubagentOrchestrator`；包装 `execute` 是唯一能在不修改内核的前提下，为每次调用建立独立取消令牌的
- * 应用层接缝。父取消信号仍会联动（不会因为单独取消能力而丢掉原有传播）。
+ * 为什么要包在工具端口层：内核 `SubagentTool` 只接收 `ToolContext.signal`，而 app 不持有内部
+ * `SubagentOrchestrator`（alpha.21 起只注入父子树端口，用于运行中子会话 id，不提供取消句柄）；
+ * 包装 `execute` 是唯一能在不修改内核的前提下，为每次调用建立独立取消令牌的应用层接缝。
+ * 父取消信号仍会联动（不会因为单独取消能力而丢掉原有传播）。
  */
 export class FleetToolPort implements ToolPort {
   /** 端口名（沿用被包装端口，避免下游按 name 分流时改变行为）。 */
