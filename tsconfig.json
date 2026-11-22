@@ -20,7 +20,7 @@
     "lib": ["ES2024"],
     "rootDir": ".",
     "outDir": "dist",
-    "strict": true,
+    "strict": true,`n    "resolveJsonModule": true,
     "verbatimModuleSyntax": true,
     "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,

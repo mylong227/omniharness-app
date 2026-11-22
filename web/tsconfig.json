@@ -11,7 +11,7 @@
     "target": "ES2020",
     // ES2022：测试判据大量使用**顶层 await**（`await import('../src/x.ts')` 源码直跑），
     // ES2020 的 module 目标不支持顶层 await（实测 121 条 TS1378）；ES2022 起原生支持。
-    "module": "ES2022",
+    "module": "ESNext",
     // Vite 用 bundler 解析（支持 `exports` 子路径，如 `highlight.js/lib/common`）；
     // `node`（classic）解析不到这类子路径。
     "moduleResolution": "bundler",
@@ -21,6 +21,7 @@
     "allowImportingTsExtensions": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "noEmit": true,
+    "resolveJsonModule": true,
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
