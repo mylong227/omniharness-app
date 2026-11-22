@@ -91,4 +91,8 @@ export const EN_SHELL: Record<string, string> = {
   '请输入': 'Please enter',
   '确定': 'OK',
   '取消': 'Cancel',
-};
+  '控制室': 'Control room',
+  '编队 / 上下文 / 凭证三模式都跟随当前会话；切换会话整页跟随。':
+    'Fleet / context / proof all follow the current session; switching sessions switches the whole page.',
+  '本会话执行前决策、审批、授权与共形证据；切换会话整页跟随。':
+    'Pre-execution decisions, approvals, grants and conformal evidence for this session; switching sessions switches the whole page.',};

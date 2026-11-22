@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 import { AuditJsonl } from './auditJsonl.ts';
 import { AuditToolPaths } from './auditToolPaths.ts';
 import { AuditValues } from './auditValues.ts';
@@ -142,13 +143,13 @@ export class OmniSessionParser {
         this.readMeta(payload, ts);
         break;
       case 'user':
-        this.push('user', '用户消息', this.contentOf(payload), ts);
+        this.push('user', AppText.t('用户消息'), this.contentOf(payload), ts);
         break;
       case 'assistant':
-        this.push('assistant', '助手回复', this.contentOf(payload), ts);
+        this.push('assistant', AppText.t('助手回复'), this.contentOf(payload), ts);
         break;
       case 'reasoning':
-        this.push('reasoning', '思考', this.contentOf(payload), ts);
+        this.push('reasoning', AppText.t('思考'), this.contentOf(payload), ts);
         break;
       case 'tool_call':
         this.pushToolCall(payload, ts);
@@ -163,7 +164,7 @@ export class OmniSessionParser {
         this.pushModel(payload, ts);
         break;
       case 'system':
-        this.push('system', '系统消息', this.contentOf(payload), ts);
+        this.push('system', AppText.t('系统消息'), this.contentOf(payload), ts);
         break;
       default:
         // 顶层类型未知（上游新增事件 / 漂移）：计入未识别，同时以 other 记录保留载荷（证据不丢）。
@@ -197,7 +198,7 @@ export class OmniSessionParser {
     ]
       .filter((item): item is string => item !== null)
       .join('\n');
-    this.push('session', '会话开始', summary, ts);
+    this.push('session', AppText.t('会话开始'), summary, ts);
   }
 
   /**
@@ -265,7 +266,7 @@ export class OmniSessionParser {
     this.records.push({
       ts,
       kind: 'tool_result',
-      title: status === 'error' ? '工具失败' : '工具结果',
+      title: status === 'error' ? AppText.t('工具失败') : AppText.t('工具结果'),
       text: AuditValues.truncate(output),
       ...(callId !== null ? { callId } : {}),
       status,
@@ -290,7 +291,7 @@ export class OmniSessionParser {
     this.records.push({
       ts,
       kind: 'turn',
-      title: '回合变更',
+      title: AppText.t('回合变更'),
       text: AuditValues.truncate(summary === '' ? diff : `${summary}\n\n${diff}`),
       ...(files.length > 0 ? { files } : {}),
       ...(stats.length > 0 ? { fileStats: stats } : {}),
@@ -328,7 +329,7 @@ export class OmniSessionParser {
     this.records.push({
       ts,
       kind: 'other',
-      title: '模型用量',
+      title: AppText.t('模型用量'),
       text: '',
       meta: { prompt, completion, cached, total },
     });

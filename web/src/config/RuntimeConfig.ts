@@ -20,10 +20,10 @@ export interface UiTunables {
 /** 校验并冻结 web 段。 */
 function validate(value: unknown): UiTunables {
   const data = value as Record<string, unknown> | null;
-  if (data === null || typeof data !== 'object') throw new Error('app.json 缺少 web 段');
+  if (data === null || typeof data !== 'object') throw new Error('app.json is missing the web section');
   for (const [key, item] of Object.entries(data)) {
     if (typeof item !== 'number' || !Number.isFinite(item) || item <= 0) {
-      throw new Error(`app.json web.${key} 必须是正数`);
+      throw new Error(`app.json web.${key} must be a positive number`);
     }
   }
   return data as unknown as UiTunables;

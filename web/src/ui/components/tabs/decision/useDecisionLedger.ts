@@ -62,7 +62,7 @@ export function useDecisionLedger(threadId: string | null): UseDecisionLedgerRes
 
   /** 视图取数：失败结果统一转异常，交给核心的 error 通道。 */
   const loadView = React.useCallback(async (): Promise<DecisionSessionViewLike> => {
-    if (threadId === null || threadId === '') throw new Error('未选择会话');
+    if (threadId === null || threadId === '') throw new Error('no-session');
     const result = await api.decision.decisionSession(threadId);
     if (isFailure(result)) throw new Error(result.message);
     return result;
@@ -91,7 +91,7 @@ export function useDecisionLedger(threadId: string | null): UseDecisionLedgerRes
   /** 详情取数：同样把失败结果转异常。 */
   const loadDetail = React.useCallback(async (): Promise<DecisionDetailViewLike> => {
     if (threadId === null || threadId === '' || selectedRecordId === null) {
-      throw new Error('未选择记录');
+      throw new Error('no-record');
     }
     const result = await api.decision.decisionDetail(threadId, selectedRecordId);
     if (isFailure(result)) throw new Error(result.message);

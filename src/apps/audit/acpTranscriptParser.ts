@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 import { AuditJsonl } from './auditJsonl.ts';
 import { AcpToolWriter } from './acpToolWriter.ts';
 import { AuditValues } from './auditValues.ts';
@@ -136,10 +137,10 @@ export class AcpTranscriptParser {
         this.handleSessionNew(params, ts);
         return 0;
       case 'session/cancel':
-        this.push('system', '会话取消', AuditValues.describe(params), ts);
+        this.push('system', AppText.t('会话取消'), AuditValues.describe(params), ts);
         return 0;
       case 'initialize':
-        this.push('session', 'ACP 初始化', AuditValues.describe(params), ts);
+        this.push('session', AppText.t('ACP 初始化'), AuditValues.describe(params), ts);
         return 0;
       default:
         // method 认不出（协议上游新增 / 捕获器噪音）：以 other 记录**保留原始帧**（证据不丢，
@@ -194,7 +195,7 @@ export class AcpTranscriptParser {
         return 0;
       case 'plan':
         this.flushChunk();
-        this.push('other', '计划', AuditValues.describe(update['entries']), ts);
+        this.push('other', AppText.t('计划'), AuditValues.describe(update['entries']), ts);
         return 0;
       default:
         // update 类别认不出（ACP 上游新增）：以 other 记录**保留原始 update**（证据不丢），
@@ -242,7 +243,7 @@ export class AcpTranscriptParser {
       return;
     }
     const kind = this.chunkKind;
-    const title = kind === 'assistant' ? '助手回复' : kind === 'user' ? '用户消息' : '思考';
+    const title = kind === 'assistant' ? AppText.t('助手回复') : kind === 'user' ? AppText.t('用户消息') : AppText.t('思考');
     this.push(kind, title, this.chunkText, this.chunkTs);
     this.chunkKind = null;
     this.chunkText = '';
@@ -261,7 +262,7 @@ export class AcpTranscriptParser {
     }
     const text = AuditValues.text(params['prompt']);
     if (text !== null) {
-      this.push('user', '用户消息', text, ts);
+      this.push('user', AppText.t('用户消息'), text, ts);
     }
   }
 
@@ -284,7 +285,7 @@ export class AcpTranscriptParser {
     this.records.push({
       ts,
       kind: 'approval',
-      title: '审批请求',
+      title: AppText.t('审批请求'),
       text: AuditValues.truncate(AuditValues.describe(params)),
       status: 'pending',
       ...(id !== null ? { callId: id } : {}),
@@ -303,7 +304,7 @@ export class AcpTranscriptParser {
     }
     this.workspace = this.workspace ?? AuditValues.stringField(params, 'cwd');
     // `session/new` 的结果里带 sessionId：response 分支会再走 handleResponse，这里只记工作区。
-    this.push('session', '会话建立', AuditValues.describe(params), ts);
+    this.push('session', AppText.t('会话建立'), AuditValues.describe(params), ts);
   }
 
   /**
@@ -330,8 +331,8 @@ export class AcpTranscriptParser {
       this.records.push({
         ts,
         kind: 'approval',
-        title: '审批结果',
-        text: option === null ? (cancelled ? '已取消' : '未作答') : option,
+        title: AppText.t('审批结果'),
+        text: option === null ? (cancelled ? AppText.t('已取消') : AppText.t('未作答')) : option,
         callId: id,
         status: cancelled ? 'error' : 'ok',
       });
@@ -339,7 +340,7 @@ export class AcpTranscriptParser {
     }
     const error = AuditValues.record(frame['error']);
     if (error !== null) {
-      this.push('error', '请求失败', AuditValues.describe(error), ts);
+      this.push('error', AppText.t('请求失败'), AuditValues.describe(error), ts);
     }
   }
 

@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 import { AuditJsonl } from './auditJsonl.ts';
 import { AuditValues } from './auditValues.ts';
 import { CodexLineWriter } from './codexLineWriter.ts';
@@ -52,7 +53,7 @@ export class CodexSessionParser {
       this.context.records.push({
         ts: null,
         kind: 'other',
-        title: '模型用量',
+        title: AppText.t('模型用量'),
         text: '',
         meta: {
           prompt: this.context.tokens.prompt,
@@ -144,7 +145,7 @@ export class CodexSessionParser {
         this.context.records.push({
           ts,
           kind: 'system',
-          title: '上下文已压缩',
+          title: AppText.t('上下文已压缩'),
           text: AuditValues.truncate(AuditValues.describe(payload)),
         });
         return;
@@ -182,7 +183,7 @@ export class CodexSessionParser {
     this.context.records.push({
       ts,
       kind: 'session',
-      title: '会话开始',
+      title: AppText.t('会话开始'),
       text: AuditValues.truncate(summary),
     });
   }
@@ -208,7 +209,7 @@ export class CodexSessionParser {
       this.context.records.push({
         ts,
         kind: 'system',
-        title: '回合上下文',
+        title: AppText.t('回合上下文'),
         text: AuditValues.truncate(text),
       });
     }

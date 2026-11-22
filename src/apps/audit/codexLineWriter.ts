@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 import { AuditToolPaths } from './auditToolPaths.ts';
 import { AuditValues } from './auditValues.ts';
 import type { AuditRecordDraft } from './auditTypes.ts';
@@ -112,7 +113,7 @@ export class CodexLineWriter {
       return;
     }
     const kind = role === 'assistant' ? 'assistant' : role === 'user' ? 'user' : 'other';
-    const title = role === 'assistant' ? '助手回复' : role === 'user' ? '用户消息' : role;
+    const title = role === 'assistant' ? AppText.t('助手回复') : role === 'user' ? AppText.t('用户消息') : role;
     CodexLineWriter.push(context, kind, title, text, ts);
   }
 
@@ -130,7 +131,7 @@ export class CodexLineWriter {
   ): void {
     const text = AuditValues.text(payload['summary']) ?? AuditValues.text(payload['content']) ?? '';
     if (text !== '') {
-      CodexLineWriter.push(context, 'reasoning', '思考', text, ts);
+      CodexLineWriter.push(context, 'reasoning', AppText.t('思考'), text, ts);
     }
   }
 
@@ -175,7 +176,7 @@ export class CodexLineWriter {
     context.records.push({
       ts,
       kind: 'tool_result',
-      title: status === 'error' ? '工具失败' : '工具结果',
+      title: status === 'error' ? AppText.t('工具失败') : AppText.t('工具结果'),
       text: AuditValues.truncate(text),
       ...(callId !== null ? { callId } : {}),
       status,
@@ -257,7 +258,7 @@ export class CodexLineWriter {
       CodexLineWriter.push(
         context,
         role === 'assistant' ? 'assistant' : 'user',
-        role === 'assistant' ? '助手回复' : '用户消息',
+        role === 'assistant' ? AppText.t('助手回复') : AppText.t('用户消息'),
         text,
         ts,
       );
@@ -281,7 +282,7 @@ export class CodexLineWriter {
     }
     const text = AuditValues.stringField(payload, 'text');
     if (text !== null) {
-      CodexLineWriter.push(context, 'reasoning', '思考', text, ts);
+      CodexLineWriter.push(context, 'reasoning', AppText.t('思考'), text, ts);
     }
   }
 
@@ -357,7 +358,7 @@ export class CodexLineWriter {
     context.records.push({
       ts,
       kind: 'tool_result',
-      title: status === 'error' ? '工具失败' : '工具结果',
+      title: status === 'error' ? AppText.t('工具失败') : AppText.t('工具结果'),
       text: AuditValues.truncate(output),
       ...(callId !== null ? { callId } : {}),
       status,

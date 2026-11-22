@@ -1,3 +1,4 @@
+import { AppText } from '../i18n/AppText.ts';
 import { AuditJsonl } from './auditJsonl.ts';
 import { AuditToolPaths } from './auditToolPaths.ts';
 import { AuditValues } from './auditValues.ts';
@@ -106,7 +107,7 @@ export class ClaudeCodeParser {
       return;
     }
     if (type === 'summary') {
-      this.pushSimple('system', '摘要', AuditValues.stringField(line, 'summary') ?? '', ts);
+      this.pushSimple('system', AppText.t('摘要'), AuditValues.stringField(line, 'summary') ?? '', ts);
       return;
     }
     if (type === 'system') {
@@ -114,7 +115,7 @@ export class ClaudeCodeParser {
         AuditValues.text(line['content']) ??
         AuditValues.stringField(line, 'subtype') ??
         AuditValues.describe(line);
-      this.pushSimple('system', '系统消息', text, ts);
+      this.pushSimple('system', AppText.t('系统消息'), text, ts);
       return;
     }
     // 顶层类型未知（上游格式漂移）：计入未识别，同时以 other 记录保留原始行（证据不丢）。
@@ -141,7 +142,7 @@ export class ClaudeCodeParser {
     if (typeof content === 'string') {
       this.pushSimple(
         role === 'assistant' ? 'assistant' : 'user',
-        role === 'assistant' ? '助手回复' : '用户消息',
+        role === 'assistant' ? AppText.t('助手回复') : AppText.t('用户消息'),
         content,
         ts,
       );
@@ -175,14 +176,14 @@ export class ClaudeCodeParser {
       case 'text':
         this.pushSimple(
           role === 'assistant' ? 'assistant' : 'user',
-          '正文',
+          AppText.t('正文'),
           AuditValues.text(block['text']) ?? '',
           ts,
         );
         return;
       case 'thinking':
       case 'redacted_thinking':
-        this.pushSimple('reasoning', '思考', AuditValues.text(block['thinking']) ?? '', ts);
+        this.pushSimple('reasoning', AppText.t('思考'), AuditValues.text(block['thinking']) ?? '', ts);
         return;
       case 'tool_use':
         this.pushToolUse(block, ts);
@@ -191,7 +192,7 @@ export class ClaudeCodeParser {
         this.pushToolResult(block, ts, line);
         return;
       default:
-        this.pushSimple('other', type ?? '内容块', AuditValues.describe(block), ts);
+        this.pushSimple('other', type ?? AppText.t('内容块'), AuditValues.describe(block), ts);
         return;
     }
   }
@@ -240,7 +241,7 @@ export class ClaudeCodeParser {
     this.records.push({
       ts,
       kind: 'tool_result',
-      title: status === 'error' ? '工具失败' : '工具结果',
+      title: status === 'error' ? AppText.t('工具失败') : AppText.t('工具结果'),
       text: AuditValues.truncate(AuditValues.text(block['content']) ?? AuditValues.describe(block)),
       ...(id !== null ? { callId: id } : {}),
       status,
