@@ -7,6 +7,7 @@ import { coreModules } from '../modules/index.ts';
 import type { ServerAutomations } from '../services/serverAutomations.ts';
 import { providerPresets } from '../services/providerPresets.ts';
 import type { PluginProfile, ApplyProfileResult } from '../../../host/kernel/plugin.ts';
+import { AppText } from '../../i18n/AppText.ts';
 
 export type { AppServerOptions } from './appServerState.ts';
 
@@ -40,6 +41,8 @@ export class AppServer {
    */
   public constructor(options: AppServerOptions) {
     this.services = new ServerServices(options);
+    // 应用层文案目录的语言随启动配置；运行期 config.update 时由 ServerConfigStore 再同步。
+    AppText.setLocale(this.services.configStore.fileConfig().locale ?? 'zh');
     const registered = registerModules(
       [...coreModules(), ...(options.modules ?? [])],
       this.services,

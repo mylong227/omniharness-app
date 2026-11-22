@@ -64,6 +64,7 @@ import { CliEventPort } from './cliEventPort.ts';
 import type { CliArgs } from './argParser.ts';
 import { CliConfigSections } from './cliConfigSections.ts';
 import type { ResolvedConfig } from '../../host/kernel/contracts.ts';
+import { AppText } from '../i18n/AppText.ts';
 import type { ExtraTool } from '../../host/kernel/contracts.ts';
 import type { UserResponder } from '../../host/kernel/contracts.ts';
 import type { EventPort } from '../../host/kernel/contracts.ts';
@@ -335,6 +336,7 @@ export class CliBuildConfig extends CliCredentialBuild {
       fragments: DefaultPromptFragments.codingAgent(),
     });
     await this.bridgeMcpServers(args, config);
+    AppText.setLocale(process.env.OMNI_LOCALE === 'en' ? 'en' : 'zh');
     return config;
   }
 

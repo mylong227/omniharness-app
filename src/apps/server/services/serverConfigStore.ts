@@ -1,6 +1,7 @@
 import { existsSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { configFile, type FileConfig } from '../../../host/kernel/config.ts';
+import { AppText } from '../../i18n/AppText.ts';
 import { ConfigError } from '../../../host/kernel/config.ts';
 import { PERSISTABLE_KEYS, SECTION_REPLACE_KEYS } from './configPersistKeys.ts';
 import { ProviderPresets, type ProviderPreset } from './providerPresets.ts';
@@ -229,6 +230,7 @@ export class ServerConfigStore {
         throw error;
       }
       this.clearedKeys = [];
+      AppText.setLocale(next.locale ?? 'zh');
     }
     this.deps.onChanged();
     return { ok: true, saved: this.path, autoApprove: this.auto };
