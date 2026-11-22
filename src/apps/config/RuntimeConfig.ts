@@ -48,6 +48,8 @@ export interface ServerTunables {
   readonly searchMaxDepth: number;
   /** 单次附件附加数量上限。 */
   readonly fsMaxAttachCount: number;
+  /** 提问自定义答案字符上限。 */
+  readonly questionMaxCustomChars: number;
   /** 决策账本单次返回行数上限。 */
   readonly decisionMaxRows: number;
 }

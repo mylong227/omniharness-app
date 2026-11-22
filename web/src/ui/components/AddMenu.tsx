@@ -1,3 +1,4 @@
+import { UI_TUNABLES } from '../../config/RuntimeConfig.ts';
 // 输入区「+」添加菜单：分组列出
 // 添加（文件·目标·计划模式·绘图）→ 插件 → 智能体 → 文件和聊天。
 // 打开时按真实 RPC 拉取插件 / 智能体 / 会话模式，搜索框输入即触发 search.all。
@@ -22,7 +23,7 @@ import type { ApiClient } from '../../core/ApiClient.ts';
 import { t } from '../i18n/i18n.ts';
 
 /** 搜索防抖时长（ms）。 */
-const SEARCH_DEBOUNCE_MS = 250;
+const SEARCH_DEBOUNCE_MS = UI_TUNABLES.searchDebounceMs;
 
 /** 本弹层在互斥控制器里的身份。 */
 const POPOVER_ID = 'addmenu';

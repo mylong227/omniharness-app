@@ -20,6 +20,7 @@
     "searchMaxHits": 20,
     "searchMaxDepth": 6,
     "fsMaxAttachCount": 50,
+    "questionMaxCustomChars": 4000,
     "decisionMaxRows": 500
   }
 }

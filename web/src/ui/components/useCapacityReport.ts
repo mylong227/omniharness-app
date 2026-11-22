@@ -1,3 +1,4 @@
+import { UI_TUNABLES } from '../../config/RuntimeConfig.ts';
 // 左栏容量小图表（CapacityDock）的取数 hook。
 //
 // 2026-10-28 用户把容量入口收口到左栏底部（控制台详情页已撤）：小图表**常驻**，因此刷新语义是：
@@ -12,7 +13,7 @@ import { useApp } from '../context.ts';
 import type { ContextUsageReport, QuotaStatus } from '../../types/models.ts';
 
 /** 兜底刷新间隔（毫秒）：介于"实时"与"别回放事件日志"之间。 */
-const CAPACITY_POLL_MS = 5000;
+const CAPACITY_POLL_MS = UI_TUNABLES.capacityPollMs;
 
 /** 容量面板的数据状态。 */
 export interface CapacityReportState {

@@ -1,3 +1,4 @@
+import { UI_TUNABLES } from '../../config/RuntimeConfig.ts';
 // 会话 / 事件 / 文件相关控制器（C3 拆分，标准 class 方式）。
 // 承接原 useAppController 中与会话、事件流、工具结果、文件预览、钻取、抽屉相关的回调，
 // 一律经 AppHost.patch 驱动 App 状态，行为逐字节等价。
@@ -19,7 +20,7 @@ import { CheckpointNamer } from '../models/Checkpoint.ts';
 import { t } from '../i18n/i18n.ts';
 
 /** 历史分页页大小（首屏只取尾部；更早内容按需补拉）。 */
-const HISTORY_PAGE_SIZE = 300;
+const HISTORY_PAGE_SIZE = UI_TUNABLES.historyPageSize;
 
 /** 会话 / 事件 / 文件控制器：单一职责，仅供 App 组合使用。 */
 export class SessionController {

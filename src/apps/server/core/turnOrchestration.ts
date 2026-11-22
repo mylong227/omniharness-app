@@ -1,3 +1,4 @@
+import { RuntimeConfig } from '../../config/RuntimeConfig.ts';
 import type { ImageContent, FileAttachment } from '../../../host/kernel/contracts.ts';
 import { Id } from '../../../host/kernel/util.ts';
 import { log } from '../../../host/kernel/util.ts';
@@ -71,7 +72,7 @@ export class TurnOrchestration {
   }
 
   /** threads.get 无 limit 参数时的缺省页大小（2026-11-20 兼容洞闭合：不再无界返回全部）。 */
-  private static readonly DEFAULT_PAGE_LIMIT = 500;
+  private static readonly DEFAULT_PAGE_LIMIT = RuntimeConfig.server.defaultPageLimit;
 
   /**
    * 获取线程事件（threads.get）：可选 `limit`/`before` 分页（S2，2026-10-25）；
