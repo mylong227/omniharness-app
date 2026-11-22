@@ -1,3 +1,4 @@
+import { UI_TUNABLES } from '../../config/RuntimeConfig.ts';
 // 流式增量节流器：把高频 text_delta 合并成有界频率的刷新，同时保证最终文本逐字节一致。
 //
 // 为什么需要：`thread.text_delta` 每来一条就 setState 一次，长回答（数千条增量）会
@@ -50,7 +51,7 @@ export interface StreamThrottleOptions {
  * 的主要占用。80ms（12.5fps）对「文字逐字出现」的观感几乎无差异，却把渲染次数再降 37%。
  * 首个增量仍立即出（首字延迟不受影响），收尾 flush 保证零丢失。
  */
-const DEFAULT_INTERVAL_MS = 80;
+const DEFAULT_INTERVAL_MS = UI_TUNABLES.streamIntervalMs;
 
 /** 生产用时钟：唯一一处 setTimeout 调用，集中在此以便整体替换。 */
 const REAL_CLOCK: ThrottleClock = {

@@ -1,10 +1,11 @@
+import { RuntimeConfig } from '../../config/RuntimeConfig.ts';
 import type { ServerResponse } from 'node:http';
 import type { RpcMessage } from '../../../host/kernel/runtime.ts';
 import { SseBackpressureGuard } from './sseBackpressureGuard.ts';
 import { SSE_HISTORY_MAX_BYTES as SSE_REPLAY_MAX_BYTES } from '../services/appLimits.ts';
 
 /** 重放历史帧上限（条数）：覆盖一次短暂断网即可。 */
-const SSE_HISTORY_MAX = 256;
+const SSE_HISTORY_MAX = RuntimeConfig.server.sseHistoryMax;
 
 /**
  * 重放历史字节上限（缺省 8 MiB）。

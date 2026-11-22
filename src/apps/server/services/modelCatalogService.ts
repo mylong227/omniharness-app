@@ -1,3 +1,4 @@
+import { RuntimeConfig } from '../../config/RuntimeConfig.ts';
 import type { FileConfig } from '../../../host/kernel/config.ts';
 import type { ModelPort } from '../../../host/kernel/contracts.ts';
 import { providerPresets, type ProviderPreset } from './providerPresets.ts';
@@ -49,7 +50,7 @@ export class ModelCatalogService {
    * 淘汰最早插入的一条（Map 保持插入顺序）。淘汰只影响「下拉框少一个缓存的可用模型列表」，
    * 下次探测会重新填充，**不影响任何正确性**。
    */
-  private static readonly MAX_PROBE_CACHE = 64;
+  private static readonly MAX_PROBE_CACHE = RuntimeConfig.server.probeCacheMax;
 
   /**
    * @param deps 配置读取器（生效文件配置 + UI 适配器覆盖）

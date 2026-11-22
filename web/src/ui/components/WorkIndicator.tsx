@@ -1,3 +1,4 @@
+import { UI_TUNABLES } from '../../config/RuntimeConfig.ts';
 // 工作状态条：回合进行中显示「已工作 X分X秒 ›」可折叠行，让「看不见的等待」变成「看得见的干活」。
 // 收起只留计时（对齐标杆「已工作 44 分 51 秒 ›」的安静形态）；展开补一行当前动作
 // （正在执行命令 / 思考中）。当前动作同时也在流区的 live-input 行里实时滚动，这里不丢信息。
@@ -17,7 +18,7 @@ export interface WorkIndicatorProps {
 }
 
 /** 计时刷新间隔（ms）。 */
-const TICK_MS = 1000;
+const TICK_MS = UI_TUNABLES.tickMs;
 
 /**
  * 工作状态条：渲染可折叠的计时行（收起 = 已工作 + 计时 + ▸；展开 = 追加当前动作）。

@@ -1,3 +1,4 @@
+import { UI_TUNABLES } from '../../../config/RuntimeConfig.ts';
 // 指标面板：拉取 /metrics + usage.stats 每 2 秒轮询刷新，
 // 展示会话/事件/工具调用计数 + Token 消耗统计表（按模型：调用次数 / 输入 / 输出 / 总计）。
 //
@@ -22,7 +23,7 @@ import Descriptions from 'antd/es/descriptions';
 
 /** 轮询间隔（ms）。 */
 /** 指标轮询间隔（ms；metricsTabStale 判据用 fake timers 推进同一节拍，单一真源）。 */
-export const POLL_MS = 2000;
+export const POLL_MS = UI_TUNABLES.metricsPollMs;
 
 /** 单模型用量行。 */
 interface ModelStat {

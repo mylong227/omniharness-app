@@ -1,3 +1,4 @@
+import { RuntimeConfig } from '../../config/RuntimeConfig.ts';
 /**
  * 厂商连通探测与运行时模型构造（#模型接入页）。
  * probe：拿配置好的 Key 真实请求厂商 /models 端点（不可用时回退 1-token chat 探测），
@@ -203,4 +204,4 @@ export interface ProviderProbeResult {
   readonly error?: string;
 }
 
-const PROBE_TIMEOUT_MS = 10_000;
+const PROBE_TIMEOUT_MS = RuntimeConfig.server.probeTimeoutMs;

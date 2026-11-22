@@ -1,3 +1,4 @@
+import { UI_TUNABLES } from '../../../config/RuntimeConfig.ts';
 // 插件市场：已安装插件管理 + 可获取插件（本地 / 内置 / 远程）搜索安装，支持重新加载。
 //
 // 函数组件范式：四份 state 各用 useState；搜索防抖从「useEffect 依赖数组」改为
@@ -17,7 +18,7 @@ import Button from 'antd/es/button';
 import Tag from 'antd/es/tag';
 
 /** 搜索输入防抖延迟（ms）。 */
-const DEBOUNCE_MS = 200;
+const DEBOUNCE_MS = UI_TUNABLES.pluginsDebounceMs;
 
 /** 卡片渲染所需的上下文与回调。 */
 interface CardActions {

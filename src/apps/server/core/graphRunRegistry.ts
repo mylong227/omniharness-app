@@ -1,3 +1,4 @@
+import { RuntimeConfig } from '../../config/RuntimeConfig.ts';
 import { AppText } from '../../i18n/AppText.ts';
 /**
  * 图运行台账（runId → 运行态 + 取消句柄）——从 `AppServer` 按职责缝抽出。
@@ -37,7 +38,7 @@ export class GraphRunRegistry {
    * 依据：`graph.status` 只服务于「刚刚发起的那次运行」，最近 50 条足够；上限存在的意义是
    * 把长跑 serve 的无界增长封死。
    */
-  public static readonly MAX_RUNS = 50;
+  public static readonly MAX_RUNS = RuntimeConfig.server.graphMaxRuns;
 
   /** 运行台账（插入序即发起序）。 */
   private readonly runs = new Map<string, GraphRunState>();

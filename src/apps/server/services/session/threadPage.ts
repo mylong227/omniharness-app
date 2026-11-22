@@ -1,3 +1,4 @@
+import { RuntimeConfig } from '../../../config/RuntimeConfig.ts';
 /**
  * `threads.get` 的**纯分页切片**（2026-10-25，S2）。
  *
@@ -29,7 +30,7 @@ export interface ThreadPageSlice {
 /** `threads.get` 分页器。 */
 export class ThreadPage {
   /** 单页上限：超过 1000 条不再有意义（前端也会卡）。 */
-  public static readonly MAX_LIMIT = 1000;
+  public static readonly MAX_LIMIT = RuntimeConfig.server.threadMaxLimit;
 
   /**
    * 切一页。

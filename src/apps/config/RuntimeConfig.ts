@@ -26,6 +26,18 @@ export interface WebTunables {
   readonly fleetStaleTickMs: number;
   /** 会话历史首批/分页条数。 */
   readonly historyPageSize: number;
+  readonly tickMs: number;
+  readonly metricsPollMs: number;
+  readonly pluginsDebounceMs: number;
+  readonly clusterFreshMs: number;
+  readonly markdownCacheEntries: number;
+  readonly markdownCacheChars: number;
+  readonly highlightCacheEntries: number;
+  readonly draftMaxEntries: number;
+  readonly hoverDelayMs: number;
+  readonly quoteMaxChars: number;
+  readonly streamIntervalMs: number;
+  readonly textRevealStepMs: number;
 }
 
 /** 服务端可调参数。 */
@@ -52,6 +64,16 @@ export interface ServerTunables {
   readonly questionMaxCustomChars: number;
   /** 决策账本单次返回行数上限。 */
   readonly decisionMaxRows: number;
+  readonly probeTimeoutMs: number;
+  readonly eventsCacheMaxEntries: number;
+  readonly eventsCacheTtlMs: number;
+  readonly untrackedMaxBytes: number;
+  readonly sseHistoryMax: number;
+  readonly httpRequestTimeoutMs: number;
+  readonly httpLongRequestTimeoutMs: number;
+  readonly probeCacheMax: number;
+  readonly threadMaxLimit: number;
+  readonly graphMaxRuns: number;
 }
 
 /** 配置文件整体形状。 */

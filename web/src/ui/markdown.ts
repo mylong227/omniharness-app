@@ -1,3 +1,4 @@
+import { UI_TUNABLES } from '../config/RuntimeConfig.ts';
 // 成熟依赖加持的 Markdown 渲染器（回复模式 / 会话模式核心展示层）。
 //
 // 设计取舍（回应「不要求无第三方依赖，善用成熟知识代替从零造轮子」）：
@@ -299,14 +300,14 @@ let mdCache: MarkdownItInstance | null = null;
  *
  * 上限：64 条 / 8M 字符；只缓存 ≤64KB 的文本（更大的渲染本来就低频，避免缓存常驻）。
  */
-const HTML_CACHE_MAX_ENTRIES = 64;
-const HTML_CACHE_MAX_CHARS = 8 * 1024 * 1024;
+const HTML_CACHE_MAX_ENTRIES = UI_TUNABLES.markdownCacheEntries;
+const HTML_CACHE_MAX_CHARS = UI_TUNABLES.markdownCacheChars;
 const HTML_CACHE_MAX_TEXT = 64 * 1024;
 const htmlCache = new Map<string, string>();
 let htmlCacheChars = 0;
 
 /** hljs 高亮结果缓存：键 = lang + '\u0000' + 代码原文（流式期闭合围栏内容不可变，见 highlight 实现）。 */
-const HIGHLIGHT_CACHE_MAX = 48;
+const HIGHLIGHT_CACHE_MAX = UI_TUNABLES.highlightCacheEntries;
 const highlightCache = new Map<string, string>();
 
 /**

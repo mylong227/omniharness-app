@@ -8,7 +8,19 @@
     "fleetPollMs": 2000,
     "fleetCacheTtlMs": 30000,
     "fleetStaleTickMs": 30000,
-    "historyPageSize": 300
+    "historyPageSize": 300,
+    "tickMs": 1000,
+    "metricsPollMs": 2000,
+    "pluginsDebounceMs": 200,
+    "clusterFreshMs": 1500,
+    "markdownCacheEntries": 64,
+    "markdownCacheChars": 8388608,
+    "highlightCacheEntries": 48,
+    "draftMaxEntries": 32,
+    "hoverDelayMs": 180,
+    "quoteMaxChars": 4000,
+    "streamIntervalMs": 80,
+    "textRevealStepMs": 22
   },
   "server": {
     "approvalTimeoutMs": 120000,
@@ -21,6 +33,16 @@
     "searchMaxDepth": 6,
     "fsMaxAttachCount": 50,
     "questionMaxCustomChars": 4000,
-    "decisionMaxRows": 500
+    "decisionMaxRows": 500,
+    "probeTimeoutMs": 10000,
+    "eventsCacheMaxEntries": 4,
+    "eventsCacheTtlMs": 30000,
+    "untrackedMaxBytes": 2097152,
+    "sseHistoryMax": 256,
+    "httpRequestTimeoutMs": 60000,
+    "httpLongRequestTimeoutMs": 1800000,
+    "probeCacheMax": 64,
+    "threadMaxLimit": 1000,
+    "graphMaxRuns": 50
   }
 }
