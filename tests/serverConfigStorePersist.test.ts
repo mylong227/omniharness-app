@@ -32,6 +32,9 @@ function storeOf(): { store: ServerConfigStore; file: string; home: string } {
 
 const NOOP_PRESET = { id: 'mock', adapter: 'mock', label: 'x', baseUrl: '', defaultModel: 'm', needsKey: false } as unknown as ProviderPreset;
 
+const sectionOf = (file: Record<string, unknown>, group: string): Record<string, unknown> =>
+  (file[group] ?? {}) as Record<string, unknown>;
+
 test('设置页新键：update → 落盘用户级文件 → 重读回得来（成本/熔断/记忆三组）', async () => {
   const { store, file, home } = storeOf();
   try {
@@ -47,9 +50,9 @@ test('设置页新键：update → 落盘用户级文件 → 重读回得来（�
       longTermMemoryKeyFile: 'C:/keys/mem.key',
     });
     const saved = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>;
-    assert.strictEqual(saved['costBudgetUsd'], 5);
-    assert.strictEqual(saved['modelCircuitBreaker'], true);
-    assert.strictEqual(saved['longTermMemoryKeyFile'], 'C:/keys/mem.key');
+    assert.strictEqual(sectionOf(saved, 'cost')['costBudgetUsd'], 5);
+    assert.strictEqual(sectionOf(saved, 'model')['modelCircuitBreaker'], true);
+    assert.strictEqual(sectionOf(saved, 'memory')['longTermMemoryKeyFile'], 'C:/keys/mem.key');
     // 生效配置（get）同样回得来——config.get 的回填源。
     const live = store.get() as Record<string, unknown>;
     assert.strictEqual(live['costBudgetUsd'], 5);
@@ -63,11 +66,11 @@ test('null = 显式清除：键从用户级文件里删掉（「留空=默认」
   const { store, file, home } = storeOf();
   try {
     await store.update({ costBudgetUsd: 5, longTermMemoryKeyFile: 'C:/keys/mem.key' });
-    assert.strictEqual((JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>)['costBudgetUsd'], 5);
+    assert.strictEqual(sectionOf(JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>, 'cost')['costBudgetUsd'], 5);
     await store.update({ costBudgetUsd: null, longTermMemoryKeyFile: null });
     const saved = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>;
-    assert.strictEqual('costBudgetUsd' in saved, false, 'null 必须删除键而不是写成 null');
-    assert.strictEqual('longTermMemoryKeyFile' in saved, false);
+    assert.strictEqual('costBudgetUsd' in sectionOf(saved, 'cost'), false, 'null 必须删除键而不是写成 null');
+    assert.strictEqual('longTermMemoryKeyFile' in sectionOf(saved, 'memory'), false);
   } finally {
     rmSync(home, { recursive: true, force: true });
   }
@@ -98,14 +101,14 @@ test('上下文三段：整段落盘 + 重读回得来；按段替换（删嵌�
       contextPolicy: { degradeLadder: { shapersAggressive: true } },
     });
     const saved = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>;
-    assert.deepEqual(saved['retrievalContext'], { mode: 'bm25', maxSnippets: 8, maxTokens: 600 });
-    assert.deepEqual(saved['semanticRecall'], { mode: 'on' });
-    assert.deepEqual(saved['contextPolicy'], { degradeLadder: { shapersAggressive: true } });
+    assert.deepEqual(sectionOf(saved, 'context')['retrievalContext'], { mode: 'bm25', maxSnippets: 8, maxTokens: 600 });
+    assert.deepEqual(sectionOf(saved, 'context')['semanticRecall'], { mode: 'on' });
+    assert.deepEqual(sectionOf(saved, 'context')['contextPolicy'], { degradeLadder: { shapersAggressive: true } });
 
     // UI 提交的是"当前段 + 本次修改"：清掉 maxSnippets 后只剩 mode，文件里不得残留旧值。
     await store.update({ retrievalContext: { mode: 'bm25' } });
     const replaced = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>;
-    assert.deepEqual(replaced['retrievalContext'], { mode: 'bm25' }, '按段替换必须删掉嵌套旧键');
+    assert.deepEqual(sectionOf(replaced, 'context')['retrievalContext'], { mode: 'bm25' }, '按段替换必须删掉嵌套旧键');
     // config.get 回填的是同一份（否则 UI 会显示已删掉的旧值）。
     const live = store.get() as Record<string, unknown>;
     assert.deepEqual(live['retrievalContext'], { mode: 'bm25' });
@@ -123,8 +126,8 @@ test('alpha.21 读缓存/防火墙：整段落盘 + 按段替换 + 非法拒绝'
       capflow: { mode: 'shadow', policyPath: 'C:/policies/capflow.json' },
     });
     const saved = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>;
-    assert.deepEqual(saved['toolCache'], { enabled: true, maxEntries: 16 });
-    assert.deepEqual(saved['capflow'], { mode: 'shadow', policyPath: 'C:/policies/capflow.json' });
+    assert.deepEqual(sectionOf(saved, 'tools')['toolCache'], { enabled: true, maxEntries: 16 });
+    assert.deepEqual(sectionOf(saved, 'capflow')['capflow'], { mode: 'shadow', policyPath: 'C:/policies/capflow.json' });
     const live = store.get() as Record<string, unknown>;
     assert.deepEqual(live['toolCache'], { enabled: true, maxEntries: 16 });
 
@@ -157,8 +160,8 @@ test('上下文三段：非法枚举/越界不落盘（fail-closed）', async ()
       '命中率下限越界必须被拒绝',
     );
     const written = existsSync(file) ? (JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>) : {};
-    assert.strictEqual('retrievalContext' in written, false);
-    assert.strictEqual('contextPolicy' in written, false);
+    assert.strictEqual('retrievalContext' in sectionOf(written, 'context'), false);
+    assert.strictEqual('contextPolicy' in sectionOf(written, 'context'), false);
   } finally {
     rmSync(home, { recursive: true, force: true });
   }
