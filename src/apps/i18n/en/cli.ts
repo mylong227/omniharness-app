@@ -1,6 +1,63 @@
 // 应用层 en 词条分片（cli）：CLI 用法、输出与错误文案。
 // 键 = 中文原文（与 AppText.t 的调用点逐字一致）；值 = English。
 export const CLI: Readonly<Record<string, string>> = {
+  '未开启（--probe-model 可探测模型连通性）': 'Not enabled (use --probe-model to test model connectivity)',
+  '未找到配置文件（先运行 omniharness init）': 'No config file found (run omniharness init first)',
+  'mock 适配器（脚本化应答，无需联网）': 'mock adapter (scripted responses, no network needed)',
+  '缺省': 'default',
+  '；Windows 受限令牌只削减特权与资源（restricting-SID 计数为 0），**无**文件/网络拒绝语义':
+    '; on Windows the restricted token only trims privileges and resources (restricting-SID count is 0) and provides **no** file/network denial semantics',
+  '生效档 {profile}；执行包装={execution}；内核强制={kernel}；后端真机可达={real}{note}':
+    'effective profile {profile}; execution wrapper={execution}; kernel enforcement={kernel}; backend reachable={real}{note}',
+  '已接': 'wired',
+  '未接': 'not wired',
+  '是': 'yes',
+  '否': 'no',
+  '未检测到可用沙箱后端（bwrap / sandbox-exec / Windows RestrictedToken 均不可用）':
+    'No usable sandbox backend detected (bwrap / sandbox-exec / Windows RestrictedToken are all unavailable)',
+  'OmniHarness 诊断报告': 'OmniHarness diagnostics report',
+  '  Node 版本         : {version}': '  Node version      : {version}',
+  '  内核版本          : @omniharness/kernel {version}':
+    '  Kernel version    : @omniharness/kernel {version}',
+  '  配置文件          : {state} / {valid}{error}':
+    '  Config file       : {state} / {valid}{error}',
+  '存在': 'present',
+  '缺失': 'missing',
+  '合法': 'valid',
+  '非法': 'invalid',
+  '  沙箱后端          : bwrap={bwrap} sandbox-exec={se} restrictedToken={rt}':
+    '  Sandbox backends  : bwrap={bwrap} sandbox-exec={se} restrictedToken={rt}',
+  '  插件目录可读      : {value}': '  Plugins dir read  : {value}',
+  '  权限清单可读      : {value}': '  Permissions read  : {value}',
+  '  后端构建          : {value}': '  Backend build     : {value}',
+  '未构建（源码直跑）': 'not built (running from source)',
+  '  工作台构建        : {value}（{dir}）{hint}': '  Workbench build   : {value} ({dir}){hint}',
+  ' —— serve 能起但浏览器白页；先跑 npm run build:web':
+    ' — serve starts but the browser shows a blank page; run npm run build:web first',
+  '  缺省 serve 端口   : {port}（回环口径）{state}':
+    '  Default serve port: {port} (loopback){state}',
+  ' 空闲': ' free',
+  ' 被占用（可能已有 serve 在跑；--port N 换端口）':
+    ' in use (another serve may be running; use --port N to change)',
+  '  模型连通性        : {detail}': '  Model connectivity: {detail}',
+  '未探测': 'not probed',
+  '  Worker 指标       : {value}': '  Worker metrics    : {value}',
+  '无活动 Worker': 'no active workers',
+  '{count} 个': '{count}',
+  '    {name}: 激活 {activations} / 调用 {calls} / 失败 {failures} / 崩溃 {crashes}':
+    '    {name}: activations {activations} / calls {calls} / failures {failures} / crashes {crashes}',
+  '  隔离强度          : {level}（{basis}）': '  Isolation         : {level} ({basis})',
+  '  网络守卫覆盖      : {surfaces}；shell 出网被拦={guarded}':
+    '  Network guard     : {surfaces}; shell egress blocked={guarded}',
+  '、': ', ',
+  '  注入护栏          : {mode}（弱证据阈值 {thresholds}）':
+    '  Injection guard   : {mode} (weak-evidence thresholds {thresholds})',
+  '  注入护栏自检      : 不可用（见问题清单）':
+    '  Injection self-test: unavailable (see issue list)',
+  '  注入护栏自检      : recall={recall}% / FP={fp}% / precision={precision}%（{cases} 例，{basis}）':
+    '  Injection self-test: recall={recall}% / FP={fp}% / precision={precision}% ({cases} cases, {basis})',
+  '[OK] 未发现健康问题': '[OK] No health issues found',
+  '[WARN] 发现 {count} 项问题:': '[WARN] {count} issue(s) found:',
   'resume/fork 模式需要 --prompt': 'resume/fork mode requires --prompt',
   '[omniharness] --format 只支持 html / md / json\n':
     '[omniharness] --format only supports html / md / json\n',
