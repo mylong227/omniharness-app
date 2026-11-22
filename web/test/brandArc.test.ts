@@ -20,7 +20,7 @@ async function startBusy(cdp: CdpSession): Promise<void> {
     return true;
   })()`);
   assert.strictEqual(sent, true, '找不到输入框/发送按钮');
-  await cdp.waitFor("!!document.querySelector('.brand-mark--spin.brand-mark--compact')", 40);
+  await cdp.waitFor("!!document.querySelector('.brand-mark--spin.brand-mark--compact')", 4000);
 }
 
 /** 读月弧结构链（每个部件都必须在 DOM 里）。 */
@@ -53,7 +53,7 @@ for (const theme of ['light', 'dark'] as const) {
         return true;
       })()`);
       await cdp.navigate((await cdp.evaluate('location.href')) as string);
-      await cdp.waitFor("!!document.querySelector('.composer-input textarea')", 40);
+      await cdp.waitFor("!!document.querySelector('.composer-input textarea')", 4000);
       await startBusy(cdp);
       const arc = (await readArc(cdp)) as unknown as {
         present: boolean;

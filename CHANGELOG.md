@@ -11,7 +11,9 @@
     的仓库内相对链接必须存在（仓库外兄弟仓引用按外链跳过）；域数 / 域模块数 / RPC 方法数必须与
     代码实测一致（域文件数、`modules/index.ts` 登记数、parity 快照常量）。门禁本身做过断链负向验证。
   · CI 新增 `desktop-package` 手动 job：stage（含 vendor 与侧车）→ electron-builder NSIS →
-    `verify:package` → 上传安装包，补上 push 流水线不覆盖的发布打包面。
+    `verify:package` → 上传安装包，补上 push 流水线不覆盖的发布打包面；该 job 排在 `verify`
+    之后（打包会重编译并复制整棵依赖树，与 chrome 判据并行会抢资源），且走 `desktop:dist:ci`
+    （`--publish never`：仓库配置的 GitHub draft 发布需要 `GH_TOKEN`，发布仍由人手动完成）。
   · 按实测回填文档：`KERNEL-CONTRACT`（116→117 方法、278→285 源文件、对接面 430 唯一符号 /
     294 条导出 / 247 个模块落点）、`REFACTOR-PLAN`（232→237 文件、1064→1075 用例、CI 已绿）、
     README/CONTRIBUTING 的 Node 最低版本（22.14→22.18）与「今日实测」运行版本（Node 24.9.0）；

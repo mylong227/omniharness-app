@@ -115,8 +115,11 @@ jobs:
 
   # 发布物打包（stage 含 vendor 与侧车 → electron-builder NSIS → 载荷校验）：仅手动触发。
   # 覆盖 push 流水线不跑的一整段；发版前手动跑一次，产物即安装包。
+  # 排在 verify 之后：打包会重编译并复制整棵依赖树，与 chrome 判据并行会抢 CPU/磁盘
+  # （2026-11-22 手动门实测：三 job 并行时 providerTilesShots 在渲染等待上踩线判红）。
   desktop-package:
     if: github.event_name == 'workflow_dispatch'
+    needs: verify
     runs-on: windows-latest
     timeout-minutes: 60
     steps:
@@ -138,8 +141,10 @@ jobs:
           npm run build:web
           npm run desktop:build
 
-      - name: 打 NSIS 安装包并校验载荷（stage + electron-builder + verify:package）
-        run: npm run desktop:dist
+      # 只打包不发布：electron-builder.yml 配了 GitHub draft 发布，CI 无 GH_TOKEN 会直接报错；
+      # 发布仍是人工动作（本地产物 + 手动上传），CI 只负责证明安装包能打出来并通过载荷校验。
+      - name: 打 NSIS 安装包并校验载荷（stage + electron-builder --publish never + verify:package）
+        run: npm run desktop:dist:ci
 
       - name: 上传安装包
         uses: actions/upload-artifact@v4

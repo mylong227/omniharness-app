@@ -36,9 +36,9 @@ function stubWithCatalog(): string {
 
 /** 真机：打开设置「模型与厂商」页（stub 的 mock 厂商已够渲染网格）。 */
 async function openModelPane(cdp: CdpSession): Promise<void> {
-  // 侧栏页脚可能比 composer 晚一帧挂载（CI 上 40 次自旋会踩空）：先等入口出现再点。
+  // 侧栏页脚可能比 composer 晚挂载（CI 并发构建时 40 次自旋会踩空）：先等入口出现再点。
   assert.ok(
-    await cdp.waitFor("!!document.querySelector('.side-foot button[aria-label=\"打开设置\"]')", 2000),
+    await cdp.waitFor("!!document.querySelector('.side-foot button[aria-label=\"打开设置\"]')", 4000),
     '设置入口未出现',
   );
   const clicked = await cdp.evaluate(`(function(){
@@ -48,7 +48,7 @@ async function openModelPane(cdp: CdpSession): Promise<void> {
     return true;
   })()`);
   assert.strictEqual(clicked, true, '找不到设置入口');
-  assert.ok(await cdp.waitFor("!!document.querySelector('.csl')", 40), '控制台未出现');
+  assert.ok(await cdp.waitFor("!!document.querySelector('.csl')", 4000), '控制台未出现');
   const nav = await cdp.evaluate(`(function(){
     var hit = [].slice.call(document.querySelectorAll('.csl-nav-item')).filter(function(i){
       return (i.textContent || '').indexOf('模型与厂商') >= 0;
@@ -58,7 +58,7 @@ async function openModelPane(cdp: CdpSession): Promise<void> {
     return true;
   })()`);
   assert.strictEqual(nav, true, '找不到「模型与厂商」导航项');
-  assert.ok(await cdp.waitFor("!!document.querySelector('.sp-grid .sp-tile')", 40), '网格未渲染');
+  assert.ok(await cdp.waitFor("!!document.querySelector('.sp-grid .sp-tile')", 4000), '网格未渲染');
 }
 
 for (const theme of ['light', 'dark'] as const) {
@@ -72,7 +72,7 @@ for (const theme of ['light', 'dark'] as const) {
         return true;
       })()`);
       await cdp.navigate((await cdp.evaluate('location.href')) as string);
-      await cdp.waitFor("!!document.querySelector('.composer-input textarea')", 40);
+      await cdp.waitFor("!!document.querySelector('.composer-input textarea')", 4000);
       await openModelPane(cdp);
       const shot = (await cdp.send('Page.captureScreenshot', { format: 'png' })) as { data: string };
       writeFileSync(join(ARCHIVE, 'provider-grid-' + theme + '.png'), Buffer.from(shot.data, 'base64'));
@@ -83,7 +83,7 @@ for (const theme of ['light', 'dark'] as const) {
         return true;
       })()`);
       assert.strictEqual(openDrawer, true, '点卡失败');
-      assert.ok(await cdp.waitFor("!!document.querySelector('.ant-drawer-content-wrapper')", 40), '抽屉未出现');
+      assert.ok(await cdp.waitFor("!!document.querySelector('.ant-drawer-content-wrapper')", 4000), '抽屉未出现');
       const shot2 = (await cdp.send('Page.captureScreenshot', { format: 'png' })) as { data: string };
       writeFileSync(join(ARCHIVE, 'provider-drawer-' + theme + '.png'), Buffer.from(shot2.data, 'base64'));
     } finally {
