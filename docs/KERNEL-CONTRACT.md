@@ -5,12 +5,12 @@
 > `npm run kernel:check` 第 7 条强制单点、第 8 条拒绝生成物漂移、第 9 条拒绝「已承诺能力的同名副本」）；
 > 内核切片清掉、app 仍需要的能力收留于 **`src/host/extensions/`**（app 自有扩展层，原 `kernel-compat/`，
 > M27 兼容层清零后更名；归属契约见[其 README](../src/host/extensions/README.md)）。
-> 后端 RPC 面由 **21 个域模块声明式注册**（116 方法，parity 快照钉住）。
+> 后端 RPC 面由 **21 个域模块声明式注册**（117 方法，parity 快照钉住）。
 >
 > **2026-11-22 内核同步（alpha.38，R27 worker 域收编）**：`CliWorker` / `ExternalCliWorker` /
 > `WindowsShim` 三件（461 行）上内核 worker 域并承诺三条深路径；应用侧 extensions 对应件删除、
 > 消费点改指 `src/host/kernel/worker.ts`（对接面 19→20 域）。内核 17 门全绿（`cross:check`
-> 在应用侧影子清零后复绿）；应用 `kernel:check` 九条绿（278 源文件 / 294 处包导入 / 原生内核实载）。
+> 在应用侧影子清零后复绿）；应用 `kernel:check` 九条绿（285 源文件 / 294 处包导入 / 原生内核实载）。
 >
 > **2026-11-21 内核同步（alpha.37，R26 四件收编）**：`CompactionStateCodec` 深路径承诺 +
 > maintenance 域 `ServeInstance`/`MaintenanceRunner` + autonomy 域 `GraphStore`/`GraphSummary`
@@ -74,7 +74,7 @@ web/ + desktop/ ──HTTP/SSE──▶ src/apps（宿主：CLI / RPC 域模块 
 
 - `src/**` 只有 `src/host/kernel/<域>.ts` 允许 `import '@omniharness/kernel…'`；
   业务代码（含 `src/host/extensions/`）一律经对接面消费——全仓不出现内核包名
-  （实测 278 源文件 / 294 处包导入全部命中，`kernel:check` 实载验证）。
+  （实测 285 源文件 / 294 处包导入全部命中，`kernel:check` 实载验证）。
 - `src/host/kernel/` 只放**自动生成**的 20 个分域 re-export，**不放实现**
   （Laya 与解析器在 `extensions/kernel/`，企业 OIDC 适配器在 `src/apps/enterprise/`）。
 - `extensions/` 只依赖 `../kernel/<域>.ts` 与目录内相对路径，同样不得绕过对接面。
@@ -103,14 +103,13 @@ web/ + desktop/ ──HTTP/SSE──▶ src/apps（宿主：CLI / RPC 域模块 
 | M39（2026-11-18） | alpha.28 | R14 vend（M99–M101：CapFlow 确认门 / 污点跨委托传播 / 确定性轨迹评测器 + 深度 review 收口）：均为内核内部面，应用消费面零变化（19 域「无变化」、60/60 导出面），`kernel:check` 284/290 复绿。 |
 | M40（2026-11-19） | alpha.29 | R15 vend（M102–M104：参考轨迹匹配四档组合子 / Multi-CaMeL 双通道子代理契约 / 金丝雀感染曲线 + 深度 review 收口）：均为内核内部面，应用消费面零变化（19 域「无变化」、60/60 导出面），`kernel:check` 284/290 复绿。 |
 | M41（2026-11-19） | alpha.31 | R16+R17 两版一并 vend（M105–M109：委托边继承标记 / 链式洗白窗口 / paraphrase 三档曲线 / 全派生边执法扩面）：均为内核安全内部面，应用消费面零变化（19 域「无变化」、60/60 导出面无新增），`kernel:check` 284/290 复绿。 |
-| M35（2026-11-15） | alpha.19（不升版） | alpha.19 能力落地（可选批次）：① 设置页「上下文与检索」卡 + `retrievalContext`/`semanticRecall`/`contextPolicy` 三段进 `PERSISTABLE_KEYS`（服务端 `SECTION_REPLACE_KEYS` 按段替换）；② `kernel.health` 健康桥（108→109 RPC，七分区 absent≠degraded）+ 诊断面板「内核健康（哨兵桥）」；③ `context.studio.kernel` 与上下文面板「内核上下文策略」（与健康桥同一读模型，检索/语义召回/降档/缓存守卫生效值）。不改内核依赖、19 域零变化；`kernel:check` / typecheck×3 / web 全套 / build / smoke（9 条）/ desktop 全绿；能力↔UI 对齐矩阵见 [design/kernel-ui-alignment](design/kernel-ui-alignment/README.md) |
+| M35（2026-11-15） | alpha.19（不升版） | alpha.19 能力落地（可选批次）：① 设置页「上下文与检索」卡 + `retrievalContext`/`semanticRecall`/`contextPolicy` 三段进 `PERSISTABLE_KEYS`（服务端 `SECTION_REPLACE_KEYS` 按段替换）；② `kernel.health` 健康桥（108→109 RPC，七分区 absent≠degraded）+ 诊断面板「内核健康（哨兵桥）」；③ `context.studio.kernel` 与上下文面板「内核上下文策略」（与健康桥同一读模型，检索/语义召回/降档/缓存守卫生效值）。不改内核依赖、19 域零变化；`kernel:check` / typecheck×3 / web 全套 / build / smoke（9 条）/ desktop 全绿；能力↔UI 对齐矩阵原见 design/kernel-ui-alignment（该台账已随 2026-11-20 文档库清理退役） |
 
 对接面规模随迁移演化：alpha.6 时代 349 源文件 / 316 处导入 / 17 域 → M30 收官 267/361/18 →
 2026-11-08 上午清死桶 `src/indexBeta.ts`（从未接线的 beta 发布面，消费 45 处内核符号却零被消费）
 并把模型探针/注入度量收编进 `eval` 域后 263/318/18 → 同日下午 M31 收口（迁走 2 件影子、
 删 1 个 compat 桶与 2 个旧实现文件）后 260/287/18 → 傍晚 M32 收口（删 5 件影子、加 1 个
-`maintenance` 域）后 **278 源文件 / 294 处导入 / 20 域**（对接面 435 符号 / 247 条模块落点：
-238 条深路径 + 3 个 curated 子路径）。内核**已承诺**能力的影子由此**真正**清零：
+`maintenance` 域）后 **285 源文件 / 294 处导入 / 20 域**（对接面 430 个唯一符号 / 294 条导出 / 247 个模块落点）。内核**已承诺**能力的影子由此**真正**清零：
 M31 的账把 5 件「内核未承诺」自留件登记在案，M32 复核发现它们早就在 `./sandbox` / `./mcp` /
 `./maintenance` 的**再导出桶**里被承诺——旧扫描只认 `.d.ts` 直接声明才漏检。现在业务对内核的
 全部需求都涌向单点对接面，无第二份实现可逃逸。
@@ -190,7 +189,7 @@ M22–M31 的每一轮内核升级都走的这条回路，常态业务代码零�
 | 检查 | 结果 |
 | ---- | ---- |
 | `npm run typecheck`（后端 / 前端 / 桌面） | ✅ 0 error |
-| `npm run kernel:check` | ✅ 278 源文件 / 294 处包导入（20 域，全部收敛对接面）/ 内嵌副本 0 / integrity 一致 / native ping / 生成物一致 / extensions 无已承诺影子 |
+| `npm run kernel:check` | ✅ 285 源文件 / 294 处包导入（20 域，全部收敛对接面）/ 内嵌副本 0 / integrity 一致 / native ping / 生成物一致 / extensions 无已承诺影子 |
 | `npm run build` + `npm run smoke` | ✅ 8/8（banner token、healthz、readyz、HTML、config.get、sessions.list、原生内核实载） |
 | `npm run web:test` | ✅ 180 文件 / 828 用例（web 772 + 后端 56；含 parity/守卫/家具/golden/影子扫描） |
 | `npm run desktop:build` + `desktop:test` | ✅ 36/36 |

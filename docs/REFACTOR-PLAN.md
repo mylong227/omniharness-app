@@ -59,7 +59,7 @@
 - **L4 ✅**：boost 命令族（4 文件 1609 行 + 14 旗标 + 3 帮助条目）删除——上游
   `runGates.mjs` / `tools/probes/` 未随迁，fail-closed 零产出。
 - **最终验收**：`npm run verify` 全链绿（kernel:check 九条 / typecheck 五闸 / check:exports /
-  232 文件 1064 用例 / build + build:web + smoke / desktop:build + desktop:test 44）。
+  237 文件 1075 用例 / build + build:web + smoke / desktop:build + desktop:test 44）。
 - **外部机会项（不是本仓剩余项，无待办动作）**：W1 zod 化——当前 8 条编译期探针已覆盖高漂移域，
   且 `zod` 零 import 已在批次十四作为未消费依赖删除，重启 zod 化需重新引入依赖并评估收益；
   L7 反向 locale 事件——桌面壳新增运行期语言入口时才触发。
@@ -381,7 +381,7 @@ useSessionResource 12 面板既有接线、theme.css token 纪律。
 - [x] W7 清理包全落（Icon 迁移/PascalCase/legacy 隔离/i18n 分片改名/knip）
 - [x] L9 全类别零消费：knip（files/deps/exports/types）全 0 + devDep 闸入 verify（ignoreIssues 有据）
 - [x] 遗留台账 L1-L9 全终态（L4 裁定 B 已删 boost；L7 终态关闭）
-- [x] `npm run verify` 全链绿（2026-11-22 实跑：232 文件 1064 用例 + desktop 44；CI 待推送后复核）
+- [x] `npm run verify` 全链绿（2026-11-22 实跑：237 文件 1075 用例 + desktop 44；CI 已绿（2026-11-22））
 
 ## 九、硬编码治理（批次十六，2026-11-22）
 

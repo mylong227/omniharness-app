@@ -4,7 +4,7 @@
 
 1. **fail-closed**：没接线就如实报「未接线」，绝不返回空值冒充正常——「看着绿」是本仓历史缺陷的头号形态。
 2. **单点真源**：内核导入只走 `src/host/kernel/`、RPC 注册只走 `src/apps/server/modules/`、厂商目录只读 `providerPresets`。发现第二份拷贝，收敛它而不是绕过它。
-3. **改一处，验证全链**：`npm run verify` 是唯一裁决（kernel:check 9 判据 → typecheck×5 → 1075 判据 → build → smoke → desktop）。
+3. **改一处，验证全链**：`npm run verify` 是唯一裁决（kernel:check 9 判据 → docs:check → typecheck×5 → 1075 判据 → build → smoke → desktop）。
 
 ## 常见任务的最短路径
 
@@ -33,6 +33,7 @@
 | `desktop/scripts/test.mts`（内联 44 条） | 桌面纯逻辑判据 | `npm run desktop:test` |
 | `scripts/checkKernelBoundary.ts` | 内核边界门禁 9 条（含对接面生成物不漂移） | `npm run kernel:check` |
 | `scripts/kernelSurface.ts` | 从业务 import 生成 20 个内核对接面域文件 | `npm run kernel:surface` |
+| `scripts/checkDocs.ts` | 文档门禁：相对链接必须存在；域数/域模块数/RPC 方法数与代码实测一致 | `npm run docs:check` |
 | `scripts/smoke.ts` | 端到端 9 项（真起 serve） | `npm run smoke` |
 
-环境：Node ≥ 22.14（`engines` 钉定），Windows/macOS/Linux 均可开发；桌面打包当前仅 Windows。
+环境：Node ≥ 22.18（`engines` 钉定），Windows/macOS/Linux 均可开发；桌面打包当前仅 Windows。

@@ -1,7 +1,6 @@
-# OmniHarness App 验证流水线：与本地 `npm run verify` 同一裁决链
-# （桌面 GUI 打包除外；桌面纯逻辑判据包含在最后一步）。
-# 真实桌面 GUI 冒烟（desktop:smoke）作为 workflow_dispatch 手动门——GUI 在 CI 上偶尔
-# 抖（窗口时序/显卡驱动），日常每次 push 都跑会制造噪音；发版前手动触发一次即可。
+# OmniHarness App 验证流水线：与本地 `npm run verify` 同一裁决链（含文档门禁）。
+# 真实桌面 GUI 冒烟（desktop-gui-smoke）与发布打包（desktop-package）都是 workflow_dispatch
+# 手动门——GUI 在 CI 上偶尔抖（窗口时序/显卡驱动），打包耗时且只在发版前需要。
 # 判据布局见 CONTRIBUTING.md。
 name: verify
 
@@ -41,7 +40,10 @@ jobs:
       - name: 内核边界门禁（9 条判据；先跑，生成物漂移时给出可执行修复）
         run: npm run kernel:check
 
-      - name: 类型检查（后端 / 前端 / 桌面）
+      - name: 文档门禁（相对链接必须存在；域数/域模块数/RPC 方法数与代码实测一致）
+        run: npm run docs:check
+
+      - name: 类型检查（后端 / 前端 / 桌面 / 脚本 / 判据五份）
         run: npm run typecheck
 
       - name: 构建后端 + 前端（web 判据读取 web/dist，必须先构建）
@@ -110,3 +112,38 @@ jobs:
           $code = $LASTEXITCODE
           Pop-Location
           exit $code
+
+  # 发布物打包（stage 含 vendor 与侧车 → electron-builder NSIS → 载荷校验）：仅手动触发。
+  # 覆盖 push 流水线不跑的一整段；发版前手动跑一次，产物即安装包。
+  desktop-package:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.18'
+          cache: npm
+
+      - name: 安装依赖（含 vendored 内核 tarball + desktop）
+        run: |
+          npm ci
+          npm --prefix desktop ci --no-audit --no-fund
+
+      - name: 构建后端 + 前端 + 桌面主进程
+        run: |
+          npm run build
+          npm run build:web
+          npm run desktop:build
+
+      - name: 打 NSIS 安装包并校验载荷（stage + electron-builder + verify:package）
+        run: npm run desktop:dist
+
+      - name: 上传安装包
+        uses: actions/upload-artifact@v4
+        with:
+          name: omni-desktop-installer
+          path: desktop/release/*.exe
+          if-no-files-found: error

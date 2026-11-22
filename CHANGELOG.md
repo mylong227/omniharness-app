@@ -5,6 +5,18 @@
 
 ## [Unreleased]
 
+### Added（新增）
+- **文档门禁 + 发布打包手动门**（2026-11-22，审计收口）：
+  · 新增 `scripts/checkDocs.ts`（`npm run docs:check`），接入 `verify` 与 CI：README/CONTRIBUTING/docs
+    的相对链接必须存在；域数 / 域模块数 / RPC 方法数必须与代码实测一致（域文件数、`modules/index.ts`
+    登记数、parity 快照常量）。门禁本身做过断链负向验证。
+  · CI 新增 `desktop-package` 手动 job：stage（含 vendor 与侧车）→ electron-builder NSIS →
+    `verify:package` → 上传安装包，补上 push 流水线不覆盖的发布打包面。
+  · 按实测回填文档：`KERNEL-CONTRACT`（116→117 方法、278→285 源文件、对接面 430 唯一符号 /
+    294 条导出 / 247 个模块落点）、`REFACTOR-PLAN`（232→237 文件、1064→1075 用例、CI 已绿）、
+    README/CONTRIBUTING 的 Node 最低版本（22.14→22.18）与「今日实测」运行版本（Node 24.9.0）；
+    清掉已退役 `design/` 台账的相对链接与代码注释引用。
+
 ### Fixed（修复）
 - **CI 真机截图判据在干净检出下必红**（2026-11-22，`verify` run 44972776474）：
   · `settingsRuntimeCards` / `providerTilesShots` / `brandArc` 直接 `writeFileSync` 到

@@ -39,7 +39,7 @@ Electron main（受信） ──spawn──▶ node dist/src/apps/cli/exec.js se
 ## 2. 快速开始
 
 ```powershell
-npm ci                 # 安装依赖（含 vendor/ 内核 tarball；Node >= 22.14）
+npm ci                 # 安装依赖（含 vendor/ 内核 tarball；Node >= 22.18）
 npm start              # 构建 dist + web/dist，然后起 serve（默认 127.0.0.1:8787）
 npm run dev            # 开发回路：后端 serve + Vite dev server（HMR，5173）
 ```
@@ -93,6 +93,7 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 | `npm run web:test` | 判据（前端 195 文件 + 后端 42 文件 / 双项目——chrome 串行 / fast 并行 maxForks 6） |
 | `npm run typecheck` | 后端 + 前端 + 桌面 + 脚本 + 判据五份 strict 类型检查 |
 | `npm run kernel:check` | **内核边界门禁（9 条）**：vendored 钉定 / 无内嵌副本 / 对接面单点 / tarball 与锁文件一致 / 原生内核实载 / **对接面生成物不漂移** / **已承诺能力无同名副本** |
+| `npm run docs:check` | **文档门禁**：README/CONTRIBUTING/docs 的相对链接必须存在；域数/域模块数/RPC 方法数必须与代码实测一致 |
 | `npm run kernel:surface` | 从「业务代码实际 import + 内核包 .d.ts」生成 20 个域文件（新增符号无需手写 re-export） |
 | `npm run kernel:vendor` | 从内核仓重新构建并固定 `vendor/*.tgz`（tag 自 package.json 钉定版本解析） |
 | `npm run smoke` | **端到端**：真起 serve，验启动令牌、`/healthz` `/readyz` `/`、`/rpc config.get` |
@@ -101,7 +102,7 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 | `npm run desktop:build` / `desktop:test` | 打包主进程 / 44 条纯逻辑判据 |
 | `npm run desktop:smoke` | **真实桌面 GUI 验收**：窗口 / 侧车 / UI origin / DOM 挂载，退出码即结论 |
 | `npm run desktop:stage` / `desktop:dist` | 打包资源（含 vendor）/ NSIS 安装包 |
-| `npm run verify` | kernel:check → typecheck → 判据 → 后端构建 → 前端构建 → 冒烟 → 桌面构建与判据 |
+| `npm run verify` | kernel:check → docs:check → typecheck → 判据 → 后端构建 → 前端构建 → 冒烟 → 桌面构建与判据 |
 
 ## 4. 环境变量
 
@@ -185,7 +186,7 @@ src/host/kernel/<域>.ts —— 20 个自动生成的分域 re-export，无实�
 （可选）在 `tests/serverModulesParity.test.ts` 快照补方法名 →（可选）`web/src/core/ApiClient.ts` 加客户端方法。
 冲突（两处注册同名）在启动期即抛错。
 
-## 7. 今日实测（2026-11-22，本机 Node 22.20 / Windows；feat/kernel-package 并入 main 后全链复跑）
+## 7. 今日实测（2026-11-22，本机 Node 24.9.0 / Windows；feat/kernel-package 并入 main 后全链复跑）
 
 | 检查 | 结果 |
 | ---- | ---- |
@@ -211,8 +212,3 @@ src/host/kernel/<域>.ts —— 20 个自动生成的分域 re-export，无实�
 ## License
 
 Apache-2.0。见 [LICENSE](LICENSE) 与 [NOTICE](NOTICE)。
-
-
-
-
-

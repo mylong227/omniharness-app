@@ -46,6 +46,7 @@
     "typecheck:scripts": "tsc -p scripts/tsconfig.json --noEmit",
     "typecheck:tests": "tsc -p tsconfig.tests.json --noEmit",
     "kernel:check": "node scripts/checkKernelBoundary.ts",
+    "docs:check": "node scripts/checkDocs.ts",
     "kernel:surface": "node scripts/kernelSurface.ts",
     "check:exports": "knip",
     "kernel:vendor": "node scripts/vendorKernel.ts",
@@ -57,7 +58,7 @@
     "desktop:dist": "npm --prefix desktop run dist",
     "test": "npm run web:test",
     "smoke": "node scripts/smoke.ts",
-    "verify": "npm run kernel:check && npm run typecheck && npm run check:exports && npm run web:test && npm run build && npm run build:web && npm run smoke && npm run desktop:build && npm run desktop:test"
+    "verify": "npm run kernel:check && npm run docs:check && npm run typecheck && npm run check:exports && npm run web:test && npm run build && npm run build:web && npm run smoke && npm run desktop:build && npm run desktop:test"
   },
   "dependencies": {
     "@omniharness/kernel": "file:vendor/omniharness-kernel-0.1.0-alpha.38.tgz",
