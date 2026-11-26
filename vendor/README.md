@@ -4,7 +4,7 @@
 
 | 文件 | 说明 |
 | ---- | ---- |
-| `omniharness-kernel-0.1.0-alpha.38.tgz` | `@omniharness/kernel` 在 tag `v0.1.0-alpha.38` 的构建产物 + 应用 `native/omni_napi.node`（`NativeKernel` 从包根找它） |
+| `omniharness-kernel-0.1.0-alpha.47.tgz` | 从内核源码 tag `v0.1.0-alpha.47` 构建，附带应用现有的 Windows x64 `native/omni_napi.node`；未重新编译 Rust，也未发布到 npm |
 
 ## 重新生成
 
@@ -23,7 +23,10 @@ npm run kernel:check     # 9 条判据（含生成物不漂移 / 已承诺能力
 
 ## 版本史
 
-- **alpha.38**（当前）：R27 worker 域收编轮——`CliWorker` / `ExternalCliWorker` / `WindowsShim`
+- **alpha.47**（当前）：升级到内核修复版本，覆盖输入验证、路径和网络边界、恢复状态保护、
+  环境配置与 CI 检查。tarball 由源码构建并核对 SHA-512；保留应用现有 Windows 原生件。
+
+- **alpha.38**：R27 worker 域收编轮——`CliWorker` / `ExternalCliWorker` / `WindowsShim`
   上内核 worker 域（三条深路径承诺 + 23 条判据），应用侧接收后删除 extensions 三件 461 行；
   内核 17 门全绿（cross:check 应用侧影子清零后复绿）。
 - **alpha.37**：R26 应用侧收编轮——`compactionStateCodec` 深路径 + maintenance/autonomy 四件\n  （ServeInstance/MaintenanceRunner/GraphStore/GraphSummary，947 行）上内核；应用接收提交 `b477365`。\n- **alpha.35–36**：R21–R24 内容并入 alpha.37 发布（未单独 publish）。\n- **alpha.34**：R20 好用收口轮（M115–M119 + 独立 review 收口 P0×1/P1×2/P2×3/P3×4；
