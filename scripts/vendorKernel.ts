@@ -4,11 +4,11 @@
  *
  * 为什么需要脚本：应用钉的是**内核仓库某个 tag 的构建产物**，不是源码目录。手写 `npm pack`
  * 容易漏掉两件本应用特有的事：
- * 1. 内核包自身不带 `native/omni_napi.node`（它由应用仓构建），但 `NativeKernel` 从**包根**找它；
- * 2. `package.json#files` 默认不含 `native/`，不补就打包丢文件。
+ * 1. 当前内核从仓内 Rust 构建平台原生产物；没有 Rust 源码的旧 tag 才兼容应用中的旧插件；
+ * 2. 打包前检查 `package.json#files` 包含 `native/`，防止原生产物漏包。
  *
  * 脚本流程：kernel worktree（tag 可覆盖）→ 复用 kernel 的 node_modules → build →
- * 注入应用 native → 补 `files` → `npm pack` → 更新根 `package.json` 与 `package-lock.json` 的
+ * 准备平台原生产物 → 检查 `files` → `npm pack` → 更新根 `package.json` 与 `package-lock.json` 的
  * 路径/integrity。all-or-nothing 由各步非零退出保证。
  *
  * 用法：
@@ -16,6 +16,7 @@
  *   OMNI_KERNEL_ROOT=D:\path\to\kernel OMNI_KERNEL_TAG=v0.1.0-alpha.7 node scripts/vendorKernel.ts
  */
 import { createHash } from 'node:crypto';
+import { KernelNativeArtifacts } from './KernelNativeArtifacts.ts';
 import { execFileSync } from 'node:child_process';
 import {
   copyFileSync,
@@ -95,12 +96,9 @@ if (!existsSync(linkedModules)) {
   symlinkSync(kernelModules, linkedModules, process.platform === 'win32' ? 'junction' : 'dir');
 }
 
-// 3. 构建 + 注入原生内核 + 补 files
+// 3. 构建 + 准备平台原生产物 + 检查 files
 run(process.execPath, ['scripts/build.ts'], worktree);
-const nativeSource = join(ROOT, 'native', 'omni_napi.node');
-if (!existsSync(nativeSource)) throw new Error(`应用原生内核不存在：${nativeSource}`);
-mkdirSync(join(worktree, 'native'), { recursive: true });
-copyFileSync(nativeSource, join(worktree, 'native', 'omni_napi.node'));
+KernelNativeArtifacts.prepare(worktree, join(ROOT, 'native', 'omni_napi.node'));
 const kernelPkgPath = join(worktree, 'package.json');
 const kernelPkg = JSON.parse(readFileSync(kernelPkgPath, 'utf8')) as {
   files?: string[];

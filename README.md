@@ -1,7 +1,7 @@
 # OmniHarness App
 
 > **独立应用仓：完整后端宿主 + React 工作台 + Electron 桌面端。**
-> 内核是 [`@omniharness/kernel`](../omniharness-kernel) 的**固定发行物**（vendored tarball，当前 `0.1.0-alpha.38`），
+> 内核是 [`@omniharness/kernel`](../omniharness-kernel) 的**固定发行物**（vendored tarball，当前 `0.1.0-alpha.47`），
 > 应用经 `src/host/kernel/` **分域对接面**消费内核（全仓唯一的包导入点，门禁强制），
 > app 自有能力收留在 `src/host/extensions/`（原 `kernel-compat/`，M27 兼容层清零后更名）。
 > 2026-11-04 从 [OmniHarness](https://github.com/mylong227/OmniHarness) 切出并完成内核包迁移（M2），
@@ -124,11 +124,12 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 
 ```json
 "dependencies": {
-  "@omniharness/kernel": "file:vendor/omniharness-kernel-0.1.0-alpha.38.tgz"
+  "@omniharness/kernel": "file:vendor/omniharness-kernel-0.1.0-alpha.47.tgz"
 }
 ```
 
-> 2026-11-22 内核发版 `v0.1.0-alpha.38`（R27 worker 域收编轮）。
+> 2026-11-26 当前 vendor 升至 `v0.1.0-alpha.47`，包含新建 Rust 工程的原生产物；未发布 npm。
+> 2026-11-22 的 `v0.1.0-alpha.38` 为 R27 worker 域收编轮。
 > R26（alpha.37）：codec 深路径 + maintenance/autonomy 四件收编；R27（alpha.38）：
 > `CliWorker` / `ExternalCliWorker` / `WindowsShim` 上 worker 域（三条深路径承诺 + 23 条判据）。
 > 应用侧两轮合计删除 extensions 五件 + worker 三件（1,408 行），登记表归零；
@@ -138,10 +139,10 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 对接全景——谁在哪里、怎么连、哪条门禁在把守：
 
 ```text
-package.json 钉定 vendor/omniharness-kernel-0.1.0-alpha.38.tgz
+package.json 钉定 vendor/omniharness-kernel-0.1.0-alpha.47.tgz
       │  npm ci（lockfile integrity 钉死 tarball —— kernel:check 第 1/5 条）
       ▼
-@omniharness/kernel —— vendored 固定发行物（dist/** + native/omni_napi.node 随包）
+@omniharness/kernel —— vendored 固定发行物（dist/** + native/<platform>-<arch>/omni_napi.node 随包）
       │  全仓唯一导入点（kernel:check 第 7 条强制）
       ▼
 src/host/kernel/<域>.ts —— 20 个自动生成的分域 re-export，无实现
@@ -166,7 +167,7 @@ src/host/kernel/<域>.ts —— 20 个自动生成的分域 re-export，无实�
 - **117 个 RPC 方法**由 `src/apps/server/modules/` 的 21 个域模块声明式注册
   （parity 快照 `tests/serverModulesParity.test.ts` 钉住全表）；stdio 与 serve 两条组合根
   共用 `composedServerCore()` 不变量核心（历史「serve 漏接 doctor」缺陷类已结构性消灭）。
-- **原生内核随包**：内核 tarball 包含 `native/omni_napi.node`（`kernel:vendor` 注入），
+- **原生内核随包**：内核 tarball 包含 `native/<platform>-<arch>/omni_napi.node`（从 kernel 仓内 Rust 构建），
   `NativeKernel.available() === true`，`kernel:check` 会实载并 ping。
 - **升级回路（四步，常态业务代码零改动）**：
   ① 改 package.json 钉新 tgz（或 `npm run kernel:vendor` 从内核仓构建钉定，tag 缺省自
@@ -204,7 +205,7 @@ src/host/kernel/<域>.ts —— 20 个自动生成的分域 re-export，无实�
 
 - 应用代码来自上游 `OmniHarness@main`（0.4.0）；本仓的仓库级解耦、内核包迁移（M2）、
   模块化重构与 M21–M30 影子清零迁移用 `git log` 可审。
-- 内核来自 `../omniharness-kernel` 的 `v0.1.0-alpha.38` tag；`vendor/*.tgz` 是它的发行物，
+- 内核来自 `../omniharness-kernel` 的 `v0.1.0-alpha.47` tag；`vendor/*.tgz` 是它的发行物，
   **不是**第二份源码。重建用 `npm run kernel:vendor`（tag 缺省自 package.json 解析）。
 - 上游的 `tests/`、`crates/`、`third-party/`、看板与审计脚本没有切过来：本仓的判据是
   1079 用例（前端 195 文件 + 后端 43 文件）+ 桌面 44 条 + 冒烟 9 条 + 内核边界 9 条。
