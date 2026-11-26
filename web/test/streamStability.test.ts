@@ -93,29 +93,29 @@ test('SSE 徽标三态（重连中不闪红）+ .ev 不得再有入场动画', {
     await cdp.waitFor("!!document.querySelector('.composer-input textarea')", 1200);
     // ① 首次连接成功 → 已连接（绿）
     assert.ok(
-      await cdp.waitFor("((document.querySelector('.side-foot .pill')||{}).textContent||'').trim() === '已连接'", 600),
-      'SSE 打开后徽标应为「已连接」',
+      await cdp.waitFor("!!document.querySelector('.side-foot .pill.on')", 600),
+      'SSE 打开后徽标应为「已连接」：' + JSON.stringify(await readBadge(cdp)),
     );
     const open = await readBadge(cdp);
     assert.match(open!.cls, /pill on/, '已连接时 pill 应带 on 类（绿）');
 
     // ② 瞬时抖动：先「重连中」（黄），绝不立刻变「断开」
     await cdp.evaluate("(function(){ var es=(window.__SOURCES__||[])[0]; if(!es) return 'no-source'; es.onerror({}); return 'ok'; })()");
-    const transient = await cdp.waitFor("((document.querySelector('.side-foot .pill')||{}).textContent||'').trim() === '重连中'", 200);
+    const transient = await cdp.waitFor("!!document.querySelector('.side-foot .pill.warn')", 200);
     assert.ok(transient, '瞬时抖动后徽标应为「重连中」');
     const mid = await readBadge(cdp);
     assert.match(mid!.cls, /pill warn/, '重连中时 pill 应带 warn 类（黄）');
-    assert.doesNotMatch(mid!.text, /断开/, '瞬时抖动**不得**显示成「断开」（这正是用户看到的假故障）');
+    assert.doesNotMatch(mid!.text, /断开|Disconnected/iu, '瞬时抖动**不得**显示成「断开」（这正是用户看到的假故障）');
 
     // ③ 宽限期内重连成功 → 回到「已连接」，且此后不会因旧定时器再刷成「断开」
     await cdp.evaluate("(function(){ var es=(window.__SOURCES__||[])[0]; es.readyState = 1; if (es.onopen) es.onopen({}); return true; })()");
     assert.ok(
-      await cdp.waitFor("((document.querySelector('.side-foot .pill')||{}).textContent||'').trim() === '已连接'", 200),
+      await cdp.waitFor("!!document.querySelector('.side-foot .pill.on')", 200),
       '重连成功后徽标应回到「已连接」',
     );
     await new Promise((r) => setTimeout(r, 4500)); // 越过 4s 宽限期：旧定时器必须已被清掉
     const afterGrace = await readBadge(cdp);
-    assert.strictEqual(afterGrace!.text, '已连接', '重连成功后的宽限定时器必须被清掉（不得 4s 后刷成断开）');
+    assert.match(afterGrace!.cls, /\bon\b/u, '重连成功后的宽限定时器必须被清掉（不得 4s 后刷成断开）');
 
     // ④ 真断线：抖动后再不恢复 → 宽限期到点后落成「断开」（证明三态不是「永远重连中」）
     // 2026-11-08 修：宽限期是 4_000ms，原断言只等 1_200ms——在宽限期内必然仍是「重连中」，
@@ -133,7 +133,7 @@ test('SSE 徽标三态（重连中不闪红）+ .ev 不得再有入场动画', {
       return true;
     })()`);
     assert.ok(
-      await cdp.waitFor("((document.querySelector('.side-foot .pill')||{}).textContent||'').trim() === '断开'", 5_500),
+      await cdp.waitFor("!!document.querySelector('.side-foot .pill:not(.on):not(.warn)')", 5_500),
       '宽限期到点后应落成「断开」',
     );
   } finally {
