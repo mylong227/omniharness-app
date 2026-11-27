@@ -1,7 +1,7 @@
 # OmniHarness App
 
 > **独立应用仓：完整后端宿主 + React 工作台 + Electron 桌面端。**
-> 内核是 [`@omniharness/kernel`](../omniharness-kernel) 的**固定发行物**（vendored tarball，当前 `0.1.0-alpha.47`），
+> 内核是 [`@omniharness/kernel`](../omniharness-kernel) 的**固定发行物**（vendored tarball，当前 `0.1.0-alpha.48`），
 > 应用经 `src/host/kernel/` **分域对接面**消费内核（全仓唯一的包导入点，门禁强制），
 > app 自有能力收留在 `src/host/extensions/`（原 `kernel-compat/`，M27 兼容层清零后更名）。
 > 2026-11-04 从 [OmniHarness](https://github.com/mylong227/OmniHarness) 切出并完成内核包迁移（M2），
@@ -124,22 +124,25 @@ console.log(harness.url);            // http://127.0.0.1:<port>/?token=…
 
 ```json
 "dependencies": {
-  "@omniharness/kernel": "file:vendor/omniharness-kernel-0.1.0-alpha.47.tgz"
+  "@omniharness/kernel": "file:vendor/omniharness-kernel-0.1.0-alpha.48.tgz"
 }
 ```
 
-> 2026-11-26 当前 vendor 升至 `v0.1.0-alpha.47`，包含新建 Rust 工程的原生产物；未发布 npm。
+> 2026-11-27 当前 vendor 升至 `v0.1.0-alpha.48`：**模型路由缺凭据不再阻塞启动**——
+> 条目支持 `provider` / `baseUrl` / `apiKey` / `apiKeyEnv`（端点随厂商预设、凭据可由宿主从
+> `providerKeys` 物化），`serve` 缺凭据时注入占位模型、先起服务再到设置页补配置；未发布 npm。
+> 2026-11-26 的 `v0.1.0-alpha.47` 包含新建 Rust 工程的原生产物与安全修复。
 > 2026-11-22 的 `v0.1.0-alpha.38` 为 R27 worker 域收编轮。
 > R26（alpha.37）：codec 深路径 + maintenance/autonomy 四件收编；R27（alpha.38）：
 > `CliWorker` / `ExternalCliWorker` / `WindowsShim` 上 worker 域（三条深路径承诺 + 23 条判据）。
 > 应用侧两轮合计删除 extensions 五件 + worker 三件（1,408 行），登记表归零；
-> `kernel:check` 九条复绿（285 源文件 / 294 处包导入 / 原生内核实载），内核 cross:check
+> `kernel:check` 九条复绿（286 源文件 / 51 处包导入 / 原生内核实载），内核 cross:check
 > 跨仓契约一致。vendor 重建自该 tag，tarball integrity 与 `package-lock.json` 已同步。
 
 对接全景——谁在哪里、怎么连、哪条门禁在把守：
 
 ```text
-package.json 钉定 vendor/omniharness-kernel-0.1.0-alpha.47.tgz
+package.json 钉定 vendor/omniharness-kernel-0.1.0-alpha.48.tgz
       │  npm ci（lockfile integrity 钉死 tarball —— kernel:check 第 1/5 条）
       ▼
 @omniharness/kernel —— vendored 固定发行物（dist/** + native/<platform>-<arch>/omni_napi.node 随包）
@@ -205,7 +208,7 @@ src/host/kernel/<域>.ts —— 20 个自动生成的分域 re-export，无实�
 
 - 应用代码来自上游 `OmniHarness@main`（0.4.0）；本仓的仓库级解耦、内核包迁移（M2）、
   模块化重构与 M21–M30 影子清零迁移用 `git log` 可审。
-- 内核来自 `../omniharness-kernel` 的 `v0.1.0-alpha.47` tag；`vendor/*.tgz` 是它的发行物，
+- 内核来自 `../omniharness-kernel` 的 `v0.1.0-alpha.48` tag；`vendor/*.tgz` 是它的发行物，
   **不是**第二份源码。重建用 `npm run kernel:vendor`（tag 缺省自 package.json 解析）。
 - 上游的 `tests/`、`crates/`、`third-party/`、看板与审计脚本没有切过来：本仓的判据是
   1079 用例（前端 195 文件 + 后端 43 文件）+ 桌面 44 条 + 冒烟 9 条 + 内核边界 9 条。

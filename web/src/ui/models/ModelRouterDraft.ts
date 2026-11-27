@@ -1,12 +1,13 @@
 // 模型角色路由草稿模型：路由卡（ModelRouterCard）的**纯逻辑层**（零 React，node 可直测）。
 //
-// 内核语义（vendor alpha.33 `kernel/adapters/model/modelRouter.js` + `kernel/config/configBuilder.js`）：
+// 内核语义（vendor alpha.48 `kernel/adapters/model/modelRouter.js` + `kernel/config/configBuilder.js`）：
 //   · `by-role` 按 request.role 查 roles 映射；未映射回退 entries[0]（行为与不路由一致的前提
 //     是 entries[0] 就是默认模型）；
 //   · roles 指到的模型名必须在 entries 里——映射到不存在的条目时内核 fail-closed 抛错
 //     （配置错误不能静默换成别的模型）；
-//   · entries 的 adapter 缺省 mock；真实适配器的凭据取自**环境变量**（与 CLI 一致，
-//     fail-closed 缺密钥即报错）——主配置里的 apiKey/providerKeys **不会**用于路由条目。
+//   · entries 的 adapter 缺省 mock；条目可声明 `provider`（厂商预设 id）/ `baseUrl` / `apiKey`，
+//     端点优先级 baseUrl > 厂商预设 > 适配器兜底；凭据由服务端从 `providerKeys` 物化，
+//     不再要求用户额外设 OPENAI_API_KEY。常驻服务下缺凭据只会得到「未配置占位」，不再阻塞启动。
 //
 // 分层与 SettingsModel 一致：这里只管「草稿 ⇄ 配置段」的翻译与预挡校验，落盘统一走
 // SettingsModel.save（整段提交，服务端按段替换；内核 normalizeConfig 是最终裁决）。
@@ -57,10 +58,12 @@ export const MODEL_ROLES: readonly ModelRoleOption[] = [
 /** 路由条目适配器清单（内核 modelAdapterId 全集；凭据走各自环境变量）。 */
 export const ROUTER_ADAPTERS: readonly string[] = ['mock', 'openai', 'anthropic', 'responses', 'llamacpp', 'gemini'];
 
-/** 条目草稿：只保留 UI 可编辑面（模型名 + 适配器；pricing/maxContextTokens 经配置文件设置）。 */
+/** 条目草稿：只保留 UI 可编辑面（模型名 + 适配器 + 厂商；pricing/maxContextTokens 经配置文件设置）。 */
 interface RouterEntryDraft {
   model: string;
   adapter: string;
+  /** 厂商预设 id（可选）：空串 = 跟随服务端按适配器/Key 推断（alpha.48 起）。 */
+  provider?: string;
 }
 
 /** 路由卡编辑器草稿（null 语义不进草稿：未启用 = 不渲染编辑器）。 */
@@ -96,6 +99,9 @@ export function draftFromSection(section: ModelRouterConfig | undefined): Router
     entries: (section.entries ?? []).map((entry) => ({
       model: entry.model,
       adapter: entry.adapter ?? 'mock',
+      ...(entry.provider === undefined || entry.provider === ''
+        ? {}
+        : { provider: entry.provider }),
     })),
     roles: { ...(section.roles ?? {}) },
   };
@@ -167,6 +173,9 @@ export function sectionFromDraft(draft: RouterDraft): ModelRouterConfig {
     entries: draft.entries.map((entry) => ({
       model: entry.model.trim(),
       adapter: entry.adapter,
+      ...(entry.provider === undefined || entry.provider.trim() === ''
+        ? {}
+        : { provider: entry.provider.trim() }),
     })),
     ...(Object.keys(roles).length === 0 ? {} : { roles }),
   };

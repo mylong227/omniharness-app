@@ -15,16 +15,17 @@ import {
 } from '../src/ui/models/ModelRouterDraft.ts';
 import type { ModelRouterConfig } from '../src/types/models.ts';
 
-test('draftFromSection：adapter 缺省 mock、roles 浅拷贝、未配置返回 null', () => {
+test('draftFromSection：adapter 缺省 mock、provider 保留、roles 浅拷贝、未配置返回 null', () => {
   assert.equal(draftFromSection(undefined), null);
   const section: ModelRouterConfig = {
     strategy: 'by-role',
-    entries: [{ model: 'm1' }],
+    entries: [{ model: 'm1', provider: 'deepseek' }],
     roles: { executor: 'm1' },
   };
   const draft = draftFromSection(section);
   assert.ok(draft !== null);
   assert.equal(draft.entries[0].adapter, 'mock');
+  assert.equal(draft.entries[0].provider, 'deepseek');
   assert.deepEqual(draft.roles, { executor: 'm1' });
   // 草稿角色改动不回写段（隔离）。
   draft.roles.executor = 'other';
@@ -66,18 +67,28 @@ test('validateDraft：四形态全拦（空条目 / 缺模型名 / 重复 / 角�
   );
 });
 
-test('sectionFromDraft：trim 模型名、空 roles 不落键、条目只带 model/adapter', () => {
+test('sectionFromDraft：trim 模型名、空 roles/空 provider 不落键', () => {
   const section = sectionFromDraft({
     strategy: 'by-role',
-    entries: [{ model: ' m1 ', adapter: 'openai' }, { model: 'm2', adapter: 'anthropic' }],
+    entries: [
+      { model: ' m1 ', adapter: 'openai', provider: ' deepseek ' },
+      { model: 'm2', adapter: 'anthropic' },
+    ],
     roles: { executor: ' m1 ', planner: '  ', compactor: 'm2' },
   });
   assert.deepEqual(section, {
     strategy: 'by-role',
-    entries: [{ model: 'm1', adapter: 'openai' }, { model: 'm2', adapter: 'anthropic' }],
+    entries: [
+      { model: 'm1', adapter: 'openai', provider: 'deepseek' },
+      { model: 'm2', adapter: 'anthropic' },
+    ],
     roles: { executor: 'm1', compactor: 'm2' },
   });
-  const noRoles = sectionFromDraft({ strategy: 'round-robin', entries: [{ model: 'm', adapter: 'mock' }], roles: {} });
+  const noRoles = sectionFromDraft({
+    strategy: 'round-robin',
+    entries: [{ model: 'm', adapter: 'mock', provider: '  ' }],
+    roles: {},
+  });
   assert.deepEqual(noRoles, { strategy: 'round-robin', entries: [{ model: 'm', adapter: 'mock' }] });
 });
 

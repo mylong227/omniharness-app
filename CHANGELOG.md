@@ -20,6 +20,22 @@
     清掉已退役 `design/` 台账的相对链接与代码注释引用。
 
 ### Fixed（修复）
+- **「没配模型就起不来」根治：启动不再被模型配置卡死**（2026-11-27，用户真机报障）：
+  · 现场：`serve` 在就绪前抛 `配置错误: modelRouter openai 条目需要环境变量 OPENAI_API_KEY`
+    并退出，用户连设置页都进不去——而主配置里其实已经用 `providerKeys` 配好了 deepseek。
+  · 内核升到 `0.1.0-alpha.48`（重新 vendor）：`modelRouter` 条目支持 `provider` / `baseUrl` /
+    `apiKey` / `apiKeyEnv`（端点优先级 `baseUrl` > 厂商预设 > 适配器兜底；凭据优先级
+    `apiKey` > 指定环境变量），并新增 `OmniHarnessConfig.unconfiguredModel` 宿主占位工厂：
+    提供即 fail-soft（占位只在真正生成时报错），不提供保持 fail-closed。
+  · 应用侧：`serve` 注入 `UnconfiguredModel` 工厂（与主模型同一条纪律）——缺凭据只会让该条目
+    变成占位模型并打印一行可行动提示，**启动、开窗、进设置页全部照常**；
+    `ModelRouterCredentials` 在装配期把条目凭据从 `providerKeys` 物化（内存对象，不落盘）。
+  · 设置页「模型角色路由」新增条目级「厂商」下拉：选中后端点随厂商预设走、凭据取厂商 Key，
+    不再要求额外设置 `OPENAI_API_KEY`；未选厂商时才退回适配器环境变量，且提示语改为
+    「生成时会提示补配置（启动不受影响）」。
+  · 新增判据：内核 `tests/unit/modelRouterUnconfigured.test.ts`（7 条）；
+    应用 `tests/modelRouterCredentials.test.ts`（5 条）+ `web/test/modelRouterDraft.test.ts`
+    的 provider 往返断言。
 - **安装包把整个仓库打进了 app**（2026-11-22，打包手动门首跑）：`desktop/package.json` 里的
   `@omniharness/app: file:..` 没有任何桌面代码消费，但 electron-builder 会把它（junction 指向仓库根）
   连同 `.desktop-stage` / `dist` / `web` / 上一版 `desktop/release` 一起塞进 `app.asar.unpacked`——

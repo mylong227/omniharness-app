@@ -281,6 +281,9 @@ export class CliBuildConfig extends CliCredentialBuild {
       this.resolveModelRouter(args),
     ]);
     const { ConfigFactory } = await import('../../host/kernel/config.ts');
+    // 内核会在模型与子代理种子两处各装配一次路由，占位工厂因此可能被同一入口调用两次；
+    // 告警按「模型@适配器」去重，避免同一件事刷两行。
+    const warnedUnconfigured = new Set<string>();
     const config = ConfigFactory.build({
       workspaceRoot: args.workspace,
       // serve 的提问上行端口：`ask_user` / `plan_present` 在 ConfigFactory.build 期就捕获了
@@ -331,6 +334,35 @@ export class CliBuildConfig extends CliCredentialBuild {
         lspServer: this.parseLsp(args.lsp),
       }),
       modelRouter,
+      // 常驻服务：路由条目缺凭据时同样走「未配置占位」（与主模型同一条纪律）——此前内核
+      // 在装配期直接抛错，侧车就绪前退出、用户连设置页都进不去（2026-11-27 真机故障）。
+      ...(overrides.allowUnconfiguredModel === true
+        ? {
+            // 参数形状与内核 `UnconfiguredModelInfo` 结构一致（不 import 该类型：内核
+            // contracts 的符号面由生成器收敛，深层类型路径会触发 kernel:check 的未承诺路径）。
+            unconfiguredModel: (info: {
+              readonly adapter: string;
+              readonly model: string;
+              readonly apiKeyEnv: string | undefined;
+            }) => {
+              const key = `${info.model}@${info.adapter}`;
+              if (!warnedUnconfigured.has(key)) {
+                warnedUnconfigured.add(key);
+                process.stderr.write(
+                  AppText.t(
+                    '[omniharness] 模型路由条目 {model}（{adapter}）缺凭据：已用占位模型启动，配置好后即可使用（不会阻塞启动）。\n',
+                    { model: info.model, adapter: info.adapter },
+                  ),
+                );
+              }
+              return new UnconfiguredModel({
+                adapter: info.adapter,
+                model: info.model,
+                apiKeyEnv: info.apiKeyEnv,
+              });
+            },
+          }
+        : {}),
       // 系统提示：编码 Agent 取向（详见 DefaultPromptFragments 的类注释——原文案禁止连续探索、
       // 禁止跑 build/tsc，与「改代码」这一主场景直接冲突）。
       fragments: DefaultPromptFragments.codingAgent(),

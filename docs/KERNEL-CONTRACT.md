@@ -1,11 +1,19 @@
 # 本仓与内核（`@omniharness/kernel`）的契约
 
-> 实测日期 2026-11-22（alpha.38 对齐批次）。**结论**：应用消费 vendored `@omniharness/kernel@0.1.0-alpha.38`，
+> 实测日期 2026-11-27（alpha.48 对齐批次）。**结论**：应用消费 vendored `@omniharness/kernel@0.1.0-alpha.48`，
 > 全部内核导入收敛于 **`src/host/kernel/` 分域对接面**（20 个**自动生成**的域文件，
 > `npm run kernel:check` 第 7 条强制单点、第 8 条拒绝生成物漂移、第 9 条拒绝「已承诺能力的同名副本」）；
 > 内核切片清掉、app 仍需要的能力收留于 **`src/host/extensions/`**（app 自有扩展层，原 `kernel-compat/`，
 > M27 兼容层清零后更名；归属契约见[其 README](../src/host/extensions/README.md)）。
 > 后端 RPC 面由 **21 个域模块声明式注册**（117 方法，parity 快照钉住）。
+>
+> **2026-11-27 内核同步（alpha.47 → alpha.48，启动不再被模型配置卡死）**：`ModelRouterEntryConfig`
+> 新增 `provider` / `baseUrl` / `apiKey` / `apiKeyEnv`（端点 `baseUrl` > 厂商预设 > 适配器兜底；
+> 凭据 `apiKey` > 指定环境变量）；`OmniHarnessConfig.unconfiguredModel` 提供宿主占位工厂——
+> `serve` 注入后缺凭据条目换成占位模型，启动/开窗/进设置页照常，不再装配期 fail-closed 退出。
+> 应用侧新增 `src/apps/cli/modelRouterCredentials.ts`（按 `providerKeys` / 厂商预设物化条目凭据，
+> 仅在内存、不落盘）与设置页条目级「厂商」下拉。`kernel:check` 九条绿
+> （286 源文件 / 51 处包导入 / 原生内核实载）。
 >
 > **2026-11-22 内核同步（alpha.38，R27 worker 域收编）**：`CliWorker` / `ExternalCliWorker` /
 > `WindowsShim` 三件（461 行）上内核 worker 域并承诺三条深路径；应用侧 extensions 对应件删除、

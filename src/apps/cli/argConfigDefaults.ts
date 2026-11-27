@@ -1,5 +1,6 @@
 import type { FileConfig } from '../../host/kernel/contracts.ts';
 import type { CliArgs } from './cliArgs.ts';
+import { ModelRouterCredentials } from './modelRouterCredentials.ts';
 
 /**
  * `ArgParser.configDefaults` 的**分段映射**协作类（2026-10-31 从 argParser 抽出；该文件贴
@@ -53,7 +54,10 @@ export class ArgConfigDefaults {
       result.decisionEngine = file.decisionEngine;
     }
     if (file.modelRouter !== undefined) {
-      result.modelRouter = file.modelRouter;
+      // 2026-11-27：凭据/端点在此**物化**成条目字段（provider → baseUrl/apiKey），
+      // 否则内核只能靠适配器环境变量取钥：UI 用 providerKeys 配了 deepseek 也会被判「缺
+      // OPENAI_API_KEY」而启动失败。物化只在内存，apiKey 不落盘（见 ModelRouterCredentials）。
+      result.modelRouter = ModelRouterCredentials.materialize(file.modelRouter, file);
     }
     // 上下文三段（alpha.19）：**不映射 = CLI/serve 通道丢配置**。2026-11-15 实测发现
     // 设置页能落盘、内核却收不到（configDefaults 从未映射），行为静默回落到 off。

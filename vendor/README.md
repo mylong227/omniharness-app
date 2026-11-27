@@ -4,7 +4,7 @@
 
 | 文件 | 说明 |
 | ---- | ---- |
-| `omniharness-kernel-0.1.0-alpha.47.tgz` | 从内核源码 tag `v0.1.0-alpha.47` 构建，附带应用现有的 Windows x64 `native/omni_napi.node`；未重新编译 Rust，也未发布到 npm |
+| `omniharness-kernel-0.1.0-alpha.48.tgz` | 从内核源码 tag `v0.1.0-alpha.48` 构建，附带应用现有的 Windows x64 `native/omni_napi.node` / `omni-cli.exe`；未重新编译 Rust，也未发布到 npm |
 
 ## 重新生成
 
@@ -23,7 +23,12 @@ npm run kernel:check     # 9 条判据（含生成物不漂移 / 已承诺能力
 
 ## 版本史
 
-- **alpha.47**（当前）：升级到内核修复版本，覆盖输入验证、路径和网络边界、恢复状态保护、
+- **alpha.48**（当前）：模型路由条目支持 `provider` / `baseUrl` / `apiKey` / `apiKeyEnv`，
+  并新增 `OmniHarnessConfig.unconfiguredModel` 宿主占位工厂——**缺凭据时 `serve` 先起来、
+  再到设置页补配置**，不再在装配期 fail-closed 退出。tarball 由源码 tag 构建并核对 SHA-512；
+  原生件沿用上一版 Windows 构建产物（本次未改 Rust）。
+
+- **alpha.47**：内核修复版本，覆盖输入验证、路径和网络边界、恢复状态保护、
   环境配置与 CI 检查。tarball 由源码构建并核对 SHA-512；保留应用现有 Windows 原生件。
 
 - **alpha.38**：R27 worker 域收编轮——`CliWorker` / `ExternalCliWorker` / `WindowsShim`

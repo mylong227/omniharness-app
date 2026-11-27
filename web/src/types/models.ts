@@ -143,6 +143,11 @@ export interface MemoryFactsResult {
 interface ModelRouterEntryConfig {
   model: string;
   adapter?: string;
+  /**
+   * 厂商预设 id（内核 alpha.48）：给出时端点随厂商预设走，凭据由服务端从 `providerKeys`
+   * 物化——UI 用「厂商 Key」配置的用户不必再设适配器环境变量。
+   */
+  provider?: string;
   pricing?: { inputPer1M: number; outputPer1M: number; cachedInputPer1M?: number };
   maxContextTokens?: number;
 }

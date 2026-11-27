@@ -2,6 +2,8 @@
 // 键 = 中文原文（与 AppText.t 的调用点逐字一致）；值 = English。
 export const CLI: Readonly<Record<string, string>> = {
   '未开启（--probe-model 可探测模型连通性）': 'Not enabled (use --probe-model to test model connectivity)',
+  '[omniharness] 模型路由条目 {model}（{adapter}）缺凭据：已用占位模型启动，配置好后即可使用（不会阻塞启动）。\n':
+    '[omniharness] Route entry {model} ({adapter}) has no credentials: started with a placeholder model; it works once configured (startup is never blocked).\n',
   '未找到配置文件（先运行 omniharness init）': 'No config file found (run omniharness init first)',
   'mock 适配器（脚本化应答，无需联网）': 'mock adapter (scripted responses, no network needed)',
   '缺省': 'default',

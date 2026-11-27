@@ -62,7 +62,7 @@
     "verify": "npm run kernel:check && npm run docs:check && npm run typecheck && npm run check:exports && npm run web:test && npm run build && npm run build:web && npm run smoke && npm run desktop:build && npm run desktop:test"
   },
   "dependencies": {
-    "@omniharness/kernel": "file:vendor/omniharness-kernel-0.1.0-alpha.47.tgz",
+    "@omniharness/kernel": "file:vendor/omniharness-kernel-0.1.0-alpha.48.tgz",
     "antd": "^6.7.1",
     "croner": "^11.0.1",
     "highlight.js": "^11.12.0",

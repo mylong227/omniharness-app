@@ -333,9 +333,12 @@ export const EN_SETTINGS: Record<string, string> = {
   停用角色路由: 'Disable role routing',
   策略: 'Strategy',
   路由条目: 'Route entries',
-  '模型名 + 底层适配器；角色未映射或非 by-role 策略时用第一个条目。':
-    'Model name + underlying adapter; unmapped roles (and non by-role strategies) use the first entry.',
+  '模型名 + 底层适配器 + 可选厂商；角色未映射或非 by-role 策略时用第一个条目。':
+    'Model name + adapter + optional provider; unmapped roles (and non by-role strategies) use the first entry.',
   添加条目: 'Add entry',
+  厂商: 'Provider',
+  '条目 {n} 厂商': 'Entry {n} provider',
+  跟随当前厂商: 'Follow the active provider',
   角色映射: 'Role mapping',
   '仅「按角色」策略消费；留空的角色回退首个条目。':
     'Only consumed by the by-role strategy; empty roles fall back to the first entry.',
@@ -349,8 +352,10 @@ export const EN_SETTINGS: Record<string, string> = {
   '条目 {n} 缺模型名': 'Entry {n} is missing a model name',
   '模型名重复：{model}': 'Duplicate model name: {model}',
   '角色「{role}」映射的模型不在条目里': 'Role "{role}" maps to a model that is not among the entries',
-  '路由条目的凭据取自对应适配器的环境变量（与 CLI 一致），主配置的 API Key 不用于路由条目；定价与上下文上限经配置文件设置。':
-    'Entry credentials come from each adapter’s environment variables (same as the CLI); the configured API key is not used for route entries. Pricing and context limits go through the config file.',
+  '条目 {n}（{adapter}）：环境变量 {env} 未检测到，且未选厂商；生成时会提示补配置（启动不受影响）':
+    'Entry {n} ({adapter}): environment variable {env} is not set and no provider is chosen; generation will ask for configuration (startup is unaffected).',
+  '条目可选「厂商」：端点随厂商预设走，凭据由服务端从「厂商 Key」物化；未选厂商时退回该适配器的环境变量，缺凭据也只会得到占位模型、不再阻塞启动。定价与上下文上限经配置文件设置。':
+    'Each entry can pick a provider: the endpoint follows the provider preset and credentials are materialized from the provider keys; without a provider it falls back to the adapter environment variables. Missing credentials only produce a placeholder model and never block startup. Pricing and context limits live in the config file.',
   // 策略标签与说明（ModelRouterDraft.ROUTER_STRATEGIES 的 label/hint 值）
   按角色: 'By role',
   最低成本: 'Least cost',
