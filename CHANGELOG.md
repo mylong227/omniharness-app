@@ -20,6 +20,11 @@
     清掉已退役 `design/` 台账的相对链接与代码注释引用。
 
 ### Fixed（修复）
+- **`npm start`/`start.cmd` 的 `[tmp-sweep]` 告警（2026-11-27）**：`scripts/startAll.ts` 此前经
+  自动生成的对接面 `dist/src/host/kernel/maintenance.js` 取 `TmpSweep`，而 `kernel:surface` 只保留
+  业务实际用到的符号（`scripts/` 不在扫描范围）⇒ 该符号被裁剪，每次启动必报
+  `Cannot read properties of undefined (reading 'run')`。改为直接从内核包
+  `@omniharness/kernel/maintenance` 取；启动前清理重新生效（`维护巡检` 行恢复）。
 - **「没配模型就起不来」根治：启动不再被模型配置卡死**（2026-11-27，用户真机报障）：
   · 现场：`serve` 在就绪前抛 `配置错误: modelRouter openai 条目需要环境变量 OPENAI_API_KEY`
     并退出，用户连设置页都进不去——而主配置里其实已经用 `providerKeys` 配好了 deepseek。

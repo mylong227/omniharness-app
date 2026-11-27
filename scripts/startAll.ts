@@ -35,7 +35,7 @@
 import { spawnSync, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import {
   browserOpenCommand,
   classifyReadyProbe,
@@ -163,12 +163,17 @@ if (!skipBuild) {
 // 启动前清一次**超过 7 天**的本仓临时产物（Chrome profile / worktree 副本 / A/B 目录）。
 // 只清本仓前缀且超龄，不会碰另一个正在运行的进程；失败只告警，不阻断启动。
 try {
-  // dist 产物不经 TS 解析（脚本区与 src 解耦）——这里钉的是内核 TmpSweep.run 的稳定契约形状。
-  const maintenance = (await import(
-    pathToFileURL(join(REPO, 'dist', 'src', 'host', 'kernel', 'maintenance.js')).href
-  )) as {
+  // 2026-11-27 修：此前经 `dist/src/host/kernel/maintenance.js` 取 `TmpSweep`，而该文件是
+  // **自动生成的对接面**（`kernel:surface` 只保留业务实际用到的符号 + `scripts/` 不在扫描范围）
+  // ⇒ `TmpSweep` 被裁剪，启动时必报 `Cannot read properties of undefined (reading 'run')`。
+  // 脚本区本来就不受对接面约束（门禁只扫 `src/`），直接从内核包取这个符号即可，且不依赖 dist 是否已构建。
+  const maintenance = (await import('@omniharness/kernel/maintenance')) as {
     TmpSweep: {
-      run(options: { olderThanMs: number }): { matched: unknown[]; removed: number; scanned: number };
+      run(options: { olderThanMs: number }): {
+        matched: readonly unknown[];
+        removed: number;
+        scanned: number;
+      };
     };
   };
   const sweep = maintenance.TmpSweep.run({ olderThanMs: 7 * 24 * 60 * 60 * 1000 });
