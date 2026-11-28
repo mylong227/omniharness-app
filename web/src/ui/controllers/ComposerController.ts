@@ -2,6 +2,7 @@
 // 承接原 useAppController 中 send / changeModel / changeReasoning / changePermission 回调，
 // 经 AppHost.patch 驱动 App 状态，行为逐字节等价。
 
+import { errorMessageOf } from '../../core/errorText.ts';
 import type { AppHost, AppServices } from './AppController.ts';
 import type {
   FileAttachment,
@@ -108,7 +109,7 @@ export class ComposerController {
       return t('。服务端等待超时，回合可能仍在后台继续；可稍候重新打开该会话查看结果，或点「停止」后再发一次。');
     }
     // 非结构化兜底（旧客户端 / 非 rpc() 抛出）：按文案识别中止；其余给通用建议。
-    const message = error instanceof Error ? error.message : String(error);
+    const message = errorMessageOf(error);
     if (/中止|abort/i.test(message)) {
       return t('。');
     }

@@ -1,5 +1,6 @@
 // 凭证数据钩子：打开取回合列表；选中回合后显式构造证书（复核/导出由用户触发，不自动生成大包）。
 
+import { errorMessageOf } from '../../../../core/errorText.ts';
 import * as React from 'react';
 import { useApp } from '../../../context.ts';
 import { t } from '../../../i18n/i18n.ts';
@@ -81,7 +82,7 @@ export function useProof(threadId: string | null, active: boolean): UseProofResu
       })
       .catch((e: unknown) => {
         if (seq !== seqRef.current) return;
-        setTurnsError(e instanceof Error ? e.message : String(e));
+        setTurnsError(errorMessageOf(e));
         setTurns(null);
       })
       .finally(() => {
@@ -131,7 +132,7 @@ export function useProof(threadId: string | null, active: boolean): UseProofResu
         })
         .catch((e: unknown) => {
           if (seq !== buildSeqRef.current) return;
-          setBuildError(e instanceof Error ? e.message : String(e));
+          setBuildError(errorMessageOf(e));
           setBundle(null);
         })
         .finally(() => {
@@ -159,7 +160,7 @@ export function useProof(threadId: string | null, active: boolean): UseProofResu
       if (isFailure(result)) return result.message;
       return result;
     } catch (e) {
-      return e instanceof Error ? e.message : String(e);
+      return errorMessageOf(e);
     }
   }, [api, threadId, selectedTurn]);
 

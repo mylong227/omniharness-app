@@ -45,7 +45,7 @@ test('classify：压缩游标（带 evidence）→ 折叠视图，元信息/摘�
   const view = SystemNote.classify(`OMNI_COMPACTION_V1 upTo=355 hash=5e8c42c7 evidence=${evidence}\n${SUMMARY}`);
   assert.ok(view !== null, '带证据的游标必须被识别（旧正则在这里失败，回落到全文平铺）');
   assert.strictEqual(view.kind, 'compaction');
-  assert.strictEqual(view.title, '上下文已压缩');
+  assert.strictEqual(view.title, '上下文压缩✔');
   assert.match(view.meta, /游标 355/u);
   assert.match(view.meta, /摘要约 \d/u);
   assert.strictEqual(view.excerpt, '现在盘点当前项目信息 ---- 将存在的问题进行修改', '摘要在结构标签之后，不念标签');

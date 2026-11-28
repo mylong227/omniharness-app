@@ -10,6 +10,7 @@
 // 资源选择统一口径，判据 pickerUniformity 钉死）；结论用 `StatusTag` 与 `Alert`；
 // 两栏布局用 `Row/Col`。
 
+import { errorMessageOf } from '../../../../core/errorText.ts';
 import * as React from 'react';
 import type { ReactElement } from 'react';
 // 子路径导入（不走 barrel，理由见 vite.config.ts「分块改造」注释）。
@@ -216,7 +217,7 @@ export function ProofMode(props: ProofModeProps): ReactElement {
           }
           return api.proof.proofVerify(bundle).then((result) => setVerify(result));
         })
-        .catch((e: unknown) => setVerifyError(e instanceof Error ? e.message : String(e)))
+        .catch((e: unknown) => setVerifyError(errorMessageOf(e)))
         .finally(() => setVerifying(false));
     },
     [api],

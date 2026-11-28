@@ -152,7 +152,8 @@
 /* 品牌标识（Ω 芯片）：2026-10-20 重做。
    用户反馈「背景框太亮、太方正」→ 先改成 30×24 淡墨扁平芯片；随后又反馈「太扁了，
    要方感，圆角有点椭圆、不是标准圆角弧度」→ 现在稳定为 **28×28 的方芯片 + 椭圆角**
-   （`border-radius: 10px / 6px`：水平半径 10、垂直 6，四角呈椭圆弧而不是四分之一圆）。
+   （`border-radius: 12px / 8px`：水平半径 12、垂直 8，四角呈椭圆弧而不是四分之一圆；
+   2026-11-27 用户口径「圆角稍微大点」由 10/6 上调，同日看效后「再调大一点点」至 12/8）。
    Ω 与淡墨色仍在——识别度靠字形与独有形状，不靠高亮块。
    慢呼吸 + 偶发扫光是「logo 自己有点小动画」；工作状态条用同一枚芯片的紧凑版。 */
 .brand .logo,
@@ -170,7 +171,7 @@
   height: var(--bm-h);
   overflow: hidden;
   border: 1px solid var(--brand-tile-rim);
-  border-radius: 10px / 6px;
+  border-radius: 12px / 8px;
   /* 2026-11-08「统一」：与应用图标同一套固定配色——白底 + 靛墨 Ω + 淡靛描边。
      此前是 accent 15% 混 panel 的淡墨底，浅色主题下与图标的白底不一致。 */
   background: var(--brand-tile);
@@ -467,7 +468,9 @@
 .ws-switch-btn {
   background: var(--panel);
   border: 1px solid var(--border-soft);
-  border-radius: var(--r-md);
+  /* 项目行（2026-11-27 用户口径）：圆角与品牌芯片一起放大——比共享 --r-md(12px) 高一档。
+     专用值不挤进 token 阶梯：只调这一行，不动全站 16 处 --r-md 消费。 */
+  border-radius: 14px;
   padding: 7px 10px;
   color: var(--text);
   font-size: var(--fs-list);
@@ -2167,16 +2170,6 @@
   flex: none;
 }
 
-/* 工作状态条：无框一行。动态由 BrandMark compact（品牌标识的「工作中」呼吸）承担，
-   文字与计时只做信息，不再画底框或左侧高亮条。 */
-.work-indicator {
-  margin: 8px 16px 0;
-  padding: 2px 2px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--dim);
-}
 
 /* 中栏头：标题 + 视图切换。发丝线收尾，不给整条横带加底色。 */
 .chat-head {
@@ -4399,57 +4392,6 @@ button,
   border-color: transparent;
   color: var(--bg);
   opacity: 0.88;
-}
-
-/* 工作状态条（2026-10-31 对齐标杆「已工作 X分X秒 ›」）：一行可折叠的计时行——
-   收起只留「已工作 + 计时 + ▸」，展开补一行当前动作；整行可点（role=status 保留在容器上）。 */
-.work-indicator {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 2px;
-}
-.wi-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: transparent;
-  border: none;
-  border-radius: var(--r-xs);
-  padding: 2px 4px;
-  cursor: pointer;
-  font-size: var(--fs-sm);
-  color: var(--dim);
-  text-align: left;
-}
-.wi-toggle:hover {
-  background: var(--hover);
-  color: var(--text);
-}
-.wi-label {
-  color: var(--dim);
-  font-weight: 550;
-}
-.wi-toggle:hover .wi-label {
-  color: var(--text);
-}
-.wi-time {
-  margin-left: 0;
-  opacity: 1;
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: var(--fs-sm);
-  font-variant-numeric: tabular-nums;
-}
-.wi-chevron {
-  color: var(--faint);
-  font-family: var(--mono);
-  font-size: 11px;
-}
-.wi-action {
-  padding: 0 4px 2px 30px;
-  color: var(--dim);
-  font-size: var(--fs-sm);
 }
 
 /* ── 会话行内运行态与置顶角标（2026-11-06 实用性打磨） ───────────────── */

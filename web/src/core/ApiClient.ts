@@ -1,6 +1,7 @@
 // 面向对象的服务层：封装与后端的所有 JSON-RPC 2.0 通信与 /metrics 拉取。
 // 组件层只依赖本类，不直接 fetch，便于替换与单测。
 
+import { errorMessageOf } from './errorText.ts';
 import { authToken } from './authToken.ts';
 import {
   AutomationsApi,
@@ -212,7 +213,7 @@ export class ApiClient {
     } catch (error) {
       // fetch 自身失败 = 传输层不可达（服务未运行 / 断网 / 代理拒答）。此前落进通用
       // 「检查 API Key」提示是误导（2026-11-18 硬编码清理批次：网络失败首次可分类）。
-      const reason = error instanceof Error ? error.message : String(error);
+      const reason = errorMessageOf(error);
       throw new RpcError('network', L('无法连接服务端（服务未运行或网络不可达）：{reason}', { reason }));
     }
     // 归因必须保住：只有「JSON-RPC error **对象**」才当作协议错误读它的 message。
@@ -288,7 +289,7 @@ export class ApiClient {
     } catch (error) {
       // 传输层不可达与其他 rpc() 路径同一分类口径（kind=network），消费方据此给
       // 「服务端不可达」类建议而不是误导性的换模型/查 Key（2026-11-18 硬编码清理批次延续）。
-      const reason = error instanceof Error ? error.message : String(error);
+      const reason = errorMessageOf(error);
       throw new RpcError('network', L('无法连接服务端（服务未运行或网络不可达）：{reason}', { reason }));
     }
     if (!res.ok) throw new RpcError('http-status', L('metrics 请求失败：{status}', { status: res.status }), res.status);

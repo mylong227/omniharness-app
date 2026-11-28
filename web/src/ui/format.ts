@@ -6,6 +6,7 @@ import { markdownRender, markdownLibsReady, handleCodeblockCopyClick } from './m
 import { icon } from './kit/Icon.tsx';
 import { parseTurnDiffFiles, turnDiffTotals } from './models/TurnDiffFiles.ts';
 import { describeToolCall, truncate } from './textUtils.ts';
+import { isTodoDone, isTodoDoing } from './models/TodoStatus.ts';
 import type { IconName } from './kit/Icon.tsx';
 import type { ThreadEvent } from '../types/models.ts';
 import { t } from './i18n/i18n.ts';
@@ -240,10 +241,11 @@ export function permChip(p: string): ReactElement {
  * @returns 待办卡片元素。
  */
 export function todoView(todos: { status?: string; content?: string }[]): ReactElement {
+  // 词表谓词单源（TodoStatus）：completed|done / in_progress|doing 双词表判定不再各写一份。
   const dotClass = (status?: string): string => {
-    if (status === 'completed' || status === 'done') return 'todo-dot done';
-    if (status === 'in_progress' || status === 'doing') return 'todo-dot doing';
-    return 'todo-dot ';
+    if (isTodoDone(status)) return 'todo-dot done';
+    if (isTodoDoing(status)) return 'todo-dot doing';
+    return 'todo-dot';
   };
   return React.createElement(
     'div',
@@ -257,6 +259,38 @@ export function todoView(todos: { status?: string; content?: string }[]): ReactE
       ),
     ),
   );
+}
+
+/**
+ * 待办摘要读数（纯函数，node 直测）：折叠摘要行与计划坞共用同一口径。
+ * @param todos 待办项数组，每项含可选 status 与 content。
+ * @returns 总数 / 已完成数 / 首个进行项文本（无进行项则缺省）。
+ */
+export interface TodoBrief {
+  /** 待办总数。 */
+  readonly total: number;
+  /** 已完成数（completed / done 两种词表都认，口径同 {@link todoView}）。 */
+  readonly done: number;
+  /** 首个进行项文本（in_progress / doing；无则缺省）。 */
+  readonly current?: string;
+}
+
+/**
+ * 从待办数组提取摘要读数：总数、完成数、首个进行项。
+ * @param todos 待办项数组（只读入参，实现不改动）。
+ * @returns 摘要读数。
+ */
+export function todoBrief(todos: readonly { status?: string; content?: string }[]): TodoBrief {
+  let done = 0;
+  let current: string | undefined;
+  for (const item of todos) {
+    const status = item?.status;
+    if (isTodoDone(status)) done += 1;
+    else if (isTodoDoing(status) && current === undefined) {
+      current = item?.content ?? '';
+    }
+  }
+  return { total: todos.length, done, ...(current !== undefined ? { current } : {}) };
 }
 
 /**

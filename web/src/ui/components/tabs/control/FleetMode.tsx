@@ -6,6 +6,7 @@
 // 2026-11-11 控制台 antd 化：车道列表用 `Collapse`（标题即行、展开即详情，键盘可达），
 // 状态用 `StatusTag`，事实表用 `Descriptions`，动作与补丁预览用 `Button` / `Alert` / `Skeleton`。
 
+import { errorMessageOf } from '../../../../core/errorText.ts';
 import * as React from 'react';
 import type { ReactElement } from 'react';
 // 子路径导入（不走 barrel，理由见 vite.config.ts「分块改造」注释）。
@@ -152,7 +153,7 @@ export function FleetMode(props: FleetModeProps): ReactElement {
           if (seq === patchSeqRef.current) setPatch(result);
         })
         .catch((e: unknown) => {
-          if (seq === patchSeqRef.current) setPatchError(e instanceof Error ? e.message : String(e));
+          if (seq === patchSeqRef.current) setPatchError(errorMessageOf(e));
         })
         .finally(() => {
           if (seq === patchSeqRef.current) setPatchLoading(false);
@@ -191,7 +192,7 @@ export function FleetMode(props: FleetModeProps): ReactElement {
           toast(result.message, 'err');
         }
       } catch (e) {
-        toast(e instanceof Error ? e.message : String(e), 'err');
+        toast(errorMessageOf(e), 'err');
       } finally {
         setCancelling(null);
       }
@@ -230,7 +231,7 @@ export function FleetMode(props: FleetModeProps): ReactElement {
               setPatchError(null);
               refresh();
             })
-            .catch((e: unknown) => toast(e instanceof Error ? e.message : String(e), 'err'))
+            .catch((e: unknown) => toast(errorMessageOf(e), 'err'))
             .finally(() => setApplying(false));
         });
     },

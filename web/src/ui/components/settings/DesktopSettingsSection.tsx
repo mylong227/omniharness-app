@@ -1,4 +1,5 @@
 /** 控制台 → 桌面：托盘 / 开机启动 / 更新 / 诊断（仅桌面桥可用；浏览器下说明边界）。 */
+import { errorMessageOf } from '../../../core/errorText.ts';
 import * as React from 'react';
 import {
   desktopBridge,
@@ -209,7 +210,7 @@ export function DesktopSettingsSection(): React.ReactElement {
         setUpdate(nextStatus);
       })
       .catch((cause: unknown) => {
-        if (alive) setError(cause instanceof Error ? cause.message : String(cause));
+        if (alive) setError(errorMessageOf(cause));
       });
     const unsubscribe = bridge.onUpdateStatus((status) => {
       if (alive) setUpdate(status);
@@ -243,7 +244,7 @@ export function DesktopSettingsSection(): React.ReactElement {
     try {
       await action();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(errorMessageOf(cause));
     } finally {
       setBusy(null);
     }

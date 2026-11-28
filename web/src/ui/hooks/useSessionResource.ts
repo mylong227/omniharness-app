@@ -23,6 +23,7 @@
 //   · loading 只在「还没有任何数据」时为 true：运行中会话的周期刷新不再把面板闪回骨架屏
 //     （也保住过滤输入框的焦点——见 AuditTab 的注释）。
 
+import { errorMessageOf } from '../../core/errorText.ts';
 import * as React from 'react';
 import { useApp } from '../context.ts';
 import { useLatestRequest } from './LatestRequest.ts';
@@ -136,7 +137,7 @@ export function useSessionResource<T>(options: SessionResourceOptions<T>): Sessi
       },
       (cause: unknown) => {
         if (!request.isCurrent(ticket)) return;
-        setError(cause instanceof Error ? cause.message : String(cause));
+        setError(errorMessageOf(cause));
         setSettled(true);
         setLoading(false);
         setRefreshing(false);

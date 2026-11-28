@@ -175,7 +175,7 @@ export class SystemNote {
   private static compactionView(note: CompactionNoteParts): SystemNoteView {
     return {
       kind: 'compaction',
-      title: t('上下文已压缩'),
+      title: t('上下文压缩✔'),
       meta: [
         t('游标 {n}', { n: String(note.upTo) }),
         t('摘要约 {n} 字', { n: NumberFormatter.abbrev(note.summary.length) }),

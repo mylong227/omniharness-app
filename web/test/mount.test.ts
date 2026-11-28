@@ -18,7 +18,6 @@ const { AddMenu } = await import('../src/ui/components/AddMenu.tsx');
 const { PermissionPicker } = await import('../src/ui/components/PermissionPicker.tsx');
 const { FileTree } = await import('../src/ui/components/FileTree.tsx');
 const { Toast } = await import('../src/ui/components/Toast.tsx');
-const { WorkIndicator } = await import('../src/ui/components/WorkIndicator.tsx');
 const { ApprovalModal } = await import('../src/ui/components/ApprovalModal.tsx');
 const { DialogHost } = await import('../src/ui/components/DialogHost.tsx');
 
@@ -220,30 +219,6 @@ test('Toast：role=status + aria-live=polite + aria-atomic（异步提示不打�
   assert.strictEqual(vnode!.props['aria-live'], 'polite');
   assert.strictEqual(vnode!.props['aria-atomic'], 'true');
   assert.strictEqual(allText(vnode), '已保存');
-});
-
-test('WorkIndicator：role=status 播报，收起只留计时，展开才见当前动作', async () => {
-  const ui = renderFacade(WorkIndicator, { props: { activeTool: 'shell' } });
-  assert.strictEqual(ui.node!.props.role, 'status');
-  assert.strictEqual(ui.node!.props['aria-live'], 'polite');
-  // 装饰（品牌标识根——星环/星云/星尘都在根的 aria-hidden 作用域内，内层不再冗余声明）
-  // 与每秒跳动的计时数字都 aria-hidden，避免每秒打断朗读。
-  const hidden = collect(ui.node, (n) => n.props['aria-hidden'] === 'true');
-  assert.strictEqual(hidden.length, 3, '品牌标识根、计时数字与 chevron 都应 aria-hidden');
-  assert.match(allText(ui.node), /已工作/);
-  assert.doesNotMatch(allText(ui.node), /正在执行命令/, '收起态不显示动作明细');
-  // 展开态：当前动作文案出现（朗读内容也在这里），aria-expanded 同步翻转。
-  // 根节点是容器 div，可点的是它里面的折叠按钮——点按钮本身。
-  const btnEl = ui.node!.el instanceof HTMLButtonElement ? ui.node!.el : ui.node!.el.querySelector('button');
-  assert.ok(btnEl, '折叠按钮必须存在');
-  fireEvent.click(btnEl);
-  await act(async () => {
-    await Promise.resolve();
-  });
-  const vnode = facadeOf(ui.container.firstElementChild);
-  assert.match(allText(vnode), /正在执行命令/);
-  const toggleNode = collect(vnode, (n) => n.type === 'button')[0];
-  assert.strictEqual(toggleNode?.props['aria-expanded'], 'true');
 });
 
 test('ApprovalModal：role=dialog + aria-modal + labelledby/describedby 且锚点存在', async () => {

@@ -81,7 +81,7 @@ export class TrailFilter {
       if (ev.type === 'tool_result') {
         // 调用卡已内联的结果不再成行；孤儿结果（历史被截断）保留。
         if (callIds.has(EventFields.callId(ev))) return;
-        rows.push({ ev, index, kind: 'result', failed: ev.payload?.ok !== true });
+        rows.push({ ev, index, kind: 'result', failed: EventFields.toolFailed(ev) });
         return;
       }
       rows.push({ ev, index, kind: 'other', failed: false });

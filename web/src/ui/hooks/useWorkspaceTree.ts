@@ -4,6 +4,7 @@
 // 与旧的逐目录代际守卫不同：这里只有**一个**请求，不存在「后到的旧目录响应改写列表」的竞态；
 // 但刷新可以与首次加载重叠，故仍用序号丢弃过期响应（语义是「最后一次刷新为准」）。
 
+import { errorMessageOf } from '../../core/errorText.ts';
 import * as React from 'react';
 import type { ApiClient } from '../../core/ApiClient.ts';
 import type { FsNode } from '../../types/models.ts';
@@ -46,7 +47,7 @@ export function useWorkspaceTree(api: ApiClient): WorkspaceTreeState & { refresh
       setState({ tree: r.tree, loading: false, error: null });
     } catch (e) {
       if (mine !== seq.current) return;
-      setState({ tree: [], loading: false, error: e instanceof Error ? e.message : String(e) });
+      setState({ tree: [], loading: false, error: errorMessageOf(e) });
     }
   }, [api]);
 

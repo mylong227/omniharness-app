@@ -613,7 +613,7 @@ select:focus-visible,
 /* 控制室 · 六类构成条（antd 没有按比例堆叠的分段条，这一处按数据图形自绘）。
    2026-11-11 控制台 antd 化：卡片/按钮/折叠/输入/状态徽标全走 antd，这里只留图形。 */
 .control-usage { display: flex; height: 14px; border-radius: 7px; overflow: hidden; border: 1px solid var(--border-soft); background: var(--panel-2); }
-.control-usage__seg { min-width: 2px; }
+.control-usage__seg { min-width: 2px; /* 2026-11-28 S-3：tick 驱动的占比变化平滑过渡，消「跳宽」闪动感 */ transition: flex-grow 240ms ease; }
 .control-usage__seg--systemPrompt { background: var(--accent-line); }
 .control-usage__seg--messages { background: color-mix(in srgb, var(--accent-line) 55%, var(--panel)); }
 .control-usage__seg--tools { background: color-mix(in srgb, var(--ok) 55%, var(--panel)); }

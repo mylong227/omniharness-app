@@ -1,4 +1,5 @@
 // 自动化任务：定时把提示词交给 Agent（服务端 30s 调度；任务触发即新建会话）。
+import { errorMessageOf } from '../../../core/errorText.ts';
 import * as React from 'react';
 import { useApp } from '../../context.ts';
 import { useSessionResource } from '../../hooks/useSessionResource.ts';
@@ -210,7 +211,7 @@ export function AutomationsTab(): React.ReactElement {
       refresh();
       toast(t('自动化已创建'));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(errorMessageOf(cause));
     } finally {
       setBusy(false);
     }
@@ -233,7 +234,7 @@ export function AutomationsTab(): React.ReactElement {
       }
       refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(errorMessageOf(cause));
     } finally {
       setBusy(false);
     }

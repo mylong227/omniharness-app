@@ -22,7 +22,6 @@
 import * as React from 'react';
 import { ModelPicker } from './ModelPicker.tsx';
 import { FilePicker } from './FilePicker.tsx';
-import { WorkIndicator } from './WorkIndicator.tsx';
 import { AddMenu } from './AddMenu.tsx';
 import { PermissionPicker } from './PermissionPicker.tsx';
 import type { ChatQueueView } from '../models/ChatMessageQueue.ts';
@@ -235,7 +234,6 @@ export function Composer(props: ComposerProps): ReactElement {
       onDragOver={(e: React.DragEvent) => e.preventDefault()}
       onDrop={attachments.onDrop}
     >
-      {props.busy === true ? <WorkIndicator activeTool={props.activeTool ?? null} /> : null}
       {/* 输入卡片：正文在上、控制行在下（截图式 Composer 的版式）。 */}
       <div className="composer-box">
         <ComposerInput

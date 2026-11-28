@@ -120,7 +120,7 @@ function stepCount(events: readonly ThreadEvent[]): number {
 function failureCount(events: readonly ThreadEvent[]): number {
   let n = 0;
   for (const ev of events) {
-    if (ev.type === 'tool_result' && ev.payload?.ok !== true) n += 1;
+    if (ev.type === 'tool_result' && EventFields.toolFailed(ev)) n += 1;
   }
   return n;
 }

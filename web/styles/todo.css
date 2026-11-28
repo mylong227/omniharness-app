@@ -107,3 +107,42 @@
   .todo-dock__summary { min-width: 0; }
   .todo-dock__title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
+
+/* ---- 流内待办事件卡（2026-11-27 收编为折叠摘要）----
+   底部计划坞已常驻显示最新待办，流内历史卡整表铺开即同屏重复（用户报「重复了」）；
+   收成一行摘要（badge + 完成计数 + 当前项），点击展开全量留痕。 */
+.todo-event__summary {
+  min-width: 0;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.todo-event__summary::-webkit-details-marker {
+  display: none;
+}
+
+.todo-event__brief {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.todo-event__current {
+  margin-left: 8px;
+  padding-left: 8px;
+  border-left: 1px solid var(--hairline);
+  color: var(--faint);
+}
+
+/* 计划坞摘要行的快照时刻（陈旧可读化）：数据是最后一次 todo 事件的状态，如实标注。 */
+.todo-dock__time {
+  flex: none;
+  margin-left: auto;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

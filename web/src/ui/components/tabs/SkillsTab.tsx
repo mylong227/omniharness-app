@@ -7,6 +7,7 @@
 // 生效 = 下一会话（registry 为 boot 装配，与设置页其余段同语义）。
 // 新建 = config 追加（撞 bundled/workspace 名 = 覆盖编辑语义，撞 config 名被服务端拒绝）。
 
+import { errorMessageOf } from '../../../core/errorText.ts';
 import * as React from 'react';
 import { useApp } from '../../context.ts';
 import { useSessionResource } from '../../hooks/useSessionResource.ts';
@@ -179,7 +180,7 @@ export function SkillsTab(): React.ReactElement {
         });
       })
       .catch((cause: unknown) => {
-        toast(t('读取技能失败：{msg}', { msg: cause instanceof Error ? cause.message : String(cause) }), 'err');
+        toast(t('读取技能失败：{msg}', { msg: errorMessageOf(cause) }), 'err');
       });
   };
 
@@ -204,7 +205,7 @@ export function SkillsTab(): React.ReactElement {
       setEditor(null);
       reload();
     } catch (cause: unknown) {
-      setEditor({ ...editor, busy: false, issues: [cause instanceof Error ? cause.message : String(cause)] });
+      setEditor({ ...editor, busy: false, issues: [errorMessageOf(cause)] });
     }
   };
 
@@ -221,7 +222,7 @@ export function SkillsTab(): React.ReactElement {
       toast(t('已删除，下一会话生效'), 'ok');
       reload();
     } catch (cause: unknown) {
-      toast(t('删除失败：{msg}', { msg: cause instanceof Error ? cause.message : String(cause) }), 'err');
+      toast(t('删除失败：{msg}', { msg: errorMessageOf(cause) }), 'err');
     }
   };
 

@@ -35,7 +35,7 @@ export function StreamBottom(props: StreamViewProps): React.ReactElement {
           onExpire={props.onQuestionExpired}
         />
       )}
-      <TodoDock items={todos} />
+      <TodoDock items={todos?.items ?? null} updatedAt={todos?.at ?? 0} />
       {/* 队列模式：排队消息坞（空队列时组件自身返回 null）。 */}
       {props.queue === undefined ? null : <ChatQueueDock queue={props.queue} />}
       <Composer

@@ -16,6 +16,7 @@
  * @returns 保险库面板节点
  */
 // 标准 React 项目写法：`import * as React from 'react'`（Vite 解析裸标识符）。
+import { errorMessageOf } from '../../../core/errorText.ts';
 import * as React from 'react';
 import { useApp } from '../../context.ts';
 import { useSessionResource } from '../../hooks/useSessionResource.ts';
@@ -176,7 +177,7 @@ function useVaultTab(api: ReturnType<typeof useApp>['api']): {
       setNotice(t('已写入 {name}（服务端不回读，值不会在界面上出现）', { name: result.name }));
       refresh();
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : String(e));
+      setActionError(errorMessageOf(e));
     }
   }, [api, name, secret, refresh]);
 
@@ -194,7 +195,7 @@ function useVaultTab(api: ReturnType<typeof useApp>['api']): {
         setNotice(result.removed === true ? t('已删除 {name}', { name: target }) : t('{name} 本来就不存在', { name: target }));
         refresh();
       } catch (e) {
-        setActionError(e instanceof Error ? e.message : String(e));
+        setActionError(errorMessageOf(e));
       }
     },
     [api, refresh],

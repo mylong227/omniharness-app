@@ -23,7 +23,7 @@ export const EN_MISC: Record<string, string> = {
   '保存': 'Save',
   '例如：把召回率提到 60%': 'e.g. Raise recall to 60%',
   '已选择智能体：{name}（载入会话后生效）': 'Agent selected: {name} (takes effect after the session loads)',
-  // WorkIndicator.tsx
+  // ThinkingTrail.tsx / useSessionClock.ts
   '思考中': 'Thinking',
   '刚刚': 'Just now',
   // Resizer.tsx

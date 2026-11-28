@@ -1,14 +1,17 @@
-// 上下文注记卡（压缩游标 / 工作流记忆 / 长注记）真浏览器验证。
+// 上下文注入注（压缩游标 / 工作流记忆 / 长注记）真浏览器验证。
 //
 // 背景（2026-11-16 用户截图反馈）：压缩游标带 `evidence=` 时旧正则失配，整条事件回落到
 // `— 全文 —` 平铺：几 KB 的 base64 + 数千字摘要糊满一屏；工作流记忆召回是一行上千字的
-// `→ shell … → read_file …`。用户的要求是「可收起、可展开，展开后是有格式的预览」。
+// `→ shell … → read_file …`。当时的要求是「可收起、可展开，展开后是有格式的预览」。
 //
-// 本判据钉住四条：
-//   1) 三类注记在对话流里**默认收起**（标题 + 元信息 + 一行摘要），短旁白仍是一行 sysnote；
-//   2) 展开后压缩摘要是**分节 Markdown**，且证据 base64 **绝不出现在正文里**；记忆召回是逐条步骤；
-//   3) 收起=正文卸载（长会话里不白挂几万字），`aria-expanded` / `aria-controls` 与真实状态一致；
-//   4) 键盘可达：聚焦卡头按空格即可开合（事件钻取不会跟着触发）。
+// 2026-11-27/28 用户口径（再收敛）：**压缩游标与工作流记忆都降为单行注入注**——无展开、
+// 无卡片底、背景与对话流一致（内容写给模型看，人看标题 + 元信息就够；压缩详情在
+// 「上下文」面板的压缩时间线里仍有完整呈现）。卡片壳只留给长注记（plain）。
+//
+// 本判据钉住三条：
+//   1) 压缩游标与工作流记忆各是一行 `.ctx-inline--*` 注（透明背景、无开合、正文/证据不进 DOM）；
+//   2) 短旁白仍是一行 sysnote；长注记（plain）仍是可展开卡（不在本 fixture，单测覆盖）；
+//   3) 窄窗 390 不横向溢出。
 //
 // 直跑（先 npm run web:build）：node --test web/test/systemNoteCard.test.ts
 // 截图默认落 `.workbuddy/`（不入库），可用 OMNI_SYSTEM_NOTE_SHOT 覆盖。
@@ -28,7 +31,7 @@ const EVIDENCE = Buffer.from(
   'utf8',
 ).toString('base64url');
 
-/** 压缩游标事件（header + 内核同构摘要：结构标签 + 工具台账，够长到触发正文内部滚动）。 */
+/** 压缩游标事件（header + 内核同构摘要：结构标签 + 工具台账）。 */
 const COMPACTION = [
   `OMNI_COMPACTION_V1 upTo=355 hash=5e8c42c7 evidence=${EVIDENCE}`,
   '【任务目标（用户原始请求）】',
@@ -54,7 +57,7 @@ const MEMORY =
   '→ shell cd /d %CD% && dir /b → read_file package.json → scratchpad';
 
 /** 短旁白（应保持一行 sysnote 渲染）。 */
-const SHORT_NOTE = '系统提示：本回合的压缩与记忆内容已按折叠卡收纳，点击卡头展开。';
+const SHORT_NOTE = '系统提示：本轮的压缩与记忆内容已按单行注收纳。';
 
 /**
  * 往空会话里推一轮「用户消息 + 一条压缩游标 + 一条工作流记忆 + 一句旁白」。
@@ -68,7 +71,7 @@ async function seedThread(cdp: CdpSession): Promise<void> {
     var base = Date.now();
     var ev = function(type, payload) {
       var i = n++;
-      push({ method: 'thread.event', params: { event: { id: 'e' + i, type: type, timestamp: base + i * 1000, payload: payload } } });
+      push({ method: 'thread.event', params: { event: { id: 'e' + i, sessionId: 's1', type: type, timestamp: base + i * 1000, payload: payload } } });
     };
     ev('user', { content: '继续检查，并进行修复' });
     ev('system', { content: ${JSON.stringify(COMPACTION)} });
@@ -79,163 +82,105 @@ async function seedThread(cdp: CdpSession): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 900));
 }
 
-test('上下文注记卡：默认收起、展开是排好版的预览、键盘可开合（真浏览器）', async (t) => {
+test('注入注：压缩游标与工作流记忆各一行（无展开、透明背景、证据不进 DOM）（真浏览器）', async (t) => {
   const opened = await openStubSession(t, { width: 1180, height: 860 });
   if (!opened) return;
   const { cdp, close } = opened;
   try {
     await seedThread(cdp);
+    // 带 sessionId 的事件会认领 currentThreadId（多一拍重渲染）；判定渲染正确性而非时序，
+    // 显式等到两张注都在再探针。
+    await cdp.waitFor("!!document.querySelector('.ctx-inline--compaction') && !!document.querySelector('.ctx-inline--memory')", 4000);
 
-    const collapsed = (await cdp.evaluate(`(function(){
-      var cards = document.querySelectorAll('.ctx-note');
-      if (cards.length < 2) return { cards: cards.length };
-      var head = function(card) { return card.querySelector('.ctx-note__head'); };
-      var text = function(card, sel) {
-        var el = card.querySelector(sel);
+    const probe = (await cdp.evaluate(`(function(){
+      var inlineOf = function(kind) { return document.querySelector('.ctx-inline--' + kind); };
+      var text = function(root, sel) {
+        var el = root.querySelector(sel);
         return el ? el.textContent : '';
       };
+      var compaction = inlineOf('compaction');
+      var memory = inlineOf('memory');
+      var doc = document.documentElement;
       return {
-        cards: cards.length,
+        cards: document.querySelectorAll('.ctx-note').length,
         plainNotes: document.querySelectorAll('.sysnote').length,
         quoteBtns: document.querySelectorAll('button[aria-label="引用追问"]').length,
-        compactTitle: text(cards[0], '.ctx-note__title'),
-        compactMeta: text(cards[0], '.ctx-note__meta'),
-        compactExcerpt: text(cards[0], '.ctx-note__excerpt'),
-        compactExpanded: head(cards[0]).getAttribute('aria-expanded'),
-        compactBodyMounted: cards[0].querySelectorAll('.ctx-note__body').length,
-        ariaControls: head(cards[0]).getAttribute('aria-controls'),
-        compactKind: cards[0].className.indexOf('ctx-note--compaction') >= 0,
-        memoryKind: cards[1].className.indexOf('ctx-note--memory') >= 0,
-        memoryTitle: text(cards[1], '.ctx-note__title'),
-        memoryMeta: text(cards[1], '.ctx-note__meta'),
-        memoryExcerpt: text(cards[1], '.ctx-note__excerpt'),
+        compactionPresent: compaction !== null,
+        compactionTitle: compaction ? text(compaction, '.ctx-inline__title') : '',
+        compactionMeta: compaction ? text(compaction, '.ctx-inline__meta') : '',
+        compactionExcerpt: compaction ? compaction.querySelectorAll('.ctx-inline__text').length : -1,
+        compactionBg: compaction ? getComputedStyle(compaction).backgroundColor : '',
+        compactionToggle: compaction ? compaction.querySelectorAll('.ctx-note__toggle, .ctx-note__body').length : -1,
+        compactionSteps: compaction ? compaction.querySelectorAll('.ctx-steps, .ctx-step, .md-content').length : -1,
+        compactionJump: compaction ? compaction.querySelectorAll('button.ctx-inline__jump').length : -1,
+        memoryPresent: memory !== null,
+        memoryTitle: memory ? text(memory, '.ctx-inline__title') : '',
+        memoryMeta: memory ? text(memory, '.ctx-inline__meta') : '',
+        memoryExcerpt: memory ? text(memory, '.ctx-inline__text') : '',
+        memoryBg: memory ? getComputedStyle(memory).backgroundColor : '',
+        memoryToggle: memory ? memory.querySelectorAll('.ctx-note__toggle, button, .ctx-note__body').length : -1,
+        docOverflow: doc.scrollWidth > doc.clientWidth,
+        leakedEvidence: document.body.textContent.indexOf('evidence=') >= 0
+          || document.body.textContent.indexOf(${JSON.stringify(EVIDENCE.slice(0, 40))}) >= 0,
+        leakedLedger: document.body.textContent.indexOf('已执行工具台账') >= 0,
       };
     })()`)) as Record<string, unknown>;
-    assert.strictEqual(collapsed['cards'], 2, '压缩游标 + 工作流记忆各一张卡');
-    assert.strictEqual(collapsed['plainNotes'], 1, '短旁白仍走一行 sysnote，不该变成卡');
-    assert.ok(
-      Number(collapsed['quoteBtns']) >= 1,
-      '引用追问入口已挂到用户卡（msg-act，与复制/重开同排）',
-    );
-    assert.ok(collapsed['compactKind'], '压缩卡带 compaction 身份类（左色轨/图标/chip 色点共用）');
-    assert.ok(collapsed['memoryKind'], '记忆卡带 memory 身份类');
-    assert.strictEqual(collapsed['compactTitle'], '上下文已压缩');
-    assert.match(String(collapsed['compactMeta']), /游标 355 · 摘要约/u);
-    assert.strictEqual(
-      collapsed['compactExcerpt'],
-      '现在盘点当前项目信息 ---- 将存在的问题进行修改。核对前端调用的端点与后端实际路由是否一一对应，',
-      '收起态摘要取结构标签之后的正文（不念【任务目标】）',
-    );
-    assert.strictEqual(collapsed['compactExpanded'], 'false', '默认收起');
-    assert.strictEqual(collapsed['compactBodyMounted'], 0, '收起态正文不挂 DOM');
-    assert.strictEqual(collapsed['ariaControls'], null, '正文不在 DOM 时不给 aria-controls 指向空 id');
-    assert.strictEqual(collapsed['memoryTitle'], '工作流记忆参考');
-    assert.strictEqual(collapsed['memoryMeta'], '3 步 · 仅作参考');
-    assert.strictEqual(collapsed['memoryExcerpt'], '相似任务曾成功走完以下步骤（仅参考，不自动重放）');
+    const dump = String(await cdp.evaluate(`(function(){
+      var out = [];
+      var els = document.querySelectorAll('.ctx-inline, .ctx-note, .sysnote');
+      for (var i = 0; i < els.length; i++) out.push(els[i].className + ' :: ' + (els[i].textContent || '').slice(0, 50));
+      var k = [];
+      var b = document.querySelectorAll('.sw-block');
+      for (var j = 0; j < b.length; j++) k.push(b[j].getAttribute('data-sw-key'));
+      return out.join(' || ') + ' #KEYS# ' + k.join(',');
+    })()`));
+    console.log('DUMP:', dump);
+    assert.strictEqual(probe['cards'], 0, '压缩与记忆都不再是卡（卡片壳只留给长注记）');
+    assert.strictEqual(probe['plainNotes'], 1, '短旁白仍走一行 sysnote');
+    assert.ok(Number(probe['quoteBtns']) >= 1, '引用追问入口已挂到用户卡（msg-act，与复制/重开同排）');
 
-    // 截图留档的公共路径（`-dark` / `-light` / `-light-collapsed` … 由 suffix 拼出）。
+    // —— 压缩游标：一行完成信号 ——
+    assert.ok(probe['compactionPresent'], '压缩游标渲染为 .ctx-inline--compaction 单行注');
+    assert.strictEqual(probe['compactionTitle'], '上下文压缩✔', '✔ 表达压缩完成');
+    assert.match(String(probe['compactionMeta']), /游标 355 · 摘要约/u, '元信息带游标与摘要字数');
+    assert.strictEqual(probe['compactionExcerpt'], 0, '压缩单行注不带摘要预览行');
+    assert.strictEqual(probe['compactionBg'], 'rgba(0, 0, 0, 0)', '背景与对话流一致（无卡片底）');
+    assert.strictEqual(probe['compactionToggle'], 0, '无开合入口、无正文容器（详情在上下文面板，不重建');
+    assert.strictEqual(probe['compactionJump'], 1, '有且只有一个「压缩详情」跳转按钮');
+
+    // —— 压缩注跳转：点击后路由落到上下文面板（详情的家，不重建） ——
+    await cdp.click('button.ctx-inline__jump');
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    const jump = String(await cdp.evaluate('location.hash'));
+    assert.ok(jump.indexOf('pane=control') >= 0, '路由 pane=control：' + jump);
+    assert.ok(jump.indexOf('view=context') >= 0, '路由 view=context：' + jump);
+    // 回到对话视图（hash 已变，推事件即可继续截图流程）
+    await cdp.evaluate("location.hash = '#pane=tools'");
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    assert.strictEqual(probe['compactionSteps'], 0, '分节 Markdown / 台账不渲染');
+
+    // —— 工作流记忆：一行 + 引导语 ——
+    assert.ok(probe['memoryPresent'], '记忆召回渲染为 .ctx-inline--memory 单行注');
+    assert.strictEqual(probe['memoryTitle'], '工作流记忆参考');
+    assert.strictEqual(probe['memoryMeta'], '3 步 · 仅作参考');
+    assert.strictEqual(probe['memoryExcerpt'], '相似任务曾成功走完以下步骤（仅参考，不自动重放）');
+    assert.strictEqual(probe['memoryBg'], 'rgba(0, 0, 0, 0)', '背景与对话流一致（无卡片底）');
+    assert.strictEqual(probe['memoryToggle'], 0, '无开合入口、无正文容器');
+
+    // —— 收敛后的硬承诺：展开体没了，证据与摘要正文在对话流中完全不可见 ——
+    assert.strictEqual(probe['leakedEvidence'], false, '证据 base64 绝不进 DOM');
+    assert.strictEqual(probe['leakedLedger'], false, '工具台账/分节摘要不进 DOM');
+    assert.strictEqual(probe['docOverflow'], false, '页面不得被撑出横向滚动');
+
+    // —— 两种主题各留一屏（收起即全部，无展开态可截） ——
+    // 主题必须**经真实偏好重载**再截图：直改 `<html data-theme>` 会被应用状态在下一帧覆盖，
+    // 而"跟随系统"在 headless 里的取值随环境变（同一台机器两次跑可以一暗一亮），截图不能碰运气。
     const baseShot = process.env.OMNI_SYSTEM_NOTE_SHOT || '.workbuddy/system-note-card.png';
     const shotOf = (suffix: string): string => baseShot.replace(/\.png$/u, suffix + '.png');
     mkdirSync(dirname(baseShot), { recursive: true });
-
-    // —— 展开压缩卡：分节 Markdown + 证据 chip，且证据 base64 绝不出现在正文 ——
-    await cdp.click('.ctx-note__head');
-    await new Promise((resolve) => setTimeout(resolve, 250));
-    const expanded = (await cdp.evaluate(`(function(){
-      var card = document.querySelectorAll('.ctx-note')[0];
-      var body = card.querySelector('.ctx-note__body');
-      if (!body) return { mounted: false };
-      var doc = body.querySelector('.md-content');
-      var text = doc ? doc.textContent : '';
-      var style = getComputedStyle(body);
-      return {
-        mounted: true,
-        expanded: card.querySelector('.ctx-note__head').getAttribute('aria-expanded'),
-        excerptGone: card.querySelectorAll('.ctx-note__excerpt').length,
-        sections: Array.from(body.querySelectorAll('h4')).map(function(e){ return e.textContent; }),
-        chips: Array.from(body.querySelectorAll('.ctx-note__chip')).map(function(e){ return e.textContent; }),
-        chipTones: Array.from(body.querySelectorAll('.ctx-note__chip')).map(function(e){ return e.className; }),
-        ledgerHeading: body.querySelector('h2') ? body.querySelector('h2').textContent : '',
-        leakedEvidence: text.indexOf('evidence=') >= 0 || text.indexOf(${JSON.stringify(EVIDENCE.slice(0, 40))}) >= 0,
-        scrolls: body.scrollHeight > body.clientHeight,
-        bodyIdMatches: body.id === card.querySelector('.ctx-note__head').getAttribute('aria-controls'),
-      };
-    })()`)) as Record<string, unknown>;
-    assert.strictEqual(expanded['mounted'], true, '展开后正文挂载');
-    assert.strictEqual(expanded['expanded'], 'true');
-    assert.strictEqual(expanded['excerptGone'], 0, '展开后不再重复显示摘要行');
-    assert.deepEqual(
-      expanded['sections'],
-      ['【任务目标（用户原始请求）】', '【历史经过】', '【关键结论】'],
-      '结构标签升为分节标题',
-    );
-    assert.strictEqual(
-      expanded['ledgerHeading'],
-      '已执行工具台账（确定性生成，用于避免重复探索）',
-      '既有 Markdown 标题保持原样',
-    );
-    assert.deepEqual(expanded['chips'], ['审计 ✓ 文件 3 · 命令 12 · 待办 2', '触发预算 82% · 17 轮']);
-    assert.deepEqual(
-      expanded['chipTones'],
-      ['ctx-note__chip ctx-note__chip--ok', 'ctx-note__chip ctx-note__chip--info'],
-      'chip 色点：审计齐全=ok、触发预算=info（伪元素圆点，不进 textContent）',
-    );
-    assert.strictEqual(expanded['leakedEvidence'], false, '证据 base64 只能进 chip，绝不进正文');
-    assert.strictEqual(expanded['scrolls'], true, '长摘要在正文内部滚动，不把对话顶出几屏');
-    assert.strictEqual(expanded['bodyIdMatches'], true, 'aria-controls 指向真实正文节点');
-
-    // —— 键盘：聚焦卡头按空格收起，再按空格展开 ——
-    // 判据用空格：它是 `<button>` 的标准激活键。Enter 在 CDP 的 `keyDown`（不带 text）路径下
-    // 连裸 `<button>` 都不触发激活（已用基线探针验证是 harness 限制，与组件无关），故不拿它当判据。
-    await cdp.evaluate("document.querySelectorAll('.ctx-note__head')[0].focus()");
-    await cdp.press(' ', { keyCode: 32, code: 'Space' });
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    const afterCollapseKey = (await cdp.evaluate(
-      "(function(){ return document.querySelectorAll('.ctx-note')[0].querySelectorAll('.ctx-note__body').length; })()",
-    )) as number;
-    assert.strictEqual(afterCollapseKey, 0, '键盘收起：正文卸载');
-    await cdp.evaluate("document.querySelectorAll('.ctx-note__head')[0].focus()");
-    await cdp.press(' ', { keyCode: 32, code: 'Space' });
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    const afterExpandKey = (await cdp.evaluate(
-      "(function(){ return document.querySelectorAll('.ctx-note')[0].querySelectorAll('.ctx-note__body').length; })()",
-    )) as number;
-    assert.strictEqual(afterExpandKey, 1, '键盘可再次展开');
-
-    // —— 展开记忆卡：步骤逐条编号，工具名与目标分开 ——
-    await cdp.evaluate("document.querySelectorAll('.ctx-note__head')[1].click()");
-    await new Promise((resolve) => setTimeout(resolve, 250));
-    const memory = (await cdp.evaluate(`(function(){
-      var card = document.querySelectorAll('.ctx-note')[1];
-      var items = card.querySelectorAll('.ctx-steps .ctx-step');
-      return {
-        steps: items.length,
-        firstVerb: items[0] ? items[0].querySelector('.ctx-step__verb').textContent : '',
-        firstTarget: items[0] ? items[0].querySelector('.ctx-step__target').textContent : '',
-        noArrow: card.querySelector('.ctx-note__body').textContent.indexOf('→') < 0,
-      };
-    })()`)) as Record<string, unknown>;
-    assert.strictEqual(memory['steps'], 3, '逐步列出，不再是一串 →');
-    assert.strictEqual(memory['firstVerb'], 'shell');
-    assert.strictEqual(memory['firstTarget'], 'cd /d %CD% && dir /b');
-    assert.strictEqual(memory['noArrow'], true, '正文里不应再残留箭头分隔符');
-
-    // —— 两种主题各留一屏：收起态 + 展开态 ——
-    // 主题必须**经真实偏好重载**再截图：直改 `<html data-theme>` 会被应用状态在下一帧覆盖，
-    // 而"跟随系统"在 headless 里的取值随环境变（同一台机器两次跑可以一暗一亮），截图不能碰运气。
     for (const theme of ['dark', 'light'] as const) {
       await reopenWithTheme(cdp, theme);
-      await cdp.screenshot(shotOf(`-${theme}-collapsed`));
-      await cdp.click('.ctx-note__head');
-      await new Promise((resolve) => setTimeout(resolve, 250));
       await cdp.screenshot(shotOf(`-${theme}`));
-      if (theme === 'dark') {
-        // 记忆召回展开态（逐条步骤）只留一屏暗色即可：亮色下它用的仍是同一套 surface token。
-        await cdp.click('.ctx-note__head');
-        await cdp.evaluate("document.querySelectorAll('.ctx-note__head')[1].click()");
-        await new Promise((resolve) => setTimeout(resolve, 250));
-        await cdp.screenshot(shotOf('-dark-steps'));
-      }
     }
   } finally {
     await close();
@@ -249,9 +194,10 @@ test('上下文注记卡：默认收起、展开是排好版的预览、键盘�
  * @returns 无
  */
 async function reopenWithTheme(cdp: CdpSession, theme: 'dark' | 'light'): Promise<void> {
-  const url = String(await cdp.evaluate('document.URL'));
+  // 显式 reload（不靠 URL 差异触发）：本判据中途回写过 hash，navigate 同址会变成同文档
+  // 导航（不重载）⇒ data-theme 保持 boot 时的 system 值，截图主题就错了（2026-11-28 实测）。
   await cdp.evaluate(`localStorage.setItem('omni-theme', ${JSON.stringify(theme)})`);
-  await cdp.navigate(url);
+  await cdp.evaluate('location.reload()');
   await cdp.waitMounted();
   await seedThread(cdp);
   const actual = await cdp.evaluate("document.documentElement.getAttribute('data-theme')");
@@ -260,32 +206,28 @@ async function reopenWithTheme(cdp: CdpSession, theme: 'dark' | 'light'): Promis
   }
 }
 
-test('上下文注记卡：窄窗 390 不横向溢出，元信息让位给标题与开合入口（真浏览器）', async (t) => {
+test('注入注：窄窗 390 不横向溢出，单行注不折行不撑高（真浏览器）', async (t) => {
   const opened = await openStubSession(t, { width: 390, height: 780 });
   if (!opened) return;
   const { cdp, close } = opened;
   try {
     await seedThread(cdp);
     const probe = (await cdp.evaluate(`(function(){
-      var card = document.querySelector('.ctx-note');
-      if (!card) return { cards: 0 };
-      var head = card.querySelector('.ctx-note__head');
-      var meta = card.querySelector('.ctx-note__meta');
-      var toggle = card.querySelector('.ctx-note__toggle');
+      var inlineOf = function(kind) { return document.querySelector('.ctx-inline--' + kind); };
       var doc = document.documentElement;
       return {
-        cards: document.querySelectorAll('.ctx-note').length,
-        headOverflow: head.scrollWidth > head.clientWidth + 1,
+        compaction: inlineOf('compaction') !== null,
+        memory: inlineOf('memory') !== null,
         docOverflow: doc.scrollWidth > doc.clientWidth,
-        metaHidden: meta ? getComputedStyle(meta).display === 'none' : true,
-        toggleWidth: toggle ? Math.round(toggle.getBoundingClientRect().width) : 0,
+        compactionHeight: inlineOf('compaction') ? Math.round(inlineOf('compaction').getBoundingClientRect().height) : 0,
+        memoryHeight: inlineOf('memory') ? Math.round(inlineOf('memory').getBoundingClientRect().height) : 0,
       };
     })()`)) as Record<string, unknown>;
-    assert.strictEqual(probe['cards'], 2, '窄窗下两张卡都在');
-    assert.strictEqual(probe['headOverflow'], false, '卡头不得横向溢出（元信息该让位）');
-    assert.strictEqual(probe['docOverflow'], false, '页面不得被卡片撑出横向滚动');
-    assert.strictEqual(probe['metaHidden'], true, '≤560px 隐藏元信息，避免被截成「摘要约 138…」');
-    assert.ok(Number(probe['toggleWidth']) > 0, '开合入口在窄窗仍可见');
+    assert.strictEqual(probe['compaction'], true, '窄窗下压缩单行注在');
+    assert.strictEqual(probe['memory'], true, '窄窗下记忆单行注在');
+    assert.strictEqual(probe['docOverflow'], false, '页面不得被撑出横向滚动');
+    assert.ok(Number(probe['compactionHeight']) <= 24, '压缩注单行高（≤24px，不折行）');
+    assert.ok(Number(probe['memoryHeight']) <= 24, '记忆注单行高（≤24px，不折行）');
   } finally {
     await close();
   }

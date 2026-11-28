@@ -5,6 +5,7 @@
 // SSE 路由、主题 / 面板 / 抽屉 / 布局 / 审批、context value 与命令集。
 // 行为与旧版 useAppController 内联实现逐字节等价。
 
+import { errorMessageOf } from '../../core/errorText.ts';
 import { ApiClient } from '../../core/ApiClient.ts';
 import type { AppRoute } from '../models/Router.ts';
 import { EventStream } from '../../core/EventStream.ts';
@@ -682,7 +683,7 @@ export class AppController {
       .catch((e: unknown) => {
         // 模型清单读取失败不再静默（2026-11-17 全面 review）：失败后下拉只能停留 localStorage
         // 缓存或为空，用户看着「没有可选模型」却不知道为什么。与挂起恢复失败同一口径：如实提示。
-        const msg = e instanceof Error ? e.message : String(e);
+        const msg = errorMessageOf(e);
         this.services.toast(t('模型清单读取失败：{msg}', { msg }), 'err');
       });
   }
@@ -840,7 +841,7 @@ export class AppController {
       window.setTimeout(() => URL.revokeObjectURL(url), 0);
     } catch (cause) {
       this.showToast(
-        t('导出失败：{msg}', { msg: cause instanceof Error ? cause.message : String(cause) }),
+        t('导出失败：{msg}', { msg: errorMessageOf(cause) }),
         'err',
       );
     }

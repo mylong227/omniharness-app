@@ -35,6 +35,7 @@ import type { MenuProps } from 'antd';
 import { icon } from '../../kit/Icon.tsx';
 import { useApp } from '../../context.ts';
 import { t } from '../../i18n/i18n.ts';
+import { currentLocale } from '../../i18n/i18n.ts';
 import {
   CONSOLE_ENTRIES,
   CONSOLE_GROUPS,
@@ -284,23 +285,23 @@ function SettingsSearchBox(props: {
   const { pick, contentRef } = props;
   const [query, setQuery] = React.useState('');
   const q = query.trim().toLowerCase();
+  // 检索 haystack 预计算（2026-11-28 评审收编）：索引是静态的，只有语言切换才变——
+  // 此前每次键击对全量字段拼 6 段串 + 调 3 次 t()；现在键击只剩 includes。
+  const hayIndex = React.useMemo(
+    () =>
+      SETTING_SEARCH_INDEX.map((item) => ({
+        item,
+        hay: [item.label, item.hint, item.tabLabel, t(item.label), t(item.hint), t(item.tabLabel)]
+          .join(' ')
+          .toLowerCase(),
+      })),
+    // locale 变化时 t() 输出变化，索引需重建（locale 在 appContext 中驱动重渲染）
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 依赖语言而非引用
+    // currentLocale() 在渲染期取值：语言切换后本组件重渲染时取到新值即重建索引。
+    [currentLocale()],
+  );
   const hits =
-    q === ''
-      ? []
-      : SETTING_SEARCH_INDEX.filter((item) => {
-          // 中英双语命中：原文 + 当前语言的译文（英文界面输入 cost 也能搜到「成本预算」）。
-          const hay = [
-            item.label,
-            item.hint,
-            item.tabLabel,
-            t(item.label),
-            t(item.hint),
-            t(item.tabLabel),
-          ]
-            .join(' ')
-            .toLowerCase();
-          return hay.includes(q);
-        }).slice(0, 8);
+    q === '' ? [] : hayIndex.filter((entry) => entry.hay.includes(q)).slice(0, 8).map((e) => e.item);
   /**
    * 跳转并定位字段行。
    * @param tab 目标分栏

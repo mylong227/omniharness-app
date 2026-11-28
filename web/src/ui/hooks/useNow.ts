@@ -1,5 +1,5 @@
 // 运行中才跳动的低频时钟（2026-11-17 全面 review 抽取）：ThinkingTrail 与 useFleet 各有一份
-// 「active 时 setInterval(setNow) + cleanup」，收成单源；useSessionClock / WorkIndicator 的
+// 「active 时 setInterval(setNow) + cleanup」，收成单源；useSessionClock 的
 // 时钟带各自的边缘检测 / elapsed 语义，不强行套壳。
 
 import * as React from 'react';

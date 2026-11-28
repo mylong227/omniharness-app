@@ -65,4 +65,27 @@ export class EventFields {
     }
     return 0;
   }
+
+  /**
+   * 工具结果的原始 ok 读数（三态）：`payload.ok` 为 true / false 时如实返回，**缺省返回
+   * undefined**。失败判定请用 {@link toolFailed}——三处消费点（轨迹徽标 / 轨迹过滤 /
+   * 工作台简报）此前口径漂移：轨迹侧 fail-closed（缺 ok 算失败）、简报侧 fail-open（缺 ok
+   * 不算），同一回合两处读数可以不一致（2026-11-28 评审发现）。现统一 fail-closed。
+   * @param ev 事件
+   * @returns true / false / undefined（缺省）
+   */
+  public static toolOk(ev: ThreadEvent): boolean | undefined {
+    const raw: unknown = (ev.payload || {}).ok;
+    return typeof raw === 'boolean' ? raw : undefined;
+  }
+
+  /**
+   * 工具结果是否算失败：**fail-closed**——`ok` 缺省（老事件 / 被截断的载荷）不能读成成功。
+   * 全仓 tool_result 失败判定的唯一口径（诚实语义：没有证据不宣称通过）。
+   * @param ev 事件
+   * @returns 失败为 true
+   */
+  public static toolFailed(ev: ThreadEvent): boolean {
+    return EventFields.toolOk(ev) !== true;
+  }
 }

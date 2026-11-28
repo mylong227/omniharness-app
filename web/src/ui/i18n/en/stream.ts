@@ -31,7 +31,8 @@ export const EN_STREAM: Record<string, string> = {
   '展开全文 ▾': 'Expand full text ▾',
 
   // models/SystemNote.ts + ContextBriefingCard.tsx（上下文注记卡：压缩游标 / 工作流记忆 / 长注记）
-  '上下文已压缩': 'Context compacted',
+  '上下文压缩✔': 'Context compacted ✓',
+  '压缩详情': 'Compaction details',
   '工作流记忆参考': 'Workflow memory hint',
   '系统注记': 'System note',
   '游标 {n}': 'cursor {n}',
@@ -66,16 +67,11 @@ export const EN_STREAM: Record<string, string> = {
   '展开思考过程': 'Expand thinking',
   '收起思考过程': 'Collapse thinking',
   '正在梳理思路': 'Gathering thoughts',
-  '正在{action}': 'Running: {action}',
   '{n} 个失败': '{n} failed',
   '{n} 步': '{n} steps',
 
   // ReasoningStep.tsx
   '正在思考': 'Thinking',
-  // WorkIndicator.tsx（可折叠工作状态条）
-  '已工作': 'Working for',
-  '查看当前动作': 'Show current action',
-  '收起当前动作': 'Hide current action',
   '{h}小时{m}分{s}秒': '{h}h {m}m {s}s',
   '{m}分{s}秒': '{m}m {s}s',
   '{s}秒': '{s}s',

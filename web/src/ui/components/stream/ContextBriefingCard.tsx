@@ -8,6 +8,10 @@
 // 展开态 = 证据 chip + 分节后的 Markdown（压缩摘要）或逐条编号的步骤（工作流记忆）。
 // 正文按需挂载：未展开时不进 DOM——长会话里这些摘要动辄数万字，白挂一次就是白付一次布局。
 //
+// 2026-11-27/28 用户口径（再收敛）：**压缩游标与工作流记忆都降为单行注入注**——无展开、
+// 无卡片底、背景与对话流一致（内容写给模型看，人看标题 + 元信息就够；压缩详情在「上下文」
+// 面板的压缩时间线里仍有完整呈现）；卡片壳只留给长注记。短旁白仍是一行 `— 旁白 —`。
+//
 // 纯展示组件（函数组件范式）：唯一内部状态是展开态；判定与文案全部来自 models/SystemNote。
 
 import * as React from 'react';
@@ -15,12 +19,15 @@ import { renderMarkdown } from '../../format.ts';
 import { icon } from '../../kit/Icon.tsx';
 import type { IconName } from '../../kit/Icon.tsx';
 import { SystemNote, type SystemNoteBody, type SystemNoteView } from '../../models/SystemNote.ts';
+import { navigate } from '../../models/Router.ts';
 import { t } from '../../i18n/i18n.ts';
 
 /** SystemNoteNode 组件的入参。 */
 export interface SystemNoteNodeProps {
   /** system 事件的 payload.content。 */
   readonly content: string;
+  /** 当前会话 id（压缩注跳转上下文面板用；null/缺省 = 不渲染跳转入口）。 */
+  readonly threadId?: string | null;
 }
 
 /** ContextBriefingCard 组件的入参。 */
@@ -87,12 +94,47 @@ function NoteBody(props: { readonly body: SystemNoteBody }): ReactElement {
  * @returns 折叠卡或一行旁白
  */
 export function SystemNoteNode(props: SystemNoteNodeProps): ReactElement {
-  const { content } = props;
+  const { content, threadId } = props;
   const view = React.useMemo(() => SystemNote.classify(content), [content]);
   if (view === null) {
     return (
       <div className="sysnote" spellCheck="false">
         — {content} —
+      </div>
+    );
+  }
+  // 压缩游标 / 工作流记忆：单行注入注（2026-11-27/28 用户口径）——无展开、无卡片底，
+  // 与对话流同背景。压缩卡只亮「完成 + 游标/字数」（完成信号），引导语只有记忆卡带。
+  if (view.kind === 'memory' || view.kind === 'compaction') {
+    // 压缩详情的家在右栏「上下文」面板（压缩切点分区）：流内给跳转入口，不重建详情
+    // （拒绝重复实现）。路由走既有哈希导航（F8），view=context 深链可直达该 tab。
+    const openContext = (): void => {
+      navigate({ pane: 'control', view: 'context', threadId: threadId ?? null });
+    };
+    return (
+      <div className={`ctx-inline ctx-inline--${view.kind}`} spellCheck="false">
+        <span className="ctx-inline__ico" aria-hidden="true">
+          {icon(KIND_ICON[view.kind], { size: 14 })}
+        </span>
+        <span className="ctx-inline__title">{view.title}</span>
+        {view.meta === '' ? null : <span className="ctx-inline__meta">{view.meta}</span>}
+        {view.kind === 'memory' && view.excerpt !== '' ? (
+          <span className="ctx-inline__text">{view.excerpt}</span>
+        ) : null}
+        {view.kind === 'compaction' && threadId !== null && threadId !== '' ? (
+          <button
+            type="button"
+            className="ctx-inline__jump"
+            aria-label={t('压缩详情')}
+            title={t('压缩详情')}
+            onClick={(e: React.MouseEvent) => {
+              e.stopPropagation();
+              openContext();
+            }}
+          >
+            {icon('external-link', { size: 12 })}
+          </button>
+        ) : null}
       </div>
     );
   }

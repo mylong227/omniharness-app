@@ -300,7 +300,7 @@ function renderEventNode(ev: ThreadEvent, ctx: EventCtx): React.ReactElement | n
       if (ctx.toolCallIds.has(EventFields.rawCallId(ev))) return null;
       return renderStandaloneToolResult(ev, p);
     case 'system':
-      return renderSystemNode(p, node);
+      return renderSystemNode(p, ctx, node);
     case 'todo':
       return renderTodoNode(p, node);
     case 'plan':
@@ -445,6 +445,10 @@ function useStreamScroll(
   const [measureTick, setMeasureTick] = React.useState<number>(0);
   /** 空洞加渲块数：只在视口装不满时做 0 → HOLE_BOOST_BLOCKS 的**单次**迁移（见函数 JSDoc）。 */
   const [holeBoost, setHoleBoost] = React.useState<number>(0);
+  /** 上一帧首事件 id（补拉锚定的判据：它仍在数组里且下标 > 0 = 发生了向上补拉）。 */
+  const prevFirstIdRef = React.useRef<string>('');
+  /** 上一帧滚动容器总高（补拉补偿的增量基数）。 */
+  const prevScrollHeightRef = React.useRef<number>(0);
 
   // 切会话：滚动位置与贴底意图都属于上一个会话，必须复位。否则在 A 里上滚后打开 B，
   // B 会停在旧偏移、且 `stickyRef=false` 让之后的新内容再也不自动贴底（会话时钟在
@@ -455,19 +459,53 @@ function useStreamScroll(
     setScrollTop(0);
     setScrollDistance(0);
     setHoleBoost(0);
+    prevFirstIdRef.current = '';
+    prevScrollHeightRef.current = 0;
   }, [threadId]);
 
   // 新事件 / 流式输入 / 流式正文到达后锚定到底部（长会话里用户不必手动追）；兼作挂载即滚动。
   // 同时同步可视高度：首屏拿到 DOM 真实高度后虚拟窗口才准。
   // 依赖含 streamText：长回答逐段变高时，处于底部的用户也能被持续贴底（上滚后 stickyRef=false 即不再拉回）。
+  //
+  // **向上补拉锚定**（2026-11-28 用户报「刷新后向上滚动出现重复/错排」）：「加载更早」把整页
+  // 历史插进视口**上方**，scrollTop 不动 ⇒ 阅读位置被瞬移约一页（用户看到看过的内容＝重复感），
+  // 接缝处估算高度回填再抖一次（＝错排感）。判据：上一帧首事件 id 仍在新数组里且下标 > 0
+  // （单纯 append / 整体替换都不满足），且用户未贴底 ⇒ 把新增总高补进 scrollTop，阅读位置原地不动。
+  // 注意边界：这是**补拉插入**的锚定，不是空洞修复的「写回」——空洞修复仍然只加渲
+  // （见 useBlockMeasurements 与其接线守卫）；overflow-anchor:none 已关掉浏览器自带锚定
+  // （chat.css），这里的补偿是手动补拉的必要配套。
   React.useEffect(() => {
     const el = streamRef.current;
     if (!el) return;
     if (el.clientHeight !== viewportHeight) setViewportHeight(el.clientHeight);
-    el.scrollTop = StreamWindow.stickyScrollTop(stickyRef.current, el);
-    // 记录实际落点（浏览器会 clamp），供 onScroll 区分程序化滚动。
-    programmaticTopRef.current = el.scrollTop;
+    const firstId = events[0]?.id ?? '';
+    const prevFirstId = prevFirstIdRef.current;
+    let prepended = false;
+    if (prevFirstId !== '' && firstId !== prevFirstId) {
+      const prevIdx = events.findIndex((ev) => ev.id === prevFirstId);
+      prepended = prevIdx > 0;
+    }
+    if (prepended && !stickyRef.current) {
+      const delta = el.scrollHeight - prevScrollHeightRef.current;
+      if (delta > 0) {
+        el.scrollTop += delta;
+        programmaticTopRef.current = el.scrollTop;
+      }
+    } else {
+      el.scrollTop = StreamWindow.stickyScrollTop(stickyRef.current, el);
+      // 记录实际落点（浏览器会 clamp），供 onScroll 区分程序化滚动。
+      programmaticTopRef.current = el.scrollTop;
+    }
+    prevFirstIdRef.current = firstId;
+    prevScrollHeightRef.current = el.scrollHeight;
   }, [events, liveInputs, streamText]);
+
+  // 测量回填会改 scrollHeight（估算 → 实测），但不经过上面的锚定 effect——
+  // 在这里静默刷新增量基数，下一次补拉的补偿才不会把测量漂移一起算进去。
+  React.useEffect(() => {
+    const el = streamRef.current;
+    if (el !== null) prevScrollHeightRef.current = el.scrollHeight;
+  }, [measureTick]);
 
   /**
    * 滚动：记录贴底状态并按真实 scrollTop 重算窗口（virtualization 的唯一驱动源）。
@@ -651,6 +689,7 @@ function useBlockMeasurements(deps: BlockMeasurementDeps): void {
  */
 function buildEventCtx(props: StreamViewProps, model: StreamModel, clusterFresh: boolean): EventCtx {
   return {
+    threadId: props.threadId ?? null,
     toolResults: props.toolResults,
     onEventClick: props.onEventClick,
     onOpenFile: props.onOpenFile,

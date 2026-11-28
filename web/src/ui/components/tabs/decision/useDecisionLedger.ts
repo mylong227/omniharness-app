@@ -4,6 +4,7 @@
 // 详情 followTick=false、按选中记录取数、切记录/切会话即复位。原实现的两套 seq ref
 // 与两段 effect 复位逻辑删除，静默刷新（refreshing）由核心提供。
 
+import { errorMessageOf } from '../../../../core/errorText.ts';
 import * as React from 'react';
 import { useApp } from '../../../context.ts';
 import { t } from '../../../i18n/i18n.ts';
@@ -115,7 +116,7 @@ export function useDecisionLedger(threadId: string | null): UseDecisionLedgerRes
       const result = await api.decision.decisionExport(threadId);
       return isFailure(result) ? result.message : result;
     } catch (e) {
-      return e instanceof Error ? e.message : String(e);
+      return errorMessageOf(e);
     }
   }, [api, threadId]);
 
@@ -128,7 +129,7 @@ export function useDecisionLedger(threadId: string | null): UseDecisionLedgerRes
         void view.refresh();
         return result.settings;
       } catch (e) {
-        return e instanceof Error ? e.message : String(e);
+        return errorMessageOf(e);
       }
     },
     [api, view],

@@ -41,10 +41,16 @@ test('会话时间分组头是可展开按钮（不再是 div onClick）', () =>
   );
 });
 
-test('事件卡片有键盘可达的详情按钮（卡片点按只是鼠标捷径）', () => {
+test('事件卡片详情按钮：鼠标不可见（键盘专用），卡片点按仍是鼠标捷径', () => {
   assert.match(STREAM_VIEW, /className="ev-open"/u);
   assert.match(STREAM_VIEW, /aria-label=\{t\('查看事件详情'\)\}/u);
   assert.match(STREAM_VIEW, /e\.stopPropagation\(\);\s*ctx\.onEventClick\(ev\);/u);
+  const CHAT_CSS = readFileSync('web/styles/chat.css', 'utf8');
+  // 2026-11-27 用户口径「去掉」悬浮「…」：hover 不再显形，仅键盘 :focus-visible 显形。
+  assert.doesNotMatch(CHAT_CSS, /\.ev:hover \.ev-open/u, '悬浮显形已移除——鼠标用户不应再看到「…」');
+  assert.doesNotMatch(CHAT_CSS, /@media \(hover: none\)[\s\S]{0,40}\.ev-open/u, '触屏也不再半显形');
+  assert.match(CHAT_CSS, /\.ev-open:focus-visible\s*\{[^}]*pointer-events:\s*auto/u, '键盘焦点显形且可激活');
+  assert.match(CHAT_CSS, /\.ev-open\s*\{[^}]*pointer-events:\s*none/u, '隐形态不拦截指针（触屏不误触）');
 });
 
 test('设置字段行带 data-field-id（搜索跳转的锚点），搜索组件常驻左栏', () => {

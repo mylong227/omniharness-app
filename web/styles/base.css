@@ -29,7 +29,6 @@ li,
 }
 
 /* 会跳动的数字一律等宽数字，防止每次刷新横向抖一下。 */
-.wi-time,
 .time,
 .metric .n,
 .usage-table td,
@@ -1469,7 +1468,3 @@ pre.json {
   font-size: 11.5px;
 }
 
-/* 工作状态条：无框一行；动态交给品牌标识（BrandMark compact）表达。 */
-.work-indicator {
-  font-size: 11.5px;
-}

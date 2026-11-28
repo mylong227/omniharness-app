@@ -4,6 +4,7 @@
 // 事件重拉；这里只在挂载与 `workspaceEpoch`（项目身份真的换了）变化时取一次。
 // `alive` 防迟到响应写回已卸载 / 已切项目的视图。
 
+import { errorMessageOf } from '../../../core/errorText.ts';
 import * as React from 'react';
 import type { ApiClient } from '../../../core/ApiClient.ts';
 
@@ -102,7 +103,7 @@ export function useWorkspaceChangeBrief(
       })
       .catch((cause: unknown) => {
         if (!alive) return;
-        setError(cause instanceof Error ? cause.message : String(cause));
+        setError(errorMessageOf(cause));
         setLoading(false);
       });
     return () => {

@@ -18,6 +18,7 @@
 // 目录（类型/分栏/字段/标签表）已拆到 ./settings/ 域模块（2026-11-20 目录化，2026-11-21 W2 按栏拆分）——
 // 本文件只保留**读写通道**（SettingsModel 类）。全部目录符号经下方重导出保持既有导入面。
 
+import { errorMessageOf } from '../../core/errorText.ts';
 import type { Config } from '../../types/models.ts';
 import { desktopBridge } from '../../core/desktop/DesktopBridge.ts';
 import { t } from '../i18n/i18n.ts';
@@ -195,7 +196,7 @@ export class SettingsModel {
       if (this.snapshot.cfg === null) {
         this.set({
           loadError: t('读取配置失败：{msg}', {
-            msg: e instanceof Error ? e.message : String(e),
+            msg: errorMessageOf(e),
           }),
         });
       }

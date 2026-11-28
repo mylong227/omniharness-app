@@ -86,7 +86,10 @@ pre.json { border:1px solid var(--border-soft); padding:8px 10px; margin-top:7px
 .doc-fold--open .doc-fold__preview { max-height:none; overflow:visible; }
 .doc-fold--open .doc-fold__preview::after { content:none; }
 
-/* 事件详情入口（2026-11-15）：鼠标点卡片是捷径；这枚按钮给键盘/读屏用户一个真实落点。 */
+/* 事件详情入口（2026-11-15 引入；2026-11-27 用户口径「去掉」悬浮「…」）：
+   鼠标/触屏一律走卡片点按（卡片 onClick 本来就是捷径），按钮退为**键盘专用**——
+   平时视觉隐藏且 pointer-events:none（不拦截触屏点按、不会误触），
+   仅键盘 :focus-visible 时显形；读屏仍是一枚有名字的真按钮（可达性不回退）。 */
 .ev.clickable { position: relative; }
 .ev-open {
   position: absolute;
@@ -102,17 +105,12 @@ pre.json { border:1px solid var(--border-soft); padding:8px 10px; margin-top:7px
   background: var(--panel);
   color: var(--dim);
   opacity: 0;
-  cursor: pointer;
+  pointer-events: none;
   transition: opacity 0.12s ease;
 }
-.ev:hover .ev-open,
-.ev:focus-within .ev-open,
 .ev-open:focus-visible {
   opacity: 1;
-}
-.ev-open:hover { color: var(--text); border-color: var(--border-strong); }
-@media (hover: none) {
-  .ev-open { opacity: 0.7; }
+  pointer-events: auto;
 }
 
 /* ---- 压缩游标事件收纳（2026-10-13）：摘要默认一行，点击展开全文 ---- */
@@ -143,6 +141,26 @@ pre.json { border:1px solid var(--border-soft); padding:8px 10px; margin-top:7px
 }
 .ctx-note--compaction { --note-tint: var(--accent); }
 .ctx-note--memory { --note-tint: var(--info); }
+
+/* ---- 压缩游标 / 工作流记忆：单行注入注（2026-11-27/28 用户口径）----
+   「一行展示、不展开、背景与流一致」：内容写给模型看，人看标题 + 元信息就够——
+   卡片壳（panel 底 + 发丝线）与展开体只留给长注记；压缩详情在「上下文」面板的
+   压缩时间线里仍有完整呈现。超长文本单行省略，不折行不撑高；
+   图标沿用语义色温（压缩=墨 accent / 记忆=雾蓝 info）。 */
+.ctx-inline {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 2px 0;
+  font-size: 12px;
+}
+.ctx-inline__ico { flex: none; display: inline-flex; color: var(--faint); }
+.ctx-inline--memory .ctx-inline__ico { color: var(--info); }
+.ctx-inline--compaction .ctx-inline__ico { color: var(--accent); }
+.ctx-inline__title { flex: none; font-weight: 600; color: var(--text); }
+.ctx-inline__meta { flex: none; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ctx-inline__text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--dim); }
 .ctx-note__head {
   display: flex;
   flex-direction: column;
@@ -563,3 +581,26 @@ details.standalone summary::-webkit-details-marker { display:none; }
   50% { transform: scale(1.18); opacity: 1; }
 }
 
+
+/* 压缩注的详情跳转入口（2026-11-28）：详情的家在右栏「上下文」面板——流内不重建。 */
+.ctx-inline__jump {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--faint);
+  cursor: pointer;
+}
+.ctx-inline__jump:hover {
+  color: var(--accent);
+  border-color: var(--border);
+}
+.ctx-inline__jump:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}

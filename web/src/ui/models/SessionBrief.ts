@@ -125,7 +125,9 @@ export class SessionBrief {
           }
         }
       }
-      if (ev.type === 'tool_result' && ev.payload?.['ok'] === false) toolFailures += 1;
+      // 失败判定统一 fail-closed（EventFields.toolFailed）：此前 ok 缺省不计失败（fail-open），
+      // 与轨迹徽标口径漂移——同一回合两处失败数可不一致（2026-11-28 评审收编）。
+      if (ev.type === 'tool_result' && EventFields.toolFailed(ev)) toolFailures += 1;
       if (ev.type === 'turn_diff') {
         const diff = typeof ev.payload?.['diff'] === 'string' ? ev.payload.diff : '';
         for (const file of parseTurnDiffFiles(diff)) {

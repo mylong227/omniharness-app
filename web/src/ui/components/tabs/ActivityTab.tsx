@@ -3,6 +3,7 @@
 // 之前这些信息分散在中栏状态、工具面板、变更面板与审批弹窗里；Codex 式桌面工作台需要一个
 // 一眼能回答「现在卡在哪、下一步点哪」的入口。本面板只做**聚合视图**，不复制业务逻辑：
 // 审批/提问仍由 ApprovalModal / QuestionCard 处理，变更仍由 ChangesTab 负责写操作。
+import { errorMessageOf } from '../../../core/errorText.ts';
 import * as React from 'react';
 import { useApp } from '../../context.ts';
 import type { ApprovalRequest, QuestionRequest, ThreadEvent } from '../../../types/models.ts';
@@ -175,7 +176,7 @@ export function ActivityTab(props: ActivityTabProps): React.ReactElement {
         }
       })
       .catch((cause: unknown) => {
-        if (alive) setChangesError(cause instanceof Error ? cause.message : String(cause));
+        if (alive) setChangesError(errorMessageOf(cause));
       });
     return () => {
       alive = false;

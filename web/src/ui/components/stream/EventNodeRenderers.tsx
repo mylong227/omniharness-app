@@ -6,7 +6,28 @@
 // S2 长函数清偿批次：renderEventNode 体 135 → <80。
 
 import * as React from 'react';
-import { badge, jsonView, questionView, timeOf, todoView } from '../../format.ts';
+import { badge, jsonView, questionView, timeOf, todoBrief, todoView } from '../../format.ts';
+import { EventFields } from '../../models/EventFields.ts';
+
+/**
+ * 事件载荷 pretty-print 的按 id 缓存：折叠体（audit / unknown）的 JSON.stringify 在
+ * <details> 折叠态也照常执行，事件流每个 SSE 增量都会重跑视口内全部折叠体（一轮几十条）
+ * ——2026-11-28 评审发现的真实每帧开销。载荷不可变（事件不可变语义），按 id 缓存一次。
+ */
+const PAYLOAD_JSON_CACHE = new Map<string, string>();
+
+/**
+ * 取事件载荷的 pretty-print（按事件 id 缓存；上限 600 条，超限即不再缓存直算）。
+ * @param ev 事件
+ * @returns pretty-print JSON 文本
+ */
+function payloadJsonOf(ev: ThreadEvent): string {
+  const cached = PAYLOAD_JSON_CACHE.get(ev.id);
+  if (cached !== undefined) return cached;
+  const json = JSON.stringify(ev.payload ?? {}, null, 2);
+  if (PAYLOAD_JSON_CACHE.size < 600) PAYLOAD_JSON_CACHE.set(ev.id, json);
+  return json;
+}
 import { icon } from '../../kit/Icon.tsx';
 import { SystemNoteNode } from './ContextBriefingCard.tsx';
 import { t } from '../../i18n/i18n.ts';
@@ -15,6 +36,8 @@ import type { ToolResultView } from '../../shared.ts';
 
 /** 事件渲染上下文（StreamView 组装，渲染函数只读）。 */
 export interface EventCtx {
+  /** 当前会话 id（压缩注跳转上下文面板的路由参数；null = 未选会话）。 */
+  threadId: string | null;
   toolResults: Record<string, ToolResultView>;
   onEventClick: (ev: ThreadEvent) => void;
   onOpenFile?: (path: string) => Promise<boolean> | boolean | void;
@@ -78,13 +101,18 @@ export function renderStandaloneToolResult(ev: ThreadEvent, p: Record<string, un
  */
 export function renderSystemNode(
   p: Record<string, unknown>,
+  ctx: EventCtx,
   node: EvWrapper,
 ): React.ReactElement {
   // 2026-11-16 用户反馈：压缩游标（带 evidence=）与工作流记忆（单行 → 步骤串）此前按纯文本
-  // 平铺，几 KB 的 base64 与上千字命令串糊满一屏。现在统一收成折叠卡：折叠态给标题 + 元信息
-  // + 首行摘要，展开后压缩摘要是分节 Markdown、记忆召回是逐条步骤（判定见 models/SystemNote）。
-  // 归类放在 SystemNoteNode 内部做（按 content 记忆），不在这里每次渲染重跑一遍。
-  return node(<SystemNoteNode content={(p.content as string) || ''} />);
+  // 平铺，几 KB 的 base64 与上千字命令串糊满一屏。2026-11-27/28 收敛为单行注入注；
+  // 压缩详情的家在右栏「上下文」面板（压缩切点分区）——流内只给跳转入口，不重建详情。
+  return node(
+    <SystemNoteNode
+      content={(p.content as string) || ''}
+      threadId={ctx.threadId}
+    />,
+  );
 }
 
 /**
@@ -119,7 +147,7 @@ export function renderAuditGroup(events: readonly ThreadEvent[]): React.ReactEle
               <span className="mono">{auditTimeOf(ev)}</span>
               <span className="audit-record__kind">{auditKindOf(ev)}</span>
             </div>
-            <pre className="audit-record__json">{JSON.stringify(ev.payload ?? {}, null, 2)}</pre>
+            <pre className="audit-record__json">{payloadJsonOf(ev)}</pre>
           </div>
         ))}
       </div>
@@ -144,23 +172,46 @@ function auditKindOf(ev: ThreadEvent): string {
  * @returns 本地时间文本
  */
 function auditTimeOf(ev: ThreadEvent): string {
-  const raw: unknown = ev.timestamp;
-  const ts = typeof raw === 'number' ? raw : Date.parse(String(raw));
-  return Number.isFinite(ts) ? timeOf(ts) : '';
+  // 归一单源（EventFields.timestamp）：number / ISO 双形态的兼容只写一份。
+  return timeOf(EventFields.timestamp(ev));
 }
 
 /**
- * 待办清单事件：badge 头 + 待办视图。
+ * 待办清单事件（2026-11-27 收编为折叠摘要）：badge + 完成计数 + 当前进行项一行摘要，
+ * 点击展开全量。为什么折叠：底部计划坞（TodoDock）已经常驻显示最新待办，流内历史卡
+ * 再整表铺开就是同屏重复（用户报「重复了」）；历史卡的职责是留痕，不是抢实时状态位。
  * @param p 事件负载
  * @param node 事件包装器
  * @returns 节点
  */
 export function renderTodoNode(p: Record<string, unknown>, node: EvWrapper): React.ReactElement {
+  const todos = (p.todos as Parameters<typeof todoView>[0]) || [];
+  if (todos.length === 0) {
+    return node(
+      <>
+        <div className="head">{badge('todo')}</div>
+        {todoView(todos)}
+      </>,
+    );
+  }
+  const brief = todoBrief(todos);
   return node(
-    <>
-      <div className="head">{badge('todo')}</div>
-      {todoView((p.todos as Parameters<typeof todoView>[0]) || [])}
-    </>,
+    // 阻断冒泡（与 audit-fold / unknown-fold 同纪律）：折叠开关的点击不该顺带打开事件钻取。
+    <details
+      className="todo-event"
+      onClick={(e: React.MouseEvent) => e.stopPropagation()}
+    >
+      <summary className="head todo-event__summary">
+        {badge('todo')}
+        <span className="todo-event__brief">
+          {brief.done}/{brief.total}
+          {brief.current === undefined ? null : (
+            <span className="todo-event__current">{brief.current}</span>
+          )}
+        </span>
+      </summary>
+      {todoView(todos)}
+    </details>,
   );
 }
 

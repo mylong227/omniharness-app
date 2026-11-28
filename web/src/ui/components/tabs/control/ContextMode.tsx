@@ -1,11 +1,17 @@
-// 上下文模式（Context）：六类构成 + 压缩时间线 + 便签区。
+// 上下文模式（Context）：六类构成 + 内核策略 + 压缩切点 + 交接便签。
 //
 // 诚实语义（设计 §5.6）：估算标「估算」；没有压缩写「尚未压缩」；审计未记录写
 // 「未记录审计」而不是「全部通过」。
 //
 // 2026-11-11 控制台 antd 化：卡片/按钮/折叠/输入/空态/错误态全部换成 antd 组件，
 // 只保留「六类构成条」这一处自绘图形（antd 没有按比例堆叠的分段条）。
+//
+// 2026-11-28 S-2 稳定化（用户报「tick 驱动的面板跳变」）：快照每 tick 重取一次，服务端
+// 每次回新对象——内容没变引用也变，整树陪跑重渲染。现在①快照经 contextFingerprintOf
+// 内容指纹稳定化（内容没变 ⇒ 复用旧引用）；②四个分区抽成 memo 组件，props 引用稳定即
+// 跳过重渲染；③构成条 flex-grow 加过渡（S-3，消「跳宽」闪动感）。
 
+import { errorMessageOf } from '../../../../core/errorText.ts';
 import * as React from 'react';
 import type { ReactElement } from 'react';
 // 子路径导入（不走 barrel，理由见 vite.config.ts「分块改造」注释）。
@@ -22,6 +28,7 @@ import Space from 'antd/es/space';
 import Typography from 'antd/es/typography';
 import { t } from '../../../i18n/i18n.ts';
 import { contextRowLabelOf } from '../../../models/KernelTextOverrides.ts';
+import { contextFingerprintOf } from '../../../models/ContextFingerprint.ts';
 import { useApp } from '../../../context.ts';
 import { icon } from '../../../kit/Icon.tsx';
 import { timeOf } from '../../../format.ts';
@@ -149,13 +156,260 @@ function cacheGuardText(floor: number | undefined, cache: ContextCacheStat): str
   return t('命中率下限 {floor} · 当前 {rate}', { floor: String(floor), rate });
 }
 
-/** 上下文模式：本轮构成 / 内核上下文策略 / 压缩记录 / 交接便签。 */
+/** 「本轮构成」分区的入参。 */
+interface CompositionSectionProps {
+  /** 用量报告（引用稳定：内容没变就是同一个对象）。 */
+  readonly report: ContextStudioSnapshotLike['report'];
+  /** 立即压缩进行中。 */
+  readonly compacting: boolean;
+  /** 立即压缩（二次确认在回调内）。 */
+  readonly onCompact: () => void;
+}
+
+/** 「本轮构成」分区：token 预算 + 六类构成条 + 压缩动作。内容不变不重渲染。 */
+const CompositionSection = React.memo(function CompositionSection(
+  props: CompositionSectionProps,
+): ReactElement {
+  const { report, compacting, onCompact } = props;
+  const sourceLabel =
+    report.source === 'measured' ? t('实测') : report.source === 'estimated' ? t('估算') : t('无数据');
+  return (
+    <PanelSection
+      title={t('本轮构成')}
+      extra={<StatusTag status={sourceStatusKind(report.source)}>{sourceLabel}</StatusTag>}
+    >
+      <Flex vertical gap={12}>
+        <Typography.Text type="secondary" className="mono">
+          {report.usedTokens.toLocaleString()} / {report.windowTokens.toLocaleString()} · {report.percent}%
+        </Typography.Text>
+        <div className="control-usage" role="img" aria-label={t('六类构成')}>
+          {report.rows.map((row) => (
+            <div
+              key={row.key}
+              className={`control-usage__seg control-usage__seg--${row.key ?? 'other'}`}
+              style={{ flexGrow: Math.max(row.tokens, 0) }}
+              title={`${contextRowLabelOf(String(row.key), row.label)} ${row.tokens.toLocaleString()}（${row.percent}%）`}
+            />
+          ))}
+        </div>
+        <Space wrap size={16}>
+          {report.rows.map((row) => (
+            <Typography.Text key={row.key} type="secondary">
+              {contextRowLabelOf(String(row.key), row.label)} <span className="mono">{row.percent}%</span>
+            </Typography.Text>
+          ))}
+        </Space>
+        <Divider dashed style={{ margin: 0, borderBlockStartColor: 'var(--border-soft)' }} />
+        <Flex align="center" wrap gap={12}>
+          <Button danger icon={icon('archive', { size: 14 })} loading={compacting} onClick={onCompact}>
+            {compacting ? t('压缩中…') : t('立即压缩')}
+          </Button>
+          <Typography.Text type="secondary">
+            {t('只对空闲会话生效；会写回压缩游标，不是仅刷新显示。')}
+          </Typography.Text>
+        </Flex>
+      </Flex>
+    </PanelSection>
+  );
+});
+
+/** 「内核上下文策略」分区的入参。 */
+interface KernelPolicySectionProps {
+  /** 内核上下文策略视图。 */
+  readonly kernel: KernelContextViewLike;
+  /** 会话缓存统计（缓存守卫行的命中率）。 */
+  readonly cache: ContextCacheStat;
+}
+
+/** 「内核上下文策略」分区：检索/召回/降档/缓存守卫生效值。内容不变不重渲染。 */
+const KernelPolicySection = React.memo(function KernelPolicySection(
+  props: KernelPolicySectionProps,
+): ReactElement {
+  const { kernel, cache } = props;
+  return (
+    <PanelSection
+      title={t('内核上下文策略')}
+      extra={<StatusTag status={kernelStatusKind(kernel)}>{kernelStatusLabel(kernel)}</StatusTag>}
+    >
+      <Flex vertical gap={10}>
+        <Descriptions
+          className="control-kernel-context"
+          size="small"
+          column={1}
+          colon={false}
+          items={[
+            {
+              key: 'retrieval',
+              label: t('检索供给'),
+              children: retrievalText(kernel.retrievalContext),
+            },
+            {
+              key: 'rewrite',
+              label: t('查询改写 / 精排'),
+              children: t('改写 {rewrite} · 精排 {rerank}', {
+                rewrite: modeText(kernel.retrievalContext.rewriter),
+                rerank: modeText(kernel.retrievalContext.rerank),
+              }),
+            },
+            {
+              key: 'semantic',
+              label: t('语义召回'),
+              children: semanticRecallText(kernel.semanticRecall),
+            },
+            {
+              key: 'ladder',
+              label: t('降档阶梯'),
+              children: t('激进裁剪 {a} · 强制压缩 {b}', {
+                a: onOffText(kernel.contextPolicy.shapersAggressive),
+                b: onOffText(kernel.contextPolicy.compactionForce),
+              }),
+            },
+            {
+              key: 'guard',
+              label: t('缓存守卫'),
+              children: cacheGuardText(kernel.contextPolicy.cacheGuardFloor, cache),
+            },
+          ]}
+        />
+        <Typography.Text type="secondary">
+          {t('以上是内核 alpha.19 上下文三段的生效值；入口在「设置 → 运行时 → 上下文与检索」。')}
+        </Typography.Text>
+      </Flex>
+    </PanelSection>
+  );
+});
+
+/** 「压缩切点」分区的入参。 */
+interface CompactionsSectionProps {
+  /** 压缩记录（时间顺序）。 */
+  readonly compactions: readonly CompactionMarkLike[];
+}
+
+/** 「压缩切点」分区：压缩历史时间线（流内压缩注的详情家在这里）。内容不变不重渲染。 */
+const CompactionsSection = React.memo(function CompactionsSection(
+  props: CompactionsSectionProps,
+): ReactElement {
+  const { compactions } = props;
+  return (
+    <PanelSection title={t('压缩切点')}>
+      {compactions.length === 0 ? (
+        <Typography.Text type="secondary">
+          {t('尚未压缩。当会话接近窗口预算时，内核会把较早历史折叠为摘要，切点会出现在这里。')}
+        </Typography.Text>
+      ) : (
+        <Collapse
+          ghost
+          size="small"
+          expandIconPlacement="end"
+          items={compactions.map((mark, index) => ({
+            key: `${mark.at}-${String(index)}`,
+            label: <CompactionLabel mark={mark} />,
+            children: <CompactionBody mark={mark} />,
+          }))}
+        />
+      )}
+    </PanelSection>
+  );
+});
+
+/** 「交接便签」分区的入参。 */
+interface HandoffSectionProps {
+  /** 快照（handoff / handoffAvailable 从这里取）。 */
+  readonly snapshot: ContextStudioSnapshotLike;
+  /** 便签输入内容。 */
+  readonly noteText: string;
+  /** 便签写入进行中。 */
+  readonly noteBusy: boolean;
+  /** 输入变化。 */
+  readonly onNoteTextChange: (value: string) => void;
+  /** 追加便签。 */
+  readonly onAddNote: () => void;
+}
+
+/** 「交接便签」分区：跨压缩存活的工作区便签。内容不变不重渲染。 */
+const HandoffSection = React.memo(function HandoffSection(props: HandoffSectionProps): ReactElement {
+  const { snapshot, noteText, noteBusy, onNoteTextChange, onAddNote } = props;
+  return (
+    <PanelSection title={t('交接便签')}>
+      {snapshot.handoffAvailable ? (
+        <Flex vertical gap={12}>
+          <Typography.Text type="secondary">
+            {t('工作区级便签；压缩摘要会自动带上最新一条，重置后仍能恢复「做到哪、下一步」。')}
+          </Typography.Text>
+          <Flex vertical gap={8}>
+            <Typography.Text type="secondary">{t('写一条交接便签')}</Typography.Text>
+            <Input.TextArea
+              rows={3}
+              maxLength={2000}
+              showCount
+              value={noteText}
+              placeholder={t('例：已完成 A；下一步 B；约束：不要改 C。')}
+              aria-label={t('写一条交接便签')}
+              onChange={(event) => onNoteTextChange(event.target.value)}
+            />
+            <Flex align="center" wrap gap={12}>
+              <Button
+                type="primary"
+                icon={icon('pencil', { size: 14 })}
+                disabled={noteText.trim() === '' || noteBusy}
+                loading={noteBusy}
+                onClick={onAddNote}
+              >
+                {noteBusy ? t('写入中…') : t('写入便签')}
+              </Button>
+              {snapshot.handoff.length === 0 ? (
+                <Typography.Text type="secondary">{t('便签通道已接线，但还没有便签。')}</Typography.Text>
+              ) : null}
+            </Flex>
+          </Flex>
+          {snapshot.handoff.length === 0 ? null : (
+            <List
+              size="small"
+              split={false}
+              dataSource={[...snapshot.handoff]}
+              renderItem={(note) => (
+                <List.Item>
+                  <List.Item.Meta
+                    title={<Typography.Text>{note.text}</Typography.Text>}
+                    description={
+                      <Typography.Text type="secondary" className="mono">
+                        {timeOf(Date.parse(note.createdAt))}
+                        {note.tags.length > 0 ? ` · ${note.tags.join('、')}` : ''}
+                      </Typography.Text>
+                    }
+                  />
+                </List.Item>
+              )}
+            />
+          )}
+        </Flex>
+      ) : (
+        <Typography.Text type="secondary">
+          {t(
+            '便签通道未接线（内核 ScratchpadPort 在当前 serve 路径没有注入点），v1 暂无便签；接线后这里显示跨压缩存活的交接内容。',
+          )}
+        </Typography.Text>
+      )}
+    </PanelSection>
+  );
+});
+
+/** 上下文模式：本轮构成 / 内核上下文策略 / 压缩切点 / 交接便签。 */
 export function ContextMode(props: ContextModeProps): ReactElement {
   const { snapshot, loading, error, refresh } = useContextStudio(props.threadId, props.active);
   const { api, dialog, toast } = useApp();
   const [noteText, setNoteText] = React.useState('');
   const [noteBusy, setNoteBusy] = React.useState(false);
   const [compacting, setCompacting] = React.useState(false);
+
+  // S-2 内容指纹稳定化：内容没变 ⇒ 复用上一次的快照引用（memo 分区据此跳过重渲染）。
+  // 指纹只覆盖面板渲染的字段（见 ContextFingerprint.ts 头注）。
+  const fingerprint = React.useMemo(
+    () => (snapshot === null ? '' : contextFingerprintOf(snapshot)),
+    [snapshot],
+  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- 依赖是内容指纹而非引用
+  const stable = React.useMemo(() => snapshot, [fingerprint]);
 
   /**
    * 追加一条交接便签并刷新快照。
@@ -176,7 +430,7 @@ export function ContextMode(props: ContextModeProps): ReactElement {
         refresh();
         toast(t('交接便签已写入；下一次压缩会带上它。'), 'info');
       })
-      .catch((e: unknown) => toast(e instanceof Error ? e.message : String(e), 'err'))
+      .catch((e: unknown) => toast(errorMessageOf(e), 'err'))
       .finally(() => setNoteBusy(false));
   }, [api, noteBusy, noteText, refresh, toast]);
 
@@ -214,7 +468,7 @@ export function ContextMode(props: ContextModeProps): ReactElement {
             );
             refresh();
           })
-          .catch((e: unknown) => toast(e instanceof Error ? e.message : String(e), 'err'))
+          .catch((e: unknown) => toast(errorMessageOf(e), 'err'))
           .finally(() => setCompacting(false));
       });
   }, [api, compacting, dialog, props.threadId, refresh, toast]);
@@ -230,7 +484,7 @@ export function ContextMode(props: ContextModeProps): ReactElement {
         showIcon
         message={t('上下文报告读取失败：{msg}', { msg: message })}
         action={
-          <Button size="small" onClick={refresh}>
+          <Button size="small" onClick={() => { void refresh(); }}>
             {t('重试')}
           </Button>
         }
@@ -247,190 +501,22 @@ export function ContextMode(props: ContextModeProps): ReactElement {
       <EmptyState title={t('暂无上下文数据。')} />
     );
   }
-  const report = snapshot.report;
-  const sourceLabel =
-    report.source === 'measured' ? t('实测') : report.source === 'estimated' ? t('估算') : t('无数据');
+  // 指纹非空 ⇔ 快照非空（ContextFingerprint 的口径），此处 stable 必已就位。
+  if (stable === null) {
+    return <Skeleton active title={false} paragraph={{ rows: 6 }} />;
+  }
   return (
     <Flex vertical gap={16}>
-      <PanelSection
-        title={t('本轮构成')}
-        extra={<StatusTag status={sourceStatusKind(report.source)}>{sourceLabel}</StatusTag>}
-      >
-        <Flex vertical gap={12}>
-          <Typography.Text type="secondary" className="mono">
-            {report.usedTokens.toLocaleString()} / {report.windowTokens.toLocaleString()} · {report.percent}%
-          </Typography.Text>
-          <div className="control-usage" role="img" aria-label={t('六类构成')}>
-            {report.rows.map((row) => (
-              <div
-                key={row.key}
-                className={`control-usage__seg control-usage__seg--${row.key ?? 'other'}`}
-                style={{ flexGrow: Math.max(row.tokens, 0) }}
-                title={`${contextRowLabelOf(String(row.key), row.label)} ${row.tokens.toLocaleString()}（${row.percent}%）`}
-              />
-            ))}
-          </div>
-          <Space wrap size={16}>
-            {report.rows.map((row) => (
-              <Typography.Text key={row.key} type="secondary">
-                {contextRowLabelOf(String(row.key), row.label)} <span className="mono">{row.percent}%</span>
-              </Typography.Text>
-            ))}
-          </Space>
-          <Divider dashed style={{ margin: 0, borderBlockStartColor: 'var(--border-soft)' }} />
-          <Flex align="center" wrap gap={12}>
-            <Button
-              danger
-              icon={icon('archive', { size: 14 })}
-              loading={compacting}
-              onClick={compactNow}
-            >
-              {compacting ? t('压缩中…') : t('立即压缩')}
-            </Button>
-            <Typography.Text type="secondary">
-              {t('只对空闲会话生效；会写回压缩游标，不是仅刷新显示。')}
-            </Typography.Text>
-          </Flex>
-        </Flex>
-      </PanelSection>
-
-      <PanelSection
-        title={t('内核上下文策略')}
-        extra={
-          <StatusTag status={kernelStatusKind(snapshot.kernel)}>
-            {kernelStatusLabel(snapshot.kernel)}
-          </StatusTag>
-        }
-      >
-        <Flex vertical gap={10}>
-          <Descriptions
-            className="control-kernel-context"
-            size="small"
-            column={1}
-            colon={false}
-            items={[
-              {
-                key: 'retrieval',
-                label: t('检索供给'),
-                children: retrievalText(snapshot.kernel.retrievalContext),
-              },
-              {
-                key: 'rewrite',
-                label: t('查询改写 / 精排'),
-                children: t('改写 {rewrite} · 精排 {rerank}', {
-                  rewrite: modeText(snapshot.kernel.retrievalContext.rewriter),
-                  rerank: modeText(snapshot.kernel.retrievalContext.rerank),
-                }),
-              },
-              {
-                key: 'semantic',
-                label: t('语义召回'),
-                children: semanticRecallText(snapshot.kernel.semanticRecall),
-              },
-              {
-                key: 'ladder',
-                label: t('降档阶梯'),
-                children: t('激进裁剪 {a} · 强制压缩 {b}', {
-                  a: onOffText(snapshot.kernel.contextPolicy.shapersAggressive),
-                  b: onOffText(snapshot.kernel.contextPolicy.compactionForce),
-                }),
-              },
-              {
-                key: 'guard',
-                label: t('缓存守卫'),
-                children: cacheGuardText(
-                  snapshot.kernel.contextPolicy.cacheGuardFloor,
-                  report.cache,
-                ),
-              },
-            ]}
-          />
-          <Typography.Text type="secondary">
-            {t('以上是内核 alpha.19 上下文三段的生效值；入口在「设置 → 运行时 → 上下文与检索」。')}
-          </Typography.Text>
-        </Flex>
-      </PanelSection>
-
-      <PanelSection title={t('压缩切点')}>
-        {snapshot.compactions.length === 0 ? (
-          <Typography.Text type="secondary">
-            {t('尚未压缩。当会话接近窗口预算时，内核会把较早历史折叠为摘要，切点会出现在这里。')}
-          </Typography.Text>
-        ) : (
-          <Collapse
-            ghost
-            size="small"
-            expandIconPlacement="end"
-            items={snapshot.compactions.map((mark, index) => ({
-              key: `${mark.at}-${String(index)}`,
-              label: <CompactionLabel mark={mark} />,
-              children: <CompactionBody mark={mark} />,
-            }))}
-          />
-        )}
-      </PanelSection>
-
-      <PanelSection title={t('交接便签')}>
-        {snapshot.handoffAvailable ? (
-          <Flex vertical gap={12}>
-            <Typography.Text type="secondary">
-              {t('工作区级便签；压缩摘要会自动带上最新一条，重置后仍能恢复「做到哪、下一步」。')}
-            </Typography.Text>
-            <Flex vertical gap={8}>
-              <Typography.Text type="secondary">{t('写一条交接便签')}</Typography.Text>
-              <Input.TextArea
-                rows={3}
-                maxLength={2000}
-                showCount
-                value={noteText}
-                placeholder={t('例：已完成 A；下一步 B；约束：不要改 C。')}
-                aria-label={t('写一条交接便签')}
-                onChange={(event) => setNoteText(event.target.value)}
-              />
-              <Flex align="center" wrap gap={12}>
-                <Button
-                  type="primary"
-                  icon={icon('pencil', { size: 14 })}
-                  disabled={noteText.trim() === '' || noteBusy}
-                  loading={noteBusy}
-                  onClick={addNote}
-                >
-                  {noteBusy ? t('写入中…') : t('写入便签')}
-                </Button>
-                {snapshot.handoff.length === 0 ? (
-                  <Typography.Text type="secondary">{t('便签通道已接线，但还没有便签。')}</Typography.Text>
-                ) : null}
-              </Flex>
-            </Flex>
-            {snapshot.handoff.length === 0 ? null : (
-              <List
-                size="small"
-                split={false}
-                dataSource={[...snapshot.handoff]}
-                renderItem={(note) => (
-                  <List.Item>
-                    <List.Item.Meta
-                      title={<Typography.Text>{note.text}</Typography.Text>}
-                      description={
-                        <Typography.Text type="secondary" className="mono">
-                          {timeOf(Date.parse(note.createdAt))}
-                          {note.tags.length > 0 ? ` · ${note.tags.join('、')}` : ''}
-                        </Typography.Text>
-                      }
-                    />
-                  </List.Item>
-                )}
-              />
-            )}
-          </Flex>
-        ) : (
-          <Typography.Text type="secondary">
-            {t(
-              '便签通道未接线（内核 ScratchpadPort 在当前 serve 路径没有注入点），v1 暂无便签；接线后这里显示跨压缩存活的交接内容。',
-            )}
-          </Typography.Text>
-        )}
-      </PanelSection>
+      <CompositionSection report={stable.report} compacting={compacting} onCompact={compactNow} />
+      <KernelPolicySection kernel={stable.kernel} cache={stable.report.cache} />
+      <CompactionsSection compactions={stable.compactions} />
+      <HandoffSection
+        snapshot={stable}
+        noteText={noteText}
+        noteBusy={noteBusy}
+        onNoteTextChange={setNoteText}
+        onAddNote={addNote}
+      />
     </Flex>
   );
 }
